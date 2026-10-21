@@ -98,6 +98,27 @@ class RecoveryPlanTests(unittest.TestCase):
         config["mail"] = {"transport": "ses", "from_address": "hello@waithakandegwa.com", "from_name": "Waithaka", "postal_address": "Fixture postal address for offline test", "identity_arn": "arn:aws:ses:eu-west-1:111122223333:identity/waithakandegwa.com", "configuration_set": "fixture-feedback", "sns_topic_arn": "arn:aws:sns:eu-west-1:111122223333:fixture-feedback"}
         return config
 
+    def branded_cutover(self, with_report=True):
+        config = self.production()
+        zones = {"waithakandegwa.com": "ZFIXTURECOM", "waithakandegwa.co.ke": "ZFIXTUREKE"}
+        config["dns"] = {"provider": "route53", "zones": {host: zones[host.removeprefix("www.")] for host in config["domains"]["aliases"]}}
+        report = {"kind": "waithaka-branded-dns-verification", "schema_version": 1, "scope": "authoritative-parent-recursive",
+                  "account_id": config["account_id"], "nameservers": [f"ns{number}.waithakandegwa.com." for number in range(1, 5)],
+                  "zones": zones, "checked_at": dt.datetime.now(dt.timezone.utc).isoformat(), "ok": True, "errors": [],
+                  "checks": [{"id": "fixture-parent", "ok": True, "context": {}, "expected": ["fixture"], "observed": ["fixture"]}]}
+        if with_report:
+            config["dns"]["branded_delegation_report"] = str(self.directory / "branded-verification.json")
+            m.write_json(config["dns"]["branded_delegation_report"], report)
+        state = self.state_through_ready()
+        state["config_sha256"] = m.digest(config)
+        m.save_state(config, state)
+        for kind in ("acceptance", "cutover"):
+            self.accept(kind, config, state)
+        snapshot = {"schema_version": 1, "config_sha256": m.digest(config), "created_at": int(m.time.time()),
+                    "records": {host: [] for host in config["domains"]["aliases"]}}
+        m.write_json(self.state_dir / "dns-snapshot.json", snapshot)
+        return config, state, report
+
     def test_complete_explicit_fixture_validates(self):
         self.assertEqual(m.validate_config(self.config), self.config)
 
@@ -417,6 +438,178 @@ class RecoveryPlanTests(unittest.TestCase):
         config["dns"] = {"provider": "route53", "zones": {host: "ZFIXTURE123"}}
         with self.assertRaises(m.GuardError):
             m.dns_changes(config, self.state_through_ready(), {"records": {host: [{"Name": host + ".", "Type": "A", "SetIdentifier": "weighted", "Weight": 10}]}})
+
+    def test_cutover_without_optional_branded_report_preserves_existing_behavior(self):
+        config, state, _ = self.branded_cutover(with_report=False)
+        with patch.object(m.Aws, "call", side_effect=AssertionError("Offline planning must not call AWS")):
+            plan = m.build_plan(config, "cutover", state)
+        self.assertNotIn("branded_delegation", plan)
+        self.assertEqual(len(plan["actions"]), 2)
+        self.assertIsNone(m.branded_delegation_evidence(config))
+
+    def test_branded_report_configuration_requires_private_production_route53_path(self):
+        config, _, _ = self.branded_cutover()
+        self.assertEqual(m.validate_config(config), config)
+        invalid = []
+        staging = copy.deepcopy(self.config)
+        staging["dns"]["branded_delegation_report"] = config["dns"]["branded_delegation_report"]
+        invalid.append(staging)
+        external = copy.deepcopy(config)
+        external["dns"]["provider"] = "external"
+        invalid.append(external)
+        for path in (None, "", "relative.json", str(ROOT / "branded-private-report.json")):
+            changed = copy.deepcopy(config)
+            changed["dns"]["branded_delegation_report"] = path
+            invalid.append(changed)
+        for changed in invalid:
+            with self.subTest(dns=changed["dns"], environment=changed["environment"]), self.assertRaises(m.GuardError):
+                m.validate_config(changed)
+
+    def test_branded_report_binds_raw_bytes_and_normalizes_nameservers(self):
+        config, state, report = self.branded_cutover()
+        report["nameservers"].reverse()
+        path = Path(config["dns"]["branded_delegation_report"])
+        m.write_json(path, report, overwrite=True)
+        with patch.object(m.Aws, "call", side_effect=AssertionError("Offline planning must not call AWS")):
+            plan = m.build_plan(config, "cutover", state)
+        evidence = plan["branded_delegation"]
+        self.assertEqual(evidence["sha256"], m.file_hash(path))
+        self.assertEqual(evidence["path"], str(path))
+        self.assertEqual(evidence["nameservers"], [f"ns{number}.waithakandegwa.com" for number in range(1, 5)])
+        self.assertEqual(evidence["zones"], report["zones"])
+        self.assertIn("not website-traffic acceptance or cryptographic DNSSEC proof", evidence["meaning"])
+        self.assertEqual(plan["sha256"], m.digest({key: value for key, value in plan.items() if key != "sha256"}))
+
+    def test_branded_report_rejects_wrong_identity_scope_status_and_failed_checks(self):
+        config, _, report = self.branded_cutover()
+        for key, value in (("kind", "operator-attestation"), ("schema_version", 2), ("schema_version", True),
+                           ("scope", "authoritative-only"), ("account_id", "999988887777"),
+                           ("ok", False), ("ok", 1), ("errors", ["lookup failed"]), ("errors", None),
+                           ("checks", []), ("checks", {"parent": True}), ("checks", [True]),
+                           ("checks", [{"ok": False}]), ("checks", [{"ok": 1}]), ("checks", [{}])):
+            changed = copy.deepcopy(report)
+            changed[key] = value
+            m.write_json(config["dns"]["branded_delegation_report"], changed, overwrite=True)
+            with self.subTest(field=key, value=value), self.assertRaises(m.GuardError):
+                m.branded_delegation_evidence(config)
+
+    def test_branded_report_rejects_missing_duplicate_or_foreign_nameservers(self):
+        config, _, report = self.branded_cutover()
+        names = report["nameservers"]
+        for changed_names in (names[:3], names + [names[0]], [names[0]] * 4,
+                              [*names[:3], "ns4.other.invalid"], [*names[:3], None], "ns1.waithakandegwa.com"):
+            changed = copy.deepcopy(report)
+            changed["nameservers"] = changed_names
+            m.write_json(config["dns"]["branded_delegation_report"], changed, overwrite=True)
+            with self.subTest(nameservers=changed_names), self.assertRaises(m.GuardError):
+                m.branded_delegation_evidence(config)
+
+    def test_branded_report_rejects_partial_extra_and_mismatched_zone_maps(self):
+        config, _, report = self.branded_cutover()
+        for zones in ({"waithakandegwa.com": "ZFIXTURECOM"},
+                      {**report["zones"], "other.invalid": "ZOTHER"},
+                      {**report["zones"], "waithakandegwa.co.ke": "ZOTHER"}, []):
+            changed = copy.deepcopy(report)
+            changed["zones"] = zones
+            m.write_json(config["dns"]["branded_delegation_report"], changed, overwrite=True)
+            with self.subTest(zones=zones), self.assertRaises(m.GuardError):
+                m.branded_delegation_evidence(config)
+        m.write_json(config["dns"]["branded_delegation_report"], report, overwrite=True)
+        config["dns"]["zones"]["www.waithakandegwa.co.ke"] = "ZOTHER"
+        with self.assertRaises(m.GuardError):
+            m.branded_delegation_evidence(config)
+
+    def test_branded_report_requires_private_regular_json_file(self):
+        config, _, report = self.branded_cutover()
+        path = Path(config["dns"]["branded_delegation_report"])
+        path.chmod(0o644)
+        with self.assertRaises(m.GuardError):
+            m.branded_delegation_evidence(config)
+        path.chmod(0o600)
+        linked = self.directory / "linked-report.json"
+        linked.symlink_to(path)
+        config["dns"]["branded_delegation_report"] = str(linked)
+        with self.assertRaises(m.GuardError):
+            m.branded_delegation_evidence(config)
+        config["dns"]["branded_delegation_report"] = str(path)
+        for raw in (b"{bad-json", b"[]", b'{"schema_version":1,"schema_version":1}'):
+            path.write_bytes(raw)
+            with self.subTest(raw=raw), self.assertRaises(m.GuardError):
+                m.branded_delegation_evidence(config)
+        path.unlink()
+        with self.assertRaises(m.GuardError):
+            m.branded_delegation_evidence(config)
+
+    def test_branded_report_requires_utc_and_enforces_exact_freshness_window(self):
+        config, _, report = self.branded_cutover()
+        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).timestamp()
+        for age, valid in ((0, True), (86400, True), (-60, True), (86400.001, False), (-60.001, False)):
+            changed = copy.deepcopy(report)
+            changed["checked_at"] = dt.datetime.fromtimestamp(now - age, dt.timezone.utc).isoformat().replace("+00:00", "Z")
+            m.write_json(config["dns"]["branded_delegation_report"], changed, overwrite=True)
+            with self.subTest(age=age), patch.object(m.time, "time", return_value=now):
+                if valid:
+                    self.assertEqual(m.branded_delegation_evidence(config)["checked_at"], changed["checked_at"])
+                else:
+                    with self.assertRaises(m.GuardError):
+                        m.branded_delegation_evidence(config)
+        for stamp in (None, 42, "not-a-date", "2026-10-21T12:00:00", "2026-10-21T15:00:00+03:00"):
+            report["checked_at"] = stamp
+            m.write_json(config["dns"]["branded_delegation_report"], report, overwrite=True)
+            with self.subTest(stamp=stamp), self.assertRaises(m.GuardError):
+                m.branded_delegation_evidence(config)
+
+    def test_branded_cutover_apply_refuses_changed_report_bytes_before_aws(self):
+        config, state, _ = self.branded_cutover()
+        plan = m.build_plan(config, "cutover", state)
+        path = self.directory / "cutover-plan.json"
+        m.write_json(path, plan)
+        report_path = Path(config["dns"]["branded_delegation_report"])
+        report_path.write_bytes(report_path.read_bytes() + b"\n")
+        with patch.object(m.Aws, "call", side_effect=AssertionError("No AWS before evidence validation")) as calls, self.assertRaises(m.GuardError):
+            m.apply_plan(path, plan["sha256"])
+        calls.assert_not_called()
+
+    def test_branded_cutover_apply_refuses_report_that_expired_after_planning(self):
+        config, state, _ = self.branded_cutover()
+        plan = m.build_plan(config, "cutover", state)
+        path = self.directory / "cutover-plan.json"
+        m.write_json(path, plan)
+        later = m.time.time() + 86401
+        with patch.object(m.time, "time", return_value=later), patch.object(m.Aws, "call", side_effect=AssertionError("No AWS before evidence validation")) as calls, self.assertRaises(m.GuardError):
+            m.apply_plan(path, plan["sha256"])
+        calls.assert_not_called()
+
+    def test_branded_cutover_rechecks_report_after_readonly_preflight_before_dns_write(self):
+        config, state, _ = self.branded_cutover()
+        plan = m.build_plan(config, "cutover", state)
+        path = self.directory / "cutover-plan.json"
+        m.write_json(path, plan)
+        def change_report(*arguments):
+            report_path = Path(config["dns"]["branded_delegation_report"])
+            report_path.write_bytes(report_path.read_bytes() + b"\n")
+        with patch.object(m, "preflight", side_effect=change_report), patch.object(m, "capture_dns", return_value=plan["dns_snapshot"]), patch.object(m.Aws, "call", side_effect=AssertionError("Changed evidence must prevent DNS writes")) as calls, self.assertRaises(m.GuardError):
+            m.apply_plan(path, plan["sha256"])
+        calls.assert_not_called()
+        self.assertNotIn("cutover", m.load_state(config)["completed"])
+
+    def test_branded_cutover_accepts_matching_fresh_evidence_with_mocked_dns_only(self):
+        config, state, _ = self.branded_cutover()
+        plan = m.build_plan(config, "cutover", state)
+        path = self.directory / "cutover-plan.json"
+        m.write_json(path, plan)
+        def response(service, operation, *arguments, **keywords):
+            self.assertEqual(service, "route53")
+            if operation == "change-resource-record-sets":
+                return {"ChangeInfo": {"Id": "fixture-" + arguments[1]}}
+            self.assertEqual(operation, "get-change")
+            return {"ChangeInfo": {"Status": "INSYNC"}}
+        with patch.object(m, "preflight", return_value={}), patch.object(m, "capture_dns", return_value=plan["dns_snapshot"]), patch.object(m.Aws, "call", side_effect=response) as calls, contextlib.redirect_stdout(io.StringIO()):
+            m.apply_plan(path, plan["sha256"])
+        self.assertEqual(calls.call_count, 4)
+        completed = m.load_state(config)
+        self.assertEqual(completed["completed"]["cutover"]["plan_sha256"], plan["sha256"])
+        self.assertEqual(len(completed["dns_changes"]), 2)
 
     def test_aws_identity_mismatch_stops_before_other_checks(self):
         with patch.object(m.Aws, "call", return_value={"Account": "999988887777", "Arn": "arn:aws:iam::999988887777:root"}) as call:

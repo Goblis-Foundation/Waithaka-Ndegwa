@@ -312,6 +312,12 @@ try {
         $suiteCount++;
         if(wk_test_process(['python3','-B',__DIR__.'/readiness_deployment_test.py'],$environment,'Offline AWS recovery and cutover plans'))$passedCount++;
         else $failed[]='Offline AWS recovery and cutover plans';
+        foreach (['branded_dns_test.py'=>'Offline branded DNS preparation and recovery',
+                  'dns_probe_test.py'=>'Offline authoritative, parent and recursive DNS checks'] as $file => $label) {
+            $suiteCount++;
+            if (wk_test_process(['python3','-B',__DIR__.'/'.$file], $environment, $label)) $passedCount++;
+            else $failed[]=$label;
+        }
         if ($mode === 'all') {
             $suiteCount++;
             if(wk_test_process([PHP_BINARY,__DIR__.'/youtube_http_test.php'],$environment,'YouTube resumable protocol fixture'))$passedCount++;

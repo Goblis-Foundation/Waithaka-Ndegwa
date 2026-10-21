@@ -1,10 +1,14 @@
 # Deployment checklist
 
-Use [the AWS migration runbook](docs/AWS-MIGRATION.md) and [guarded installer guide](deploy/aws/INSTALL-CUTOVER.md) for the detailed steps.
+Use [the AWS migration runbook](docs/AWS-MIGRATION.md), [guarded installer guide](deploy/aws/INSTALL-CUTOVER.md) and [branded nameserver guide](deploy/aws/BRANDED-NAMESERVERS.md) for the detailed steps.
 
 - [ ] Recover a consistent current database export and matching original application key.
 - [ ] Recover public uploads, private proof files and any existing owned-library files; record and verify file hashes and any stored library versions.
 - [ ] Select the AWS account/region, budget, VPC/subnets, security groups and application roles.
+- [ ] Confirm registrar control for both domains and `.com` child-host/glue access; recheck registration/delegation rather than inferring ownership or availability from public DNS.
+- [ ] Obtain complete current DNS-provider exports, including mail, verification, certificate, subdomain and routing records; preserve registrar delegation/glue/DS values and their TTLs.
+- [ ] Review one reusable Route 53 set and two separate public zones for `waithakandegwa.com` and `waithakandegwa.co.ke`; derive the four actual AWS A/AAAA mappings for `ns1`–`ns4.waithakandegwa.com`.
+- [ ] Record DNSSEC/cache prerequisites per domain. If replacing a signing key, remove the incompatible parent DS, verify removal and wait its previous TTL before cutover; preserve valid signing when retaining the same zone/keys.
 - [ ] Validate a supported PHP platform and an available RDS MySQL 8.4 minor version.
 - [ ] Provision the independent data stack and restore a staging copy.
 - [ ] Apply explicit migrations with a migration account; use a separate runtime DML account.
@@ -23,9 +27,12 @@ Use [the AWS migration runbook](docs/AWS-MIGRATION.md) and [guarded installer gu
 - [ ] Configure monitoring, redacted access logs, retention, SES feedback and backups; rehearse a restore.
 - [ ] Freeze old-host writes and workers, capture the final delta, restore and re-run migrations as needed.
 - [ ] Update APP_URL/allowed hosts/media URL, provider redirect URLs and verified sitemap settings.
-- [ ] Cut over both domains, preserving paths; verify TLS, canonical redirects, sitemap, RSS and login.
+- [ ] Finish the reviewed nameserver migration with current service records preserved: verify new authoritative answers, register `.com` glue and change `.com` delegation first, then delegate `.co.ke` to the same four `.com` nameservers.
+- [ ] Produce a successful full `branded_dns.py verify` report and supply its private path as `dns.branded_delegation_report`; match the exact account/both zone IDs and refresh it within 24 hours of the production Route 53 cutover plan/apply.
+- [ ] Separately cut over the website address records to CloudFront, preserving paths; verify TLS, canonical redirects, sitemap, RSS and login.
+- [ ] Record AWS `INSYNC`, parent/glue observations, recursive DNS observations, website operation and mail operation separately. Confirm DNSSEC trust where enabled; restore normal TTLs after acceptance.
 - [ ] Enable WORKER_ENABLED=1 only for the intended production worker and enable mail separately, then monitor the first weekly release.
-- [ ] Keep a documented rollback point and the former host until the verification window closes.
+- [ ] Keep a documented rollback point, complete DNS exports, former zones/provider and former application host until the verification window closes and previous cache lifetimes have expired; retain old DNS service for at least 48 hours after delegation changes.
 
 No check is marked complete merely because a configuration template exists.
 
@@ -39,3 +46,10 @@ No check is marked complete merely because a configuration template exists.
 - Verify subscriber preferences and expiry/mailbox binding, a contact reference saved before notification, and a private founder follow-up without automatic publication.
 - Check multi-content search counts and pagination, public sitemap entries, campaign links and the confirmed Search Console property/report period.
 - Leave INDEXNOW_ENABLED=0 through staging. Activate only for the intended canonical production origin, together with the Writer opt-in and worker. Review an actual accepted receipt separately from indexing status.
+
+## r5 DNS release checks
+
+- The required nameservers for **both** domains are `ns1.waithakandegwa.com`, `ns2.waithakandegwa.com`, `ns3.waithakandegwa.com` and `ns4.waithakandegwa.com`. No AWS nameserver address is prefilled from an example.
+- Keep nameserver preparation and the existing application installer as separate reviewed operations. The DNS helpers do not register domains or automatically change registrar delegation/glue/DS.
+- On 21 October 2026, public recursive observations still showed webhostbox nameservers for `.com`, NXDOMAIN for `.co.ke`, and the old `G-WCKVHN823V` tag in the successful `.com` HTML. These observations do not establish domain ownership, registrar host objects, complete records or live analytics reception. Recheck before and after migration; see the dated evidence and limits in the branded nameserver guide.
+- Current CloudFormation supports `HostedZone.DelegationSetId`, but changing it replaces the zone. Preserve the DNS resource owner and rollback copies; do not treat a template update as an in-place live-zone reassignment.

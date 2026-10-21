@@ -197,6 +197,10 @@ def validate_config(c):
             require(set(dns["zones"]) == set(h["aliases"]), "Explicit hosted zone IDs are required for every alias.")
             for zone in dns["zones"].values():
                 real_text(zone, "hosted zone ID", r"Z[A-Z0-9]{4,32}")
+        if "branded_delegation_report" in dns:
+            require(c["environment"] == "production" and dns["provider"] == "route53", "Branded delegation evidence is only supported for a production Route 53 cutover.")
+            report_path = Path(real_text(dns["branded_delegation_report"], "branded delegation report path"))
+            require(report_path.is_absolute() and not report_path.is_symlink() and not report_path.resolve().is_relative_to(ROOT), "Keep the branded delegation report at an absolute private path outside the application source tree.")
         mail = c["mail"]
         require(mail["transport"] in {"disabled", "ses"}, "This helper enables only SES, after a separate receipt; other transports require a reviewed deployment procedure.")
         if mail["transport"] == "ses":
@@ -374,6 +378,59 @@ def read_dns_snapshot(c):
     return value
 
 
+def branded_delegation_evidence(c):
+    """Bind observed DNS evidence; it does not attest website traffic or DNSSEC validation."""
+    dns = c["dns"]
+    if "branded_delegation_report" not in dns:
+        return None
+    require(c["environment"] == "production" and dns["provider"] == "route53", "Branded delegation evidence is only supported for a production Route 53 cutover.")
+    path = private_file(dns["branded_delegation_report"])
+    require(not path.resolve().is_relative_to(ROOT), "Keep branded delegation evidence outside the application source tree.")
+
+    def unique_object(pairs):
+        value = {}
+        for key, item in pairs:
+            require(key not in value, "Branded delegation evidence contains duplicate JSON fields.")
+            value[key] = item
+        return value
+
+    try:
+        # Hash the exact bytes that were validated, not a second file read.
+        raw = path.read_bytes()
+        value = json.loads(raw, object_pairs_hook=unique_object)
+    except (OSError, ValueError):
+        raise GuardError("Branded delegation evidence cannot be read or is malformed.") from None
+    require(isinstance(value, dict) and type(value.get("schema_version")) is int and value["schema_version"] == 1
+            and value.get("kind") == "waithaka-branded-dns-verification", "Use a schema-version 1 branded DNS verification report.")
+    require(value.get("scope") == "authoritative-parent-recursive", "Branded delegation evidence must include authoritative, parent and recursive observations.")
+    require(value.get("ok") is True and value.get("errors") == [], "Branded delegation verification did not succeed without errors.")
+    checks = value.get("checks")
+    require(isinstance(checks, list) and checks and all(isinstance(check, dict) and check.get("ok") is True for check in checks), "Branded delegation evidence must contain successful observed checks.")
+    require(value.get("account_id") == c["account_id"], "Branded delegation evidence belongs to a different AWS account.")
+    nameservers = value.get("nameservers")
+    require(isinstance(nameservers, list) and len(nameservers) == 4 and all(isinstance(name, str) for name in nameservers), "Branded delegation evidence must contain all four intended nameservers.")
+    normalized = [name.lower().removesuffix(".") for name in nameservers]
+    expected_nameservers = [f"ns{number}.waithakandegwa.com" for number in range(1, 5)]
+    require(sorted(normalized) == expected_nameservers, "Branded delegation nameservers do not match ns1 through ns4.waithakandegwa.com.")
+    zones = value.get("zones")
+    require(isinstance(zones, dict) and set(zones) == {"waithakandegwa.com", "waithakandegwa.co.ke"}, "Branded delegation evidence must cover both personal website domains; a partial verification cannot authorize cutover.")
+    for domain_name, zone_id in zones.items():
+        require(isinstance(zone_id, str) and zone_id == dns["zones"].get(domain_name)
+                and zone_id == dns["zones"].get("www." + domain_name), "Branded delegation hosted zones do not match every configured website alias.")
+    stamp = value.get("checked_at")
+    require(isinstance(stamp, str), "Branded delegation evidence requires a UTC checked_at timestamp.")
+    try:
+        checked = dt.datetime.fromisoformat(stamp.removesuffix("Z") + ("+00:00" if stamp.endswith("Z") else ""))
+        require(checked.tzinfo is not None and checked.utcoffset() == dt.timedelta(0), "Branded delegation checked_at must be timezone-aware UTC.")
+        age = time.time() - checked.timestamp()
+        require(-60 <= age <= 86400, "Branded delegation evidence must be no more than 24 hours old and no more than 60 seconds in the future.")
+    except (ValueError, OverflowError):
+        raise GuardError("Branded delegation evidence requires a valid UTC checked_at timestamp.") from None
+    return {"path": str(path), "sha256": hashlib.sha256(raw).hexdigest(), "checked_at": stamp,
+            "account_id": value["account_id"], "nameservers": expected_nameservers, "zones": zones,
+            "scope": value["scope"], "meaning": "Observed delegation evidence only; not website-traffic acceptance or cryptographic DNSSEC proof."}
+
+
 def dns_changes(c, state, snapshot):
     batches = {}
     for host in c["domains"]["aliases"]:
@@ -425,6 +482,9 @@ def build_plan(c, phase, state=None):
         plan["actions"] = [{"kind": "compare-original-key-to-runtime-secret", "secret_arn": c["secret_arn"]}, {"kind": "environment-options", "values": {"APP_READY": "1", "WORKER_ENABLED": "0", "MAIL_TRANSPORT": "disabled"}}]
     elif phase == "cutover":
         require(done["ready"]["artifacts_sha256"] == digest(evidence), "Readiness was accepted for different recovered data; repeat media, restore receipt and ready for the final snapshot.")
+        delegation = branded_delegation_evidence(c)
+        if delegation is not None:
+            plan["branded_delegation"] = delegation
         gate("acceptance")
         if c["environment"] == "production":
             gate("cutover")
@@ -811,6 +871,9 @@ def apply_plan(path, expected_hash):
                 check_environment_options(c, aws, environment_expected_update(c, state["completed"]["foundation"], action["values"]))
                 result["environment_values"] = action["values"]
             elif kind == "dns-address-records-only":
+                # Recheck immediately before each zone mutation as read-only
+                # preflight/waiting may take time or the private report may change.
+                require(branded_delegation_evidence(c) == saved.get("branded_delegation"), "Branded delegation evidence changed after review; prepare a fresh cutover plan.")
                 response = aws.call("route53", "change-resource-record-sets", "--hosted-zone-id", action["zone_id"], "--change-batch", json.dumps(action["change_batch"]))
                 change_id = response["ChangeInfo"]["Id"]
                 # Journal each zone separately: a failure never hides an earlier accepted change.

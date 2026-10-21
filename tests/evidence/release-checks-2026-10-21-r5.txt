@@ -1,0 +1,8 @@
+Release r5 focused verification — 2026-10-21 UTC
+No AWS, registrar, DNS or application mutations performed.
+7 changed/new Python files parse under Python 3.10 grammar.
+DNS example configuration and dated public evidence parse as JSON.
+Branded DNS CLI --help succeeds without credentials or network.
+git diff --check passes.
+PHP and Composer are unavailable in this turn runtime; the combined PHP runner was not rerun. Previous r4 evidence is retained without claiming a new full application run.
+Live AWS CLI/dig execution and live MySQL 8.4 CI remain unverified. AWS console navigation returned Site Unavailable.

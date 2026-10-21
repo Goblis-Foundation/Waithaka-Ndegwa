@@ -1,6 +1,6 @@
 # Waithaka Ndegwa — startup journeys and publishing
 
-Release: 2026-10-21 r4. Built on the recovered V9 PHP/MySQL website, with the original editorial identity and personal photography preserved.
+Release: 2026-10-21 r5. Built on the recovered V9 PHP/MySQL website, with the original editorial identity and personal photography preserved.
 
 **This is an implemented, locally tested release package. It has not been deployed to AWS, imported the live database, connected provider accounts or published social posts.**
 
@@ -10,11 +10,14 @@ Release: 2026-10-21 r4. Built on the recovered V9 PHP/MySQL website, with the or
 - [Operating guide](docs/OPERATING-GUIDE.md): weekly startup series, founder submissions, media, Google/social publishing, newsletters and Operations.
 - [AWS migration runbook](docs/AWS-MIGRATION.md): restore, stage, validate and cut over both domains.
 - [Reviewed installation and cutover helper](deploy/aws/INSTALL-CUTOVER.md): offline plans, recovery evidence and explicitly applied AWS phases.
+- [Branded nameservers](deploy/aws/BRANDED-NAMESERVERS.md): `ns1`–`ns4.waithakandegwa.com`, complete-zone preservation, resumable Route 53 preparation, registrar glue and independent delegation checks for both domains.
 - [Validation and limits](docs/VALIDATION.md): evidence, actual runtime and remaining external checks.
 - [Release changes](docs/CHANGELOG.md).
 - [Deployment checklist](DEPLOYMENT-CHECKLIST.md).
 
 The canonical production address is `https://www.waithakandegwa.com`. The AWS edge template redirects both apex and www versions of `waithakandegwa.co.ke`, and the .com apex, to the corresponding canonical path. Existing article addresses are retained.
+
+The intended authoritative nameservers for both domains are `ns1.waithakandegwa.com`, `ns2.waithakandegwa.com`, `ns3.waithakandegwa.com` and `ns4.waithakandegwa.com`. The new DNS helper prepares one shared Route 53 delegation set and two public zones, preserving current website/email records before the application move. The actual server addresses are obtained from the selected AWS account. They are not website aliases and are never filled with guessed IPs. Registrar access and complete existing DNS exports remain necessary for live activation.
 
 ## Implemented experience
 

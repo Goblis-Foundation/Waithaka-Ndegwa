@@ -6,7 +6,7 @@ This runbook preserves the recovered PHP application and its existing database. 
 
 ## Architecture and prerequisites
 
-The intended layout is Route 53 or the existing DNS provider → CloudFront → HTTPS Application Load Balancer → Elastic Beanstalk PHP/Apache. RDS stores content, sessions and delivery records. Public media is served from an S3 bucket through CloudFront Origin Access Control. Private proof files and owned private images/videos use a separate blocked-public S3 bucket and authenticated PHP downloads. SES sends approved email; signed SNS events reconcile delivery, bounces and complaints.
+Route 53 will serve both domains through `ns1`–`ns4.waithakandegwa.com`. Their website records point to CloudFront, which forwards application requests over HTTPS to an Application Load Balancer and Elastic Beanstalk PHP/Apache. Keep the existing DNS provider serving during preparation. RDS stores content, sessions and delivery records. Public media is served from an S3 bucket through CloudFront Origin Access Control. Private proof files and owned private images/videos use a separate blocked-public S3 bucket and authenticated PHP downloads. SES sends approved email; signed SNS events reconcile delivery, bounces and complaints.
 
 The supplied files cover:
 
@@ -18,9 +18,10 @@ The supplied files cover:
 | runtime-iam-policy.template.json | Additional application permissions to attach to the instance role after replacing placeholders |
 | mail-feedback-stack.json | SES configuration set, signed SNS topic and optional HTTPS feedback subscription |
 | install_cutover.py and INSTALL-CUTOVER.md | Offline, hash-bound phase plans, guarded AWS execution, recovery receipts and separate activation steps |
+| branded_dns.py, dns_probe.py, branded-dns-config.example.json and BRANDED-NAMESERVERS.md | Separate Route 53 delegation-set/zone preparation, complete-record preservation, registrar handoff, DNSSEC/cache prerequisites and observed DNS verification |
 | .ebextensions and .platform | PHP settings, source protection, runtime checks, native systemd worker timer and log rotation |
 
-Existing VPC/subnets, security groups, roles, DNS zones and certificates are inputs, not created by these templates. The release does not choose an AWS account, region or spending commitment.
+Existing VPC/subnets, security groups, roles and certificates are inputs, not created by these templates. The application installer needs the final public zone IDs; prepare or adopt those through the separate branded nameserver workflow. The release does not choose an AWS account, region or spending commitment, register domains, or automatically modify registrar delegation/glue/DS.
 
 Select an available, supported RDS **MySQL 8.4 minor version** and a supported Elastic Beanstalk **PHP 8.3 or 8.4 / Amazon Linux 2023** platform in the intended region. Validate current availability before provisioning. The secret JSON-key syntax in the options file needs a Beanstalk platform released on or after **2026-01-13** [1]. The local regression used MariaDB, so execute the supplied MySQL 8.4 CI or equivalent staging tests before accepting production compatibility.
 
@@ -34,6 +35,7 @@ Obtain a consistent export of the current database together with:
 - All files under assets/uploads, preserving relative paths and original file bytes.
 - All private storage/release-proofs files and any existing storage/media-library files.
 - Current integration settings, callback registrations, DNS records and any live scheduled work.
+- Complete exports from both DNS providers, including mail, DKIM/DMARC/SPF, verification labels, certificate records, subdomains and routing metadata; current registrar delegation/glue/DS values and previous TTLs. Public lookup results are not complete exports.
 - A current copy of the deployed source for comparison with the recovered V9 source.
 
 The source ZIP alone is not a backup of the current website. The original application key is needed to decrypt stored secrets; replacing it with a newly generated key will not recover them.
@@ -41,6 +43,8 @@ The source ZIP alone is not a backup of the current website. The original applic
 Create a file inventory with relative path, byte length and SHA-256 for each recovered media file. Verify source/destination hashes after transfer. Store private exports and key material outside the public document root, protect them, and keep them out of git, application ZIPs and shell history.
 
 Keep the old site serving while staging is built. Do not direct live traffic at an empty database or use the retired web installer.
+
+The public inventory on 21 October 2026 observed webhostbox nameservers for `.com`, NXDOMAIN for `.co.ke`, and `G-WCKVHN823V` in the successful `.com` homepage HTML. Direct parent/authoritative checks were unavailable from that environment, and no live analytics account/collection was checked. These observations do not prove domain ownership, registrar glue, a complete DNS inventory or the deployed release. Recheck the live state and use [the dated evidence limits](../deploy/aws/BRANDED-NAMESERVERS.md#dated-public-observations-are-not-an-account-inventory).
 
 ## 2. Establish the AWS boundary
 
@@ -65,6 +69,16 @@ The supplemental IAM example intentionally has no account-wide administrator per
 Follow [INSTALL-CUTOVER.md](../deploy/aws/INSTALL-CUTOVER.md) with a private copy of install-config.example.json. Supply the actual account, region, network, roles, certificates and recovered-artifact paths; the helper refuses placeholders and does not infer the website's AWS identity from other projects. It can produce plans offline. Applying a phase requires the plan's exact hash and checks the selected caller identity, resource ownership and relevant prior phases.
 
 Restore the SQL backup on a restricted host with database access, preserve the original key, and record verified source/target counts in the helper's restore receipt. A plan or unchecked receipt does not prove restoration. Recovery artifacts and receipts are bound by hashes; changed data requires fresh verification. Create-only provisioning, selective changeset checks and separate readiness, DNS, worker and mail stages keep the recovery reviewable. The supplied helper does not create a VPC, obtain certificates, recover a missing database/key, or establish provider permissions.
+
+### Prepare the branded authoritative DNS separately
+
+Follow [BRANDED-NAMESERVERS.md](../deploy/aws/BRANDED-NAMESERVERS.md). Both `waithakandegwa.com` and `waithakandegwa.co.ke` use the same four `.com` vanity names through one reusable Route 53 set, with separate public zones in one AWS account. Populate the four A/AAAA mappings from the actual assigned AWS nameservers. Preserve existing website/mail targets during DNS preparation and keep complete rollback exports.
+
+Verify registrar control, existing zone assignments and DNSSEC first. Adopting an existing zone's own set can retain that zone; moving it to a different set requires replacement and record migration. Current CloudFormation supports `HostedZone.DelegationSetId` but changing it requires replacement. If the signing key changes, remove any incompatible parent DS, verify removal and wait its prior TTL before cutover. Retaining the same zone/keys does not itself require disabling DNSSEC.
+
+Register/update the four matching IPv4/IPv6 host/glue entries under `.com`, complete and verify `.com` delegation, then delegate `.co.ke` to those same four names. Registrar changes are external steps. Record AWS `INSYNC`, authoritative/parent answers, recursive observations and actual website/mail operation separately. The application installer's later address-record cutover cannot prove or perform that registrar migration.
+
+Use the full helper verification report through `dns.branded_delegation_report` for the production Route 53 cutover. Its fresh successful observations must match the account, both final zone IDs and all four nameservers; a partial report is insufficient. Expected DS values come from the target zones' actual AWS signing state, but matching records do not independently validate the cryptographic DNSSEC chain. Use the detailed guide's exact commands, plan-content hashes and separate traffic acceptance steps.
 
 ## 3. Create and restore the persistent data stack
 
@@ -193,13 +207,13 @@ Keep the application key with encrypted backups and exercise restoration of data
 4. Set production APP_URL to https://www.waithakandegwa.com; set the four allowed hosts; set MEDIA_PUBLIC_URL consistently.
 5. Use the four production aliases and matching certificate on the production edge. Update the production data stack’s MediaDistributionArn to that distribution’s exact ARN.
 6. Verify/register canonical provider callback URLs and payment notifications. Re-check account/resource selection after any restore that replaced connection records.
-7. Point .com and .co.ke apex/www DNS records to the production distribution using records appropriate for the DNS provider. Existing unrelated email/DNS records must be preserved.
+7. Complete the separate branded nameserver migration with the current DNS records preserved: `.com` glue/delegation first, verify, then `.co.ke` delegation to the same `ns1`–`ns4.waithakandegwa.com`. Use verified final zone IDs in the installer. After its DNS/cache prerequisites and staging acceptance pass, point both domains' apex/www address records to the production distribution. Preserve all unrelated email/DNS records.
 8. Confirm redirect behavior, TLS, public pages, private headers, login, uploads, sitemap and RSS through each intended hostname.
 9. Enable WORKER_ENABLED=1 only for the intended production application, after reviewing restored pending work and provider destinations. Enable mail separately after its acceptance test.
 10. Verify both domains in Search Console as appropriate, submit the canonical sitemap, and inspect important migrated URLs. This connection is read-only and does not automatically submit them.
 11. Observe the first real weekly release and inspect actual platform post links and provider email acknowledgements.
 
-If rollback is necessary, stop new delivery work first. Decide whether to roll back only code or restore a matching database/media snapshot. Never attach old code blindly to an incompatible migrated schema, and never restore an old queue without reconciling external operations that already completed. Keep the former host available until the acceptance window closes.
+If rollback is necessary, stop new delivery work first. Decide whether to reverse application addresses, authoritative delegation, code or a matching database/media snapshot. Keep DNSSEC trust consistent with the delegated zone. Never attach old code blindly to an incompatible migrated schema, and never restore an old queue without reconciling external operations that already completed. Keep the former host and DNS service available until the acceptance window closes and prior cache lifetimes expire; retain old DNS zones/provider service for at least 48 hours after delegation changes.
 
 ## Primary technical references
 

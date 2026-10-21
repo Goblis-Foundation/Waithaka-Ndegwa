@@ -121,6 +121,7 @@ def main() -> None:
             "Open source/README.md and source/docs/OPERATING-GUIDE.md.\n"
             "Use source/docs/AWS-MIGRATION.md to restore and stage the site.\n"
             "The guarded helper is documented in source/deploy/aws/INSTALL-CUTOVER.md.\n"
+            "Branded DNS setup is documented in source/deploy/aws/BRANDED-NAMESERVERS.md.\n"
             "Upload deployment/application.zip as the Beanstalk source bundle,\n"
             "not this outer delivery archive. AWS account settings remain required.\n\n"
             "source/ contains the complete tracked project, tests, CI and runbooks.\n"

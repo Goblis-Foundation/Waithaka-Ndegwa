@@ -1,5 +1,32 @@
 # Validation record
 
+## Release 2026-10-21 r5
+
+The focused DNS/deployment regression passed **135 offline Python tests across three suites**:
+
+| Suite | Passing cases |
+| --- | ---: |
+| AWS recovery and website cutover, including the branded-report gate | 55 |
+| Branded DNS provisioning, full-record preservation and interruption recovery | 37 |
+| DNS parsing, authoritative answers, parent delegation/glue/DS and recursive agreement | 43 |
+| **Total** | **135** |
+
+All AWS and DNS behavior in these suites uses synthetic fixtures. The full successful two-domain DNS fixture produces 95 distinct passing observations. This establishes the verifier's logic, not a live 95-check pass. The test runner now includes both new Python suites in its offline and full runs.
+
+Seven changed/new Python files passed parsing with Python 3.10 grammar. The example configuration and dated observation file passed JSON parsing, the DNS CLI help completed without credentials or network, and `git diff --check` passed. PHP and Composer are unavailable in the current turn's runtime, so the combined PHP runner could not be rerun. No production PHP application behavior changed in r5; the r4 application evidence below is preserved as its own historical result, not represented as a new r5 full run. The additional PHP change is registration of the two offline suites in `tests/run.php`.
+
+Material coverage includes paginated record/routing inventories; exact account/resource/set binding; only internal-zone alias-ID rewriting; MX/TXT/DKIM/CAA/child-delegation and routing preservation; conflicting-record refusal; complete-zone drift checks; quota-aware batches; lost response/known-ID/partial-zone recovery; stale exact-plan recovery; prevention of unfinished-change bypass; failed-verification invalidation; and stabilization pinned to the observed mapping and DNSSEC state. Tests also exercise sequential domain reports, exact parent referral/glue rules, signed and unsigned expectations, authoritative flags, aliases, malformed/negative answers, timeouts and recursive disagreement.
+
+Evidence:
+
+- [Focused r5 DNS and deployment regression output](../tests/evidence/dns-regression-2026-10-21-r5.txt)
+- [r5 syntax, CLI and environment limits](../tests/evidence/release-checks-2026-10-21-r5.txt)
+- [Dated public DNS and HTTP observations](../tests/evidence/public-dns-http-2026-10-21.json)
+
+The public observation on 21 October returned the existing Webhostbox delegation and old `G-WCKVHN823V` tag for `.com`, and negative DNS answers for `.co.ke` and the proposed vanity hosts. Direct authoritative/parent access was unavailable in the observation environment. These are bounded public observations, not proof of registrar ownership, a complete zone export or a valid DNSSEC chain.
+
+No AWS account resources, registrar hosts, live DNS records or provider accounts were changed. AWS console navigation returned **Site Unavailable**, and no usable personal AWS CLI credentials were configured. Live AWS/dig execution, DNS propagation, cryptographic DNSSEC validation, IPv6 transport, application restore and provider acceptance remain deployment checks. The external PHP 8.3/8.4 and MySQL 8.4 CI matrix was not run in this session.
+
 ## Release 2026-10-21 r4
 
 The combined regression completed successfully: **40/40 suites passed**, comprising **2,095 PHP assertions across 38 suites**, **24 offline JavaScript checks** of the actual PHP-rendered Google bootstrap, and **43 mocked Python AWS deployment cases**. Runtime: PHP 8.3.6 and MariaDB 10.11.14 on an isolated numeric-loopback server. Each database suite used a newly created disposable schema. All nine application HTTP suites ran against the actual router and a temporary local server owned by the runner.

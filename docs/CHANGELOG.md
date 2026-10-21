@@ -1,4 +1,13 @@
-# Release changes — 2026-10-21 r3
+# Release changes — 2026-10-21 r5
+
+## 2026-10-21 r5 — Branded authoritative DNS
+
+- Added a separate reviewed Route 53 workflow for the exact four `ns1`–`ns4.waithakandegwa.com` names serving both the `.com` and `.co.ke` zones. Create, reuse and existing-zone adoption are explicit; a physical set mismatch requires a replacement-zone migration.
+- Added complete paginated exports, real authoritative A/AAAA capture, stable one-to-one server mapping, non-destructive source import, narrow NS/SOA/address changes and registrar glue/delegation instructions. Existing mail, verification, child delegations, routing metadata and resource aliases are retained; conflicting records stop preparation.
+- Added per-batch intent/change-ID journals, whole-zone drift comparisons, Route 53 quota-aware batching, recorded `INSYNC` waits and safe response-loss recovery. New plans and readiness reports cannot bypass an unfinished submitted plan. An exact interrupted plan can resume beyond its initial evidence-age limit while still checking hashes and actual identities/state.
+- Added direct authoritative, parent referral/glue/DS and two-resolver observations, including sequential domain cutover. Failed/incomplete verification revokes prior stabilization readiness; a successful full report is bound to the observed mapping and DNSSEC state.
+- Added an optional production website-cutover gate bound to a recent exact account/two-zone verification report, plus reviewed TTL stabilization and retained rollback instructions. No registrar or DNSSEC write is automatic.
+- Included dated public observations and focused offline tests. This release does not change the live DNS or deploy the website; AWS/registrar access and current private recovery/export inputs remain external prerequisites.
 
 ## 2026-10-21 r4 — Google tag and global discovery
 
