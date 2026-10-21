@@ -16,6 +16,8 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+STORAGE_MARKERS = {"storage/.gitkeep", "storage/.htaccess", "storage/release-proofs/.htaccess"}
+UPLOAD_MARKERS = {"assets/uploads/.gitkeep", "assets/uploads/.htaccess"}
 
 
 def git(*args: str) -> bytes:
@@ -30,7 +32,7 @@ def runtime_file(path: str) -> bool:
     top = path.split("/", 1)[0]
     if top in {"app", "assets", "views", ".ebextensions", ".platform"}:
         return True
-    if path in {"index.php", ".htaccess", "composer.json", "composer.lock", "manifest.webmanifest", ".env.example", "storage/.gitkeep"}:
+    if path in {"index.php", ".htaccess", "composer.json", "composer.lock", "manifest.webmanifest", ".env.example"} or path in STORAGE_MARKERS:
         return True
     if path in {"bin/migrate.php", "bin/worker.php", "bin/create-writer.php"}:
         return True
@@ -40,9 +42,9 @@ def runtime_file(path: str) -> bool:
 def assert_public_source(path: str) -> None:
     if path in {".env", "app/config.php"}:
         raise RuntimeError("Private configuration is tracked; remove it before packaging.")
-    if path.startswith("storage/") and path != "storage/.gitkeep":
+    if path.startswith("storage/") and path not in STORAGE_MARKERS:
         raise RuntimeError("Runtime storage must not be tracked in the source release.")
-    if path.startswith("assets/uploads/") and path != "assets/uploads/.gitkeep":
+    if path.startswith("assets/uploads/") and path not in UPLOAD_MARKERS:
         raise RuntimeError("Live uploads must be backed up separately from the source release.")
     if any(part in {".aws", ".git", "__pycache__"} for part in Path(path).parts):
         raise RuntimeError("Private or generated directory is tracked.")
