@@ -1,0 +1,5 @@
+{
+ "name":"waithaka-ndegwa/publishing-site","description":"Waithaka Ndegwa personal publishing and startup journeys","type":"project","license":"proprietary",
+ "require":{"php":"^8.3","ext-pdo":"*","ext-pdo_mysql":"*","ext-curl":"*","ext-dom":"*","ext-mbstring":"*","ext-fileinfo":"*","ext-openssl":"*","ext-gd":"*","aws/aws-sdk-php":"^3.0","phpmailer/phpmailer":"^7.0"},
+ "config":{"sort-packages":true,"allow-plugins":{},"platform":{"php":"8.3.0"}},"scripts":{"test":"php tests/run.php"}
+}

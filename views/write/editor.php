@@ -1,11 +1,12 @@
 <main class="write-main writer-editor-page">
-<form data-editor-form data-post-id="<?=intval($post['id']??0)?>" method="post" enctype="multipart/form-data" action="<?=url('/write/save')?>"><?=csrf_field()?><input type="hidden" name="id" value="<?=intval($post['id']??0)?>"><input type="hidden" name="content_html" value="">
+<form data-editor-form data-post-id="<?=intval($post['id']??0)?>" method="post" enctype="multipart/form-data" action="<?=url('/write/save')?>"><?=csrf_field()?><input type="hidden" name="id" value="<?=intval($post['id']??0)?>"><input type="hidden" name="draft_version" value="<?=intval($post['_draft_version']??0)?>"><input type="hidden" name="content_html" value="<?=e($post['content_html']??'')?>">
   <div class="writer-head editor-page-head">
     <div><span class="writer-kicker"><?=empty($post['id'])?'New thought':'Editing'?></span><h1><?=empty($post['id'])?'Start with the idea':'Refine the thought'?></h1><div class="editor-health"><span class="save-state"><?=empty($post['id'])?'Save a draft once to enable autosave.':'Ready'?></span><span data-word-count>0 words</span><span data-read-time>0 min read</span></div></div>
-    <div class="writer-actions"><a class="wbtn mobile-settings" href="#post-settings">Post settings</a><?php if(!empty($post['id'])):?><a class="wbtn" href="<?=url('/my-thoughts/'.$post['slug'])?>" target="_blank">Preview ↗</a><?php endif;?><button class="wbtn" type="submit" name="action" value="draft">Save draft</button><button class="wbtn primary" type="submit" name="action" value="publish">Publish</button></div>
+    <div class="writer-actions"><a class="wbtn mobile-settings" href="#post-settings">Post settings</a><?php if(!empty($post['id'])):?><a class="wbtn" href="<?=url('/write/preview/'.$post['id'])?>" target="_blank" rel="noopener noreferrer">Saved preview ↗</a><?php endif;?><button class="wbtn" type="submit" name="action" value="draft">Save draft</button><button class="wbtn primary" type="submit" name="action" value="publish"><?=!empty($post['_is_public'])?'Publish changes':'Publish'?></button></div>
   </div>
 
   <?php foreach(flashes() as $f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
+  <?php if(!empty($post['_is_public'])):?><p class="notice">You are editing a private working copy. Save draft and autosave keep the current public article in place. Publish changes applies this version to the same public URL.</p><?php elseif(($post['_public_status']??'')==='scheduled'):?><p class="notice">The scheduled version is unchanged until you press Publish again. Private edits do not replace the scheduled article automatically.</p><?php endif;?>
 
   <div class="editor-layout editor-layout-refined">
     <section class="editor-canvas editor-canvas-refined" id="writing-canvas">
@@ -13,7 +14,7 @@
       <input class="title-input" name="title" placeholder="Give the thought a clear title" value="<?=e($post['title']??'')?>" required maxlength="240">
       <textarea class="standfirst-input" name="standfirst" rows="2" placeholder="A short opening summary that gives the reader a reason to continue…"><?=e($post['standfirst']??'')?></textarea>
       <div class="toolbar" aria-label="Formatting toolbar"><button type="button" data-cmd="bold" title="Bold"><strong>B</strong></button><button type="button" data-cmd="italic" title="Italic"><em>I</em></button><span></span><button type="button" data-cmd="formatBlock" data-value="h2">H2</button><button type="button" data-cmd="formatBlock" data-value="h3">H3</button><button type="button" data-cmd="formatBlock" data-value="blockquote">Quote</button><span></span><button type="button" data-cmd="insertUnorderedList">• List</button><button type="button" data-cmd="insertOrderedList">1. List</button><button type="button" data-cmd="createLink" onclick="this.dataset.value=prompt('Link URL')||''">Link</button><button type="button" data-cmd="removeFormat">Clear</button></div>
-      <div class="editor-body" contenteditable="true" spellcheck="true" data-editor-body><?=($post['content_html']??'<p></p>')?></div>
+      <div class="editor-body" contenteditable="true" spellcheck="true" data-editor-body><?=sanitize_html($post['content_html']??'<p></p>')?></div>
       <div class="editor-end-note"><strong>Write first. Optimise second.</strong><span>Tags and SEO assistance can be generated when you publish.</span></div>
     </section>
 
@@ -30,7 +31,7 @@
       <div class="panel editor-panel" data-editor-panel="publish" hidden>
         <div class="panel-heading"><span>02</span><div><h3>Publishing</h3><p>Where this thought belongs and when it goes live.</p></div></div>
         <div class="field"><label>Topic</label><select name="category_id" required><option value="">Choose a topic…</option><?php foreach($categories as $c):?><option value="<?=$c['id']?>" data-slug="<?=e($c['slug'])?>" <?=($post['category_id']??null)==$c['id']?'selected':''?>><?=e($c['name'])?></option><?php endforeach;?></select></div>
-        <div class="field"><label>Publish date & time</label><input type="datetime-local" name="published_at" value="<?=!empty($post['published_at'])?e(date('Y-m-d\TH:i',strtotime($post['published_at']))):e(date('Y-m-d\TH:i'))?>"><div class="help">Choose a future time and Publish will schedule it automatically.</div></div>
+        <div class="field"><label>Publish date & time · Nairobi</label><input type="datetime-local" name="published_at" <?=!empty($post['_is_public'])?'readonly':''?> value="<?=!empty($post['published_at'])?e(date('Y-m-d\TH:i',strtotime($post['published_at']))):e(date('Y-m-d\TH:i'))?>"><div class="help"><?=!empty($post['_is_public'])?'The original publication date is retained. Publish changes updates the live article immediately.':'Choose a future time and Publish will schedule this version automatically.'?></div></div>
         <label class="toggle feature-toggle"><input type="checkbox" name="is_selected" value="1" <?=!empty($post['is_selected'])?'checked':''?>><span><strong>Selected thought</strong><small>Feature this post in highlighted areas of the public site.</small></span></label>
         <div class="field"><label>Series <span class="optional">optional</span></label><input name="series_name" maxlength="220" value="<?=e($post['series_name']??'')?>" placeholder="e.g. Rethinking regional infrastructure"></div>
         <div data-travel-fields hidden class="travel-fields"><div class="field"><label>Country</label><input name="travel_country" value="<?=e($post['travel_country']??'')?>" placeholder="Country"></div><div class="field"><label>City / region</label><input name="travel_city" value="<?=e($post['travel_city']??'')?>" placeholder="City or region"></div></div>
@@ -48,7 +49,7 @@
 
       <div class="panel editor-panel" data-editor-panel="seo" hidden>
         <div class="panel-heading"><span>04</span><div><h3>Discoverability</h3><p>Keep the writing natural; let the metadata support it.</p></div></div>
-        <div class="seo-assist"><strong>Automatic assistance</strong><p>On publish, OpenAI generates sensible tags and search metadata when configured. A local fallback is used otherwise.</p></div>
+        <div class="seo-assist"><strong>Automatic assistance</strong><p>Publishing fills blank search metadata from your writing and adds topic tags. Your overrides are retained.</p></div>
         <div class="field"><label>SEO title override <span class="optional">optional</span></label><input name="seo_title" maxlength="255" value="<?=e($post['seo_title']??'')?>" placeholder="Leave blank to generate from the post"></div>
         <div class="field"><label>SEO description override <span class="optional">optional</span></label><textarea name="seo_description" maxlength="320" placeholder="Leave blank to generate from the standfirst and article"><?=e($post['seo_description']??'')?></textarea></div>
         <div class="seo-preview"><span>Search preview</span><strong data-seo-preview-title><?=e(($post['seo_title']??'') ?: ($post['title']??'Your title will appear here'))?></strong><p data-seo-preview-description><?=e(($post['seo_description']??'') ?: ($post['standfirst']??'Your standfirst will help form the search description.'))?></p><small>waithakandegwa.com/my-thoughts/…</small></div>

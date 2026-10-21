@@ -1,0 +1,33 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ApplicationSecretOnly",
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue"],
+      "Resource": "REPLACE_APPLICATION_SECRET_ARN"
+    },
+    {
+      "Sid": "PublicMediaPrefixOnly",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::REPLACE_PUBLIC_MEDIA_BUCKET/assets/uploads/*"
+    },
+    {
+      "Sid": "PrivateProofPrefixOnly",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::REPLACE_PRIVATE_MEDIA_BUCKET/release-proofs/*"
+    },
+    {
+      "Sid": "VerifiedMailIdentityOnly",
+      "Effect": "Allow",
+      "Action": ["ses:SendEmail"],
+      "Resource": [
+        "arn:aws:ses:REPLACE_REGION:REPLACE_ACCOUNT_ID:identity/REPLACE_VERIFIED_MAIL_DOMAIN",
+        "arn:aws:ses:REPLACE_REGION:REPLACE_ACCOUNT_ID:configuration-set/REPLACE_CONFIGURATION_SET"
+      ],
+      "Condition": {"StringEquals": {"ses:FromAddress": "REPLACE_VERIFIED_FROM_ADDRESS"}}
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+Release checks — 2026-10-21
+
+Locked production dependency audit: exit0, advisories=[], abandoned=[]
+cfn-lint version: 1.58.0
+
+Check 0 exit 0
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+./composer.json is valid
+
+Check 1 exit 0
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+Checking non-dev platform requirements for packages in the vendor dir
+ext-ctype     *          success provided by symfony/polyfill-ctype
+ext-curl      8.3.6      success
+ext-dom       20031129   success
+ext-fileinfo  8.3.6      success
+ext-filter    8.3.6      success
+ext-gd        8.3.6      success
+ext-hash      8.3.6      success
+ext-iconv     8.3.6      success
+ext-json      8.3.6      success
+ext-mbstring  *          success provided by symfony/polyfill-mbstring
+ext-openssl   8.3.6      success
+ext-pcre      8.3.6      success
+ext-pdo       8.3.6      success
+ext-pdo_mysql 8.3.6      success
+ext-simplexml 8.3.6      success
+php           8.3.6      success
+
+Check 2 exit 0
+(no diagnostics)
+
+Check 3 exit 0
+Release builder, deployment JSON and shell syntax: PASS
+
+Targeted source pattern scan: no candidates. Scope excluded vendor, test fixtures, images and public CA bundle. app/config.php and .env absent.

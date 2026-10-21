@@ -1,43 +1,24 @@
-# Production launch checklist
+# Deployment checklist
 
-- [ ] DNS for `waithakandegwa.com` and `www.waithakandegwa.com` points to cPanel hosting.
-- [ ] Valid SSL certificate is active.
-- [ ] PHP 8.1+ and required extensions are enabled.
-- [ ] Database and database user are created with correct privileges.
-- [ ] `/install/` completes without warnings.
-- [ ] `https://www.waithakandegwa.com/` loads and non-canonical requests redirect after production configuration.
-- [ ] Writer login works at `/write`.
-- [ ] First post can be saved, previewed and published at `/my-thoughts/<slug>`.
-- [ ] Featured image upload works and renders on mobile/tablet/desktop.
-- [ ] YouTube/Vimeo link renders responsively.
-- [ ] Contact recipient email is configured and a test message is received.
-- [ ] Google Search Console verification token is configured.
-- [ ] `sitemap.xml`, `robots.txt`, `feed.xml` return HTTP 200.
-- [ ] GA4 is configured if desired and loads only after analytics consent.
-- [ ] OpenAI API key is configured and automatic tags/SEO are tested.
-- [ ] Google Search Console sees the updated East Africa-focused titles/descriptions and sitemap after deployment.
-- [ ] Regional copy for Kenya, Tanzania, Zanzibar, Uganda, Rwanda and Burundi is reviewed for natural relevance (not keyword stuffing).
-- [ ] M-Pesa Daraja sandbox is tested before switching to live credentials.
-- [ ] Pesapal sandbox + IPN registration are tested before switching to live.
-- [ ] Pesapal card checkout is tested in KES, USD, EUR and GBP; confirm merchant/provider support and any conversion behaviour before launch.
-- [ ] Anonymous card contribution is tested: Pesapal receives its required email-or-phone transaction contact while the website does not save it as a named contributor identity.
-- [ ] Pesapal hosted checkout has been reviewed; if it still presents M-Pesa, request card-only/tailored merchant configuration from Pesapal because the standard API 3.0 order request does not provide a card-only selector.
-- [ ] PayPal sandbox is tested with client ID/secret before switching to live.
-- [ ] PayPal return/cancel flows update the local contribution status correctly.
-- [ ] Contribution thank-you/status screen is tested for pending, completed, failed and cancelled states.
-- [ ] M-Pesa status polling updates the pending screen after callback confirmation.
-- [ ] M-Pesa, Pesapal and PayPal callbacks/returns update local transaction status.
-- [ ] Policy wording and contribution tax treatment receive final legal/accounting review.
-- [ ] `/install` directory is removed after successful launch (recommended).
-- [ ] Database + uploads + `app/config.php` backup is scheduled through cPanel hosting backup tools.
-- [ ] Home/About/My Thoughts metadata is reviewed for international readability: East Africa remains the factual base, with natural global context for Europe, UK, US, Canada and diaspora readers.
-- [ ] No artificial duplicate country pages or false hreflang variants have been introduced; each English page has one canonical URL.
-- [ ] Writer → Consent loads and can create a private `/consent/<token>` link.
-- [ ] A test consent can be signed with photo-only permission, anonymous attribution and optional contact left blank.
-- [ ] The signed consent record shows timestamp, selected permissions, consent version and audit trail in Writer.
-- [ ] The withdrawal button on the private consent link changes the internal status to `withdrawal_requested`.
-- [ ] The configured contact recipient receives consent signed/withdrawal notification emails where PHP mail is available.
-- [ ] M-Pesa appreciation trace accepts KES and a transaction code.
-- [ ] Bank appreciation trace accepts an ISO currency, institution and transfer reference.
-- [ ] Optional payment proof upload accepts JPG/PNG/PDF up to 5 MB and cannot be accessed without Writer authentication.
-- [ ] Consent and payment records have received final privacy/legal review for the jurisdictions in which they will be used.
+Use [the AWS migration runbook](docs/AWS-MIGRATION.md) for the detailed steps.
+
+- [ ] Recover a consistent current database export and matching original application key.
+- [ ] Recover public uploads and private proof files; record and verify file hashes.
+- [ ] Select the AWS account/region, budget, VPC/subnets, security groups and application roles.
+- [ ] Validate a supported PHP platform and an available RDS MySQL 8.4 minor version.
+- [ ] Provision the independent data stack and restore a staging copy.
+- [ ] Apply explicit migrations with a migration account; use a separate runtime DML account.
+- [ ] Fill all deployment placeholders and register HTTPS certificates and staging DNS.
+- [ ] Deploy the versioned application bundle with APP_READY=0, WORKER_ENABLED=0 and mail disabled.
+- [ ] Confirm .htaccess enforcement and secret/key configuration before enabling staging.
+- [ ] Validate MySQL 8.4 compatibility, restored article URLs, both media stores, private routes and sessions.
+- [ ] Authorize actual Google/social resources and verify each destination in Writer.
+- [ ] Test permitted provider formats and mail acceptance with intended owner-controlled destinations.
+- [ ] Configure monitoring, redacted access logs, retention, SES feedback and backups; rehearse a restore.
+- [ ] Freeze old-host writes and workers, capture the final delta, restore and re-run migrations as needed.
+- [ ] Update APP_URL/allowed hosts/media URL, provider redirect URLs and verified sitemap settings.
+- [ ] Cut over both domains, preserving paths; verify TLS, canonical redirects, sitemap, RSS and login.
+- [ ] Enable WORKER_ENABLED=1 only for the intended production worker and enable mail separately, then monitor the first weekly release.
+- [ ] Keep a documented rollback point and the former host until the verification window closes.
+
+No check is marked complete merely because a configuration template exists.

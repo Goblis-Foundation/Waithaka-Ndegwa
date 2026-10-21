@@ -15,6 +15,14 @@
   </div>
 </section>
 
+<?php $activeJourney=function_exists('journeys_home_feature')?journeys_home_feature():null; ?>
+<section class="home-build-section">
+  <div class="container home-build-grid" data-reveal>
+    <div><span class="eyebrow">Startup Journeys</span><h2>One startup.<br>From the first question.</h2><p>A weekly record of building a venture from scratch: the ideas, customer conversations, experiments, decisions and systems that turn a possibility into something useful.</p><div class="button-row"><a class="button button-primary" href="<?=url('/startup-journeys')?>">Follow the journey</a><a class="text-link" href="<?=url('/newsletter')?>">Get weekly updates →</a></div></div>
+    <div class="home-build-card"><?php if($activeJourney):?><span class="eyebrow"><?=e(ucfirst($activeJourney['phase']))?></span><h3><a href="<?=url('/startup-journeys/'.$activeJourney['slug'])?>"><?=e($activeJourney['title'])?></a></h3><p><?=e($activeJourney['summary'])?></p><a class="text-link" href="<?=url('/startup-journeys/'.$activeJourney['slug'])?>"><?=intval($activeJourney['episode_count'])?> published updates · Read from the beginning →</a><?php else:?><span class="eyebrow">The starting point</span><h3>Begin with a real problem.</h3><p>The first season is being prepared. Each update will record what was tried, what the evidence showed and what changes next.</p><ol class="home-build-steps"><li><span>01</span> Find a problem worth solving</li><li><span>02</span> Test it with real people</li><li><span>03</span> Build, measure and share the lessons</li></ol><?php endif;?></div>
+  </div>
+</section>
+
 <section class="home-intro">
   <div class="container home-intro-grid" data-reveal>
     <span class="eyebrow">The lens</span>

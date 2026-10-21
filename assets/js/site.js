@@ -10,9 +10,35 @@
   document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(b.dataset.copy||location.href);const old=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=old,1200)}catch(e){}}));
 
   const cookie=document.querySelector('.cookie');
-  let consent=null;try{consent=localStorage.getItem('wk_consent')}catch(e){}
-  if(cookie&&!consent)cookie.classList.add('show');
-  document.querySelectorAll('[data-consent]').forEach(b=>b.addEventListener('click',()=>{const choice=b.dataset.consent;try{localStorage.setItem('wk_consent',choice)}catch(e){}cookie?.classList.remove('show');if(typeof window.gtag==='function'){window.gtag('consent','update',{analytics_storage:choice==='analytics'?'granted':'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'})}}));
+  const ga4=document.body.dataset.ga4||'';
+  let consent=null, analyticsLoaded=false;
+  try{consent=localStorage.getItem('wk_consent')}catch(e){}
+  const loadAnalytics=()=>{
+    if(!/^G-[A-Z0-9]+$/.test(ga4))return;
+    window['ga-disable-'+ga4]=false;
+    if(analyticsLoaded){window.gtag('consent','update',{analytics_storage:'granted'});return;}
+    analyticsLoaded=true;
+    window.dataLayer=window.dataLayer||[];
+    window.gtag=function(){window.dataLayer.push(arguments)};
+    window.gtag('consent','default',{analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
+    window.gtag('js',new Date());
+    // Never transmit query strings, form values, consent tokens or search text.
+    window.gtag('config',ga4,{page_location:location.origin+location.pathname,send_page_view:true,allow_google_signals:false,allow_ad_personalization_signals:false});
+    const script=document.createElement('script');script.async=true;script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(ga4);document.head.appendChild(script);
+  };
+  if(consent==='analytics')loadAnalytics();
+  if(cookie&&!consent&&ga4)cookie.classList.add('show');
+  document.querySelectorAll('[data-cookie-settings]').forEach(button=>button.addEventListener('click',()=>cookie?.classList.add('show')));
+  document.querySelectorAll('[data-consent]').forEach(button=>button.addEventListener('click',()=>{
+    const choice=button.dataset.consent;try{localStorage.setItem('wk_consent',choice)}catch(e){}cookie?.classList.remove('show');
+    if(choice==='analytics')loadAnalytics();else{
+      if(ga4)window['ga-disable-'+ga4]=true;
+      if(typeof window.gtag==='function')window.gtag('consent','update',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
+      document.cookie.split(';').forEach(item=>{const key=item.trim().split('=')[0];if(!/^(_ga|_gid)/.test(key))return;
+        [location.hostname,'.'+location.hostname,'.waithakandegwa.com','.waithakandegwa.co.ke'].forEach(domain=>{document.cookie=key+'=; Max-Age=0; path=/; domain='+domain});document.cookie=key+'=; Max-Age=0; path=/';
+      });
+    }
+  }));
 
   const methods=[...document.querySelectorAll('input[name="method"]')];
   const methodPanels=[...document.querySelectorAll('[data-method-fields]')];

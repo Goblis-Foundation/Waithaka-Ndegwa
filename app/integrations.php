@@ -1,14 +1,17 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/payment_integrity.php';
 
 function http_json(string $method,string $urlValue,array $headers=[],?array $body=null,int $timeout=20): array {
-    $ch=curl_init($urlValue); $h=['Accept: application/json']; foreach($headers as $x)$h[]=$x;
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_HTTPHEADER=>$h,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>8]);
+    if (parse_url($urlValue, PHP_URL_SCHEME) !== 'https') throw new RuntimeException('Remote integrations require HTTPS.');
+    $ch=curl_init($urlValue); $h=['Accept: application/json','Content-Type: application/json']; foreach($headers as $x)$h[]=$x;
+    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_HTTPHEADER=>$h,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2]);
     if($body!==null){$h[]='Content-Type: application/json';curl_setopt($ch,CURLOPT_HTTPHEADER,$h);curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($body,JSON_UNESCAPED_SLASHES));}
     $raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);$err=curl_error($ch);curl_close($ch);
-    if($raw===false||$err)throw new RuntimeException('Network request failed: '.$err);
-    $data=json_decode((string)$raw,true); if(!is_array($data))$data=['raw'=>$raw];
-    if($status>=400)throw new RuntimeException($data['error']['message']??$data['errorMessage']??$data['ResponseDescription']??('Remote service returned HTTP '.$status));
+    if($raw===false||$err)throw new RuntimeException('The provider could not be reached. The result remains unconfirmed.');
+    $data=json_decode((string)$raw,true);
+    if($status<200||$status>=300)throw new RuntimeException('Remote service returned HTTP '.$status.'. The result remains unconfirmed.');
+    if(!is_array($data))throw new RuntimeException('Remote service returned an invalid JSON response.');
     return $data;
 }
 
@@ -45,11 +48,22 @@ function mpesa_token(): string {
     $ch=curl_init(mpesa_base().'/oauth/v1/generate?grant_type=client_credentials');curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>['Authorization: Basic '.base64_encode($key.':'.$secret)],CURLOPT_TIMEOUT=>15]);$raw=curl_exec($ch);$status=curl_getinfo($ch,CURLINFO_RESPONSE_CODE);curl_close($ch);$d=json_decode((string)$raw,true);if($status>=400||empty($d['access_token']))throw new RuntimeException('Unable to authenticate with M-Pesa.');return $d['access_token'];
 }
 function normalize_ke_phone(string $phone): string { $n=preg_replace('/\D+/','',$phone);if(str_starts_with($n,'0'))$n='254'.substr($n,1);elseif(str_starts_with($n,'7')||str_starts_with($n,'1'))$n='254'.$n;if(!preg_match('/^254[17]\d{8}$/',$n))throw new RuntimeException('Enter a valid Kenyan M-Pesa number.');return $n; }
-function mpesa_stk_push(string $reference,float $amount,string $phone): array {
+function mpesa_stk_push(string $reference,string|float $amount,string $phone): array {
     $short=(string)setting('mpesa.shortcode','');$passkey=(string)setting('mpesa.passkey','');if($short===''||$passkey==='')throw new RuntimeException('M-Pesa shortcode/passkey is not configured.');
     $timestamp=date('YmdHis');$password=base64_encode($short.$passkey.$timestamp);$phone=normalize_ke_phone($phone);
+    $minor=payment_minor_units($amount);if($minor<=0||$minor%100!==0)throw new RuntimeException('M-Pesa amounts must be whole Kenyan shillings.');
     return http_json('POST',mpesa_base().'/mpesa/stkpush/v1/processrequest',['Authorization: Bearer '.mpesa_token()],[
-      'BusinessShortCode'=>$short,'Password'=>$password,'Timestamp'=>$timestamp,'TransactionType'=>(string)setting('mpesa.transaction_type','CustomerPayBillOnline'),'Amount'=>(int)round($amount),'PartyA'=>$phone,'PartyB'=>$short,'PhoneNumber'=>$phone,'CallBackURL'=>url('/payments/mpesa/callback'),'AccountReference'=>$reference,'TransactionDesc'=>'Contribution to Waithaka Ndegwa writing'
+      'BusinessShortCode'=>$short,'Password'=>$password,'Timestamp'=>$timestamp,'TransactionType'=>(string)setting('mpesa.transaction_type','CustomerPayBillOnline'),'Amount'=>intdiv($minor,100),'PartyA'=>$phone,'PartyB'=>$short,'PhoneNumber'=>$phone,'CallBackURL'=>url('/payments/mpesa/callback?ref='.rawurlencode($reference).'&state='.payment_return_state($reference,'mpesa')),'AccountReference'=>substr(str_replace('-','',$reference),-12),'TransactionDesc'=>'Support My Thoughts'
+    ]);
+}
+
+function mpesa_stk_query(string $checkoutId): array {
+    if ($checkoutId === '' || strlen($checkoutId)>190 || !preg_match('/^[A-Za-z0-9_-]+$/D',$checkoutId)) throw new RuntimeException('Invalid M-Pesa checkout reference.');
+    $short=(string)setting('mpesa.shortcode','');$passkey=(string)setting('mpesa.passkey','');
+    if($short===''||$passkey==='')throw new RuntimeException('M-Pesa query is not configured.');
+    $timestamp=date('YmdHis');
+    return http_json('POST',mpesa_base().'/mpesa/stkpushquery/v1/query',['Authorization: Bearer '.mpesa_token()],[
+        'BusinessShortCode'=>$short,'Password'=>base64_encode($short.$passkey.$timestamp),'Timestamp'=>$timestamp,'CheckoutRequestID'=>$checkoutId
     ]);
 }
 
@@ -58,10 +72,10 @@ function pesapal_token(): string {
     $key=(string)setting('pesapal.consumer_key','');$secret=(string)setting('pesapal.consumer_secret','');if($key===''||$secret==='')throw new RuntimeException('Pesapal is not configured yet.');
     $r=http_json('POST',pesapal_base().'/api/Auth/RequestToken',[],['consumer_key'=>$key,'consumer_secret'=>$secret]);if(empty($r['token']))throw new RuntimeException('Unable to authenticate with Pesapal.');return $r['token'];
 }
-function pesapal_submit(string $reference,float $amount,string $currency,array $person): array {
+function pesapal_submit(string $reference,string|float $amount,string $currency,array $person): array {
     $ipn=(string)setting('pesapal.ipn_id','');if($ipn==='')throw new RuntimeException('Pesapal IPN ID is not configured. Register the IPN URL first in Writer → Settings.');
     return http_json('POST',pesapal_base().'/api/Transactions/SubmitOrderRequest',['Authorization: Bearer '.pesapal_token()],[
-      'id'=>$reference,'currency'=>$currency,'amount'=>round($amount,2),'description'=>'Contribution to Waithaka Ndegwa writing','callback_url'=>url('/payments/pesapal/callback'),'notification_id'=>$ipn,'billing_address'=>[
+      'id'=>$reference,'currency'=>$currency,'amount'=>(float)payment_decimal($amount),'description'=>'Contribution to Waithaka Ndegwa writing','callback_url'=>url('/payments/pesapal/callback'),'notification_id'=>$ipn,'billing_address'=>[
         'email_address'=>$person['email'],'phone_number'=>$person['phone']??'','country_code'=>$person['country_code']??'KE','first_name'=>$person['first_name'],'middle_name'=>'','last_name'=>$person['last_name'],'line_1'=>'','line_2'=>'','city'=>'','state'=>'','postal_code'=>'','zip_code'=>''
       ]
     ]);
@@ -72,6 +86,7 @@ function pesapal_register_ipn(): array {
     ]);
 }
 function pesapal_status(string $trackingId): array {
+    if (!preg_match('/^[A-Za-z0-9-]{1,190}$/D',$trackingId)) throw new RuntimeException('Invalid Pesapal tracking reference.');
     return http_json('GET',pesapal_base().'/api/Transactions/GetTransactionStatus?orderTrackingId='.rawurlencode($trackingId),['Authorization: Bearer '.pesapal_token()]);
 }
 
@@ -106,23 +121,23 @@ function paypal_token(): string {
     return (string)$d['access_token'];
 }
 
-function paypal_create_order(string $reference,float $amount,string $currency='USD'): array {
-    $amount=round($amount,2);
-    if($amount<=0) throw new RuntimeException('Enter a valid PayPal contribution amount.');
+function paypal_create_order(string $reference,string|float $amount,string $currency='USD'): array {
+    $amount=payment_decimal($amount);
+    if(payment_minor_units($amount)<=0) throw new RuntimeException('Enter a valid PayPal contribution amount.');
     $payload=[
         'intent'=>'CAPTURE',
         'purchase_units'=>[[
             'reference_id'=>$reference,
             'custom_id'=>$reference,
             'description'=>'Voluntary contribution to Waithaka Ndegwa',
-            'amount'=>['currency_code'=>$currency,'value'=>number_format($amount,2,'.','')]
+            'amount'=>['currency_code'=>$currency,'value'=>$amount]
         ]],
         'application_context'=>[
             'brand_name'=>'Waithaka Ndegwa',
             'landing_page'=>'LOGIN',
             'user_action'=>'PAY_NOW',
-            'return_url'=>url('/payments/paypal/return?ref='.rawurlencode($reference)),
-            'cancel_url'=>url('/payments/paypal/cancel?ref='.rawurlencode($reference))
+            'return_url'=>url('/payments/paypal/return?ref='.rawurlencode($reference).'&state='.payment_return_state($reference)),
+            'cancel_url'=>url('/payments/paypal/cancel?ref='.rawurlencode($reference).'&state='.payment_return_state($reference))
         ]
     ];
     return http_json('POST',paypal_base().'/v2/checkout/orders',[
@@ -134,15 +149,28 @@ function paypal_create_order(string $reference,float $amount,string $currency='U
 
 function paypal_approval_url(array $order): ?string {
     foreach(($order['links']??[]) as $link){
-        if(in_array(($link['rel']??''),['payer-action','approve'],true) && !empty($link['href'])) return (string)$link['href'];
+        if(in_array(($link['rel']??''),['payer-action','approve'],true) && !empty($link['href']) && payment_checkout_url('paypal',(string)$link['href'])) return (string)$link['href'];
     }
     return null;
 }
 
 function paypal_capture_order(string $orderId): array {
-    if(!preg_match('/^[A-Z0-9]+$/i',$orderId)) throw new RuntimeException('Invalid PayPal order reference.');
+    if(!preg_match('/^[A-Z0-9]{1,36}$/D',$orderId)) throw new RuntimeException('Invalid PayPal order reference.');
     return http_json('POST',paypal_base().'/v2/checkout/orders/'.rawurlencode($orderId).'/capture',[
         'Authorization: Bearer '.paypal_token(),
+        'PayPal-Request-Id: cap-'.substr(hash('sha256',$orderId),0,32),
         'Prefer: return=representation'
-    ],[],25);
+    ],null,25);
+}
+
+function paypal_get_order(string $orderId): array {
+    if(!preg_match('/^[A-Z0-9]{1,36}$/D',$orderId)) throw new RuntimeException('Invalid PayPal order reference.');
+    return http_json('GET',paypal_base().'/v2/checkout/orders/'.rawurlencode($orderId),['Authorization: Bearer '.paypal_token(),'Prefer: return=representation']);
+}
+
+function payment_checkout_url(string $provider, string $value): bool {
+    if (!filter_var($value,FILTER_VALIDATE_URL) || parse_url($value,PHP_URL_SCHEME)!=='https' || parse_url($value,PHP_URL_USER)!==null || parse_url($value,PHP_URL_PASS)!==null) return false;
+    $host = strtolower((string)parse_url($value,PHP_URL_HOST));
+    $hosts = $provider === 'paypal' ? ['www.paypal.com','www.sandbox.paypal.com'] : ['pay.pesapal.com','cybqa.pesapal.com'];
+    return in_array($host,$hosts,true) && (parse_url($value,PHP_URL_PORT) === null || parse_url($value,PHP_URL_PORT) === 443);
 }

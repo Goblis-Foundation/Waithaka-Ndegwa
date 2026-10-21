@@ -1,0 +1,243 @@
+Waithaka Ndegwa local regression evidence
+FINAL VERIFIED RESULT: PASS, 9/9 suites, 439 assertions (including worker-enable configuration checks).
+Runtime: PHP 8.3.6; MariaDB 10.11.14-MariaDB-0ubuntu0.24.04.1 on the isolated local server.
+Final syntax check: 73 PHP files and 2 JavaScript files passed.
+Assertion counts: security unit 72; publishing policy 52; runtime configuration 78;
+security database 35; journeys/founders/newsletter/RSS 75; publishing database 16;
+operations 32; security/shared-layout HTTP 38; publishing HTTP 41.
+GitHub PHP 8.3/8.4 and MySQL 8.4 CI is prepared, not executed.
+The log below retains two local tooling preflight failures and their corrections;
+the final complete run passed. Expected simulated outbox uncertainty is part of
+the passing operations regression and did not call an external delivery service.
+
+Started UTC: 2026-10-21T12:18:56.780691+00:00
+Local PHP/MariaDB verification only. GitHub PHP 8.3/8.4 with MySQL 8.4 CI is prepared, not executed.
+Database command environment: WK_TEST_ALLOW_WRITES=1 WK_TEST_DB_HOST=127.0.0.1 WK_TEST_DB_PORT=3307 WK_TEST_DB_USER=root WK_TEST_DB_PASS=''
+All credentials are disposable local fixtures. Each run creates new schemas ending _test and never drops a database.
+CI action tag verification, read-only git ls-remote from official repositories:
+https://github.com/actions/checkout/tree/v7 refs/tags/v7 3d3c42e5aac5ba805825da76410c181273ba90b1
+https://github.com/actions/setup-node/tree/v7 refs/tags/v7 949feb2413d6458794dcd2491c4babbbce0c15c1
+https://github.com/shivammathur/setup-php/tree/v2 refs/tags/v2 d52fc211a0436f8839a587b3b5b8efddab4744ea
+
+Command: php tests/run.php --lint
+PASS: syntax checks for 73 PHP files and 2 JavaScript files.
+Exit code: 0
+
+Command: composer test
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+Aborting as no plugin should be loaded if running as super user is not explicitly allowed
+Exit code: 1
+
+Finished UTC: 2026-10-21T12:19:00.658529+00:00
+Overall result: FAIL
+
+The initial Composer invocation stopped before running application tests because this local executor runs as root. Plugins are explicitly disabled for the supported local rerun below; no superuser plugin allowance is enabled. CI runs as the normal GitHub runner user.
+Rerun started UTC: 2026-10-21T12:19:33.825988+00:00
+Command: composer --no-plugins test
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+> php tests/run.php
+Test runtime: PHP 8.3.6
+
+[PASS] Pure security
+PASS: 72 security unit assertions
+
+[PASS] Pure publishing
+Publishing policy tests passed: 52
+
+[PASS] Pure runtime configuration
+Runtime configuration checks passed: 75
+
+[FAIL] Prepare security database
+Test database preparation failed: Set WK_TEST_DB_USER and WK_TEST_DB_PASS explicitly; an empty fixture password is allowed.
+
+[FAIL] Prepare journeys database
+Test database preparation failed: Set WK_TEST_DB_USER and WK_TEST_DB_PASS explicitly; an empty fixture password is allowed.
+
+[FAIL] Prepare publishing database
+Test database preparation failed: Set WK_TEST_DB_USER and WK_TEST_DB_PASS explicitly; an empty fixture password is allowed.
+
+[FAIL] Prepare operations database
+Test database preparation failed: Set WK_TEST_DB_USER and WK_TEST_DB_PASS explicitly; an empty fixture password is allowed.
+
+[FAIL] Prepare http database
+Test database preparation failed: Set WK_TEST_DB_USER and WK_TEST_DB_PASS explicitly; an empty fixture password is allowed.
+
+Disposable databases were retained for inspection; no databases were dropped.
+
+FAIL: 3/9 suites passed.
+Failed suites: security preparation, journeys preparation, publishing preparation, operations preparation, http preparation
+Script php tests/run.php handling the test event returned with error code 1
+Plugins have been disabled automatically as you are running as root, this may be the cause of the script failure.
+See also https://getcomposer.org/root
+Exit code: 1
+Rerun finished UTC: 2026-10-21T12:19:34.383536+00:00
+Final aggregate result: FAIL
+
+Runner compatibility fix: PHP proc_open omitted empty environment values, so the strict child preparation guard refused the empty fixture password before creating any database. The runner now restores only empty assignments with env(1); nonempty credentials remain in the environment.
+Final verification started UTC: 2026-10-21T12:21:17.696714+00:00
+
+Command: php tests/run.php --lint
+PASS: syntax checks for 73 PHP files and 2 JavaScript files.
+Exit code: 0
+
+Command: composer --no-plugins test
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+> php tests/run.php
+Test runtime: PHP 8.3.6
+
+[PASS] Pure security
+PASS: 72 security unit assertions
+
+[PASS] Pure publishing
+Publishing policy tests passed: 52
+
+[PASS] Pure runtime configuration
+Runtime configuration checks passed: 75
+
+[PASS] Prepare security database
+Created disposable database waithaka_test_20261021_122121_dd8cff_security_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+
+[PASS] Security database
+PASS: 35 database security assertions
+
+[PASS] Prepare journeys database
+Created disposable database waithaka_test_20261021_122121_dd8cff_journeys_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+
+[PASS] Journeys database
+PASS: 75 journey, founder, newsletter and RSS workflow assertions.
+
+[PASS] Prepare publishing database
+Created disposable database waithaka_test_20261021_122121_dd8cff_publishing_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Kept empty for the publishing suite's own disposable-table initialization.
+
+[PASS] Publishing database
+Publishing database tests passed: 16
+
+[PASS] Prepare operations database
+Created disposable database waithaka_test_20261021_122121_dd8cff_operations_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+
+[PASS] Operations database
+Email outbox 3 delivery unconfirmed; inspect provider delivery logs before retrying.
+Email outbox 9 delivery unconfirmed; inspect provider delivery logs before retrying.
+Operations checks passed: 32
+
+[PASS] Prepare http database
+Created disposable database waithaka_test_20261021_122121_dd8cff_http_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+
+[PASS] HTTP security and shared layouts
+PASS: 38 HTTP security and shared-layout assertions
+
+[PASS] HTTP publishing workflow
+PASS: 41 publishing HTTP workflow assertions
+
+Disposable databases were retained for inspection; no databases were dropped.
+
+PASS: 9/9 suites passed.
+Exit code: 0
+Final verification finished UTC: 2026-10-21T12:21:24.318537+00:00
+Final aggregate result: PASS
+
+Final worker-enable regression rerun
+Change under test: workers default to disabled and require explicit WORKER_ENABLED=true; unconfigured or disabled workers exit before database or provider work.
+Started UTC: 2026-10-21T12:25:07.877976+00:00
+
+Command: php tests/run.php --lint
+PASS: syntax checks for 73 PHP files and 2 JavaScript files.
+Exit code: 0
+
+Command: composer --no-plugins test
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+> php tests/run.php
+Test runtime: PHP 8.3.6
+
+[PASS] Pure security
+PASS: 72 security unit assertions
+
+[PASS] Pure publishing
+Publishing policy tests passed: 52
+
+[PASS] Pure runtime configuration
+Runtime configuration checks passed: 78
+
+[PASS] Prepare security database
+Created disposable database waithaka_test_20261021_122511_8c482f_security_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+
+[PASS] Security database
+PASS: 35 database security assertions
+
+[PASS] Prepare journeys database
+Created disposable database waithaka_test_20261021_122511_8c482f_journeys_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+
+[PASS] Journeys database
+PASS: 75 journey, founder, newsletter and RSS workflow assertions.
+
+[PASS] Prepare publishing database
+Created disposable database waithaka_test_20261021_122511_8c482f_publishing_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Kept empty for the publishing suite's own disposable-table initialization.
+
+[PASS] Publishing database
+Publishing database tests passed: 16
+
+[PASS] Prepare operations database
+Created disposable database waithaka_test_20261021_122511_8c482f_operations_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+
+[PASS] Operations database
+Email outbox 3 delivery unconfirmed; inspect provider delivery logs before retrying.
+Email outbox 9 delivery unconfirmed; inspect provider delivery logs before retrying.
+Operations checks passed: 32
+
+[PASS] Prepare http database
+Created disposable database waithaka_test_20261021_122511_8c482f_http_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+
+[PASS] HTTP security and shared layouts
+PASS: 38 HTTP security and shared-layout assertions
+
+[PASS] HTTP publishing workflow
+PASS: 41 publishing HTTP workflow assertions
+
+Disposable databases were retained for inspection; no databases were dropped.
+
+PASS: 9/9 suites passed.
+Exit code: 0
+Finished UTC: 2026-10-21T12:25:14.814923+00:00
+Final worker-enable aggregate result: PASS

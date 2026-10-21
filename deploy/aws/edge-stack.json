@@ -1,0 +1,301 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CloudFront edge for Waithaka Ndegwa. Validate TLS and aliases before DNS cutover. PHP/private routes are never CDN cached.",
+  "Parameters": {
+    "CanonicalHost": {
+      "Type": "String",
+      "Default": "www.waithakandegwa.com"
+    },
+    "Aliases": {
+      "Type": "CommaDelimitedList",
+      "Default": "www.waithakandegwa.com,waithakandegwa.com,www.waithakandegwa.co.ke,waithakandegwa.co.ke"
+    },
+    "ViewerCertificateArn": {
+      "Type": "String",
+      "Description": "ACM certificate in us-east-1 covering all aliases"
+    },
+    "OriginDomain": {
+      "Type": "String",
+      "Description": "DNS name pointing to the Beanstalk ALB, with matching regional certificate that also covers the canonical host"
+    },
+    "MediaBucketRegionalDomain": {
+      "Type": "String",
+      "Description": "Regional S3 domain of the public-media bucket"
+    }
+  },
+  "Resources": {
+    "CanonicalRedirect": {
+      "Type": "AWS::CloudFront::Function",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-canonical"
+        },
+        "AutoPublish": true,
+        "FunctionConfig": {
+          "Comment": "Preserve paths and query strings across secondary domains",
+          "Runtime": "cloudfront-js-2.0"
+        },
+        "FunctionCode": {
+          "Fn::Sub": "function handler(event) {\n var request=event.request;\n if(request.headers.host.value==='${CanonicalHost}') return request;\n var pairs=[];\n Object.keys(request.querystring).forEach(function(k){\n  var item=request.querystring[k];\n  (item.multiValue||[item]).forEach(function(v){pairs.push(k+'='+v.value);});\n });\n return {statusCode:308,statusDescription:'Permanent Redirect',headers:{location:{value:'https://${CanonicalHost}'+request.uri+(pairs.length?'?'+pairs.join('&'):'')},'cache-control':{value:'public,max-age=300'}}};\n}"
+        }
+      }
+    },
+    "NoHtmlCache": {
+      "Type": "AWS::CloudFront::CachePolicy",
+      "Properties": {
+        "CachePolicyConfig": {
+          "Name": {
+            "Fn::Sub": "${AWS::StackName}-no-html-cache"
+          },
+          "MinTTL": 0,
+          "DefaultTTL": 0,
+          "MaxTTL": 0,
+          "ParametersInCacheKeyAndForwardedToOrigin": {
+            "EnableAcceptEncodingGzip": false,
+            "CookiesConfig": {
+              "CookieBehavior": "none"
+            },
+            "HeadersConfig": {
+              "HeaderBehavior": "none"
+            },
+            "QueryStringsConfig": {
+              "QueryStringBehavior": "none"
+            }
+          }
+        }
+      }
+    },
+    "StaticCache": {
+      "Type": "AWS::CloudFront::CachePolicy",
+      "Properties": {
+        "CachePolicyConfig": {
+          "Name": {
+            "Fn::Sub": "${AWS::StackName}-static"
+          },
+          "MinTTL": 0,
+          "DefaultTTL": 86400,
+          "MaxTTL": 31536000,
+          "ParametersInCacheKeyAndForwardedToOrigin": {
+            "EnableAcceptEncodingGzip": true,
+            "EnableAcceptEncodingBrotli": true,
+            "CookiesConfig": {
+              "CookieBehavior": "none"
+            },
+            "HeadersConfig": {
+              "HeaderBehavior": "none"
+            },
+            "QueryStringsConfig": {
+              "QueryStringBehavior": "whitelist",
+              "QueryStrings": [
+                "v"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "MediaOac": {
+      "Type": "AWS::CloudFront::OriginAccessControl",
+      "Properties": {
+        "OriginAccessControlConfig": {
+          "Name": {
+            "Fn::Sub": "${AWS::StackName}-media"
+          },
+          "OriginAccessControlOriginType": "s3",
+          "SigningBehavior": "always",
+          "SigningProtocol": "sigv4"
+        }
+      }
+    },
+    "Distribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Enabled": true,
+          "HttpVersion": "http2and3",
+          "IPV6Enabled": true,
+          "Aliases": {
+            "Ref": "Aliases"
+          },
+          "ViewerCertificate": {
+            "AcmCertificateArn": {
+              "Ref": "ViewerCertificateArn"
+            },
+            "SslSupportMethod": "sni-only",
+            "MinimumProtocolVersion": "TLSv1.2_2021"
+          },
+          "Origins": [
+            {
+              "Id": "application",
+              "DomainName": {
+                "Ref": "OriginDomain"
+              },
+              "CustomOriginConfig": {
+                "OriginProtocolPolicy": "https-only",
+                "OriginSSLProtocols": [
+                  "TLSv1.2"
+                ],
+                "HTTPPort": 80,
+                "HTTPSPort": 443
+              }
+            },
+            {
+              "Id": "media",
+              "DomainName": {
+                "Ref": "MediaBucketRegionalDomain"
+              },
+              "OriginAccessControlId": {
+                "Ref": "MediaOac"
+              },
+              "S3OriginConfig": {
+                "OriginAccessIdentity": ""
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "application",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": [
+              "GET",
+              "HEAD",
+              "OPTIONS",
+              "PUT",
+              "POST",
+              "PATCH",
+              "DELETE"
+            ],
+            "CachedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "CachePolicyId": {
+              "Ref": "NoHtmlCache"
+            },
+            "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3",
+            "Compress": true,
+            "FunctionAssociations": [
+              {
+                "EventType": "viewer-request",
+                "FunctionARN": {
+                  "Fn::GetAtt": [
+                    "CanonicalRedirect",
+                    "FunctionARN"
+                  ]
+                }
+              }
+            ]
+          },
+          "CacheBehaviors": [
+            {
+              "PathPattern": "/assets/uploads/*",
+              "TargetOriginId": "media",
+              "ViewerProtocolPolicy": "redirect-to-https",
+              "AllowedMethods": [
+                "GET",
+                "HEAD"
+              ],
+              "CachedMethods": [
+                "GET",
+                "HEAD"
+              ],
+              "CachePolicyId": {
+                "Ref": "StaticCache"
+              },
+              "Compress": true,
+              "FunctionAssociations": [
+                {
+                  "EventType": "viewer-request",
+                  "FunctionARN": {
+                    "Fn::GetAtt": [
+                      "CanonicalRedirect",
+                      "FunctionARN"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "PathPattern": "/assets/*",
+              "TargetOriginId": "application",
+              "ViewerProtocolPolicy": "redirect-to-https",
+              "AllowedMethods": [
+                "GET",
+                "HEAD"
+              ],
+              "CachedMethods": [
+                "GET",
+                "HEAD"
+              ],
+              "CachePolicyId": {
+                "Ref": "StaticCache"
+              },
+              "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3",
+              "Compress": true,
+              "FunctionAssociations": [
+                {
+                  "EventType": "viewer-request",
+                  "FunctionARN": {
+                    "Fn::GetAtt": [
+                      "CanonicalRedirect",
+                      "FunctionARN"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "CustomErrorResponses": [
+            {
+              "ErrorCode": 400,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 403,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 404,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 500,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 502,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 503,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 504,
+              "ErrorCachingMinTTL": 0
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "DistributionId": {
+      "Value": {
+        "Ref": "Distribution"
+      }
+    },
+    "DistributionDomain": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Distribution",
+          "DomainName"
+        ]
+      }
+    },
+    "DistributionArn": {
+      "Value": {
+        "Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+      }
+    }
+  }
+}

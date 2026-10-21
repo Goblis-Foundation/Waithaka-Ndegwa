@@ -7,6 +7,9 @@ if (!installed()) {
 }
 
 $path = path_only();
+if (str_starts_with($path,'/write') || str_starts_with($path,'/consent/') || str_starts_with($path,'/payments/')) private_response_headers();
+// Optional modules may handle additional routes without changing legacy URLs.
+if (function_exists('app_extension_route') && app_extension_route($path)) exit;
 
 function not_found(): never {
     http_response_code(404);
@@ -117,7 +120,7 @@ if ($path === '/contact') {
         if(!recaptcha_ok()){flash('error','Please complete the “I am not a robot” check.');redirect(url('/contact'));}
         $st=db()->prepare('INSERT INTO contact_messages(reference,first_name,last_name,email,phone_code,phone,country,city,message,ip_hash,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
         $st->execute([$m['reference'],$m['first_name'],$m['last_name'],$m['email'],$m['phone_code'],$m['phone'],$m['country'],$m['city'],$m['message'],ip_hash(),mb_substr($_SERVER['HTTP_USER_AGENT']??'',0,500)]);
-        $sent=send_contact_email($m); if($sent)db()->prepare('UPDATE contact_messages SET email_sent=1 WHERE reference=?')->execute([$m['reference']]);
+        $sent=send_contact_email($m); if($sent&&!function_exists('enqueue_email'))db()->prepare('UPDATE contact_messages SET email_sent=1 WHERE reference=?')->execute([$m['reference']]);
         flash('success','Thank you. Your message has been received. Reference: '.$m['reference']);redirect(url('/contact'));
     }
     render('contact',['page'=>'contact','seo'=>['title'=>'Contact · Waithaka Ndegwa','description'=>'Contact Waithaka Ndegwa for thoughtful questions, speaking invitations, collaborations, media enquiries or responses to My Thoughts.','canonical'=>url('/contact')]]);exit;
@@ -131,38 +134,40 @@ if ($path === '/contribute') {
             flash('error','Please choose a valid payment method.');redirect(url('/contribute'));
         }
 
-        $currency='KES';$amount=0.0;
-        if($method==='mpesa'){
-            $choice=(string)($_POST['amount_choice_kes']??'1000');
-            $amount=$choice==='other'?(float)($_POST['amount_kes']??0):(float)$choice;
-            if($amount<50||$amount>1000000){flash('error','Please enter a valid M-Pesa contribution amount.');redirect(url('/contribute'));}
-        }elseif($method==='pesapal'){
-            $currency=strtoupper(trim((string)($_POST['card_currency']??'KES')));
-            if(!in_array($currency,['KES','USD','EUR','GBP'],true)){$currency='KES';}
-            $choice=(string)($_POST['amount_choice_card']??($currency==='KES'?'1000':'10'));
-            $amount=$choice==='other'?(float)($_POST['amount_card']??0):(float)$choice;
-            $minimum=$currency==='KES'?50:1;
-            $maximum=$currency==='KES'?1000000:100000;
-            if($amount<$minimum||$amount>$maximum){flash('error','Please enter a valid card contribution amount.');redirect(url('/contribute'));}
-        }else{
-            $currency='USD';
-            $choice=(string)($_POST['amount_choice_usd']??'10');
-            $amount=$choice==='other'?(float)($_POST['amount_usd']??0):(float)$choice;
-            if($amount<1||$amount>10000){flash('error','Please enter a valid PayPal contribution amount.');redirect(url('/contribute'));}
-        }
+        try {
+            $currency='KES';
+            if($method==='mpesa'){
+                $choice=(string)($_POST['amount_choice_kes']??'1000');
+                $amount=payment_decimal($choice==='other'?($_POST['amount_kes']??'0'):$choice);
+                $minor=payment_minor_units($amount);
+                if($minor<5000||$minor>100000000||$minor%100!==0)throw new InvalidArgumentException('Enter a whole Kenyan shilling amount between 50 and 1,000,000.');
+            }elseif($method==='pesapal'){
+                $currency=strtoupper(trim((string)($_POST['card_currency']??'KES')));
+                if(!in_array($currency,['KES','USD','EUR','GBP'],true))throw new InvalidArgumentException('Choose a supported card currency.');
+                $choice=(string)($_POST['amount_choice_card']??($currency==='KES'?'1000':'10'));
+                $amount=payment_decimal($choice==='other'?($_POST['amount_card']??'0'):$choice);
+                $minor=payment_minor_units($amount);
+                if($minor<($currency==='KES'?5000:100)||$minor>($currency==='KES'?100000000:10000000))throw new InvalidArgumentException('Enter an amount within the supported contribution range.');
+            }else{
+                $currency='USD';$choice=(string)($_POST['amount_choice_usd']??'10');
+                $amount=payment_decimal($choice==='other'?($_POST['amount_usd']??'0'):$choice);
+                $minor=payment_minor_units($amount);
+                if($minor<100||$minor>1000000)throw new InvalidArgumentException('Enter a PayPal contribution between USD 1 and USD 10,000.');
+            }
+        }catch(InvalidArgumentException $e){flash('error',$e->getMessage());redirect(url('/contribute'));}
 
         if(empty($_POST['contribution_acknowledgement'])){flash('error','Please confirm that you understand the contribution terms.');redirect(url('/contribute'));}
 
-        $reference=make_reference('CON');
+        $reference=make_reference('CON');$contributionId=0;
         try{
             if($method==='mpesa'){
                 $phone=trim((string)($_POST['mpesa_phone']??'')); $normalized=normalize_ke_phone($phone);
                 db()->prepare('INSERT INTO contributions(reference,method,amount,currency,status) VALUES(?,?,?,?,?)')
                     ->execute([$reference,'mpesa',$amount,'KES','initiated']);
+                $contributionId=(int)db()->lastInsertId();payment_start_tracking($contributionId,'mpesa');
                 $r=mpesa_stk_push($reference,$amount,$normalized);
-                $provider=$r['CheckoutRequestID']??$r['MerchantRequestID']??null;
-                db()->prepare('UPDATE contributions SET provider_reference=?,provider_payload=?,status=? WHERE reference=?')
-                    ->execute([$provider,payment_payload_for_storage($r),'pending',$reference]);
+                payment_assert((string)($r['ResponseCode']??'')==='0'&&!empty($r['CheckoutRequestID'])&&!empty($r['MerchantRequestID']),'M-Pesa did not confirm checkout initiation.');
+                payment_bind_provider($contributionId,'mpesa',(string)$r['CheckoutRequestID'],['merchant'=>(string)$r['MerchantRequestID']],$r);
                 redirect(url('/contribute?ref='.rawurlencode($reference)));
             }
 
@@ -182,26 +187,34 @@ if ($path === '/contribute') {
                 ];
                 db()->prepare('INSERT INTO contributions(reference,method,amount,currency,first_name,last_name,email,phone,status) VALUES(?,?,?,?,?,?,?,?,?)')
                     ->execute([$reference,'pesapal',$amount,$currency,$person['first_name']?:null,$person['last_name']?:null,$anonymous?null:($person['email']?:null),$anonymous?null:($person['phone']?:null),'initiated']);
+                $contributionId=(int)db()->lastInsertId();payment_start_tracking($contributionId,'pesapal');
                 $r=pesapal_submit($reference,$amount,$currency,$person);
                 $provider=$r['order_tracking_id']??null;
                 $redir=$r['redirect_url']??null;
-                db()->prepare('UPDATE contributions SET provider_reference=?,provider_payload=?,status=? WHERE reference=?')
-                    ->execute([$provider,payment_payload_for_storage($r),'pending',$reference]);
-                if(!$redir) throw new RuntimeException('Pesapal did not return a checkout URL.');
+                payment_assert(!empty($provider)&&($r['merchant_reference']??'')===$reference&&(string)($r['status']??'')==='200','Pesapal did not confirm the expected order.');
+                payment_bind_provider($contributionId,'pesapal',(string)$provider,[],$r);
+                if(!$redir||!payment_checkout_url('pesapal',$redir)) throw new RuntimeException('Pesapal did not return a valid checkout URL.');
                 redirect($redir);
             }
 
             db()->prepare('INSERT INTO contributions(reference,method,amount,currency,status) VALUES(?,?,?,?,?)')
                 ->execute([$reference,'paypal',$amount,'USD','initiated']);
+            $contributionId=(int)db()->lastInsertId();payment_start_tracking($contributionId,'paypal');
             $r=paypal_create_order($reference,$amount,'USD');
             $provider=(string)($r['id']??'');
             $redir=paypal_approval_url($r);
-            db()->prepare('UPDATE contributions SET provider_reference=?,provider_payload=?,status=? WHERE reference=?')
-                ->execute([$provider,payment_payload_for_storage($r),'pending',$reference]);
-            if($provider===''||!$redir) throw new RuntimeException('PayPal did not return an approval link.');
+            if($provider===''||!$redir) throw new RuntimeException('PayPal did not return a valid approval link.');
+            payment_bind_provider($contributionId,'paypal',$provider,[],$r);
             redirect($redir);
         }catch(Throwable $e){
-            try{db()->prepare("UPDATE contributions SET status='failed',provider_payload=? WHERE reference=?")->execute([$e->getMessage(),$reference]);}catch(Throwable $ignored){}
+            if($contributionId){
+                $row=['id'=>$contributionId,'method'=>$method];
+                payment_needs_review($row,'Checkout initiation result is uncertain; check provider records before retrying.');
+                payment_event($row,'initiation','unconfirmed',['reason'=>$e->getMessage()]);
+                error_log('Contribution initiation unconfirmed '.$reference.': '.$e->getMessage());
+                flash('error','Checkout could not be confirmed. Keep reference '.$reference.' and check for an existing payment before trying again.');
+                redirect(url('/contribute?ref='.rawurlencode($reference)));
+            }
             flash('error',$e->getMessage());redirect(url('/contribute'));
         }
     }
@@ -228,66 +241,89 @@ if ($path === '/payments/status') {
 }
 
 if ($path === '/payments/mpesa/callback') {
-    $raw=file_get_contents('php://input') ?: '{}';$d=json_decode($raw,true) ?: [];$cb=$d['Body']['stkCallback']??[];$provider=$cb['CheckoutRequestID']??'';$code=(int)($cb['ResultCode']??-1);$receipt=null;
-    foreach(($cb['CallbackMetadata']['Item']??[]) as $item){if(($item['Name']??'')==='MpesaReceiptNumber')$receipt=$item['Value']??null;}
-    if($provider!==''){
-        $status=$code===0?'completed':'failed';$payload=payment_payload_for_storage($d);
-        db()->prepare('UPDATE contributions SET status=?,provider_payload=?,provider_reference=COALESCE(?,provider_reference) WHERE provider_reference=?')->execute([$status,$payload,$receipt ?: $provider,$provider]);
-    }
-    json_response(['ResultCode'=>0,'ResultDesc'=>'Accepted']);
+    if(!is_post())json_response(['ResultCode'=>1,'ResultDesc'=>'POST required'],405);
+    $raw=file_get_contents('php://input',false,null,0,65537) ?: '';
+    if(strlen($raw)>65536)json_response(['ResultCode'=>1,'ResultDesc'=>'Payload too large'],413);
+    $payload=json_decode($raw,true);
+    if(!is_array($payload)||!is_array($payload['Body']['stkCallback']??null))json_response(['ResultCode'=>1,'ResultDesc'=>'Invalid callback'],400);
+    try{
+        $row=payment_record_mpesa_callback($payload,(string)($_GET['ref']??''),(string)($_GET['state']??''));
+        if($row)payment_reconcile((int)$row['id']);
+    }catch(Throwable $e){error_log('M-Pesa callback rejected: '.$e->getMessage());json_response(['ResultCode'=>1,'ResultDesc'=>'Callback could not be correlated'],400);}
+    json_response(['ResultCode'=>0,'ResultDesc'=>'Received']);
 }
 
 if ($path === '/payments/pesapal/callback' || $path === '/payments/pesapal/ipn') {
-    $tracking=(string)($_GET['OrderTrackingId']??$_GET['orderTrackingId']??$_GET['order_tracking_id']??'');
-    $merchant=(string)($_GET['OrderMerchantReference']??$_GET['orderMerchantReference']??$_GET['merchant_reference']??'');
-    if($tracking!==''){
-        try{
-            $r=pesapal_status($tracking);$desc=strtolower((string)($r['payment_status_description']??$r['status_description']??''));
-            $status=str_contains($desc,'complete')?'completed':(str_contains($desc,'fail')||str_contains($desc,'invalid')?'failed':'pending');
-            if($merchant!=='')db()->prepare('UPDATE contributions SET provider_reference=?,provider_payload=?,status=? WHERE reference=?')->execute([$tracking,payment_payload_for_storage($r),$status,$merchant]);
-            else db()->prepare('UPDATE contributions SET provider_payload=?,status=? WHERE provider_reference=?')->execute([payment_payload_for_storage($r),$status,$tracking]);
-            if($path==='/payments/pesapal/ipn')json_response(['status'=>'ok']);
-            if($merchant===''){ $q=db()->prepare('SELECT reference FROM contributions WHERE provider_reference=? LIMIT 1');$q->execute([$tracking]);$merchant=(string)($q->fetchColumn()?:''); }
-            redirect(url('/contribute'.($merchant!==''?'?ref='.rawurlencode($merchant):''))); 
-        }catch(Throwable $e){
-            if($path==='/payments/pesapal/ipn')json_response(['status'=>'error'],500);
-            flash('error','We could not confirm the card transaction yet. Please keep your payment reference.');
-            redirect(url('/contribute'));
-        }
+    $parameters=$_GET;
+    if(is_post()){
+        $raw=file_get_contents('php://input',false,null,0,65537) ?: '';
+        if(strlen($raw)>65536)json_response(['status'=>500],413);
+        $json=json_decode($raw,true);$parameters=is_array($json)?$json:$_POST;
     }
-    if($path==='/payments/pesapal/ipn')json_response(['status'=>'ignored']);
-    redirect(url('/contribute'));
+    $tracking=trim((string)($parameters['OrderTrackingId']??$parameters['orderTrackingId']??$parameters['order_tracking_id']??''));
+    $merchant=trim((string)($parameters['OrderMerchantReference']??$parameters['orderMerchantReference']??$parameters['merchant_reference']??''));
+    $notification=(string)($parameters['OrderNotificationType']??'IPNCHANGE');
+    $ipn=$path==='/payments/pesapal/ipn';
+    $ack=['orderNotificationType'=>$notification,'orderTrackingId'=>$tracking,'orderMerchantReference'=>$merchant,'status'=>500];
+    try{
+        payment_assert($tracking!==''&&$merchant!==''&&(!$ipn||$notification==='IPNCHANGE'),'Pesapal notification is missing expected identifiers.');
+        $row=payment_find('pesapal',$tracking,$merchant);
+        payment_assert($row!==null,'Pesapal tracking and merchant references do not match an existing order.');
+        payment_event($row,'notification','unverified',['tracking'=>$tracking,'merchant'=>$merchant]);
+        $confirmed=payment_reconcile((int)$row['id']);
+        if($ipn){$ack['status']=$confirmed?200:500;json_response($ack,$confirmed?200:503);}
+        if(!$confirmed)flash('info','The card payment is still being confirmed. Please keep your reference.');
+        redirect(url('/contribute?ref='.rawurlencode($row['reference'])));
+    }catch(Throwable $e){
+        error_log('Pesapal notification not confirmed: '.$e->getMessage());
+        if($ipn)json_response($ack,400);
+        flash('error','We could not confirm this card transaction. Please keep your payment reference.');redirect(url('/contribute'));
+    }
 }
 
 if ($path === '/payments/paypal/return') {
-    $reference=trim((string)($_GET['ref']??''));
-    $orderId=trim((string)($_GET['token']??''));
-    if($reference===''||$orderId===''){flash('error','PayPal returned without a valid payment reference.');redirect(url('/contribute'));}
+    $reference=trim((string)($_GET['ref']??''));$orderId=trim((string)($_GET['token']??''));$state=(string)($_GET['state']??'');
+    $row=null;
     try{
-        $st=db()->prepare("SELECT * FROM contributions WHERE reference=? AND method='paypal' LIMIT 1");$st->execute([$reference]);$row=$st->fetch();
-        if(!$row) throw new RuntimeException('The PayPal contribution reference could not be found.');
-        if($row['status']==='completed'){redirect(url('/contribute?ref='.rawurlencode($reference)));}
-        if(!empty($row['provider_reference'])&&!hash_equals((string)$row['provider_reference'],$orderId)) throw new RuntimeException('The PayPal order reference did not match.');
-        $r=paypal_capture_order($orderId);
-        $status=strtoupper((string)($r['status']??''))==='COMPLETED'?'completed':'pending';
-        db()->prepare('UPDATE contributions SET provider_reference=?,provider_payload=?,status=? WHERE reference=?')
-            ->execute([$orderId,payment_payload_for_storage($r),$status,$reference]);
+        payment_assert($reference!==''&&$orderId!=='','PayPal returned without expected references.');
+        $row=payment_find('paypal',$orderId,$reference);
+        payment_assert($row!==null,'PayPal order and contribution do not match.');
+        $st=db()->prepare('SELECT provider_environment FROM payment_reconciliation WHERE contribution_id=?');$st->execute([$row['id']]);
+        payment_assert($st->fetchColumn()===payment_provider_environment('paypal'),'The original PayPal environment must be confirmed before processing.');
+        $row['_primary']=payment_provider_identifier($row,'order');
+        $response=paypal_get_order($orderId);
+        $decision=payment_evaluate_paypal($row,$orderId,$response,payment_paypal_merchant($row));
+        if(($response['status']??'')==='APPROVED'){
+            payment_assert(hash_equals(payment_return_state($reference),$state),'This return link cannot authorize capture. The approved order remains available for reconciliation.');
+            try{$captureResponse=paypal_capture_order($orderId);payment_event($row,'capture_response','unverified',$captureResponse);}catch(Throwable $e){
+                // A timeout may occur after capture. A later retry uses the same
+                // PayPal-Request-Id; the readback below never initiates a charge.
+                payment_event($row,'capture_response','unconfirmed',['reason'=>$e->getMessage()]);
+            }
+            // A capture response may omit original order fields. Read the full
+            // order so expected payee, references and totals are all checked.
+            $response=paypal_get_order($orderId);
+            $decision=payment_evaluate_paypal($row,$orderId,$response,payment_paypal_merchant($row));
+        }
+        payment_apply_verified($row,$decision,$response,'paypal_return');
     }catch(Throwable $e){
-        error_log('PayPal return: '.$e->getMessage());
+        if($row){payment_needs_review($row,$e->getMessage(),'retry');payment_event($row,'paypal_return','unconfirmed',['reason'=>$e->getMessage()]);}
+        error_log('PayPal return not confirmed: '.$e->getMessage());
         flash('error','We could not confirm the PayPal transaction yet. Please keep your PayPal reference.');
     }
-    redirect(url('/contribute?ref='.rawurlencode($reference)));
+    redirect(url('/contribute'.($row?'?ref='.rawurlencode($row['reference']):'')));
 }
 
 if ($path === '/payments/paypal/cancel') {
-    $reference=trim((string)($_GET['ref']??''));
-    if($reference!==''){
-        try{db()->prepare("UPDATE contributions SET status='cancelled' WHERE reference=? AND method='paypal' AND status<>'completed'")->execute([$reference]);}catch(Throwable $ignored){}
+    // A browser redirect is not proof that a payment was cancelled or unpaid.
+    $reference=trim((string)($_GET['ref']??''));$state=(string)($_GET['state']??'');
+    if($reference!==''&&hash_equals(payment_return_state($reference),$state)){
+        $st=db()->prepare("SELECT id FROM contributions WHERE reference=? AND method='paypal'");$st->execute([$reference]);$id=$st->fetchColumn();
+        if($id)payment_reconcile((int)$id);
     }
-    flash('info','The PayPal checkout was cancelled. No contribution was completed.');
+    flash('info','You returned from PayPal checkout. Any payment already made will be confirmed against PayPal records.');
     redirect(url('/contribute'));
 }
-
 
 // Private consent links. These are deliberately unlisted and excluded from search.
 if (preg_match('~^/consent/([a-f0-9]{64})$~',$path,$m)) {
@@ -295,8 +331,9 @@ if (preg_match('~^/consent/([a-f0-9]{64})$~',$path,$m)) {
     if(!$release){http_response_code(404);exit('This consent link is not available.');}
     if(is_post()){
         verify_csrf();
+        if(($release['status']??'')==='closed'){http_response_code(410);exit('This consent record is closed and cannot be signed.');}
         if(!empty($release['signed_at'])) redirect(url('/consent/'.$release['public_token']));
-        if(!empty($release['expires_at']) && strtotime((string)$release['expires_at']) < time()) { http_response_code(410); exit('This consent link has expired.'); }
+        if(!media_release_can_sign($release)){http_response_code(410);exit('This consent link is no longer open for signing.');}
         if(empty($_POST['affirm'])){flash('error','Please confirm that you have read the consent form.');redirect(url('/consent/'.$release['public_token']));}
         $name=trim((string)($_POST['signer_name']??''));$signature=trim((string)($_POST['signature_text']??''));
         $capacity=in_array(($_POST['signer_capacity']??'self'),['self','parent_guardian'],true)?(string)$_POST['signer_capacity']:'self';
@@ -304,11 +341,13 @@ if (preg_match('~^/consent/([a-f0-9]{64})$~',$path,$m)) {
         $attribution=in_array(($_POST['signer_attribution']??'anonymous'),['full_name','first_name','anonymous'],true)?(string)$_POST['signer_attribution']:'anonymous';
         $choices=['photo'=>!empty($_POST['consent_photo'])&&$release['allow_photo'],'video'=>!empty($_POST['consent_video'])&&$release['allow_video'],'audio'=>!empty($_POST['consent_audio'])&&$release['allow_audio'],'quotes'=>!empty($_POST['consent_quotes'])&&$release['allow_quotes']];
         if($name===''||$signature===''){flash('error','Please enter your name and electronic signature.');redirect(url('/consent/'.$release['public_token']));}
+        if(mb_strlen($name)>190||mb_strlen($signature)>190||mb_strlen($participant)>190){flash('error','Names and signatures must be 190 characters or fewer.');redirect(url('/consent/'.$release['public_token']));}
         if($capacity==='parent_guardian'&&$participant===''){flash('error','Please enter the name of the person you are signing for.');redirect(url('/consent/'.$release['public_token']));}
         if(!array_filter($choices)){flash('error','Please select at least one use you agree to.');redirect(url('/consent/'.$release['public_token']));}
         $snapshot=json_encode(['version'=>release_consent_version(),'reference'=>$release['reference'],'title'=>$release['title'],'context'=>$release['context_note'],'purpose'=>$release['purpose_note'],'consent_text'=>release_consent_text($release),'choices'=>$choices,'attribution'=>$attribution,'capacity'=>$capacity,'participant'=>$participant],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
-        $st=db()->prepare("UPDATE media_releases SET status='signed',signer_name=?,signer_contact=?,signer_country=?,signer_capacity=?,participant_name=?,signer_attribution=?,consent_photo=?,consent_video=?,consent_audio=?,consent_quotes=?,consent_version=?,consent_snapshot=?,signature_text=?,signed_ip_hash=?,signed_user_agent=?,signed_at=NOW() WHERE id=? AND signed_at IS NULL");
+        $st=db()->prepare("UPDATE media_releases SET status='signed',signer_name=?,signer_contact=?,signer_country=?,signer_capacity=?,participant_name=?,signer_attribution=?,consent_photo=?,consent_video=?,consent_audio=?,consent_quotes=?,consent_version=?,consent_snapshot=?,signature_text=?,signed_ip_hash=?,signed_user_agent=?,signed_at=NOW() WHERE id=? AND signed_at IS NULL AND status='sent' AND (expires_at IS NULL OR expires_at>=NOW())");
         $st->execute([$name,mb_substr(trim((string)($_POST['signer_contact']??'')),0,190),mb_substr(trim((string)($_POST['signer_country']??'')),0,120),$capacity,$participant?:null,$attribution,$choices['photo']?1:0,$choices['video']?1:0,$choices['audio']?1:0,$choices['quotes']?1:0,release_consent_version(),$snapshot,$signature,ip_hash(),mb_substr($_SERVER['HTTP_USER_AGENT']??'',0,500),(int)$release['id']]);
+        if($st->rowCount()!==1){http_response_code(409);exit('This consent record changed. Refresh the link to see its current status.');}
         log_release_event((int)$release['id'],'consent_signed','Consent recorded by signer.','signer',null);
         notify_writer('Consent signed · '.$release['reference'],"A private media consent has been signed.\n\nReference: {$release['reference']}\nTitle: {$release['title']}\nOpen: ".url('/write/releases/'.$release['id'])."\n");
         redirect(url('/consent/'.$release['public_token']));
@@ -317,8 +356,9 @@ if (preg_match('~^/consent/([a-f0-9]{64})$~',$path,$m)) {
 }
 if (preg_match('~^/consent/([a-f0-9]{64})/withdraw$~',$path,$m) && is_post()) {
     verify_csrf();$release=media_release_by_token($m[1]);if(!$release||empty($release['signed_at'])){http_response_code(404);exit('Consent record not found.');}
-    if($release['status']!=='withdrawal_requested'){
-        db()->prepare("UPDATE media_releases SET status='withdrawal_requested',withdrawal_requested_at=NOW() WHERE id=?")->execute([(int)$release['id']]);
+    if(empty($release['withdrawal_requested_at'])){
+        $st=db()->prepare("UPDATE media_releases SET status=IF(status='closed','closed','withdrawal_requested'),withdrawal_requested_at=NOW() WHERE id=? AND withdrawal_requested_at IS NULL AND signed_at IS NOT NULL");$st->execute([(int)$release['id']]);
+        if($st->rowCount()!==1)redirect(url('/consent/'.$release['public_token']));
         log_release_event((int)$release['id'],'withdrawal_requested','Signer requested withdrawal for future use.','signer',null);
         notify_writer('Consent withdrawal requested · '.$release['reference'],"A signer requested withdrawal of consent for future use.\n\nReference: {$release['reference']}\nTitle: {$release['title']}\nOpen: ".url('/write/releases/'.$release['id'])."\n");
     }
@@ -343,8 +383,12 @@ if ($path === '/feed.xml') {
 
 if ($path === '/sitemap.xml') {
     header('Content-Type: application/xml; charset=utf-8');$posts=latest_posts(5000);$cats=categories();$static=['/','/my-thoughts','/about','/contact','/contribute','/privacy','/cookies','/legal','/terms','/contribution-terms','/editorial-independence'];
-    echo '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-    foreach($static as $s)echo '<url><loc>'.e(url($s)).'</loc></url>';foreach($cats as $c)echo '<url><loc>'.e(url('/topic/'.$c['slug'])).'</loc></url>';foreach($posts as $p)echo '<url><loc>'.e(url('/my-thoughts/'.$p['slug'])).'</loc><lastmod>'.e(date('c',strtotime($p['updated_at']))).'</lastmod></url>';echo '</urlset>';exit;
+    $entries=[];
+    foreach($static as $s)$entries[]=['loc'=>url($s)];
+    foreach($cats as $c)$entries[]=['loc'=>url('/topic/'.$c['slug'])];
+    foreach($posts as $p)$entries[]=['loc'=>url('/my-thoughts/'.$p['slug']),'lastmod'=>date('c',strtotime($p['updated_at']))];
+    if(function_exists('app_sitemap_entries'))$entries=array_merge($entries,app_sitemap_entries());
+    echo sitemap_xml($entries);exit;
 }
 
 if ($path === '/robots.txt') {
@@ -353,7 +397,7 @@ if ($path === '/robots.txt') {
 
 $policies=[
 '/editorial-independence'=>['title'=>'Editorial independence & personal views','intro'=>'A clear boundary between my personal writing and any work or institution with which I may be associated.','html'=>'<h2>Personal responsibility</h2><p>Unless a page explicitly states otherwise, the views, interpretations and opinions published on this website are mine. They do not necessarily represent the views, policies or positions of any business, institution or organisation with which I may be associated.</p><h2>Experience and disclosure</h2><p>My work gives me direct experience in fields I may write about. Where a relationship could materially help a reader understand the context of a piece, I aim to disclose it clearly. Experience may inform an argument; it does not transfer authorship or responsibility for that argument to an organisation.</p><h2>Corrections</h2><p>I may update published writing to correct errors, improve clarity or reflect material new information. Substantive updates should be reflected by the page’s updated date.</p><h2>AI assistance</h2><p>Technology, including artificial intelligence, may assist with tasks such as tagging, search metadata, formatting, research organisation or editorial checks. The published views remain mine, and automated tools are not presented as speaking on my behalf.</p>'],
-'/privacy'=>['title'=>'Privacy policy','intro'=>'How information submitted through waithakandegwa.com is handled.','html'=>'<h2>Information you provide</h2><p>The contact form collects the details you choose to submit there. Contributions may be recorded anonymously. Names are optional; M-Pesa requires a phone number to initiate STK Push and Pesapal requires either an email address or phone number to create card checkout. When anonymous is selected for card support, that transaction contact is sent to Pesapal but is not saved as the contributor’s contact record on this website. Payment transaction references, amount, currency, method and status may be retained for reconciliation.</p><h2>Why it is used</h2><p>Information is used to respond to messages, process and reconcile contributions, protect the website from abuse, maintain records where reasonably necessary, and understand site performance when analytics consent has been given.</p><h2>Payments</h2><p>M-Pesa transactions are processed through Safaricom services, card transactions through Pesapal, and PayPal contributions through PayPal. This website does not store card numbers, M-Pesa PINs or PayPal passwords. Payment providers may request information they require to process a transaction under their own terms.</p><h2>Private media consent</h2><p>When a photograph, video, audio recording or conversation needs explicit permission, I may send the person an unlisted consent link. The form asks only for information reasonably needed to document permission, such as a name/electronic signature, selected uses, attribution choice, timestamp and optional contact or country. The link is excluded from search indexing and is not part of the public website navigation.</p><h2>Private appreciation and expense records</h2><p>If I reimburse expenses or give a modest appreciation connected with a conversation, photograph or other contribution, the Writer area can retain a private payment trace such as amount, currency, method, transaction reference and optional proof. These records are not displayed publicly and are kept separately from the person’s consent choices.</p><h2>Analytics and cookies</h2><p>Analytics is loaded only after consent where configured. Necessary session and security cookies may operate without analytics consent because they are required for site functionality.</p><h2>Your requests</h2><p>You may use the contact form to request access, correction or deletion of personal information held by this website, subject to records that must be retained for legal, security or accounting reasons.</p>'],
+'/privacy'=>['title'=>'Privacy policy','intro'=>'How information submitted through waithakandegwa.com is handled.','html'=>'<h2>Information you provide</h2><p>The contact form collects the details you choose to submit there. Contributions may be recorded anonymously. Names are optional; M-Pesa requires a phone number to initiate STK Push and Pesapal requires either an email address or phone number to create card checkout. When anonymous is selected for card support, that transaction contact is sent to Pesapal but is not saved as the contributor’s contact record on this website. Payment transaction references, amount, currency, method and status may be retained for reconciliation.</p><h2>Why it is used</h2><p>Information is used to respond to messages, process and reconcile contributions, protect the website from abuse, maintain records where reasonably necessary, and understand site performance when analytics consent has been given.</p><h2>Payments</h2><p>M-Pesa transactions are processed through Safaricom services, card transactions through Pesapal, and PayPal contributions through PayPal. This website does not store card numbers, M-Pesa PINs or PayPal passwords. Payment providers may request information they require to process a transaction under their own terms.</p><h2>Private media consent</h2><p>When a photograph, video, audio recording or conversation needs explicit permission, I may send the person an unlisted consent link. The form asks only for information reasonably needed to document permission, such as a name/electronic signature, selected uses, attribution choice, timestamp and optional contact or country. The link is excluded from search indexing and is not part of the public website navigation.</p><h2>Private appreciation and expense records</h2><p>If I reimburse expenses or give a modest appreciation connected with a conversation, photograph or other contribution, the Writer area can retain a private payment trace such as amount, currency, method, transaction reference and optional proof. These records are not displayed publicly and are kept separately from the person’s consent choices.</p><h2>Startup and founder submissions</h2><p>Founder submissions collect the contact details, venture information, proposed story and evidence you choose to provide. These records are reviewed privately. Sending a submission does not publish it. Public founder stories require editorial review, confirmed permission and a separately published article. Private evidence and contact information are not included in the public collection.</p><h2>Email updates</h2><p>Subscription requests require confirmation through a time-limited email link before an address is marked subscribed. Subscription and consent records are retained to deliver requested updates and honour unsubscribe requests. Confirmation and unsubscribe links are excluded from analytics. You may unsubscribe using the link provided in an update or contact the website for help.</p><h2>Service providers</h2><p>Configured hosting, email, analytics and social publishing providers process the information needed to supply their services. Social account grants are used only for the selected connections and approved publishing tasks. Access tokens are stored encrypted and are not displayed publicly. Public social posts are subject to the relevant platform’s privacy settings and terms.</p><h2>Analytics and cookies</h2><p>Analytics is loaded only after consent where configured. Necessary session and security cookies may operate without analytics consent because they are required for site functionality.</p><h2>Your requests</h2><p>You may use the contact form to request access, correction or deletion of personal information held by this website, subject to records that must be retained for legal, security or accounting reasons.</p>'],
 '/cookies'=>['title'=>'Cookie policy','intro'=>'A minimal approach to cookies and analytics.','html'=>'<h2>Necessary cookies</h2><p>Necessary cookies support security, session management, the private writing interface and form protection. They are not used for advertising.</p><h2>Analytics</h2><p>If Google Analytics is configured, it is loaded only after you choose to allow analytics in the cookie notice. You can decline and continue using the public website.</p><h2>Third-party media</h2><p>Embedded video or payment services may set their own cookies or receive technical information when you choose to use those features. YouTube embeds use the privacy-enhanced domain where possible.</p>'],
 '/legal'=>['title'=>'Legal Policy','intro'=>'The legal terms governing access to, reliance on, linking to and use of material published on waithakandegwa.com.','html'=>'<h2>Personal commentary</h2><p>The writing on this website reflects my personal experience, commentary and views unless a page explicitly states otherwise. It does not necessarily represent the views, policies or positions of any business, institution or organisation with which I may be associated.</p><h2>General information</h2><p>Content is provided for general information, commentary and discussion. It is not professional legal, financial, medical, tax or investment advice and should not be treated as a substitute for advice appropriate to your circumstances.</p><h2>Copyright and permitted use</h2><p>Unless otherwise indicated, original text, graphics and site materials are protected by applicable copyright law. You may link to public pages and quote brief passages with clear attribution to Waithaka Ndegwa and a link to the original page. Republishing, adapting or commercially exploiting substantial portions requires prior permission.</p><h2>Accuracy and updates</h2><p>I aim to publish responsibly, but information can change and errors may occur. Content may be corrected, revised, expanded, archived or withdrawn without notice. Where practical, substantive revisions to published writing may be reflected by an updated date.</p><h2>External services and links</h2><p>Links, embedded media and third-party services are provided for context, functionality or convenience. Their content, availability, security, terms and privacy practices are controlled by their respective operators.</p><h2>Availability and liability</h2><p>The website is provided on an as-available basis. To the extent permitted by applicable law, no guarantee is made that every page, link, integration or third-party service will always be uninterrupted, error-free or current.</p>'],
 '/terms'=>['title'=>'Legal Policy','intro'=>'The legal terms governing access to, reliance on, linking to and use of material published on waithakandegwa.com.','html'=>'<h2>Personal commentary</h2><p>The writing on this website reflects my personal experience, commentary and views unless a page explicitly states otherwise. It does not necessarily represent the views, policies or positions of any business, institution or organisation with which I may be associated.</p><h2>General information</h2><p>Content is provided for general information, commentary and discussion. It is not professional legal, financial, medical, tax or investment advice and should not be treated as a substitute for advice appropriate to your circumstances.</p><h2>Copyright and permitted use</h2><p>Unless otherwise indicated, original text, graphics and site materials are protected by applicable copyright law. You may link to public pages and quote brief passages with clear attribution to Waithaka Ndegwa and a link to the original page. Republishing, adapting or commercially exploiting substantial portions requires prior permission.</p><h2>Accuracy and updates</h2><p>I aim to publish responsibly, but information can change and errors may occur. Content may be corrected, revised, expanded, archived or withdrawn without notice. Where practical, substantive revisions to published writing may be reflected by an updated date.</p><h2>External services and links</h2><p>Links, embedded media and third-party services are provided for context, functionality or convenience. Their content, availability, security, terms and privacy practices are controlled by their respective operators.</p><h2>Availability and liability</h2><p>The website is provided on an as-available basis. To the extent permitted by applicable law, no guarantee is made that every page, link, integration or third-party service will always be uninterrupted, error-free or current.</p>'],
@@ -367,33 +411,56 @@ if ($path === '/write/login') {
     if(is_post()){verify_csrf();$email=trim((string)($_POST['email']??''));$password=(string)($_POST['password']??'');if(attempt_login($email,$password))redirect(url('/write'));flash('error',login_rate_limited($email)?'Too many failed attempts. Please wait before trying again.':'Email or password is incorrect.');redirect(url('/write/login'));}
     render_write('login',['writeTitle'=>'Sign in']);exit;
 }
-if ($path === '/write/logout') { session_unset();session_destroy();redirect(url('/write/login')); }
+if ($path === '/write/logout') {
+    require_auth();
+    if (!is_post()) {
+        echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Sign out</title></head><body><form method="post">'.csrf_field().'<button type="submit">Sign out of Writer</button></form></body></html>';exit;
+    }
+    verify_csrf();session_unset();session_destroy();redirect(url('/write/login'));
+}
 if ($path === '/write') {
-    require_auth();$posts=db()->query('SELECT p.*,c.name category_name FROM posts p LEFT JOIN categories c ON c.id=p.category_id ORDER BY p.updated_at DESC LIMIT 200')->fetchAll();$rows=db()->query("SELECT status,COUNT(*) n FROM posts GROUP BY status")->fetchAll();$counts=['draft'=>0,'scheduled'=>0,'published'=>0,'selected'=>(int)db()->query('SELECT COUNT(*) FROM posts WHERE is_selected=1')->fetchColumn()];foreach($rows as $r)$counts[$r['status']]=(int)$r['n'];render_write('dashboard',['writeTitle'=>'My Thoughts','posts'=>$posts,'counts'=>$counts]);exit;
+    require_auth();$posts=writer_posts();$rows=db()->query("SELECT status,COUNT(*) n FROM posts GROUP BY status")->fetchAll();$counts=['draft'=>0,'scheduled'=>0,'published'=>0,'selected'=>(int)db()->query('SELECT COUNT(*) FROM posts WHERE is_selected=1')->fetchColumn()];foreach($rows as $r)$counts[$r['status']]=(int)$r['n'];render_write('dashboard',['writeTitle'=>'My Thoughts','posts'=>$posts,'counts'=>$counts]);exit;
 }
 if ($path === '/write/new') { require_auth();render_write('editor',['writeTitle'=>'New post','post'=>[],'categories'=>categories()]);exit; }
-if (preg_match('~^/write/edit/(\d+)$~',$path,$m)) { require_auth();$st=db()->prepare('SELECT * FROM posts WHERE id=?');$st->execute([(int)$m[1]]);$post=$st->fetch();if(!$post)not_found();render_write('editor',['writeTitle'=>'Edit · '.$post['title'],'post'=>$post,'categories'=>categories()]);exit; }
+if (preg_match('~^/write/edit/(\d+)$~',$path,$m)) {
+    require_auth();$post=writer_post_by_id((int)$m[1]);if(!$post)not_found();
+    render_write('editor',['writeTitle'=>'Edit · '.$post['title'],'post'=>$post,'categories'=>categories()]);exit;
+}
+if (preg_match('~^/write/preview/(\d+)$~',$path,$m)) {
+    require_auth();$post=writer_post_by_id((int)$m[1]);if(!$post)not_found();render_writer_preview($post);exit;
+}
 if ($path === '/write/save' && is_post()) {
-    require_auth();verify_csrf();$user=current_user();$id=(int)($_POST['id']??0);$autosave=!empty($_POST['autosave']);$action=(string)($_POST['action']??'draft');$title=trim((string)($_POST['title']??''));$standfirst=trim((string)($_POST['standfirst']??''));$content=sanitize_html((string)($_POST['content_html']??''));$categoryId=(int)($_POST['category_id']??0);
-    if($title===''){if($autosave)json_response(['ok'=>false,'error'=>'Title required'],422);flash('error','Add a title before saving.');redirect($id?url('/write/edit/'.$id):url('/write/new'));}
-    $existing=null;if($id){$st=db()->prepare('SELECT * FROM posts WHERE id=?');$st->execute([$id]);$existing=$st->fetch();if(!$existing){if($autosave)json_response(['ok'=>false],404);not_found();}}
-    $image=$existing['featured_image']??null;try{if(!empty($_FILES['featured_image_file']['name']))$image=upload_featured_image($_FILES['featured_image_file']);}catch(Throwable $e){if($autosave)json_response(['ok'=>false,'error'=>$e->getMessage()],422);flash('error',$e->getMessage());redirect($id?url('/write/edit/'.$id):url('/write/new'));}
-    $slug=unique_post_slug($title,$id?:null);$publishedRaw=(string)($_POST['published_at']??'');$publishedAt=$publishedRaw!==''?date('Y-m-d H:i:s',strtotime($publishedRaw)):date('Y-m-d H:i:s');$status=$existing['status']??'draft';
-    if(!$autosave){if($action==='publish')$status=strtotime($publishedAt)>time()?'scheduled':'published';else $status='draft';}
-    $fields=[
-      'category_id'=>$categoryId?:null,'title'=>$title,'slug'=>$slug,'standfirst'=>$standfirst,'content_html'=>$content,'featured_image'=>$image,
-      'featured_image_alt'=>trim((string)($_POST['featured_image_alt']??'')),'featured_image_caption'=>trim((string)($_POST['featured_image_caption']??'')),'video_url'=>trim((string)($_POST['video_url']??'')),
-      'series_name'=>trim((string)($_POST['series_name']??'')),'writer_note'=>trim((string)($_POST['writer_note']??'')),'source_notes'=>trim((string)($_POST['source_notes']??'')),'travel_country'=>trim((string)($_POST['travel_country']??'')),'travel_city'=>trim((string)($_POST['travel_city']??'')),
-      'seo_title'=>trim((string)($_POST['seo_title']??'')),'seo_description'=>trim((string)($_POST['seo_description']??'')),'status'=>$status,'is_selected'=>!empty($_POST['is_selected'])?1:0,'published_at'=>$publishedAt
-    ];
-    if($id){if(!$autosave&&$existing)db()->prepare('INSERT INTO post_revisions(post_id,title,standfirst,content_html) VALUES(?,?,?,?)')->execute([$id,$existing['title'],$existing['standfirst'],$existing['content_html']]);$sql='UPDATE posts SET category_id=?,title=?,slug=?,standfirst=?,content_html=?,featured_image=?,featured_image_alt=?,featured_image_caption=?,video_url=?,series_name=?,writer_note=?,source_notes=?,travel_country=?,travel_city=?,seo_title=?,seo_description=?,status=?,is_selected=?,published_at=? WHERE id=?';db()->prepare($sql)->execute(array_merge(array_values($fields),[$id]));}
-    else{$sql='INSERT INTO posts(user_id,category_id,title,slug,standfirst,content_html,featured_image,featured_image_alt,featured_image_caption,video_url,series_name,writer_note,source_notes,travel_country,travel_city,seo_title,seo_description,status,is_selected,published_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';db()->prepare($sql)->execute(array_merge([$user['id']],array_values($fields)));$id=(int)db()->lastInsertId();}
-    if(!$autosave&&$action==='publish'){
-        $catName='';foreach(categories() as $c)if((int)$c['id']===$categoryId)$catName=$c['name'];$auto=auto_editorial_metadata($title,$standfirst,$content,$catName);
-        $seoTitle=$fields['seo_title']!==''?$fields['seo_title']:trim((string)($auto['seo_title']??$title));$seoDesc=$fields['seo_description']!==''?$fields['seo_description']:trim((string)($auto['seo_description']??($standfirst?:excerpt($content,155))));
-        db()->prepare('UPDATE posts SET seo_title=?,seo_description=? WHERE id=?')->execute([$seoTitle,$seoDesc,$id]);assign_tags($id,(array)($auto['tags']??[]));
+    require_auth();verify_csrf();$user=current_user();$id=(int)($_POST['id']??0);$autosave=!empty($_POST['autosave']);
+    // An autosave must never publish, even if a stale client includes action=publish.
+    $publish=!$autosave && ($_POST['action']??'draft')==='publish';
+    try {
+        $image=null;
+        if(!$autosave && !empty($_FILES['featured_image_file']['name']))$image=upload_featured_image($_FILES['featured_image_file']);
+        $preparedMetadata=null;
+        if($publish && trim((string)setting('openai.api_key',''))!=='') {
+            $existing=$id?writer_post_by_id($id):['status'=>'draft'];
+            if(!$existing)throw new InvalidArgumentException('The article could not be found.');
+            if($id && (int)($_POST['draft_version']??-1)!==(int)($existing['_draft_version']??0))throw new WriterConflict('A newer draft exists. Reload before publishing.');
+            $checked=writer_post_fields($_POST,$existing,$image);
+            $category=db()->prepare('SELECT name FROM categories WHERE id=?');$category->execute([$checked['category_id']]);
+            $preparedMetadata=auto_editorial_metadata($checked['title'],$checked['standfirst'],$checked['content_html'],(string)$category->fetchColumn());
+        }
+        $saved=writer_save_post($_POST,(int)$user['id'],$publish,$image,$preparedMetadata);
+    } catch (WriterConflict $e) {
+        if($autosave)json_response(['ok'=>false,'error'=>$e->getMessage(),'conflict'=>true],409);
+        http_response_code(409);
+        echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Newer draft exists</title></head><body><h1>A newer version is already saved.</h1><p>'.e($e->getMessage()).'</p><p>Use your browser Back button to copy your unsaved work before opening the current editor.</p><a href="'.e(url('/write/edit/'.$id)).'">Open the current saved version</a></body></html>';exit;
+    } catch (InvalidArgumentException $e) {
+        if($autosave)json_response(['ok'=>false,'error'=>$e->getMessage()],422);
+        flash('error',$e->getMessage());redirect($id?url('/write/edit/'.$id):url('/write/new'));
+    } catch (Throwable $e) {
+        error_log('Writer save failed: '.$e->getMessage());
+        if($autosave)json_response(['ok'=>false,'error'=>'The draft could not be saved. Keep this page open and try again.'],500);
+        flash('error','The draft could not be saved. Please try again.');redirect($id?url('/write/edit/'.$id):url('/write/new'));
     }
-    if($autosave)json_response(['ok'=>true,'id'=>$id]);flash('success',$status==='published'?'Published.':($status==='scheduled'?'Scheduled.':'Draft saved.'));redirect(url('/write/edit/'.$id));
+    if($autosave)json_response(['ok'=>true,'id'=>$saved['id'],'version'=>$saved['version']]);
+    flash('success',$publish?($saved['status']==='scheduled'?'Publication scheduled.':'Published.'):'Private draft saved. The public version is unchanged.');
+    redirect(url('/write/edit/'.$saved['id']));
 }
 
 if ($path === '/write/releases') {
@@ -435,7 +502,21 @@ if (preg_match('~^/write/releases/(\d+)/close$~',$path,$m) && is_post()) {
     require_auth();verify_csrf();$u=current_user();$release=media_release_by_id((int)$m[1]);if(!$release)not_found();db()->prepare("UPDATE media_releases SET status='closed' WHERE id=?")->execute([(int)$release['id']]);log_release_event((int)$release['id'],'record_closed','Record closed by writer.','writer',(int)$u['id']);flash('success','Consent record closed.');redirect(url('/write/releases/'.$release['id']));
 }
 if (preg_match('~^/write/releases/proof/(\d+)$~',$path,$m)) {
-    require_auth();$st=db()->prepare('SELECT * FROM media_release_payments WHERE id=? LIMIT 1');$st->execute([(int)$m[1]]);$pay=$st->fetch();if(!$pay||empty($pay['proof_path']))not_found();$base=realpath(__DIR__.'/storage/release-proofs');$file=realpath(__DIR__.'/'.$pay['proof_path']);if(!$base||!$file||!str_starts_with($file,$base.DIRECTORY_SEPARATOR)||!is_file($file))not_found();$mime=(new finfo(FILEINFO_MIME_TYPE))->file($file)?:'application/octet-stream';header('Content-Type: '.$mime);header('Content-Disposition: inline; filename="payment-proof-'.intval($pay['id']).'.'.pathinfo($file,PATHINFO_EXTENSION).'"');header('Content-Length: '.filesize($file));readfile($file);exit;
+    require_auth();
+    $st=db()->prepare('SELECT * FROM media_release_payments WHERE id=? LIMIT 1');$st->execute([(int)$m[1]]);$pay=$st->fetch();
+    if(!$pay||empty($pay['proof_path'])||!function_exists('media_private_path'))not_found();
+    $proofPath=media_private_path((string)$pay['proof_path'],(string)app_config('media.driver','local'));
+    if($proofPath===null)not_found();
+    $downloadName='payment-proof-'.intval($pay['id']).'.'.pathinfo($proofPath,PATHINFO_EXTENSION);
+    if(str_starts_with($proofPath,'s3-private://')){
+        if(!function_exists('media_serve_private'))not_found();
+        media_serve_private($proofPath,$downloadName);
+    }
+    $base=realpath(__DIR__.'/storage/release-proofs');$file=realpath(__DIR__.'/'.$proofPath);
+    if(!$base||!$file||!str_starts_with($file,$base.DIRECTORY_SEPARATOR)||!is_file($file))not_found();
+    $mime=(new finfo(FILEINFO_MIME_TYPE))->file($file)?:'application/octet-stream';
+    header('Content-Type: '.$mime);header('X-Content-Type-Options: nosniff');
+    header('Content-Disposition: attachment; filename="'.$downloadName.'"');header('Content-Length: '.filesize($file));readfile($file);exit;
 }
 
 if ($path === '/write/settings') {

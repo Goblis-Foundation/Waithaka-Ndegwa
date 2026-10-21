@@ -23,18 +23,29 @@ function db(): PDO {
     if (!installed()) throw new RuntimeException('Application is not installed.');
     $db = app_config('db');
     $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $db['host'], $db['port'] ?? 3306, $db['name'], $db['charset'] ?? 'utf8mb4');
-    $pdo = new PDO($dsn, $db['user'], $db['pass'], [
+    $options = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
+    ];
+    if (!empty($db['ssl_ca'])) $options[PDO::MYSQL_ATTR_SSL_CA] = $db['ssl_ca'];
+    $pdo = new PDO($dsn, $db['user'], $db['pass'], $options);
+    // Legacy DATETIME values are Nairobi wall time, including scheduled posts.
+    $pdo->exec("SET time_zone = '+03:00'");
     return $pdo;
 }
 
 function e(?string $value): string { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function base_url(): string { return rtrim((string)app_config('base_url', 'https://www.waithakandegwa.com'), '/'); }
 function url(string $path = ''): string { return base_url() . '/' . ltrim($path, '/'); }
-function asset(string $path): string { return url('assets/' . ltrim($path, '/')); }
+function asset(string $path): string {
+    $path=ltrim($path,'/');$value=url('assets/'.$path);
+    if(preg_match('~^(?:css|js)/[a-zA-Z0-9_./-]+\.(?:css|js)$~D',$path)&&!str_contains($path,'..')){
+        $root=realpath(__DIR__.'/../assets');$file=realpath(__DIR__.'/../assets/'.$path);
+        if($root&&$file&&str_starts_with($file,$root.DIRECTORY_SEPARATOR)&&is_file($file))$value.='?v='.(string)filemtime($file);
+    }
+    return $value;
+}
 function path_only(): string { $p = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH); return '/' . trim((string)$p, '/'); }
 function is_post(): bool { return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'; }
 function redirect(string $to, int $code = 302): never { header('Location: ' . $to, true, $code); exit; }
@@ -84,13 +95,19 @@ function decrypt_secret(string $encoded): string {
 }
 
 function csrf_token(): string {
-    if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    if (!is_string($_SESSION['csrf'] ?? null) || !preg_match('/^[a-f0-9]{64}$/D', $_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
     return $_SESSION['csrf'];
 }
 function csrf_field(): string { return '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">'; }
+function csrf_matches(mixed $expected, mixed $provided): bool {
+    return is_string($expected) && is_string($provided)
+        && preg_match('/^[a-f0-9]{64}$/D', $expected) === 1
+        && preg_match('/^[a-f0-9]{64}$/D', $provided) === 1
+        && hash_equals($expected, $provided);
+}
 function verify_csrf(): void {
     $provided = $_POST['csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
-    if (!hash_equals($_SESSION['csrf'] ?? '', (string)$provided)) {
+    if (!csrf_matches($_SESSION['csrf'] ?? null, $provided)) {
         http_response_code(419); exit('Your session has expired. Please refresh and try again.');
     }
 }
@@ -109,7 +126,7 @@ function current_user(): ?array {
 function require_auth(): void { if (!current_user()) redirect(url('/write/login')); }
 
 function ip_hash(): string {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $ip = function_exists('wk_client_ip') ? wk_client_ip() : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
     return hash_hmac('sha256', $ip, (string)app_config('app_key', 'wk'));
 }
 
@@ -128,7 +145,7 @@ function attempt_login(string $email, string $password): bool {
     $ok = $user && password_verify($password, $user['password_hash']);
     db()->prepare('INSERT INTO login_attempts(email,ip_hash,success) VALUES(?,?,?)')->execute([$email,ip_hash(),$ok?1:0]);
     if ($ok) {
-        session_regenerate_id(true); $_SESSION['user_id'] = $user['id'];
+        session_regenerate_id(true); $_SESSION['user_id'] = $user['id']; $_SESSION['csrf'] = bin2hex(random_bytes(32));
         db()->prepare('UPDATE users SET last_login_at=NOW() WHERE id=?')->execute([$user['id']]);
         return true;
     }
@@ -154,48 +171,83 @@ function unique_post_slug(string $title, ?int $postId = null): string {
     }
 }
 
+function safe_content_url(string $value, bool $image = false): bool {
+    if ($value === '' || preg_match('/[\x00-\x20\x7f\\\\]/', $value)) return false;
+    if (preg_match('~^https?://~i', $value)) {
+        $parts = parse_url($value);
+        return filter_var($value, FILTER_VALIDATE_URL) !== false && !empty($parts['host'])
+            && !isset($parts['user']) && !isset($parts['pass']);
+    }
+    if ($image) return preg_match('~^/assets/(?:uploads|images)/[^\\\\]*$~D', $value) === 1 && !str_contains(rawurldecode($value), '..');
+    if (str_starts_with($value, '/') && !str_starts_with($value, '//')) return true;
+    if (str_starts_with($value, '#')) return true;
+    return str_starts_with(strtolower($value), 'mailto:') && filter_var(substr($value, 7), FILTER_VALIDATE_EMAIL) !== false;
+}
+
 function sanitize_html(string $html): string {
-    $html = trim($html);
-    if ($html === '') return '';
-    $allowedTags = ['p','h2','h3','h4','blockquote','ul','ol','li','strong','b','em','i','a','br','hr','figure','figcaption','img','pre','code'];
-    $dom = new DOMDocument('1.0', 'UTF-8');
-    libxml_use_internal_errors(true);
-    $dom->loadHTML('<?xml encoding="utf-8" ?><div id="wk-root">'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-    libxml_clear_errors();
-    $root = $dom->getElementById('wk-root');
-    if (!$root) return strip_tags($html, '<p><h2><h3><h4><blockquote><ul><ol><li><strong><em><a><br><hr><pre><code>');
-    $walk = function(DOMNode $node) use (&$walk, $allowedTags): void {
-        foreach (iterator_to_array($node->childNodes) as $child) {
-            if ($child instanceof DOMElement) {
-                $tag = strtolower($child->tagName);
-                if (!in_array($tag, $allowedTags, true) && $child->parentNode) {
-                    while ($child->firstChild) $child->parentNode->insertBefore($child->firstChild, $child);
-                    $child->parentNode->removeChild($child); continue;
-                }
-                foreach (iterator_to_array($child->attributes) as $attr) {
-                    $name = strtolower($attr->name);
-                    $keep = false;
-                    if ($tag === 'a' && in_array($name,['href','title','target','rel'],true)) $keep = true;
-                    if ($tag === 'img' && in_array($name,['src','alt','title','loading','width','height'],true)) $keep = true;
-                    if (!$keep) $child->removeAttribute($attr->name);
-                }
-                if ($tag === 'a') {
-                    $href = $child->getAttribute('href');
-                    if ($href && !preg_match('~^(https?://|mailto:|/|#)~i',$href)) $child->removeAttribute('href');
-                    if ($child->getAttribute('target') === '_blank') $child->setAttribute('rel','noopener noreferrer');
-                }
-                if ($tag === 'img') {
-                    $src = $child->getAttribute('src');
-                    if ($src && !preg_match('~^(https?://|/assets/uploads/)~i',$src)) $child->removeAttribute('src');
-                    $child->setAttribute('loading','lazy');
-                }
-                $walk($child);
+    if (trim($html) === '') return '';
+    $allowed = ['p','h2','h3','h4','blockquote','ul','ol','li','strong','b','em','i','a','br','hr','figure','figcaption','img','pre','code'];
+    $discard = ['script','style','template','svg','math','iframe','object','embed','noscript','head','title','textarea','xmp','plaintext'];
+    $source = new DOMDocument('1.0', 'UTF-8');
+    $previous = libxml_use_internal_errors(true);
+    try {
+        $loaded = $source->loadHTML('<?xml encoding="UTF-8"><html><body>'.$html.'</body></html>', LIBXML_NONET);
+    } finally {
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+    }
+    if (!$loaded) return e($html);
+    $output = new DOMDocument('1.0', 'UTF-8');
+    $root = $output->createElement('div');
+    $output->appendChild($root);
+    // Rebuild an allowlisted tree. Unwrapping a disallowed container must never
+    // skip its descendants (the old traversal left nested scripts/handlers intact).
+    $copy = function(DOMNode $from, DOMNode $into) use (&$copy, $allowed, $discard, $output): void {
+        foreach ($from->childNodes as $child) {
+            if ($child instanceof DOMText) { $into->appendChild($output->createTextNode($child->nodeValue ?? '')); continue; }
+            if (!$child instanceof DOMElement) continue;
+            $tag = strtolower($child->tagName);
+            if (in_array($tag, $discard, true) || $child->namespaceURI) continue;
+            if (!in_array($tag, $allowed, true)) { $copy($child, $into); continue; }
+            $clean = $output->createElement($tag);
+            if ($tag === 'a') {
+                $href = trim($child->getAttribute('href'));
+                if (safe_content_url($href)) $clean->setAttribute('href', $href);
+                if ($child->hasAttribute('title')) $clean->setAttribute('title', $child->getAttribute('title'));
+                if ($child->getAttribute('target') === '_blank') { $clean->setAttribute('target', '_blank'); $clean->setAttribute('rel', 'noopener noreferrer'); }
             }
+            if ($tag === 'img') {
+                $src = trim($child->getAttribute('src'));
+                if (!safe_content_url($src, true)) continue;
+                $clean->setAttribute('src', $src);
+                foreach (['alt','title'] as $name) if ($child->hasAttribute($name)) $clean->setAttribute($name, $child->getAttribute($name));
+                foreach (['width','height'] as $name) if (preg_match('/^[1-9][0-9]{0,4}$/D', $child->getAttribute($name))) $clean->setAttribute($name, $child->getAttribute($name));
+                $clean->setAttribute('loading', 'lazy');
+            }
+            $into->appendChild($clean);
+            $copy($child, $clean);
         }
     };
-    $walk($root);
-    $out=''; foreach ($root->childNodes as $child) $out .= $dom->saveHTML($child);
-    return trim($out);
+    $body = $source->getElementsByTagName('body')->item(0);
+    if ($body) $copy($body, $root);
+    $html = '';
+    foreach ($root->childNodes as $child) $html .= $output->saveHTML($child);
+    return trim($html);
+}
+
+function xml_escape(string $value): string {
+    $value = preg_replace('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $value) ?? '';
+    return htmlspecialchars($value, ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function sitemap_xml(array $entries): string {
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+    foreach ($entries as $entry) {
+        $xml .= '<url><loc>'.xml_escape((string)$entry['loc']).'</loc>';
+        if (!empty($entry['lastmod'])) $xml .= '<lastmod>'.xml_escape((string)$entry['lastmod']).'</lastmod>';
+        $xml .= '</url>';
+    }
+    return $xml.'</urlset>';
 }
 
 function plain_text(string $html): string { return trim(preg_replace('/\s+/u',' ', html_entity_decode(strip_tags($html), ENT_QUOTES|ENT_HTML5,'UTF-8')) ?? ''); }
@@ -222,9 +274,174 @@ function selected_posts(int $limit=3): array {
 }
 function post_by_slug(string $slug): ?array {
     $st=db()->prepare('SELECT p.*,c.name category_name,c.slug category_slug,u.name author_name FROM posts p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN users u ON u.id=p.user_id WHERE p.slug=? AND '.published_where().' LIMIT 1');
-    $st->execute([$slug]); $p=$st->fetch(); if(!$p)return null; $p['tags']=post_tags((int)$p['id']); return $p;
+    $st->execute([$slug]); $p=$st->fetch(); if(!$p)return null; $p['content_html']=sanitize_html($p['content_html']);$p['tags']=post_tags((int)$p['id']); return $p;
 }
 function post_tags(int $postId): array { $st=db()->prepare('SELECT t.* FROM tags t JOIN post_tags pt ON pt.tag_id=t.id WHERE pt.post_id=? ORDER BY t.name');$st->execute([$postId]);return $st->fetchAll(); }
+
+class WriterConflict extends RuntimeException {}
+
+function writer_editable_fields(): array {
+    return ['category_id','title','standfirst','content_html','featured_image','featured_image_alt','featured_image_caption','video_url','series_name','writer_note','source_notes','travel_country','travel_city','seo_title','seo_description','is_selected','published_at'];
+}
+
+function writer_is_public(array $post): bool {
+    return in_array($post['status'] ?? '', ['published','scheduled'], true)
+        && !empty($post['published_at']) && strtotime($post['published_at']) <= time();
+}
+
+function writer_merge_draft(array $post): array {
+    $post['_public_status'] = $post['status'];
+    $post['_public_title'] = $post['title'];
+    $post['_is_public'] = writer_is_public($post);
+    $post['_draft_version'] = (int)($post['draft_version'] ?? 0);
+    $draft = !empty($post['draft_payload']) ? json_decode($post['draft_payload'], true, 32, JSON_THROW_ON_ERROR) : null;
+    $post['_has_draft'] = is_array($draft);
+    if (is_array($draft)) {
+        foreach (writer_editable_fields() as $field) if (array_key_exists($field, $draft)) $post[$field] = $draft[$field];
+    }
+    unset($post['draft_payload']);
+    $post['content_html'] = sanitize_html((string)($post['content_html'] ?? ''));
+    return $post;
+}
+
+function writer_post_by_id(int $id): ?array {
+    $st = db()->prepare('SELECT p.*,d.payload draft_payload,d.version draft_version,d.updated_at draft_updated_at FROM posts p LEFT JOIN post_drafts d ON d.post_id=p.id WHERE p.id=?');
+    $st->execute([$id]);
+    $post = $st->fetch();
+    return $post ? writer_merge_draft($post) : null;
+}
+
+function writer_posts(int $limit = 200): array {
+    $rows = db()->query('SELECT p.*,c.name category_name,d.payload draft_payload,d.version draft_version,d.updated_at draft_updated_at FROM posts p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN post_drafts d ON d.post_id=p.id ORDER BY GREATEST(p.updated_at,COALESCE(d.updated_at,p.updated_at)) DESC LIMIT '.max(1,min(500,$limit)))->fetchAll();
+    return array_map('writer_merge_draft', $rows);
+}
+
+function writer_post_fields(array $input, array $existing, ?string $image): array {
+    $fields = [];
+    $limits = ['title'=>240,'standfirst'=>8000,'featured_image_alt'=>500,'featured_image_caption'=>500,'video_url'=>1000,'series_name'=>220,'writer_note'=>16000,'source_notes'=>100000,'travel_country'=>120,'travel_city'=>120,'seo_title'=>255,'seo_description'=>320];
+    foreach ($limits as $key=>$limit) {
+        if (isset($input[$key]) && !is_string($input[$key])) throw new InvalidArgumentException('Invalid editor field.');
+        $fields[$key] = trim($input[$key] ?? '');
+        if (mb_strlen($fields[$key]) > $limit) throw new InvalidArgumentException('The '.str_replace('_',' ',$key).' is too long.');
+    }
+    if ($fields['title'] === '') throw new InvalidArgumentException('Add a title before saving.');
+    $html = $input['content_html'] ?? '';
+    if (!is_string($html) || strlen($html) > 2000000) throw new InvalidArgumentException('The article is too large.');
+    $fields['content_html'] = sanitize_html($html);
+    $fields['featured_image'] = $image ?? ($existing['featured_image'] ?? null);
+    if ($fields['video_url'] !== '' && (!safe_content_url($fields['video_url']) || !preg_match('~^https?://~i',$fields['video_url']))) throw new InvalidArgumentException('Enter a valid HTTPS or HTTP video URL.');
+    $categoryId = filter_var($input['category_id'] ?? 0, FILTER_VALIDATE_INT);
+    if ($categoryId === false || $categoryId < 0) throw new InvalidArgumentException('Choose a valid topic.');
+    if ($categoryId) {
+        $st = db()->prepare('SELECT id FROM categories WHERE id=?'); $st->execute([$categoryId]);
+        if (!$st->fetchColumn()) throw new InvalidArgumentException('Choose a valid topic.');
+    }
+    $fields['category_id'] = $categoryId ?: null;
+    $fields['is_selected'] = !empty($input['is_selected']) ? 1 : 0;
+    $raw = $input['published_at'] ?? '';
+    if (!is_string($raw)) throw new InvalidArgumentException('Choose a valid publication date.');
+    if (writer_is_public($existing)) {
+        // A revised title never changes the public URL or original publication date.
+        $fields['published_at'] = $existing['published_at'];
+    } elseif ($raw === '') {
+        $fields['published_at'] = date('Y-m-d H:i:s');
+    } else {
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $raw);
+        $errors = DateTimeImmutable::getLastErrors();
+        if (!$date || ($errors && ($errors['warning_count'] || $errors['error_count'])) || $date->format('Y-m-d\TH:i') !== $raw) throw new InvalidArgumentException('Choose a valid publication date.');
+        $fields['published_at'] = $date->format('Y-m-d H:i:s');
+    }
+    return array_intersect_key($fields, array_flip(writer_editable_fields()));
+}
+
+/** Save a private working copy, or explicitly replace the public snapshot.
+ * The version survives publishing, so a delayed autosave cannot undo a publish.
+ * Optional writer_after_publish($postId, $fields) runs inside this transaction.
+ */
+function writer_save_post(array $input, int $userId, bool $publish, ?string $image = null, ?array $preparedMetadata = null): array {
+    $publish = $publish && empty($input['autosave']);
+    $id = filter_var($input['id'] ?? 0, FILTER_VALIDATE_INT);
+    if ($id === false || $id < 0) throw new InvalidArgumentException('Invalid article.');
+    $expected = filter_var($input['draft_version'] ?? null, FILTER_VALIDATE_INT);
+    if ($id && ($expected === false || $expected === null || $expected < 0)) throw new WriterConflict('Reload the editor before saving this article.');
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $existing = ['status'=>'draft'];
+        if ($id) {
+            $st = $pdo->prepare('SELECT * FROM posts WHERE id=? FOR UPDATE'); $st->execute([$id]);
+            $existing = $st->fetch();
+            if (!$existing) throw new InvalidArgumentException('The article could not be found.');
+            $st = $pdo->prepare('SELECT payload,version FROM post_drafts WHERE post_id=? FOR UPDATE'); $st->execute([$id]);
+            $draft = $st->fetch();
+            $version = (int)($draft['version'] ?? 0);
+            if ($version !== $expected) throw new WriterConflict('A newer version was saved in another tab. Copy your changes, then reload before saving.');
+            $working = writer_merge_draft($existing + ['draft_payload'=>$draft['payload'] ?? null,'draft_version'=>$version]);
+        } else {
+            $working = $existing;
+            $version = 0;
+        }
+        // Use the public date/status for published records, but preserve the draft image.
+        $base = $working;
+        $base['status'] = $existing['status'];
+        if (writer_is_public($existing)) $base['published_at'] = $existing['published_at'];
+        $fields = writer_post_fields($input, $base, $image);
+        if ($publish && !$fields['category_id']) throw new InvalidArgumentException('Choose a topic before publishing.');
+        if ($publish && plain_text($fields['content_html']) === '' && !str_contains($fields['content_html'], '<img')) throw new InvalidArgumentException('Add the article before publishing.');
+        if (!$id) {
+            $slug = unique_post_slug($fields['title']);
+            $st = $pdo->prepare("INSERT INTO posts(user_id,title,slug,content_html,status) VALUES(?,?,?,'','draft')");
+            $st->execute([$userId,$fields['title'],$slug]);
+            $id = (int)$pdo->lastInsertId();
+        }
+        $status = $existing['status'];
+        if ($publish) {
+            // Optional configured assistance is prepared before this transaction.
+            // Local fallback remains available without external dependencies.
+            $category = $pdo->prepare('SELECT name FROM categories WHERE id=?'); $category->execute([$fields['category_id']]);
+            $tags = fallback_tags($fields['title'].' '.$fields['standfirst'].' '.plain_text($fields['content_html']), (string)$category->fetchColumn());
+            if (is_array($preparedMetadata['tags']??null)) {
+                $preparedTags=array_values(array_filter(array_map(static fn($tag)=>is_string($tag)?mb_substr(trim(strip_tags($tag)),0,80):'',array_slice($preparedMetadata['tags'],0,12))));
+                if ($preparedTags) $tags=$preparedTags;
+            }
+            if ($fields['seo_title'] === '') $fields['seo_title'] = is_string($preparedMetadata['seo_title']??null) && trim($preparedMetadata['seo_title'])!=='' ? mb_substr(trim($preparedMetadata['seo_title']),0,255) : $fields['title'];
+            if ($fields['seo_description'] === '') $fields['seo_description'] = is_string($preparedMetadata['seo_description']??null) && trim($preparedMetadata['seo_description'])!=='' ? mb_substr(trim($preparedMetadata['seo_description']),0,320) : excerpt($fields['standfirst'] ?: $fields['content_html'], 155);
+            if (!empty($existing['id'])) $pdo->prepare('INSERT INTO post_revisions(post_id,title,standfirst,content_html) VALUES(?,?,?,?)')->execute([$id,$existing['title'],$existing['standfirst'],$existing['content_html']]);
+            $status = strtotime($fields['published_at']) > time() ? 'scheduled' : 'published';
+            $assignments = implode(',', array_map(static fn($key)=>$key.'=?', array_keys($fields)));
+            $pdo->prepare('UPDATE posts SET '.$assignments.',status=?,updated_at=NOW() WHERE id=?')->execute(array_merge(array_values($fields),[$status,$id]));
+            assign_tags($id,$tags);
+            if (function_exists('writer_after_publish')) writer_after_publish($id,$fields);
+        }
+        $version++;
+        $payload = $publish ? null : json_encode($fields, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+        $pdo->prepare('INSERT INTO post_drafts(post_id,payload,version,updated_by) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE payload=VALUES(payload),version=VALUES(version),updated_by=VALUES(updated_by),updated_at=NOW()')->execute([$id,$payload,$version,$userId]);
+        $pdo->commit();
+        return ['id'=>$id,'version'=>$version,'status'=>$status,'published'=>$publish];
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
+function private_response_headers(): void {
+    header('Cache-Control: private, no-store, max-age=0');
+    header('X-Robots-Tag: noindex, nofollow, noarchive');
+    header('Referrer-Policy: no-referrer');
+}
+
+function render_writer_preview(array $post): void {
+    private_response_headers();
+    $post['tags'] = post_tags((int)$post['id']);
+    $st = db()->prepare('SELECT name,slug FROM categories WHERE id=?'); $st->execute([$post['category_id']]);
+    $category = $st->fetch() ?: [];
+    $post['category_name'] = $category['name'] ?? null; $post['category_slug'] = $category['slug'] ?? null;
+    $post['published_at'] = $post['published_at'] ?: date('Y-m-d H:i:s');
+    $related = [];
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Private preview · '.e($post['title']).'</title><link rel="stylesheet" href="'.e(asset('css/site.css')).'"><style>[data-reveal]{opacity:1;transform:none}</style></head><body><p class="container">Private saved preview · <a href="'.e(url('/write/edit/'.$post['id'])).'">Return to editor</a></p><main>';
+    require __DIR__.'/../views/post.php';
+    echo '</main></body></html>';
+}
 
 function assign_tags(int $postId, array $tagNames): void {
     $clean=[]; foreach($tagNames as $tag){$tag=trim((string)$tag);if($tag!==''&&mb_strlen($tag)<=120)$clean[mb_strtolower($tag)]=$tag;}
@@ -268,8 +485,8 @@ function social_links(): array {
       'Facebook'=>'https://www.facebook.com/iwaithakaw',
       'X'=>'https://x.com/iwaithakaw',
       'Instagram'=>'https://www.instagram.com/iwaithakaw',
-      'YouTube'=>'https://www.youtube.com/@iwaithakaw',
-      'TikTok'=>'https://www.tiktok.com/@iwaithakaw',
+      'YouTube'=>'https://www.youtube.com/@waithakandegwa',
+      'TikTok'=>'https://www.tiktok.com/@waithakandegwa',
     ];
 }
 
@@ -286,17 +503,36 @@ function upload_featured_image(array $file): ?string {
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return null;
     if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) throw new RuntimeException('Image upload failed.');
     if (($file['size'] ?? 0) > 8*1024*1024) throw new RuntimeException('Image must be 8 MB or smaller.');
-    $finfo=new finfo(FILEINFO_MIME_TYPE);$mime=$finfo->file($file['tmp_name']);
-    $allowed=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp']; if(!isset($allowed[$mime]))throw new RuntimeException('Use JPG, PNG or WebP images.');
-    $dir=__DIR__.'/../assets/uploads/'.date('Y/m'); if(!is_dir($dir)&&!mkdir($dir,0755,true)&&!is_dir($dir))throw new RuntimeException('Unable to create upload folder.');
-    $name=bin2hex(random_bytes(12)); $rel='assets/uploads/'.date('Y/m').'/'.$name.'.webp'; $dest=__DIR__.'/../'.$rel;
-    $src=null; if(function_exists('imagecreatefromjpeg')&&$mime==='image/jpeg')$src=@imagecreatefromjpeg($file['tmp_name']); elseif(function_exists('imagecreatefrompng')&&$mime==='image/png')$src=@imagecreatefrompng($file['tmp_name']); elseif(function_exists('imagecreatefromwebp')&&$mime==='image/webp')$src=@imagecreatefromwebp($file['tmp_name']);
-    if($src && function_exists('imagewebp')){
-        $w=imagesx($src);$h=imagesy($src);$max=1600;$scale=min(1,$max/max($w,$h));$nw=max(1,(int)round($w*$scale));$nh=max(1,(int)round($h*$scale));$out=imagecreatetruecolor($nw,$nh);imagealphablending($out,false);imagesavealpha($out,true);imagecopyresampled($out,$src,0,0,0,0,$nw,$nh,$w,$h);imagewebp($out,$dest,78);imagedestroy($out);imagedestroy($src);
-    } else {
-        $ext=$allowed[$mime];$rel='assets/uploads/'.date('Y/m').'/'.$name.'.'.$ext;$dest=__DIR__.'/../'.$rel;if(!move_uploaded_file($file['tmp_name'],$dest))throw new RuntimeException('Unable to save uploaded image.');
+    if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) throw new RuntimeException('Invalid image upload.');
+    $mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    $allowed=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
+    if(!isset($allowed[$mime]))throw new RuntimeException('Use JPG, PNG or WebP images.');
+    $size=@getimagesize($file['tmp_name']);
+    if(!$size || $size[0]<1 || $size[1]<1 || $size[0]*$size[1]>40000000)throw new RuntimeException('Use an image no larger than 40 megapixels.');
+    $source=$file['tmp_name'];$temporary=null;$extension=$allowed[$mime];
+    $image=null;
+    if(function_exists('imagecreatefromjpeg')&&$mime==='image/jpeg')$image=@imagecreatefromjpeg($source);
+    elseif(function_exists('imagecreatefrompng')&&$mime==='image/png')$image=@imagecreatefrompng($source);
+    elseif(function_exists('imagecreatefromwebp')&&$mime==='image/webp')$image=@imagecreatefromwebp($source);
+    try {
+        if($image && function_exists('imagewebp')){
+            $w=imagesx($image);$h=imagesy($image);$scale=min(1,1600/max($w,$h));$nw=max(1,(int)round($w*$scale));$nh=max(1,(int)round($h*$scale));
+            $out=imagecreatetruecolor($nw,$nh);imagealphablending($out,false);imagesavealpha($out,true);imagecopyresampled($out,$image,0,0,0,0,$nw,$nh,$w,$h);
+            $temporary=tempnam(sys_get_temp_dir(),'wk-image-');
+            if(!$temporary || !imagewebp($out,$temporary,80)){imagedestroy($out);throw new RuntimeException('Unable to prepare uploaded image.');}
+            imagedestroy($out);$source=$temporary;$extension='webp';$mime='image/webp';
+        }
+        $filename=bin2hex(random_bytes(12)).'.'.$extension;
+        if(function_exists('media_store_upload'))return media_store_upload($source,$filename,$mime);
+        $relative='assets/uploads/'.date('Y/m').'/'.$filename;$destination=__DIR__.'/../'.$relative;$directory=dirname($destination);
+        if(!is_dir($directory)&&!mkdir($directory,0755,true)&&!is_dir($directory))throw new RuntimeException('Unable to create upload folder.');
+        $saved=$temporary ? copy($source,$destination) : move_uploaded_file($source,$destination);
+        if(!$saved)throw new RuntimeException('Unable to save uploaded image.');
+        return '/'.$relative;
+    } finally {
+        if($image)imagedestroy($image);
+        if($temporary&&is_file($temporary))unlink($temporary);
     }
-    return '/'.$rel;
 }
 
 function country_options(): array {
@@ -316,6 +552,7 @@ function send_contact_email(array $m): bool {
     $body="New message from waithakandegwa.com\n\nReference: {$m['reference']}\nName: {$m['first_name']} {$m['last_name']}\nEmail: {$m['email']}\nPhone: {$m['phone_code']} {$m['phone']}\nLocation: {$m['city']}, {$m['country']}\n\nMessage:\n{$m['message']}\n";
     $from=trim((string)setting('mail.from','noreply@waithakandegwa.com')); if(!filter_var($from,FILTER_VALIDATE_EMAIL))$from='noreply@waithakandegwa.com';
     $safeReply=str_replace(["\r","\n"],'',$m['email']);
+    if(function_exists('enqueue_email')){try{enqueue_email($to,$subject,'<pre>'.e($body).'</pre>','contact:'.$m['reference']);return true;}catch(Throwable $e){error_log('Contact email queue failed for '.$m['reference']);return false;}}
     $headers=['From: Waithaka Ndegwa Website <'.$from.'>','Reply-To: '.$safeReply,'Content-Type: text/plain; charset=UTF-8'];
     return @mail($to,$subject,$body,implode("\r\n",$headers));
 }
@@ -361,6 +598,11 @@ function media_release_by_token(string $token): ?array {
     return $st->fetch() ?: null;
 }
 
+function media_release_can_sign(array $release, ?int $now = null): bool {
+    return ($release['status'] ?? '') === 'sent' && empty($release['signed_at'])
+        && (empty($release['expires_at']) || strtotime($release['expires_at']) >= ($now ?? time()));
+}
+
 function media_release_payments(int $releaseId): array {
     $st=db()->prepare('SELECT * FROM media_release_payments WHERE release_id=? ORDER BY paid_at DESC,id DESC');
     $st->execute([$releaseId]);
@@ -389,6 +631,8 @@ function upload_release_proof(array $file): ?string {
     $finfo=new finfo(FILEINFO_MIME_TYPE);$mime=$finfo->file($file['tmp_name']);
     $allowed=['image/jpeg'=>'jpg','image/png'=>'png','application/pdf'=>'pdf'];
     if(!isset($allowed[$mime])) throw new RuntimeException('Use JPG, PNG or PDF for payment proof.');
+    if(empty($file['tmp_name'])||!is_uploaded_file($file['tmp_name']))throw new RuntimeException('Invalid proof upload.');
+    if(function_exists('media_store_private_upload'))return media_store_private_upload($file['tmp_name'],bin2hex(random_bytes(16)).'.'.$allowed[$mime],$mime);
     $dir=__DIR__.'/../storage/release-proofs/'.date('Y/m');
     if(!is_dir($dir)&&!mkdir($dir,0700,true)&&!is_dir($dir)) throw new RuntimeException('Unable to create proof folder.');
     $name=bin2hex(random_bytes(16)).'.'.$allowed[$mime];
@@ -414,6 +658,7 @@ function release_consent_text(array $release): string {
 function notify_writer(string $subject,string $body): bool {
     $to=trim((string)setting('contact.recipient',''));if($to===''||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;
     $from=trim((string)setting('mail.from','noreply@waithakandegwa.com'));if(!filter_var($from,FILTER_VALIDATE_EMAIL))$from='noreply@waithakandegwa.com';
+    if(function_exists('enqueue_email')){try{enqueue_email($to,$subject,'<pre>'.e($body).'</pre>','notify:'.hash('sha256',$subject.'|'.$body));return true;}catch(Throwable $e){error_log('Writer notification queue failed.');return false;}}
     $headers=['From: Waithaka Ndegwa Website <'.$from.'>','Content-Type: text/plain; charset=UTF-8'];
     return @mail($to,$subject,$body,implode("\r\n",$headers));
 }
