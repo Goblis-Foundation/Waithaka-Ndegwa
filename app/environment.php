@@ -8,7 +8,7 @@ function wk_validate_app_key(mixed $key): void {
     }
 }
 function wk_environment_config(array $config): array {
-    $defaults=['app_env'=>'production','base_url'=>'https://www.waithakandegwa.com','timezone'=>'Africa/Nairobi','force_canonical'=>true,'worker_enabled'=>false,
+    $defaults=['app_env'=>'production','base_url'=>'https://www.waithakandegwa.com','timezone'=>'Africa/Nairobi','force_canonical'=>true,'worker_enabled'=>false,'indexnow_enabled'=>false,
         'allowed_hosts'=>['waithakandegwa.com','www.waithakandegwa.com','waithakandegwa.co.ke','www.waithakandegwa.co.ke'],
         'trusted_proxies'=>[],'session_driver'=>'files','db'=>['port'=>3306,'charset'=>'utf8mb4'],'mail'=>['transport'=>'disabled'],'media'=>['driver'=>'local']];
     $config=array_replace_recursive($defaults,$config);
@@ -21,6 +21,7 @@ function wk_environment_config(array $config): array {
     foreach($map as $env=>$key){$v=getenv($env);if($v===false)continue;$target=&$config;foreach(explode('.',$key) as $part)$target=&$target[$part];$target=$v;unset($target);}
     if(getenv('APP_FORCE_CANONICAL')!==false)$config['force_canonical']=wk_env_bool('APP_FORCE_CANONICAL',true);
     if(getenv('WORKER_ENABLED')!==false)$config['worker_enabled']=wk_env_bool('WORKER_ENABLED',false);
+    if(getenv('INDEXNOW_ENABLED')!==false)$config['indexnow_enabled']=wk_env_bool('INDEXNOW_ENABLED',false);
     foreach(['APP_ALLOWED_HOSTS'=>'allowed_hosts','TRUSTED_PROXY_CIDRS'=>'trusted_proxies'] as $env=>$key)if(getenv($env)!==false)$config[$key]=array_values(array_filter(array_map('trim',explode(',',getenv($env)))));
     return $config;
 }

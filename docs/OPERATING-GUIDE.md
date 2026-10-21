@@ -1,5 +1,7 @@
 # Operating guide
 
+For r4 Google tag installation, Start Here, resources/evidence, campaign coordination, reader preferences/follow-up and search reporting, begin with [Growth implementation](GROWTH-IMPLEMENTATION.md). The established publishing and delivery workflow below remains in use.
+
 Release: 2026-10-21. The workflows below are implemented and tested with local synthetic fixtures. AWS deployment, restored live data, real account authorization and public/social/email delivery have not been performed. Use the [migration runbook](AWS-MIGRATION.md) and [validation record](VALIDATION.md) for the remaining deployment checks.
 
 Writer's main navigation is **Library, New thought, Journeys, Founder reviews, Publishing, Newsletter, Media, Connections, Operations, Consent and Settings**. New drafts and approvals are private; scheduled work is delivered only when the worker and relevant provider are enabled.

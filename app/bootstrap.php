@@ -23,13 +23,14 @@ $APP_INSTALLED = (is_file($CONFIG_FILE) && is_file(__DIR__.'/../storage/installe
 if ($APP_INSTALLED && PHP_SAPI==='cli') wk_validate_app_key($CONFIG['app_key']??null);
 date_default_timezone_set((string)($CONFIG['timezone']??'Africa/Nairobi'));
 require_once __DIR__.'/functions.php';
+require_once __DIR__.'/analytics.php';
 if (is_file(__DIR__.'/../vendor/autoload.php')) require_once __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/operations.php';
 require_once __DIR__.'/media_storage.php';
 require_once __DIR__.'/media_library.php';
 require_once __DIR__.'/mail_feedback.php';
 require_once __DIR__.'/integrations.php';
-foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
+foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','discovery','discovery_routes','campaigns','campaign_routes'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
 
 if (PHP_SAPI !== 'cli') {
     header('X-Content-Type-Options: nosniff'); header('Referrer-Policy: strict-origin-when-cross-origin'); header('X-Frame-Options: SAMEORIGIN');
@@ -50,7 +51,7 @@ if (PHP_SAPI !== 'cli') {
         }
         header('Strict-Transport-Security: max-age=31536000');
     }
-    if (preg_match('~^/(?:write|consent|payments|webhooks|newsletter/(?:confirm|unsubscribe|one-click))(?:/|$)~',$requestPath) || isset($_GET['preview'])) {
+    if (preg_match('~^/(?:write|consent|payments|webhooks|newsletter/(?:confirm|unsubscribe|one-click|preferences)|founders/follow-up)(?:/|$)~',$requestPath) || isset($_GET['preview'])) {
         header('Cache-Control: no-store, private, max-age=0'); header('X-Robots-Tag: noindex, nofollow, noarchive'); header('Referrer-Policy: no-referrer');
     } else header('Cache-Control: private, no-cache');
     if (!$APP_INSTALLED) { wk_fail_safe('Deployment is not configured.'); exit; }

@@ -98,7 +98,13 @@ def main() -> None:
                         ".platform/hooks/predeploy/25_media_limits.sh", "deploy/aws/global-bundle.pem",
                         "deploy/aws/media-limits.ini", "app/newsletter.php", "app/media_library.php",
                         "app/mail_feedback.php", "app/providers/youtube.php", "app/providers/tiktok.php",
-                        "app/providers/tiktok_business.php", "app/readiness.php"}
+                        "app/providers/tiktok_business.php", "app/readiness.php",
+                        "app/analytics.php", "views/partials_google_tag.php", "app/editorial.php",
+                        "app/reader.php", "app/discovery.php", "app/campaigns.php",
+                        "app/migrations/100_analytics.sql", "app/migrations/110_editorial.sql",
+                        "app/migrations/120_reader.sql", "app/migrations/130_discovery.sql",
+                        "app/migrations/140_campaigns.sql", "views/write/campaigns.php",
+                        "views/write/discovery.php", "views/editorial/start.php"}
             if not required.issubset(set(app.namelist())):
                 raise RuntimeError("Application ZIP is missing a required root-level file.")
         history = temporary / "recovery-and-implementation.bundle"

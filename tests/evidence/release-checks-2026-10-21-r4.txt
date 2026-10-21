@@ -1,0 +1,42 @@
+Additional release validation — 2026-10-21 r4
+
+Composer manifest/lock
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+./composer.json is valid
+Exit code: 0
+
+Installed platform requirements
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+Checking platform requirements for packages in the vendor dir
+ext-ctype     *          success provided by symfony/polyfill-ctype
+ext-curl      8.3.6      success
+ext-dom       20031129   success
+ext-fileinfo  8.3.6      success
+ext-filter    8.3.6      success
+ext-gd        8.3.6      success
+ext-hash      8.3.6      success
+ext-iconv     8.3.6      success
+ext-json      8.3.6      success
+ext-mbstring  *          success provided by symfony/polyfill-mbstring
+ext-openssl   8.3.6      success
+ext-pcre      8.3.6      success
+ext-pdo       8.3.6      success
+ext-pdo_mysql 8.3.6      success
+ext-simplexml 8.3.6      success
+php           8.3.6      success
+Exit code: 0
+
+Python/shell/JSON syntax and parsing
+Syntax and parsing passed: {"python": 4, "json": 8, "shell": 4}
+Exit code: 0
+
+PHP/JavaScript syntax
+PASS: syntax checks for 160 PHP files and 3 JavaScript files.
+The final guard edits in growth_http_test.php and campaign_database_test.php also passed PHP lint.
+
+Final monitoring allowlist check
+Readiness unit checks passed: 40
+Two added cases cover Discovery heartbeat identification and safe-count filtering.
+
+The complete aggregate result is recorded separately: 40/40 suites passed.
+No live AWS, Google, IndexNow, email or social operation was performed.

@@ -6,6 +6,8 @@ return [
  'app_env'=>'production',
  'base_url'=>'https://www.waithakandegwa.com',
  'force_canonical'=>true,
+ 'worker_enabled'=>false,
+ 'indexnow_enabled'=>false,
  'timezone'=>'Africa/Nairobi',
  'app_key'=>'',
  'allowed_hosts'=>['www.waithakandegwa.com','waithakandegwa.com','www.waithakandegwa.co.ke','waithakandegwa.co.ke'],

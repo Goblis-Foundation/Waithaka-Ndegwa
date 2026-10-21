@@ -1,11 +1,12 @@
 # Waithaka Ndegwa — startup journeys and publishing
 
-Release: 2026-10-21 r3. Built on the recovered V9 PHP/MySQL website, with the original editorial identity and personal photography preserved.
+Release: 2026-10-21 r4. Built on the recovered V9 PHP/MySQL website, with the original editorial identity and personal photography preserved.
 
 **This is an implemented, locally tested release package. It has not been deployed to AWS, imported the live database, connected provider accounts or published social posts.**
 
 ## Start here
 
+- [Google tag and growth implementation](docs/GROWTH-IMPLEMENTATION.md): G-RN0YXC2WCH, reading paths, resources, evidence, campaign coordination, reader follow-up and search discovery.
 - [Operating guide](docs/OPERATING-GUIDE.md): weekly startup series, founder submissions, media, Google/social publishing, newsletters and Operations.
 - [AWS migration runbook](docs/AWS-MIGRATION.md): restore, stage, validate and cut over both domains.
 - [Reviewed installation and cutover helper](deploy/aws/INSTALL-CUTOVER.md): offline plans, recovery evidence and explicitly applied AWS phases.
@@ -17,8 +18,14 @@ The canonical production address is `https://www.waithakandegwa.com`. The AWS ed
 
 ## Implemented experience
 
-Public navigation includes Home, My Thoughts, Startup Journeys, Founder Stories, About and Contact. Support My Thoughts remains a separate action. The new modules add:
+Public navigation includes Home, My Thoughts, Start Here, About and Contact. Startup Journeys, Founder Stories, Resources, Watch, weekly updates and RSS are linked through the home page, Start Here and footer. Support My Thoughts remains a separate action. The new modules add:
 
+- One shared Google tag with the supplied G-RN0YXC2WCH destination, explicit enable/off settings, consent-controlled collection, once-per-page application page views, restricted campaign identifiers and private-form exclusions.
+- Start Here reading paths, original downloadable blank startup resources, author-managed resource/experiment/video pages, public evidence cards, meaningful correction history, long-article contents links and a newsletter invitation.
+- A private campaign workspace joining each source article, objective, channel-specific links, social packages and newsletter editions without bypassing their approval processes.
+- Reader topic/journey preferences, expiring mailbox-bound preference/founder links, a durable enquiry queue and protected founder clarification/permission follow-up.
+- Complete paginated public search, Google query/page/country/device period comparisons, IndexNow inventory/receipts/worker gates and consolidated operations attention items.
+- Visible-by-default content, actual responsive derivatives of existing public photographs, intrinsic image dimensions and meaningful rather than request-time modification dates.
 - One publicly active startup journey at a time, ordered chapters linked to existing articles, starting conditions, evidence notes and outcomes.
 - Founder submissions with a private review process. Publication requires approval, permission checks, claim review and a linked public article.
 - Newsletter subscriptions and campaigns: double opt-in, private edition drafts, saved email previews, explicit approval, a frozen audience of eligible confirmed subscribers, scheduling, pause/resume/cancel controls and recipient delivery records. Eligibility is checked again before sending.
@@ -51,7 +58,7 @@ Native TikTok publishing uses the separate [API for Business Accounts API](https
 
 ## Editorial and delivery controls
 
-Writer navigation is **Library, New thought, Journeys, Founder reviews, Publishing, Newsletter, Media, Connections, Operations, Consent and Settings**. The weekly process is to publish the complete chapter, prepare its channel versions and newsletter edition, review each saved version, then schedule the approved work. Each chapter and edition needs its own content and approval; scheduling does not invent or repeat future weekly content.
+Writer navigation includes **Library, New thought, Journeys, Founder reviews, Campaigns, Resources & evidence, Reader desk, Discovery, Publishing, Newsletter, Media, Connections, Operations, Consent and Settings**. The weekly process is to publish the complete chapter, prepare its channel versions and newsletter edition, review each saved version, then schedule the approved work. Each chapter and edition needs its own content and approval; scheduling does not invent or repeat future weekly content. Campaigns connects these records without automatically publishing or sending them.
 
 Saving or approving an edition/package does not send it. Newsletter confirmation is bound to the original mailbox; restored legacy links require evidence of that address from their encrypted confirmation outbox or a fresh opt-in. A newsletter's recipients are fixed when scheduled: later confirmations do not join that edition, while later unsubscribes, address/consent changes and suppressions can prevent a queued send. A scheduled edition's content and audience stay locked; copying it creates a new unapproved draft without recipients.
 

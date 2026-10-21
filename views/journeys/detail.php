@@ -14,9 +14,10 @@
         <h3><a href="<?=e(url('/my-thoughts/'.$episode['slug']))?>"><?=e($episode['title'])?></a></h3>
         <?php if($episode['public_summary']||$episode['standfirst']):?><p><?=e($episode['public_summary']?:$episode['standfirst'])?></p><?php endif;?>
         <div class="journey-evidence"><span>Basis: <?=e(journeys_evidence_bases()[$episode['evidence_basis']]??'Not yet assessed')?></span><?php if($episode['evidence_summary']):?><p><?=nl2br(e($episode['evidence_summary']))?></p><?php endif;?></div>
-        <a class="text-link" href="<?=e(url('/my-thoughts/'.$episode['slug']))?>">Read chapter <?=(int)$episode['episode_order']?> →</a>
+        <a class="text-link" href="<?=e(url('/my-thoughts/'.$episode['slug']))?>" data-analytics-event="episode_continue" data-content-id="<?=e('post-'.$episode['post_id'])?>">Read chapter <?=(int)$episode['episode_order']?> →</a>
       </article></li><?php endforeach;?>
     </ol>
     <?php if($season['outcomes']):?><section class="journey-outcomes"><span class="eyebrow">Looking back, looking ahead</span><h2>Outcomes and lessons.</h2><p><?=nl2br(e($season['outcomes']))?></p></section><?php endif;?>
+    <?php $experiments=function_exists('editorial_public_experiments')?editorial_public_experiments((int)$season['id']):[];include __DIR__.'/../editorial/experiments.php'; ?>
   </div>
 </div></section>

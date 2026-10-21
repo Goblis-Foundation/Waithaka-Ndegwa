@@ -11,7 +11,14 @@ function newsletter_editor_data(?array $campaign,array $values=[],?string $error
     $snapshot=null;$reviewError=null;
     if($campaign){try{$snapshot=$revision?json_decode($revision['snapshot_json'],true,512,JSON_THROW_ON_ERROR):newsletter_snapshot($campaign);}catch(NewsletterValidationException|NewsletterConflictException $exception){$reviewError=$exception->getMessage();}}
     $posts=db()->query('SELECT p.id,p.title FROM posts p WHERE '.published_where().' ORDER BY p.published_at DESC,p.id DESC LIMIT 100')->fetchAll();
-    return ['writeTitle'=>$campaign?'Newsletter edition':'New newsletter','campaign'=>$campaign,'values'=>$values,'error'=>$error,'revision'=>$revision,'snapshot'=>$snapshot,'reviewError'=>$reviewError,'posts'=>$posts];
+    $sourceNotice=null;$selected=$values['source_post_id']??null;
+    if(is_scalar($selected)&&preg_match('/^[1-9][0-9]{0,9}$/D',(string)$selected)){
+        $q=db()->prepare('SELECT id,title,status,published_at FROM posts WHERE id=?');$q->execute([(int)$selected]);$source=$q->fetch();
+        if($source){$public=journeys_post_is_public($source);if(!$public)$sourceNotice='This source article is private or scheduled for the future. Its ID is retained; publish it before saving a linked newsletter. No private article URL is included.';
+            if(!in_array((int)$source['id'],array_map('intval',array_column($posts,'id')),true))$posts[]=['id'=>$source['id'],'title'=>$source['title'].($public?' — linked source':' — publication required')];
+        }
+    }
+    return ['writeTitle'=>$campaign?'Newsletter edition':'New newsletter','campaign'=>$campaign,'values'=>$values,'error'=>$error,'revision'=>$revision,'snapshot'=>$snapshot,'reviewError'=>$reviewError,'posts'=>$posts,'sourceNotice'=>$sourceNotice];
 }
 function newsletter_dispatch(string $path): bool {
     if($path==='/newsletter/one-click'){
@@ -54,6 +61,7 @@ function newsletter_dispatch(string $path): bool {
     }
     if($path==='/write/newsletter/new'){
         $values=[];
+        if(!is_post()&&isset($_GET['post']))try{$values=newsletter_source_prefill((int)newsletter_id($_GET['post']));}catch(Throwable $exception){$error=newsletter_route_error($exception);}
         if(is_post())try{
             if(($_POST['action']??'')==='import')$values=newsletter_article_values((int)newsletter_id($_POST['post_id']??null));
             else{$values=$_POST;$values['body_html']=$_POST['body_html']??($_POST['content_html']??'');}

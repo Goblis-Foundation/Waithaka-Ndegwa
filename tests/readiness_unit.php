@@ -12,6 +12,9 @@ readiness_test($counts['email']['pending']===1000000000,'Worker counts must be b
 readiness_test(!str_contains(json_encode($counts),$secret),'Worker metadata must discard secrets and provider responses.');
 readiness_test(readiness_stage($secret)==='working'&&readiness_error_code($secret)==='worker_failed','Unknown stage/error text must not enter monitoring records.');
 readiness_test(readiness_error_code(null)===null,'Successful records may have no error code.');
+readiness_test(readiness_stage('discovery')==='discovery','The discovery worker stage must remain identifiable in its heartbeat.');
+$discoveryCounts=readiness_counts(['discovery'=>['enabled'=>true,'added'=>2,'attempted'=>2,'accepted'=>1,'verification_pending'=>1,'key'=>$secret,'url'=>$secret]]);
+readiness_test($discoveryCounts===['discovery'=>['enabled'=>true,'added'=>2,'attempted'=>2,'accepted'=>1,'verification_pending'=>1]],'Discovery receipts retain safe counts without keys or notification URLs.');
 foreach(['10.0.0.0/16','192.0.2.1','2001:db8::/64']as$range)readiness_test(readiness_proxy_valid($range),'Valid explicit proxy boundary should pass.');
 foreach(['0.0.0.0/0','::/0','10.0.0.0/000','10.0.0.0/','10.0.0.0/not-a-prefix','10.0.0.0/33',[],null]as$range)readiness_test(!readiness_proxy_valid($range),'Missing, malformed or trust-all proxy ranges must need review.');
 readiness_test(readiness_https_url('https://www.waithakandegwa.com'),'Public HTTPS canonical configuration should pass.');

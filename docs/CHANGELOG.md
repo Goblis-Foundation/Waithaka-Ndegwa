@@ -1,5 +1,16 @@
 # Release changes — 2026-10-21 r3
 
+## 2026-10-21 r4 — Google tag and global discovery
+
+- Installed the owner-supplied G-RN0YXC2WCH destination through additive migration 100 and one shared immediate-head tag, with consent defaults, explicit off/blank behaviour, no duplicate application page views, constrained UTM values and private-form exclusions.
+- Added Start Here, original downloadable startup worksheets, resource/watch publishing, journey experiment records, article contents links, public evidence and immutable meaningful update/correction records. Private working copies remain separate.
+- Added topic/journey newsletter preferences, mailbox-bound expiring links, pre-send preference checks, durable enquiry tracking and protected founder clarification/permission follow-up.
+- Added real paginated multi-content search, confirmed-property Search Console comparisons, public-only IndexNow inventory and durable attempts, and operations attention summaries.
+- Added private editorial campaign plans joining article purpose, per-channel links, social delivery records and newsletter editions. Draft creation still requires saved review and approval before delivery.
+- Preserved the personal photography and created 28 actual responsive WebP derivatives. Public content is visible without JavaScript. About no longer reports a fabricated fresh modification time.
+- Added migrations 100, 110, 120, 130 and 140 without modifying the historical migration ledger. See GROWTH-IMPLEMENTATION.md and VALIDATION.md for use, evidence and external deployment limits.
+
+
 ## Recovered foundation
 
 Based on the recovered V9 archive dated 2026-08-31. The pristine local git baseline is 5d69ca2. Original site branding, personal photographs, editorial topic structure, article addresses and consent records remain the migration foundation. The recovered archives contain source code; the live database, private configuration/application key and uploaded files were not present.

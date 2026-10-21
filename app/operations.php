@@ -101,7 +101,7 @@ function email_work(int $limit=10,?callable $testTransport=null): array {
             if (!$row) { db()->commit();break; }
             db()->prepare("UPDATE email_outbox SET status='sending',claimed_at=NOW(),attempts=attempts+1 WHERE id=?")->execute([$row['id']]);db()->commit();
         } catch(Throwable $e) { if(db()->inTransaction())db()->rollBack();throw $e; }
-        $payload=null;$publishLock=false;$providerId=null;$recipientLock=false;$newsletterGate=null;$confirmationSubscriber=null;
+        $payload=null;$publishLock=false;$providerId=null;$recipientLock=false;$newsletterGate=null;$readerGate=null;$confirmationSubscriber=null;
         try {
             $payload=json_decode(decrypt_secret($row['payload']),true,512,JSON_THROW_ON_ERROR);
             if(function_exists('email_recipient_lock')){
@@ -120,6 +120,15 @@ function email_work(int $limit=10,?callable $testTransport=null): array {
                 }
                 if($newsletterGate['action']!=='send'){
                     db()->prepare("UPDATE email_outbox SET status='suppressed',error_code=? WHERE id=?")->execute([$newsletterGate['reason'],$row['id']]);$stats['suppressed']++;continue;
+                }
+            }
+            if(str_starts_with($payload['dedupe_key'],'reader-link:') && function_exists('reader_email_gate')){
+                $readerGate=reader_email_gate($payload['dedupe_key'],$payload,(int)$row['id']);
+                if($readerGate['action']==='defer'){
+                    db()->prepare("UPDATE email_outbox SET status='pending',claimed_at=NULL,attempts=GREATEST(attempts-1,0),available_at=DATE_ADD(NOW(),INTERVAL 1 MINUTE),error_code=? WHERE id=?")->execute([$readerGate['reason'],$row['id']]);$stats['deferred']++;continue;
+                }
+                if($readerGate['action']!=='send'){
+                    db()->prepare("UPDATE email_outbox SET status='suppressed',error_code=? WHERE id=?")->execute([$readerGate['reason'],$row['id']]);$stats['suppressed']++;continue;
                 }
             }
             if(str_starts_with($payload['dedupe_key'],'newsletter-confirm:') && function_exists('newsletter_subscriber_lock')){
@@ -170,6 +179,7 @@ function email_work(int $limit=10,?callable $testTransport=null): array {
             if ($publishLock) db()->query("SELECT RELEASE_LOCK('waithaka_publishing_worker')");
             if($confirmationSubscriber)newsletter_subscriber_unlock($confirmationSubscriber);
             if($newsletterGate!==null)newsletter_email_unlock($newsletterGate);
+            if($readerGate!==null)reader_email_unlock($readerGate);
             if($recipientLock)email_recipient_unlock((string)$payload['to']);
         }
     }
@@ -190,10 +200,12 @@ function publishing_send_reminder(array $job,array $snapshot): bool {
     return in_array($q->fetchColumn(),['pending','sending'],true);
 }
 function app_extension_route(string $path): bool {
-    foreach(['newsletter_dispatch','media_library_dispatch','readiness_dispatch','mail_feedback_dispatch'] as $handler)if(function_exists($handler)&&$handler($path))return true;
+    foreach(['reader_dispatch','editorial_dispatch','discovery_dispatch','campaign_dispatch','newsletter_dispatch','media_library_dispatch','readiness_dispatch','mail_feedback_dispatch'] as $handler)if(function_exists($handler)&&$handler($path))return true;
     if (function_exists('journeys_dispatch') && journeys_dispatch($path)) return true;
     return function_exists('publishing_dispatch') && publishing_dispatch($path);
 }
 function app_sitemap_entries(): array {
-    return function_exists('journeys_sitemap_entries') ? journeys_sitemap_entries() : [];
+    $entries=[];
+    foreach(['journeys_sitemap_entries','editorial_sitemap_entries']as$handler)if(function_exists($handler))$entries=array_merge($entries,$handler());
+    return $entries;
 }

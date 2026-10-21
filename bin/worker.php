@@ -9,7 +9,7 @@ if (!$enabled) { echo "{\"enabled\":false}\n"; exit; }
 $limit=max(1,min(50,(int)($argv[1]??10)));$stats=[];
 $success=false;
 try {
-    foreach(['publishing'=>'publishing_work','payments'=>'payment_reconcile_due','newsletter'=>'newsletter_work','email'=>'email_work']as$stage=>$handler){
+    foreach(['publishing'=>'publishing_work','payments'=>'payment_reconcile_due','newsletter'=>'newsletter_work','email'=>'email_work','discovery'=>'discovery_work']as$stage=>$handler){
         if(!function_exists($handler))continue;
         if(function_exists('readiness_worker_touch'))readiness_worker_touch($run,$stage,$stats);
         $stats[$stage]=$handler($limit);

@@ -4,8 +4,8 @@ declare(strict_types=1);
 /** Operational diagnostics deliberately never fetch provider credentials or make network calls. */
 function readiness_counts(array $counts): array {
     $result=[];
-    $metrics=['processed','published','assisted','attention','checked','confirmed','queued','sent','ambiguous','suppressed','failed','bookkeeping_pending','pending','completed'];
-    foreach(['publishing','payments','email','newsletter','youtube','media','feedback']as$section) {
+    $metrics=['processed','published','assisted','attention','checked','confirmed','queued','sent','ambiguous','suppressed','failed','bookkeeping_pending','pending','completed','added','updated','deleted','attempted','accepted','verification_pending','retry','rejected','cancelled'];
+    foreach(['publishing','payments','email','newsletter','youtube','media','feedback','discovery']as$section) {
         if(!isset($counts[$section])||!is_array($counts[$section]))continue;
         foreach($counts[$section]as$key=>$value) {
             if(in_array($key,['enabled','busy'],true)&&is_bool($value))$result[$section][$key]=$value;
@@ -15,7 +15,7 @@ function readiness_counts(array $counts): array {
     return $result;
 }
 function readiness_stage(string $stage): string {
-    return in_array($stage,['starting','publishing','payments','email','newsletter','youtube','feedback','media','complete','paused'],true)?$stage:'working';
+    return in_array($stage,['starting','publishing','payments','email','newsletter','youtube','feedback','media','discovery','complete','paused'],true)?$stage:'working';
 }
 function readiness_error_code(?string $code): ?string {
     if($code===null)return null;

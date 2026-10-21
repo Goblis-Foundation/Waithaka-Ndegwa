@@ -1,0 +1,465 @@
+Test runtime: PHP 8.3.6
+
+[PASS] Pure security
+PASS: 72 security unit assertions
+
+[PASS] Pure publishing
+Publishing policy tests passed: 61
+
+[PASS] Pure runtime configuration
+Runtime configuration checks passed: 78
+
+[PASS] Pure newsletter policy
+PASS: 67 newsletter unit assertions
+
+[PASS] Pure YouTube policy
+YouTube offline tests passed: 60
+
+[PASS] Pure TikTok permissions and reporting
+TikTok policy checks passed: 45
+
+[PASS] Pure TikTok Accounts API publishing policy
+TikTok Business policy checks passed: 109
+
+[PASS] Analytics destination and campaign privacy
+Analytics policy checks passed: 53
+
+[PASS] Editorial content and evidence privacy
+Editorial pure checks passed: 54
+
+[PASS] Reader preferences and private-link policy
+Reader pure checks: 44 passed.
+
+[PASS] Search, report and image contracts
+Discovery pure checks passed: 89 assertions.
+
+[PASS] Pure operations diagnostics
+Readiness unit checks passed: 38
+
+[PASS] Signed SNS and email contracts
+Mail feedback unit checks passed: 31
+
+[PASS] Offline Google tag consent and duplicate-event states
+Analytics browser-state checks passed: 24
+
+[PASS] Offline AWS recovery and cutover plans
+test_adopted_environment_must_actually_be_paused (__main__.RecoveryPlanTests.test_adopted_environment_must_actually_be_paused) ... ok
+test_app_options_pause_work_and_keep_exact_hosts (__main__.RecoveryPlanTests.test_app_options_pause_work_and_keep_exact_hosts) ... ok
+test_archive_rejects_private_data_and_mismatched_migration (__main__.RecoveryPlanTests.test_archive_rejects_private_data_and_mismatched_migration) ... ok
+test_aws_cli_uses_explicit_boundary_and_suppresses_raw_errors (__main__.RecoveryPlanTests.test_aws_cli_uses_explicit_boundary_and_suppresses_raw_errors) ... ok
+test_aws_identity_mismatch_stops_before_other_checks (__main__.RecoveryPlanTests.test_aws_identity_mismatch_stops_before_other_checks) ... ok
+test_cloudformation_removal_replacement_and_unrelated_change_blocked (__main__.RecoveryPlanTests.test_cloudformation_removal_replacement_and_unrelated_change_blocked) ... ok
+test_complete_explicit_fixture_validates (__main__.RecoveryPlanTests.test_complete_explicit_fixture_validates) ... ok
+test_cutover_requires_readiness_for_exact_final_data (__main__.RecoveryPlanTests.test_cutover_requires_readiness_for_exact_final_data) ... ok
+test_default_receipt_is_never_accepted (__main__.RecoveryPlanTests.test_default_receipt_is_never_accepted) ... ok
+test_deployed_configuration_matching_plan_is_accepted (__main__.RecoveryPlanTests.test_deployed_configuration_matching_plan_is_accepted) ... ok
+test_environment_readback_covers_database_secret_and_canonical (__main__.RecoveryPlanTests.test_environment_readback_covers_database_secret_and_canonical) ... ok
+test_failed_or_obsolete_change_set_stops_without_success_evidence (__main__.RecoveryPlanTests.test_failed_or_obsolete_change_set_stops_without_success_evidence) ... ok
+test_failed_update_draft_cannot_substitute_for_deployed_settings (__main__.RecoveryPlanTests.test_failed_update_draft_cannot_substitute_for_deployed_settings) ... ok
+test_inventory_preserves_all_three_prefixes_and_never_key_value (__main__.RecoveryPlanTests.test_inventory_preserves_all_three_prefixes_and_never_key_value) ... ok
+test_mail_activation_needs_setup_and_every_evidence_gate (__main__.RecoveryPlanTests.test_mail_activation_needs_setup_and_every_evidence_gate) ... ok
+test_mail_setup_stays_paused_and_only_exact_topic_is_allowed (__main__.RecoveryPlanTests.test_mail_setup_stays_paused_and_only_exact_topic_is_allowed) ... ok
+test_media_symlink_rejected (__main__.RecoveryPlanTests.test_media_symlink_rejected) ... ok
+test_media_upload_is_conditional_and_verified (__main__.RecoveryPlanTests.test_media_upload_is_conditional_and_verified) ... ok
+test_mismatched_existing_media_is_never_overwritten (__main__.RecoveryPlanTests.test_mismatched_existing_media_is_never_overwritten) ... ok
+test_missing_prior_phase_prevents_concrete_plan (__main__.RecoveryPlanTests.test_missing_prior_phase_prevents_concrete_plan) ... ok
+test_missing_region_is_not_inferred (__main__.RecoveryPlanTests.test_missing_region_is_not_inferred) ... ok
+test_modified_plan_is_rejected_before_any_aws_call (__main__.RecoveryPlanTests.test_modified_plan_is_rejected_before_any_aws_call) ... ok
+test_offline_plan_does_not_call_aws (__main__.RecoveryPlanTests.test_offline_plan_does_not_call_aws) ... ok
+test_old_create_complete_cannot_satisfy_an_update (__main__.RecoveryPlanTests.test_old_create_complete_cannot_satisfy_an_update) ... ok
+test_pending_configuration_is_not_a_completed_phase (__main__.RecoveryPlanTests.test_pending_configuration_is_not_a_completed_phase) ... ok
+test_placeholders_and_cross_account_inputs_rejected (__main__.RecoveryPlanTests.test_placeholders_and_cross_account_inputs_rejected) ... ok
+test_plan_output_is_private_and_not_overwritten (__main__.RecoveryPlanTests.test_plan_output_is_private_and_not_overwritten) ... ok
+test_private_key_permissions_enforced (__main__.RecoveryPlanTests.test_private_key_permissions_enforced) ... ok
+test_production_requires_all_four_domains (__main__.RecoveryPlanTests.test_production_requires_all_four_domains) ... ok
+test_receipt_age_and_timestamp_are_checked (__main__.RecoveryPlanTests.test_receipt_age_and_timestamp_are_checked) ... ok
+test_restore_receipt_is_bound_to_actual_backup (__main__.RecoveryPlanTests.test_restore_receipt_is_bound_to_actual_backup) ... ok
+test_restore_receipt_rejects_empty_writer_and_wrong_target (__main__.RecoveryPlanTests.test_restore_receipt_rejects_empty_writer_and_wrong_target) ... ok
+test_rollback_cannot_satisfy_completed_change_set (__main__.RecoveryPlanTests.test_rollback_cannot_satisfy_completed_change_set) ... ok
+test_route53_plan_modifies_only_target_address_records (__main__.RecoveryPlanTests.test_route53_plan_modifies_only_target_address_records) ... ok
+test_runtime_policy_keeps_private_prefixes_and_version_reads (__main__.RecoveryPlanTests.test_runtime_policy_keeps_private_prefixes_and_version_reads) ... ok
+test_secret_values_cannot_be_put_in_plan_config (__main__.RecoveryPlanTests.test_secret_values_cannot_be_put_in_plan_config) ... ok
+test_special_dns_routing_is_not_silently_replaced (__main__.RecoveryPlanTests.test_special_dns_routing_is_not_silently_replaced) ... ok
+test_stack_waiter_requires_this_execution_and_final_parameters (__main__.RecoveryPlanTests.test_stack_waiter_requires_this_execution_and_final_parameters) ... ok
+test_staging_cannot_take_production_alias (__main__.RecoveryPlanTests.test_staging_cannot_take_production_alias) ... ok
+test_staging_worker_activation_is_forbidden_even_with_receipts (__main__.RecoveryPlanTests.test_staging_worker_activation_is_forbidden_even_with_receipts) ... ok
+test_trust_all_and_noncanonical_proxy_networks_rejected (__main__.RecoveryPlanTests.test_trust_all_and_noncanonical_proxy_networks_rejected) ... ok
+test_unrecognized_media_rejected (__main__.RecoveryPlanTests.test_unrecognized_media_rejected) ... ok
+test_wrong_original_key_is_rejected_without_exposing_either_value (__main__.RecoveryPlanTests.test_wrong_original_key_is_rejected_without_exposing_either_value) ... ok
+
+----------------------------------------------------------------------
+Ran 43 tests in 0.286s
+
+OK
+
+[PASS] YouTube resumable protocol fixture
+YouTube HTTP tests passed: 46
+
+[PASS] Prepare security database
+Created disposable database waithaka_test_20261021_155542_a49b62_security_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Security database
+PASS: 35 database security assertions
+
+[PASS] Prepare journeys database
+Created disposable database waithaka_test_20261021_155542_a49b62_journeys_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Journeys database
+PASS: 75 journey, founder, newsletter and RSS workflow assertions.
+
+[PASS] Prepare publishing database
+Created disposable database waithaka_test_20261021_155542_a49b62_publishing_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Kept empty for the publishing suite's own disposable-table initialization.
+
+[PASS] Publishing database
+Publishing database tests passed: 34
+
+[PASS] Prepare operations database
+Created disposable database waithaka_test_20261021_155542_a49b62_operations_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Operations database
+Email outbox 3 delivery unconfirmed; inspect provider delivery logs before retrying.
+Email outbox 9 delivery unconfirmed; inspect provider delivery logs before retrying.
+Operations checks passed: 32
+
+[PASS] Prepare newsletter database
+Created disposable database waithaka_test_20261021_155542_a49b62_newsletter_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Newsletter database
+Email outbox 6 delivery unconfirmed; inspect provider delivery logs before retrying.
+PASS: 92 newsletter database assertions (offline transport only)
+
+[PASS] Prepare readiness database
+Created disposable database waithaka_test_20261021_155542_a49b62_readiness_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Readiness database
+Readiness database checks passed: 18
+
+[PASS] Prepare feedback database
+Created disposable database waithaka_test_20261021_155542_a49b62_feedback_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Feedback database
+Mail feedback database checks passed: 23
+
+[PASS] Prepare media database
+Created disposable database waithaka_test_20261021_155542_a49b62_media_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Media database
+Media library database checks passed: 64
+
+[PASS] Prepare youtube database
+Created disposable database waithaka_test_20261021_155542_a49b62_youtube_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Youtube database
+YouTube database integration tests passed: 22
+
+[PASS] Prepare tiktok database
+Created disposable database waithaka_test_20261021_155542_a49b62_tiktok_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Tiktok database
+TikTok OAuth/report/database checks passed: 34
+
+[PASS] Prepare tiktok_business database
+Created disposable database waithaka_test_20261021_155542_a49b62_tiktok_business_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Tiktok_business database
+TikTok Business OAuth/media/worker checks passed: 77
+
+[PASS] Prepare editorial database
+Created disposable database waithaka_test_20261021_155542_a49b62_editorial_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Editorial database
+Editorial database checks passed: 42
+
+[PASS] Prepare reader database
+Created disposable database waithaka_test_20261021_155542_a49b62_reader_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Reader database
+Contact email queue failed for WK-READER-000002
+Reader database checks: 66 passed.
+
+[PASS] Prepare discovery database
+Created disposable database waithaka_test_20261021_155542_a49b62_discovery_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Discovery database
+Discovery database checks passed: 93 assertions on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+
+[PASS] Prepare campaign database
+Created disposable database waithaka_test_20261021_155542_a49b62_campaign_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] Campaign database
+Campaign database checks passed: 23
+
+[PASS] Prepare http database
+Created disposable database waithaka_test_20261021_155542_a49b62_http_test on 10.11.14-MariaDB-0ubuntu0.24.04.1.
+Initialize empty database from recovered schema
+Apply 000_operations.sql
+Apply 010_security.sql
+Apply 020_journeys.sql
+Apply 030_publishing.sql
+Apply 040_newsletter.sql
+Apply 050_readiness.sql
+Apply 060_media.sql
+Apply 070_mail_feedback.sql
+Apply 080_newsletter_confirmation_binding.sql
+Apply 090_tiktok_professional.sql
+Apply 100_analytics.sql
+Apply 110_editorial.sql
+Apply 120_reader.sql
+Apply 130_discovery.sql
+Apply 140_campaigns.sql
+
+[PASS] HTTP security and shared layouts
+PASS: 38 HTTP security and shared-layout assertions
+
+[PASS] HTTP publishing workflow
+PASS: 50 publishing HTTP workflow assertions
+
+[PASS] HTTP newsletter workflow
+PASS: 52 newsletter HTTP workflow assertions
+
+[PASS] HTTP media, operations and feedback
+Full implementation HTTP checks passed: 24
+
+[PASS] HTTP archive discovery and editorial privacy
+PASS: 124 archive discovery, canonical URL and editorial privacy assertions
+
+[PASS] HTTP editorial publishing and evidence
+Editorial HTTP checks passed: 39
+
+[PASS] HTTP reader preferences and follow-up
+Reader HTTP checks: 45 passed.
+
+[PASS] HTTP search and discovery controls
+Discovery HTTP checks passed: 55 assertions.
+
+[PASS] HTTP Google tag coverage and campaigns
+Growth and Google tag HTTP checks passed: 91
+
+Disposable databases were retained for inspection; no databases were dropped.
+
+PASS: 40/40 suites passed.

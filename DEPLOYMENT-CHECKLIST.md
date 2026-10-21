@@ -28,3 +28,14 @@ Use [the AWS migration runbook](docs/AWS-MIGRATION.md) and [guarded installer gu
 - [ ] Keep a documented rollback point and the former host until the verification window closes.
 
 No check is marked complete merely because a configuration template exists.
+
+
+## r4 additions
+
+- Apply additive migrations 100–140 to the recovered staging database before serving the new application code; retain the original key and prior migration hashes.
+- Confirm Settings → Google shows G-RN0YXC2WCH and the intended enable state. A blank ID or disabled switch must omit the tag.
+- Check one Google library loader immediately after head on public editorial pages, one application page view after consent, and no tag on Writer/private/signup/contact/payment routes. Verify actual reception with Tag Assistant and GA4 after live deployment.
+- Exercise Start Here, built-in resource downloads, authored resource publication, article evidence/correction release and a real owned video page when available.
+- Verify subscriber preferences and expiry/mailbox binding, a contact reference saved before notification, and a private founder follow-up without automatic publication.
+- Check multi-content search counts and pagination, public sitemap entries, campaign links and the confirmed Search Console property/report period.
+- Leave INDEXNOW_ENABLED=0 through staging. Activate only for the intended canonical production origin, together with the Writer opt-in and worker. Review an actual accepted receipt separately from indexing status.

@@ -11,34 +11,25 @@
 
   const cookie=document.querySelector('.cookie');
   const ga4=document.body.dataset.ga4||'';
-  let consent=null, analyticsLoaded=false;
+  let consent=null;
   try{consent=localStorage.getItem('wk_consent')}catch(e){}
-  const loadAnalytics=()=>{
-    if(!/^G-[A-Z0-9]+$/.test(ga4))return;
-    window['ga-disable-'+ga4]=false;
-    if(analyticsLoaded){window.gtag('consent','update',{analytics_storage:'granted'});return;}
-    analyticsLoaded=true;
-    window.dataLayer=window.dataLayer||[];
-    window.gtag=function(){window.dataLayer.push(arguments)};
-    window.gtag('consent','default',{analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
-    window.gtag('js',new Date());
-    // Never transmit query strings, form values, consent tokens or search text.
-    window.gtag('config',ga4,{page_location:location.origin+location.pathname,send_page_view:true,allow_google_signals:false,allow_ad_personalization_signals:false});
-    const script=document.createElement('script');script.async=true;script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(ga4);document.head.appendChild(script);
-  };
-  if(consent==='analytics')loadAnalytics();
+  if(!['analytics','necessary'].includes(consent))consent=null;
   if(cookie&&!consent&&ga4)cookie.classList.add('show');
   document.querySelectorAll('[data-cookie-settings]').forEach(button=>button.addEventListener('click',()=>cookie?.classList.add('show')));
   document.querySelectorAll('[data-consent]').forEach(button=>button.addEventListener('click',()=>{
-    const choice=button.dataset.consent;try{localStorage.setItem('wk_consent',choice)}catch(e){}cookie?.classList.remove('show');
-    if(choice==='analytics')loadAnalytics();else{
+    const choice=button.dataset.consent==='analytics'?'analytics':'necessary';consent=choice;try{localStorage.setItem('wk_consent',choice)}catch(e){}cookie?.classList.remove('show');
+    window.wkAnalytics?.setConsent(choice);
+    if(choice==='necessary'){
       if(ga4)window['ga-disable-'+ga4]=true;
-      if(typeof window.gtag==='function')window.gtag('consent','update',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
       document.cookie.split(';').forEach(item=>{const key=item.trim().split('=')[0];if(!/^(_ga|_gid)/.test(key))return;
         [location.hostname,'.'+location.hostname,'.waithakandegwa.com','.waithakandegwa.co.ke'].forEach(domain=>{document.cookie=key+'=; Max-Age=0; path=/; domain='+domain});document.cookie=key+'=; Max-Age=0; path=/';
       });
     }
   }));
+  document.addEventListener('click',event=>{
+    const link=event.target.closest?.('[data-analytics-event][data-content-id]');
+    if(link&&!event.defaultPrevented)window.wkAnalytics?.track(link.dataset.analyticsEvent,link.dataset.contentId);
+  });
 
   const methods=[...document.querySelectorAll('input[name="method"]')];
   const methodPanels=[...document.querySelectorAll('[data-method-fields]')];
@@ -64,10 +55,10 @@
   if(contributionStatus&&['pending','initiated'].includes(contributionStatus.dataset.status||'')){const ref=contributionStatus.dataset.reference;let attempts=0;const poll=async()=>{if(!ref||attempts++>45)return;try{const r=await fetch(`${location.origin}${location.pathname.replace(/\/contribute\/?$/,'')}/payments/status?ref=${encodeURIComponent(ref)}`,{headers:{'Accept':'application/json'}});const j=await r.json();if(j.ok&&j.status==='completed'){location.reload();return}if(j.ok&&['failed','cancelled'].includes(j.status)){location.reload();return}}catch(e){}setTimeout(poll,4000)};setTimeout(poll,3500)}
 
   const contactForm=document.querySelector('[data-contact-form]');
-  if(contactForm){const message=contactForm.querySelector('#message');const counter=document.querySelector('[data-message-count]');const reason=document.querySelector('[data-contact-reason]');let previousPrefix='';const updateCount=()=>{if(counter&&message)counter.textContent=(message.value.length).toLocaleString()+' / 10,000'};reason?.addEventListener('change',()=>{if(!message)return;const val=reason.value;if(previousPrefix&&message.value.startsWith(previousPrefix))message.value=message.value.slice(previousPrefix.length).replace(/^\s+/, '');previousPrefix=val?`Regarding: ${val}\n\n`:'';if(previousPrefix)message.value=previousPrefix+message.value;message.focus();message.setSelectionRange(message.value.length,message.value.length);updateCount()});message?.addEventListener('input',updateCount);updateCount()}
+  if(contactForm){const message=contactForm.querySelector('#message');const counter=document.querySelector('[data-message-count]');const updateCount=()=>{if(counter&&message)counter.textContent=(message.value.length).toLocaleString()+' / 10,000'};message?.addEventListener('input',updateCount);updateCount()}
 
   const reveals=[...document.querySelectorAll('[data-reveal]')];
-  if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches){const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('revealed');io.unobserve(e.target)}}),{threshold:.07,rootMargin:'0px 0px -28px 0px'});reveals.forEach(el=>io.observe(el))}else reveals.forEach(el=>el.classList.add('revealed'));
+  if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches){try{const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('revealed');io.unobserve(e.target)}}),{threshold:.07,rootMargin:'0px 0px -28px 0px'});reveals.forEach(el=>{if(el.getBoundingClientRect().top>innerHeight)el.classList.add('reveal-ready');io.observe(el)});setTimeout(()=>reveals.forEach(el=>el.classList.add('revealed')),1800)}catch(e){reveals.forEach(el=>el.classList.add('revealed'))}}else reveals.forEach(el=>el.classList.add('revealed'));
 
   const progress=document.querySelector('[data-reading-progress]');const article=document.querySelector('[data-article]');
   if(progress&&article){const update=()=>{const r=article.getBoundingClientRect();const total=Math.max(1,article.offsetHeight-innerHeight);const read=Math.min(total,Math.max(0,-r.top));progress.style.width=(read/total*100)+'%'};addEventListener('scroll',update,{passive:true});addEventListener('resize',update);update()}

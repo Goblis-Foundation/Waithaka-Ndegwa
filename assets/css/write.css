@@ -20,3 +20,6 @@
 /* Keep every publishing tool reachable on mobile. */
 .write-top{gap:18px}.write-nav{max-width:calc(100vw - 180px);overflow-x:auto;white-space:nowrap}.write-nav a{flex:0 0 auto;font-size:.8rem;padding:9px}.write-nav form{margin:0;display:inline-flex}.write-nav button{font:inherit;border:0;background:transparent;border-radius:9px;padding:9px;cursor:pointer;font-weight:650;color:#4b5a52}.write-nav button:hover{background:#f0f3ef}.writer-skip{position:fixed;left:12px;top:-60px;background:#fff;padding:12px;z-index:200}.writer-skip:focus{top:8px}
 @media(max-width:560px){.write-nav{max-width:calc(100vw - 70px)}.write-nav a,.write-nav button{font-size:.75rem}.write-nav .optional:nth-of-type(3){display:inline-flex}}
+
+/* Show the complete workspace navigation on wider screens. */
+@media(min-width:821px){.write-top{height:auto;min-height:68px;align-items:flex-start;padding:12px 24px;gap:20px;position:relative}.write-brand{flex:0 0 auto;padding-top:3px}.write-nav{flex:1 1 auto;flex-wrap:wrap;justify-content:flex-end;white-space:normal;max-width:none;overflow:visible}.write-nav a,.write-nav button{white-space:nowrap}.toolbar{top:12px}.editor-side-refined,.release-detail-side{top:18px}}

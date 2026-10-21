@@ -29,7 +29,7 @@ function publishing_public_url(string $url): bool {
     if ($host==='' || !str_contains($host,'.') || preg_match('/(^|\.)(localhost|local|internal|test|invalid)$/',$host)) return false;
     if (filter_var(trim($host,'[]'),FILTER_VALIDATE_IP) && !filter_var(trim($host,'[]'),FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE)) return false;
     $path=$p['path']??'/';for($i=0;$i<3;$i++)$path=rawurldecode($path);
-    if (preg_match('~/(write|consent|install|payments)(/|$)|/newsletter/(confirm|unsubscribe|one-click)(/|$)|/storage/(release-proofs|logs|private)(/|$)~i',$path)) return false;
+    if (preg_match('~/(write|consent|install|payments)(/|$)|/newsletter/(confirm|unsubscribe|one-click|preferences)(/|$)|/founders/follow-up(/|$)|/storage/(release-proofs|logs|private)(/|$)~i',$path)) return false;
     // Source and media URLs are distributed publicly. Do not forward private preview links,
     // subscription capabilities, OAuth tokens or signed object-storage credentials.
     foreach(preg_split('/[&;]/',(string)($p['query']??'')) as $part) {
@@ -87,7 +87,7 @@ function publishing_default_draft(?array $post=null): array {
     $source=$post?url('/my-thoughts/'.$post['slug']):'';
     $draft=['title'=>$post['title']??'','source_post_id'=>$post['id']??null,'source_url'=>$source,'notes'=>'','variants'=>[]];
     foreach (['linkedin','facebook','instagram','x','youtube','tiktok'] as $slug) $draft['variants'][$slug]=[
-        'enabled'=>false,'text'=>$post?trim((string)($post['standfirst']??'')."\n\n".$source):'',
+        'enabled'=>false,'text'=>$post?trim((string)($post['standfirst']??'')."\n\n".(function_exists('analytics_campaign_url')?analytics_campaign_url('/my-thoughts/'.$post['slug'],$slug,'social','post-'.(int)$post['id'],in_array($slug,['youtube','tiktok'],true)?'video':'article'):$source)):'',
         'media_url'=>'','media_asset_id'=>0,'media_type'=>$slug==='youtube'?'video':'image','alt_text'=>'','title'=>$post['title']??'','format'=>$slug==='youtube'?'video':'post',
         'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false,
         'tiktok_allow_comments'=>false,'tiktok_allow_duet'=>false,'tiktok_allow_stitch'=>false,

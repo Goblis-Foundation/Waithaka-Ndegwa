@@ -42,7 +42,7 @@ function newsletter_public_url(string $value, bool $image = false): bool {
     $host=strtolower($parts['host']??'');
     if (!$localTest && ($host===''||!str_contains($host,'.')||preg_match('/(^|\.)(localhost|local|internal|test|invalid)$/',$host)||(filter_var(trim($host,'[]'),FILTER_VALIDATE_IP)&&!filter_var(trim($host,'[]'),FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE)))) return false;
     $path=$parts['path']??'/';for($i=0;$i<4;$i++)$path=rawurldecode($path);
-    if(preg_match('~/(write|consent|install|payments|app|storage)(/|$)|/newsletter/(confirm|unsubscribe|one-click)(/|$)~i',$path))return false;
+    if(preg_match('~/(write|consent|install|payments|app|storage)(/|$)|/newsletter/(confirm|unsubscribe|one-click|preferences)(/|$)|/founders/follow-up(/|$)~i',$path))return false;
     foreach(preg_split('/[&;]/',(string)($parts['query']??''))as$parameter){$key=explode('=',$parameter,2)[0];for($i=0;$i<4;$i++)$key=rawurldecode($key);$key=strtolower(preg_replace('/\[.*$/','',$key));if(preg_match('/^(preview|token|access_token|id_token|refresh_token|auth|authorization|api_?key|code|state|signature|sig|policy|key-pair-id|awsaccesskeyid|x-amz-.+|x-goog-.+)$/',$key))return false;}
     return true;
 }
@@ -74,6 +74,17 @@ function newsletter_article_values(int $postId): array {
     return newsletter_values(['title'=>mb_substr($post['title'],0,180),'subject'=>mb_substr($post['title'],0,200),'preheader'=>mb_substr(plain_text((string)$post['standfirst']),0,240),
         'body_html'=>'<h2>'.e($post['title']).'</h2>'.($post['standfirst']?'<p>'.e($post['standfirst']).'</p>':'').$post['content_html'].'<p><a href="'.e($link).'">Read this article on the website</a></p>','source_post_id'=>$postId]);
 }
+/** Writer campaign hand-off: prefill only; private sources never produce a public link. */
+function newsletter_source_prefill(int $postId): array {
+    $query=db()->prepare('SELECT id,title,slug,standfirst,status,published_at FROM posts WHERE id=?');$query->execute([$postId]);$post=$query->fetch();
+    if(!$post)throw new NewsletterValidationException('Source article not found.');
+    $public=journeys_post_is_public($post);$body='';
+    if($public){
+        $path='/my-thoughts/'.$post['slug'];$link=function_exists('analytics_campaign_url')?analytics_campaign_url($path,'newsletter','email','post-'.$postId,'newsletter'):url($path);
+        $body=($post['standfirst']!==''?'<p>'.e(plain_text((string)$post['standfirst'])).'</p>':'').'<p><a href="'.e($link).'">Read the full article</a></p>';
+    }
+    return ['title'=>mb_substr($post['title'],0,180),'subject'=>mb_substr($post['title'],0,200),'preheader'=>$public?mb_substr(plain_text((string)$post['standfirst']),0,240):'','body_html'=>$body,'source_post_id'=>$postId];
+}
 function newsletter_save_campaign(array $input, int $actor, ?int $id = null, ?int $expectedVersion = null): int {
     $values=newsletter_values($input);if($values['source_post_id']&&!newsletter_public_article($values['source_post_id']))throw new NewsletterValidationException('The linked article is no longer public. Remove the link before saving a standalone edition.');
     db()->beginTransaction();try{
@@ -96,7 +107,7 @@ function newsletter_snapshot(array $campaign): array {
     if($sender['name']===''||mb_strlen($sender['name'])>120||$sender['postal_address']===''||mb_strlen($sender['postal_address'])>500)throw new NewsletterValidationException('Configure the sender name and mailing address before approval.');
     $sourceUrl='';if($values['source_post_id']){$post=newsletter_public_article($values['source_post_id']);if(!$post)throw new NewsletterValidationException('The linked article must still be public.');$sourceUrl=url('/my-thoughts/'.$post['slug']);}
     $site=base_url();if(!newsletter_public_url($site.'/'))throw new NewsletterValidationException('Configure the canonical HTTPS website address before approval.');
-    return $values+['draft_version'=>(int)$campaign['draft_version'],'source_url'=>$sourceUrl,'sender'=>$sender,'site_url'=>$site];
+    return $values+['draft_version'=>(int)$campaign['draft_version'],'source_url'=>$sourceUrl,'sender'=>$sender,'site_url'=>$site]+(function_exists('reader_newsletter_audience')?['reader_audience'=>reader_newsletter_audience($values['source_post_id'])]:[]);
 }
 function newsletter_approve(int $id,int $expectedVersion,string $reviewHash,int $actor): int {
     if(!preg_match('/^[a-f0-9]{64}$/D',$reviewHash))throw new NewsletterValidationException('Open the saved preview before approving.');
@@ -136,7 +147,7 @@ function newsletter_schedule(int $id,int $revisionId,string $localTime,int $expe
         $snapshot=json_decode($revision['snapshot_json'],true,512,JSON_THROW_ON_ERROR);newsletter_assert_snapshot_current($snapshot);
         $count=0;$lastId=0;
         do{$q=db()->prepare("SELECT * FROM newsletter_subscribers WHERE id>? AND status='confirmed' AND confirmed_at IS NOT NULL AND suppressed_at IS NULL ORDER BY id LIMIT 500");$q->execute([$lastId]);$subscribers=$q->fetchAll();
-            foreach($subscribers as$subscriber){$lastId=(int)$subscriber['id'];if(!newsletter_recipient_eligible($subscriber))continue;
+            foreach($subscribers as$subscriber){$lastId=(int)$subscriber['id'];if(!newsletter_recipient_eligible($subscriber)||(function_exists('reader_newsletter_matches')&&!reader_newsletter_matches((int)$subscriber['id'],$snapshot)))continue;
                 $key=hash('sha256',$revisionId.':'.$subscriber['id'].':'.$subscriber['consent_revision'].':'.$revision['content_hash']);
                 db()->prepare('INSERT INTO newsletter_deliveries(campaign_id,revision_id,subscriber_id,email_hash,consent_revision,consent_version,confirmed_at_snapshot,delivery_key,created_at) VALUES(?,?,?,?,?,?,?,?,UTC_TIMESTAMP())')->execute([$id,$revisionId,$subscriber['id'],newsletter_email_hash($subscriber['email']),$subscriber['consent_revision'],$subscriber['consent_version'],$subscriber['confirmed_at'],$key]);$count++;
             }
@@ -171,8 +182,9 @@ function newsletter_transition(int $id,string $action,int $expectedState,int $ac
         newsletter_event($id,null,null,$status,$action==='pause'?'Paused future deliveries; previously accepted messages cannot be recalled.':($action==='resume'?'Resumed the same approved edition and original audience.':'Cancelled unsent deliveries; accepted or uncertain deliveries remain recorded.'),$actor);db()->commit();
     }catch(Throwable $error){if(db()->inTransaction())db()->rollBack();throw $error;}finally{newsletter_unlock($lock);}
 }
-function newsletter_html(array $snapshot, ?string $unsubscribe = null): string {
+function newsletter_html(array $snapshot, ?string $unsubscribe = null, ?string $preferences = null): string {
     $footer=$unsubscribe?'<a href="'.e($unsubscribe).'">Unsubscribe</a>':'<span>Unsubscribe link — unique to each recipient</span>';
+    if(function_exists('reader_preference_url'))$footer.=$preferences?' · <a href="'.e($preferences).'">Email preferences</a>':' · <span>Email preferences — private recipient link</span>';
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'.e($snapshot['subject']).'</title></head><body style="margin:0;background:#f4f2ed;color:#243536;font-family:Arial,sans-serif"><div style="display:none;max-height:0;overflow:hidden">'.e($snapshot['preheader']).'</div><main style="max-width:640px;margin:24px auto;padding:32px;background:#fff"><p style="font-size:13px;letter-spacing:1px;color:#536b65">'.e($snapshot['sender']['name']).'</p>'.$snapshot['body_html'].'<hr style="border:0;border-top:1px solid #ddd;margin-top:32px"><footer style="font-size:13px;line-height:1.6;color:#586966"><p>You receive this edition because you confirmed your subscription to Waithaka Ndegwa’s writing.</p><p>'.$footer.' · <a href="'.e($snapshot['site_url']).'">Visit the website</a></p><p>'.nl2br(e($snapshot['sender']['postal_address'])).'</p></footer></main></body></html>';
 }
 function newsletter_envelope_hash(array $payload): string {
@@ -221,9 +233,10 @@ function newsletter_work(int $limit=100): array {
             try{newsletter_assert_snapshot_current($snapshot);}catch(NewsletterConflictException $error){db()->prepare("UPDATE newsletter_campaigns SET status='paused',state_version=state_version+1,updated_at=UTC_TIMESTAMP() WHERE id=?")->execute([$id]);newsletter_event((int)$id,null,null,'paused',$error->getMessage());db()->commit();$stats['paused']++;continue;}
             $remaining=max(1,min(500,$limit))-$stats['queued']-$stats['suppressed'];$q=db()->prepare("SELECT * FROM newsletter_deliveries WHERE campaign_id=? AND status='pending' ORDER BY id LIMIT ".$remaining.' FOR UPDATE');$q->execute([$id]);$deliveries=$q->fetchAll();
             foreach($deliveries as$delivery){$subscriber=$delivery['subscriber_id']?newsletter_subscriber((int)$delivery['subscriber_id']):null;
-                if(!$subscriber||!newsletter_recipient_eligible($subscriber,$delivery)){db()->prepare("UPDATE newsletter_deliveries SET status='suppressed',last_error='recipient_ineligible' WHERE id=?")->execute([$delivery['id']]);$stats['suppressed']++;continue;}
+                if(!$subscriber||!newsletter_recipient_eligible($subscriber,$delivery)||(function_exists('reader_newsletter_matches')&&!reader_newsletter_matches((int)$subscriber['id'],$snapshot))){db()->prepare("UPDATE newsletter_deliveries SET status='suppressed',last_error='recipient_ineligible' WHERE id=?")->execute([$delivery['id']]);$stats['suppressed']++;continue;}
                 $unsubscribe=newsletter_unsubscribe_url((int)$subscriber['id']);$oneClick=newsletter_one_click_url((int)$subscriber['id']);$headers=['List-Unsubscribe'=>'<'.$oneClick.'>','List-Unsubscribe-Post'=>'List-Unsubscribe=One-Click'];
-                $html=newsletter_html($snapshot,$unsubscribe);$payload=['to'=>$subscriber['email'],'subject'=>$snapshot['subject'],'html'=>$html,'headers'=>$headers];$outbox=enqueue_email($subscriber['email'],$snapshot['subject'],$html,'newsletter-campaign:'.$delivery['delivery_key'],$headers);
+                $preferences=function_exists('reader_preference_url')?reader_preference_url((int)$subscriber['id']):null;
+                $html=newsletter_html($snapshot,$unsubscribe,$preferences);$payload=['to'=>$subscriber['email'],'subject'=>$snapshot['subject'],'html'=>$html,'headers'=>$headers];$outbox=enqueue_email($subscriber['email'],$snapshot['subject'],$html,'newsletter-campaign:'.$delivery['delivery_key'],$headers);
                 db()->prepare("UPDATE newsletter_deliveries SET status='queued',outbox_id=?,envelope_hash=?,queued_at=UTC_TIMESTAMP() WHERE id=?")->execute([$outbox,newsletter_envelope_hash($payload),$delivery['id']]);$stats['queued']++;
             }
             db()->prepare("UPDATE newsletter_campaigns SET status='sending',updated_at=UTC_TIMESTAMP() WHERE id=?")->execute([$id]);db()->commit();
@@ -248,6 +261,7 @@ function newsletter_email_gate(string $dedupeKey,array $payload,int $outboxId): 
         if(!$subscriber||!newsletter_recipient_eligible($subscriber,$delivery)){$gate['reason']='recipient_ineligible';db()->prepare("UPDATE newsletter_deliveries SET status='suppressed',last_error=? WHERE id=?")->execute([$gate['reason'],$delivery['id']]);return $gate;}
         if(!hash_equals((string)$delivery['envelope_hash'],newsletter_envelope_hash($payload))||!hash_equals($delivery['email_hash'],newsletter_email_hash((string)($payload['to']??'')))){$gate['reason']='newsletter_envelope_mismatch';db()->prepare("UPDATE newsletter_deliveries SET status='failed',last_error=? WHERE id=?")->execute([$gate['reason'],$delivery['id']]);return $gate;}
         if(!hash_equals($delivery['content_hash'],hash('sha256',$delivery['snapshot_json'])))throw new RuntimeException('Newsletter snapshot integrity check failed.');
+        if(function_exists('reader_newsletter_matches')&&!reader_newsletter_matches((int)$subscriber['id'],json_decode($delivery['snapshot_json'],true,512,JSON_THROW_ON_ERROR))){$gate['reason']='reader_preferences_changed';db()->prepare("UPDATE newsletter_deliveries SET status='suppressed',last_error=? WHERE id=?")->execute([$gate['reason'],$delivery['id']]);return $gate;}
         try{newsletter_assert_snapshot_current(json_decode($delivery['snapshot_json'],true,512,JSON_THROW_ON_ERROR));}catch(NewsletterConflictException $error){db()->prepare("UPDATE newsletter_campaigns SET status='paused',state_version=state_version+1,updated_at=UTC_TIMESTAMP() WHERE id=?")->execute([$delivery['campaign_id']]);newsletter_event((int)$delivery['campaign_id'],null,null,'paused',$error->getMessage());$gate['action']='defer';$gate['reason']='newsletter_approval_changed';return $gate;}
         $gate['action']='send';$gate['reason']='';return $gate;
     }catch(Throwable $error){newsletter_email_unlock($gate);throw $error;}

@@ -1,6 +1,51 @@
 # Validation record
 
-Release: 2026-10-21 r3. Scope: the recovered V9 website and the full implementation release, including TikTok reporting/native publishing and archive/media corrections.
+## Release 2026-10-21 r4
+
+The combined regression completed successfully: **40/40 suites passed**, comprising **2,095 PHP assertions across 38 suites**, **24 offline JavaScript checks** of the actual PHP-rendered Google bootstrap, and **43 mocked Python AWS deployment cases**. Runtime: PHP 8.3.6 and MariaDB 10.11.14 on an isolated numeric-loopback server. Each database suite used a newly created disposable schema. All nine application HTTP suites ran against the actual router and a temporary local server owned by the runner.
+
+The new suites add 694 PHP assertions to the 1,401 assertions covered by r3:
+
+| New suite | Passing assertions |
+| --- | ---: |
+| Analytics destination, exclusions and campaign privacy | 53 |
+| Editorial validation, blank tools and evidence policy | 54 |
+| Reader preferences and private-link policy | 44 |
+| Discovery search, report periods, URL and image contracts | 89 |
+| Editorial database publication and private snapshots | 42 |
+| Reader database, preferences and founder permission | 66 |
+| Discovery database, complete search and revision queue | 93 |
+| Campaign database plans, concurrency and channel links | 23 |
+| Editorial HTTP publication, evidence and resources | 39 |
+| Reader HTTP preferences, contact and founder follow-up | 45 |
+| Search and Discovery HTTP controls | 55 |
+| Google tag coverage and Campaigns HTTP workflows | 91 |
+| **New PHP assertion total** | **694** |
+
+After the combined run, a narrow monitoring correction added the Discovery stage and its safe integer counts to the existing heartbeat allowlists. The focused operations unit suite then passed **40 checks**, including two new checks for that behavior and exclusion of keys/URLs. This final check is recorded separately rather than presented as another complete aggregate run.
+
+Syntax checks passed for **160 PHP files and three JavaScript files**. The two test files whose fixture guards were finalized after the initial syntax pass also passed their own PHP lint. Four Python files, four shell files and eight JSON/manifest files passed parsing/syntax checks. Composer manifest/lock validation and the installed production platform requirements passed. Dependencies and CloudFormation templates are unchanged from the r3 advisory/static-lint evidence below; no new advisory result is claimed here.
+
+Evidence:
+
+- [Complete r4 regression output](../tests/evidence/full-regression-2026-10-21-r4.txt)
+- [Final focused monitoring regression](../tests/evidence/final-readiness-2026-10-21-r4.txt)
+- [r4 dependency, syntax and release checks](../tests/evidence/release-checks-2026-10-21-r4.txt)
+
+### Material r4 coverage
+
+- The supplied **G-RN0YXC2WCH** tag appears once immediately after the shared public `<head>`. Twelve real public-page routes are checked. Eight private/form/search routes return their intended status and contain no Google loader. Blank IDs and the explicit off switch disable the tag.
+- The offline JavaScript runtime executes the real rendered bootstrap for new, returning, declining and changing consent, blocked storage, one application page view, event deduplication, exact known resource IDs, and rejection of arbitrary identifiers. It does not contact Google or establish live Analytics reception.
+- Public resource/watch snapshots remain independent of working drafts. Evidence and corrections are deliberately published, private source notes stay private, actual video assets/transcripts are required, and ordinary saves do not invent publication updates.
+- Search fixtures include 1,005 authored resources and 65 posts, exercising deep pagination and exact counts without exposing future/private content. IndexNow tests bind attempts to the canonical public revision and distinguish received/verification-pending responses from indexing success.
+- Reader tests cover narrowed audience preferences, mailbox/consent-bound private links, suppression, durable enquiries despite notification failure, and withdrawal followed by a new permission request. A fresh signed grant and separate editorial review are required after withdrawal; changing a reference or reopening a request cannot restore old consent.
+- Campaign plans are private, reject stale versions, use public source URLs and controlled channel attribution, and do not approve or send a delivery.
+
+No live AWS account, database, DNS, Google property, IndexNow endpoint, social destination or email recipient was changed by this verification. Cross-browser visual review, production performance and real provider delivery remain deployment acceptance checks. The configured PHP 8.3/8.4 and MySQL 8.4 CI matrix was not run externally in this session; local MariaDB results do not substitute for it.
+
+## Previous release 2026-10-21 r3
+
+Scope: the recovered V9 website and the full implementation release, including TikTok reporting/native publishing and archive/media corrections.
 
 ## Final combined result
 

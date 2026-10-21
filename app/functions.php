@@ -489,6 +489,7 @@ function related_posts(array $post, int $limit=3): array {
 }
 
 function render(string $view, array $data=[]): void {
+    header('Content-Type: text/html; charset=UTF-8');
     extract($data, EXTR_SKIP);
     $viewFile=__DIR__.'/../views/'.$view.'.php'; if(!file_exists($viewFile))throw new RuntimeException('View not found: '.$view);
     ob_start(); require $viewFile; $content=ob_get_clean();
@@ -520,6 +521,11 @@ function social_links(): array {
 }
 
 function featured_image_url(?string $path): string { if(!$path)return asset('images/social-default.png'); if(preg_match('~^https?://~',$path))return $path; return url(ltrim($path,'/')); }
+function responsive_image_attrs(?string $source,string $sizes='(max-width: 720px) 100vw, 50vw'): string {
+    $attributes=function_exists('discovery_image_attributes')?discovery_image_attributes($source,[],$sizes):['src'=>featured_image_url($source)];
+    $html=[];foreach($attributes as$key=>$value)if(in_array($key,['src','width','height','srcset','sizes'],true))$html[]=$key.'="'.e((string)$value).'"';
+    return implode(' ',$html);
+}
 
 function video_embed(?string $urlValue): ?array {
     $u=trim((string)$urlValue); if($u==='')return null;

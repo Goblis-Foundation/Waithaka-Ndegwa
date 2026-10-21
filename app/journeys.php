@@ -231,7 +231,9 @@ function founders_submission_values(array $input): array {
 function founders_submit(array $values): string {
     $ref='FOUNDER-'.strtoupper(bin2hex(random_bytes(8)));$now=journeys_now();
     $s=db()->prepare('INSERT INTO founder_submissions(reference,submission_type,submitter_name,submitter_email,founder_name,venture_name,country,story_summary,claimed_metrics,metric_basis,private_evidence_notes,founder_publication_permission,privacy_version,privacy_accepted_at,ip_hash,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    $s->execute([$ref,...array_values($values),'2026-10-21-v1',$now,ip_hash(),$now,$now]);return $ref;
+    $s->execute([$ref,...array_values($values),'2026-10-21-v1',$now,ip_hash(),$now,$now]);
+    if(function_exists('reader_founder_received'))reader_founder_received($ref);
+    return $ref;
 }
 function founders_public_where(): string {
     return "f.review_status='approved' AND f.is_public=1 AND f.permission_confirmed=1 AND f.claims_reviewed=1 AND f.consent_reference IS NOT NULL AND f.consent_reference<>''
@@ -261,7 +263,7 @@ function founders_save_review(int $id,array $input,int $actor): void {
     if($postId){$s=db()->prepare('SELECT id,status,published_at FROM posts WHERE id=?');$s->execute([$postId]);$post=$s->fetch()?:null;if(!$post)throw new JourneyValidationException('The associated post does not exist.');}
     $v=founders_review_values($input,$post);$version=journeys_id($input['row_version']??null,'version');$pdo=db();$pdo->beginTransaction();
     try{$s=$pdo->prepare('UPDATE founder_submissions SET review_status=?,review_notes=?,consent_reference=?,permission_confirmed=?,claims_reviewed=?,associated_post_id=?,is_public=?,reviewed_by=?,reviewed_at=?,updated_at=?,row_version=row_version+1 WHERE id=? AND row_version=?');
-        $s->execute([...array_values($v),$actor,journeys_now(),journeys_now(),$id,$version]);if($s->rowCount()!==1)throw new JourneyConflictException('This submission changed in another window. Reopen it before saving.');journeys_audit('founder',$id,'review_saved',$actor);$pdo->commit();
+        $s->execute([...array_values($v),$actor,journeys_now(),journeys_now(),$id,$version]);if($s->rowCount()!==1)throw new JourneyConflictException('This submission changed in another window. Reopen it before saving.');journeys_audit('founder',$id,'review_saved',$actor);if(function_exists('reader_founder_reviewed'))reader_founder_reviewed($id,$actor);$pdo->commit();
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 
@@ -325,6 +327,7 @@ function newsletter_request_signup(string $email,string $name): void {
         if($subscriber){$id=(int)$subscriber['id'];$s=$pdo->prepare("UPDATE newsletter_subscribers SET name=?,status='pending',consent_version=?,requested_at=?,confirmed_at=NULL,updated_at=?,consent_revision=consent_revision+1 WHERE id=?");$s->execute([$name,'2026-10-21-v1',$now,$now,$id]);}
         else{$s=$pdo->prepare("INSERT INTO newsletter_subscribers(email,name,status,consent_version,requested_at,created_at,updated_at) VALUES(?,?,'pending',?,?,?,?)");$s->execute([$email,$name,'2026-10-21-v1',$now,$now,$now]);$id=(int)$pdo->lastInsertId();}
         $s=$pdo->prepare("UPDATE newsletter_tokens SET used_at=? WHERE subscriber_id=? AND purpose='confirm' AND used_at IS NULL");$s->execute([$now,$id]);
+        if(function_exists('reader_capture_signup_preferences'))reader_capture_signup_preferences($id);
         $token=newsletter_create_token($id,'confirm',date('Y-m-d H:i:s',time()+86400));$confirm=url('/newsletter/confirm?token='.$token);$unsubscribe=newsletter_unsubscribe_url($id);
         $html='<h1>Confirm your subscription</h1><p>You asked to receive new writing and Startup Journeys from Waithaka Ndegwa.</p><p><a href="'.e($confirm).'">Confirm my subscription</a></p><p>This link expires in 24 hours. Your subscription stays inactive until you confirm. If you did not make this request, ignore this email or <a href="'.e($unsubscribe).'">cancel the request</a>.</p>';
         enqueue_email($email,'Confirm your subscription · Waithaka Ndegwa',$html,'newsletter-confirm:'.hash('sha256',$token));

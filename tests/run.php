@@ -243,7 +243,11 @@ function wk_test_http(array $environment, string $temporaryDirectory): array
                   'publishing_http_test.php' => 'HTTP publishing workflow',
                   'newsletter_http_test.php' => 'HTTP newsletter workflow',
                   'implementation_http_test.php' => 'HTTP media, operations and feedback',
-                  'archive_http_test.php' => 'HTTP archive discovery and editorial privacy'] as $file => $label) {
+                  'archive_http_test.php' => 'HTTP archive discovery and editorial privacy',
+                  'editorial_http.php' => 'HTTP editorial publishing and evidence',
+                  'reader_http_test.php' => 'HTTP reader preferences and follow-up',
+                  'discovery_http_test.php' => 'HTTP search and discovery controls',
+                  'growth_http_test.php' => 'HTTP Google tag coverage and campaigns'] as $file => $label) {
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $results['passed']++;
             else $results['failures'][] = $label;
         }
@@ -293,11 +297,18 @@ try {
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'newsletter_unit.php'=>'Pure newsletter policy','youtube_test.php'=>'Pure YouTube policy','tiktok_test.php'=>'Pure TikTok permissions and reporting',
                   'tiktok_business_test.php'=>'Pure TikTok Accounts API publishing policy',
+                  'analytics_unit.php'=>'Analytics destination and campaign privacy',
+                  'editorial_unit.php'=>'Editorial content and evidence privacy',
+                  'reader_unit.php'=>'Reader preferences and private-link policy',
+                  'discovery_test.php'=>'Search, report and image contracts',
                   'readiness_unit.php'=>'Pure operations diagnostics','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
             $suiteCount++;
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $passedCount++;
             else $failed[] = $label;
         }
+        $suiteCount++;
+        if(wk_test_process(['node',__DIR__.'/analytics_browser_test.js'],$environment,'Offline Google tag consent and duplicate-event states'))$passedCount++;
+        else $failed[]='Offline Google tag consent and duplicate-event states';
         $suiteCount++;
         if(wk_test_process(['python3','-B',__DIR__.'/readiness_deployment_test.py'],$environment,'Offline AWS recovery and cutover plans'))$passedCount++;
         else $failed[]='Offline AWS recovery and cutover plans';
@@ -317,10 +328,14 @@ try {
                 'youtube' => 'youtube_database_test.php',
                 'tiktok' => 'tiktok_database_test.php',
                 'tiktok_business' => 'tiktok_business_database_test.php',
+                'editorial' => 'editorial_database.php',
+                'reader' => 'reader_database_test.php',
+                'discovery' => 'discovery_database_test.php',
+                'campaign' => 'campaign_database_test.php',
                 'http' => '010_security_http.php',
             ];
             foreach ($suites as $suite => $file) {
-                $suiteCount += $suite === 'http' ? 5 : 1;
+                $suiteCount += $suite === 'http' ? 9 : 1;
                 $name = 'waithaka_test_'.$runId.'_'.$suite.'_test';
                 $suiteEnvironment = wk_test_suite_environment($environment, $settings, $name);
                 $prepare = [PHP_BINARY, __DIR__.'/prepare.php', '--database='.$name];
