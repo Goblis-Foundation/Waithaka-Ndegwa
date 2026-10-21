@@ -1,6 +1,6 @@
 # Waithaka Ndegwa — startup journeys and publishing
 
-Release: 2026-10-21. Built on the recovered V9 PHP/MySQL website, with the original editorial identity and personal photography preserved.
+Release: 2026-10-21 r3. Built on the recovered V9 PHP/MySQL website, with the original editorial identity and personal photography preserved.
 
 **This is an implemented, locally tested release package. It has not been deployed to AWS, imported the live database, connected provider accounts or published social posts.**
 
@@ -26,10 +26,11 @@ Public navigation includes Home, My Thoughts, Startup Journeys, Founder Stories,
 - An immutable media library for public and private images/videos, with authenticated private preview/download, SHA-256 fingerprints and approval-bound file references. Images support JPEG/PNG/WebP up to 25 MiB; video supports MP4/MOV/WebM up to 512 MiB, subject to the deployed upload limits.
 - A Writer publishing centre with separate drafts for six channels, saved-copy review, explicit approval, immutable revisions, scheduled jobs, assisted completion and delivery records.
 - Native resumable YouTube upload from an owned video, with explicit visibility, audience, altered-content disclosure and subscriber-notification settings. Upload progress, processing, review and reconnection are separate states; interrupted work resumes the saved session rather than creating another video.
-- A connections centre with verified account/resource selection, encrypted credentials, separate Google grants and actual read-only reports.
+- Native TikTok Accounts API publishing of an owned public video, with a separate approved app/grant, explicit audience, interaction and promotional settings, media-domain verification, and accepted-versus-public completion tracking.
+- A connections centre with verified account/resource selection, encrypted credentials, separate Google grants and actual read-only reports. TikTok Login Kit and Display API add verified account/profile statistics and up to 20 recent public-video snapshots through a separate read-only grant.
 - Read-only Operations diagnostics for local configuration, migration checksums, worker activity, publishing jobs, connections and the email outbox, with a separate Mail feedback view.
 - Corrected draft isolation, CSRF checks, consent transitions, payment verification, database sessions, durable email delivery and S3 storage.
-- Crawlable article/journey pages, canonical metadata, structured data, a sitemap and an XML-safe RSS feed.
+- Crawlable article/journey pages, canonical metadata, structured data, a sitemap and an XML-safe RSS feed. My Thoughts, topic archives and Founder Stories have server-rendered pagination, accurate totals, stable ordering and a canonical address for each page. The private founder inbox is also paginated.
 
 No sample startup, fabricated progress, founder endorsement or fabricated engagement data is published.
 
@@ -42,11 +43,11 @@ No sample startup, fabricated progress, founder endorsement or fabricated engage
 | X | Professional | Supported Buffer route or direct text/link posting after user OAuth and API access |
 | LinkedIn | Member profile | Supported Buffer route or direct text/link posting after member authorization |
 | YouTube | Channel | Native resumable upload of an owned video after authorizing the separate YouTube upload connection and confirming its channel; supported Buffer Shorts or Studio-assisted delivery |
-| TikTok | Personal | Supported, separately authorized Buffer route or assisted completion in TikTok; no native Direct Post app for this private utility |
+| TikTok | Professional, owner-declared | Native public-video publishing through a separately approved and authorized Accounts API app; supported Buffer or assisted delivery; separate read-only account/video reports |
 
-Every route depends on the connected provider returning the intended identity and, where relevant, resource. Account labels alone do not grant API permission.
+Every route depends on the connected provider returning the intended identity and, where relevant, resource. Account labels alone do not grant API permission. TikTok is recorded as professional at the owner's direction; this declaration does not establish a verified Business account or authorize a native API route.
 
-TikTok's [Direct Post guidelines](https://developers.tiktok.com/doc/content-sharing-guidelines) exclude a private upload utility built only for accounts the developer or their team manages. A publishing partner does not remove the platform's requirements. Facebook professional mode also remains a profile: only a separately discovered and confirmed Page enables the Page route. See the operating guide for the exact format and authorization boundaries.
+Native TikTok publishing uses the separate [API for Business Accounts API](https://business-api.tiktok.com/portal/docs/accounts-api-overview/v1.3), whose own-account application and access rules must be satisfied. It does not use the Content Posting API Direct Post product that excludes a private own-account upload utility. The app ID, returned account, granted scopes and live account settings determine availability. The Login Kit read grant cannot post. Facebook professional mode remains a profile: only a separately discovered and confirmed Page enables the Page route. See the operating guide for exact formats and setup.
 
 ## Editorial and delivery controls
 
@@ -54,9 +55,9 @@ Writer navigation is **Library, New thought, Journeys, Founder reviews, Publishi
 
 Saving or approving an edition/package does not send it. Newsletter confirmation is bound to the original mailbox; restored legacy links require evidence of that address from their encrypted confirmation outbox or a fresh opt-in. A newsletter's recipients are fixed when scheduled: later confirmations do not join that edition, while later unsubscribes, address/consent changes and suppressions can prevent a queued send. A scheduled edition's content and audience stay locked; copying it creates a new unapproved draft without recipients.
 
-Provider acceptance is distinct from publication or delivery. Automatic YouTube completion requires confirmation of processing and the approved settings, with private/unlisted/public labels preserved; assisted/manual completion records the Writer's verification instead. An SES delivery event records acceptance by the receiving mail server, not proof of inbox placement or reading. Unknown outcomes remain available for investigation instead of automatic resend.
+Provider acceptance is distinct from publication or delivery. TikTok completion needs a successful task status and returned publicly viewable post IDs; an accepted task is still processing. Automatic YouTube completion requires confirmation of processing and the approved settings, with private/unlisted/public labels preserved; assisted/manual completion records the Writer's verification instead. An SES delivery event records acceptance by the receiving mail server, not proof of inbox placement or reading. Unknown outcomes remain available for investigation instead of automatic resend.
 
-Private media is accessible through authenticated Writer routes and can be transferred by the approved native YouTube job. Other automatic media routes need a public asset URL. Archiving removes an asset from new selections; existing approvals and public URLs remain valid. Upload a new asset when the file changes.
+Private media is accessible through authenticated Writer routes and can be transferred by the approved native YouTube job. Other automatic media routes need a public asset URL. Archiving removes an asset from new selections; existing approvals and public URLs remain valid. An older saved selection stays visible even after it falls outside the latest 200 files; unavailable selections require explicit replacement or removal, preventing an ordinary draft save from silently discarding media. Upload a new asset when the file changes.
 
 ## Runtime
 
@@ -89,6 +90,6 @@ The AWS helper validates recovery inputs and writes exact plans offline. Explici
 
 Obtain the current database export, original application key/private configuration, public uploads and private proof files from the current host. Restore and test them in a restricted staging environment. Configure the actual AWS account, DNS, certificates, mail identity and provider applications. The complete sequence is in the migration runbook. Never initialize an empty database over the existing site.
 
-Live AWS deployment, DNS changes, account authorization and real provider delivery have not been performed. Google sign-in for readers, a universal social inbox, all-platform engagement analytics and a native TikTok Direct Post route for this private utility are outside this release. The available Google reports cover the selected Search Console/GA4 properties and YouTube Data API channel figures; they do not provide every platform's native analytics.
+Live AWS deployment, DNS changes, account authorization and real provider delivery have not been performed. Google sign-in for readers, a universal social inbox, all-platform engagement analytics and the Content Posting API Direct Post product are outside this release. TikTok native publishing uses the separate Accounts API integration. Reports cover selected Search Console/GA4 properties, YouTube Data API channel figures and TikTok profile/public-video snapshots; they do not provide every platform's native analytics.
 
 This release supersedes the V9 instructions that said no cron was needed or advised opening a browser installer.

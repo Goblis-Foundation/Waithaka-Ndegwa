@@ -29,7 +29,9 @@ function journeys_dispatch(string $path): bool {
         journeys_public_render('journeys/detail',['season'=>$season,'episodes'=>journeys_public_episodes((int)$season['id'])],$season['title'],$season['summary'],'/startup-journeys/'.$season['slug']);
     }
     if($path==='/founders'){
-        journeys_method(['GET','HEAD']);journeys_public_render('founders/index',['stories'=>founders_public_stories()],'Founder Stories','Accounts of building a venture, selected and edited with the founder’s permission.','/founders','founders');
+        journeys_method(['GET','HEAD']);
+        $pagination=archive_pagination(archive_page_number($_GET['page']??null),founders_public_story_count(),24,'/founders');if($pagination===null)journeys_not_found();
+        journeys_public_render('founders/index',['stories'=>founders_public_stories($pagination['per_page'],$pagination['offset']),'pagination'=>$pagination],'Founder Stories'.($pagination['page']>1?' · Page '.$pagination['page']:''),'Accounts of building a venture, selected and edited with the founder’s permission.',$pagination['path'],'founders');
     }
     if($path==='/founders/submit'){
         journeys_method(['GET','POST']);journeys_private_headers();$error=null;$values=[];
@@ -108,9 +110,13 @@ function journeys_dispatch(string $path): bool {
     }
     if($path==='/write/journeys/founders'){
         journeys_method(['GET','HEAD']);require_auth();journeys_private_headers();$filter=$_GET['status']??'';
-        if(!is_string($filter)||($filter!==''&&!array_key_exists($filter,founders_review_states())))$filter='';
-        $s=db()->prepare('SELECT id,reference,submission_type,founder_name,venture_name,country,review_status,is_public,created_at FROM founder_submissions'.($filter!==''?' WHERE review_status=?':'').' ORDER BY created_at DESC,id DESC LIMIT 200');$s->execute($filter!==''?[$filter]:[]);
-        render_write('journeys_founders',['writeTitle'=>'Founder submissions','submissions'=>$s->fetchAll(),'filter'=>$filter]);exit;
+        if(!is_string($filter)||($filter!==''&&!array_key_exists($filter,founders_review_states())))journeys_not_found();
+        $where=$filter!==''?' WHERE review_status=?':'';$parameters=$filter!==''?[$filter]:[];
+        $s=db()->prepare('SELECT COUNT(*) FROM founder_submissions'.$where);$s->execute($parameters);
+        $pagination=archive_pagination(archive_page_number($_GET['page']??null),(int)$s->fetchColumn(),50,'/write/journeys/founders',$filter!==''?['status'=>$filter]:[]);
+        if($pagination===null)journeys_not_found();
+        $s=db()->prepare('SELECT id,reference,submission_type,founder_name,venture_name,country,review_status,is_public,created_at FROM founder_submissions'.$where.' ORDER BY created_at DESC,id DESC LIMIT 50 OFFSET '.(int)$pagination['offset']);$s->execute($parameters);
+        render_write('journeys_founders',['writeTitle'=>'Founder submissions','submissions'=>$s->fetchAll(),'filter'=>$filter,'pagination'=>$pagination]);exit;
     }
     if(preg_match('~^/write/journeys/founders/([1-9][0-9]*)$~',$path,$m)){
         journeys_method(['GET','POST']);require_auth();journeys_private_headers();$id=(int)$m[1];$s=db()->prepare('SELECT * FROM founder_submissions WHERE id=?');$s->execute([$id]);$submission=$s->fetch();if(!$submission)journeys_not_found();$error=null;$review=$submission;

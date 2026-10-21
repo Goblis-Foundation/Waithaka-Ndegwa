@@ -23,7 +23,7 @@ No venture has been selected or invented for this release. Create the first jour
 7. Give it a chapter number, public summary, evidence basis and evidence note. Private evidence notes remain in Writer.
 8. Publish the journey and enable the chapter link when ready. A chapter is visible only when its journey, chapter link and linked article are all public and the article’s date is due.
 
-The journey URL stays fixed after first publication. Article slugs and original publication dates remain stable when you revise an article. Removing a chapter link leaves the article in the writing library.
+The journey URL stays fixed after first publication. Article slugs and original publication dates remain stable when you revise an article. Removing a chapter link leaves the article in the writing library. My Thoughts, individual topic archives and Founder Stories show 24 records per page with accurate total counts, ordinary newer/older links and page-specific canonical addresses. Older chapters remain reachable as the weekly archive grows; the on-page filter and sort apply only to the current page. Use full search to search across articles.
 
 ### Suggested first season
 
@@ -76,9 +76,11 @@ The profile defaults are:
 | Instagram | https://www.instagram.com/iwaithakaw | Professional |
 | X | https://x.com/iwaithakaw | Professional |
 | YouTube | https://www.youtube.com/@waithakandegwa | Channel |
-| TikTok | https://www.tiktok.com/@waithakandegwa | Personal |
+| TikTok | https://www.tiktok.com/@waithakandegwa | Professional, owner-declared |
 
-The live connection must return the intended account; matching a typed name or declaring “professional” is insufficient.
+The live connection must return the intended account; matching a typed name or declaring “professional” is insufficient. TikTok's professional declaration records the owner's account description. It does not verify a Business subtype, app eligibility or publishing permission.
+
+Migration `090_tiktok_professional.sql` corrects the old TikTok `personal` default on both new installations and upgrades. Run it through the normal restricted migration process. It preserves profile URLs, provider identities, encrypted credentials, delivery routes and existing approved revisions/jobs, and leaves a more specific saved declaration unchanged. A review opened before the correction must be refreshed for a new approval; historical approved destinations remain exactly as approved.
 
 ### Google
 
@@ -108,6 +110,7 @@ Start with assisted delivery to establish a reliable weekly process. Add automat
 | Direct Facebook | Text/link posts to a real confirmed Page |
 | Direct Instagram | One public JPEG image with its caption |
 | Direct YouTube | An owned MP4, MOV or WebM video up to 512 MiB, including a private library asset, with explicit settings and processing checks |
+| Native TikTok Accounts API | An owned public MP4, MOV or WebM video up to 512 MiB on a verified URL property, with explicit public audience, interaction, promotional and AI settings; separate approved app/grant required |
 
 Instagram is recorded as professional. Its direct route uses Instagram Login. For Reels, Stories, carousels or other unsupported direct formats, use a supported provider/native route; this release’s package supports one media file rather than a carousel builder. The website’s optimized featured WebP image is not automatically converted into an Instagram JPEG. [Meta media requirements](https://developers.facebook.com/reference/media)
 
@@ -119,11 +122,29 @@ Buffer requires a key from your Buffer account, verification of returned organiz
 
 The current Buffer YouTube route supports Shorts with a public video file. Use native YouTube for a full-length video, a private library file or an explicit subscriber-notification choice. Other automatic media routes also need a public asset URL; selecting a private file does not cause it to be silently omitted from a post.
 
-TikTok remains a personal account with assisted delivery or a separately authorized eligible Buffer channel. TikTok's [Direct Post guidelines](https://developers.tiktok.com/doc/content-sharing-guidelines) exclude a private utility built only to upload to accounts you or your team manage. The application therefore does not offer a native Direct API option for TikTok. Finish audience, interaction, music, promotional-content and applicable AI-disclosure choices in TikTok when completing an assisted task. A partner connection does not remove the platform's rules.
+TikTok is recorded as professional. The implemented native publisher uses the separate [TikTok API for Business Accounts API](https://business-api.tiktok.com/portal/docs/accounts-api-overview/v1.3). Its app review and account authorization are independent of Login Kit reporting. This release does not use the Content Posting API Direct Post product, whose [guidelines](https://developers.tiktok.com/doc/content-sharing-guidelines) exclude a private own-account utility. Assisted and separately authorized Buffer routes remain available. Finish the audience, interaction, music, promotional-content and applicable AI-disclosure choices in TikTok when completing an assisted task.
 
 Under **Channel routes**, choose the delivery method and actual Buffer destination when relevant, then select **Save route**. Changes apply to future approvals. Existing revisions keep the destination they were approved for.
 
 Never put a social password into Writer. Use provider app credentials, OAuth or the supported Buffer key field. Removing a saved connection stops local use; revoke the app in the provider account as well when withdrawing permission. Already queued remote posts must be checked in the provider separately.
+
+### TikTok: separate reporting and publishing connections
+
+The **professional** declaration records your account description. TikTok’s returned account data and granted permissions are checked separately; a verified badge does not establish Business API eligibility.
+
+**Read reports:** obtain approval for Login Kit, Display API and `user.info.basic`, `user.info.profile`, `user.info.stats`, `video.list`. Register `https://www.waithakandegwa.com/write/connections/callback/tiktok_read`. In Connections, save the TikTok Login Kit Client Key and Client Secret, authorize **TikTok read access**, inspect the returned username, and confirm the account. **Read current report** shows current profile totals and up to 20 recent public videos. These are cumulative snapshots, without historical growth, revenue or watch-time analysis. Missing counters are shown as unavailable. Read permission does not allow posting. [Login Kit](https://developers.tiktok.com/docs/en/login-kit-web) · [Display API](https://developers.tiktok.com/docs/en/display-api-overview) · [Token renewal](https://developers.tiktok.com/docs/en/oauth-user-access-token-management)
+
+**Native publishing:** create or use the intended API for Business application and complete TikTok’s Accounts API access application/review. Request the exact scopes displayed for **TikTok Accounts API**, including `video.publish`, `user.info.basic`, `user.info.username`, and `user.account.type`. Register `https://www.waithakandegwa.com/write/connections/callback/tiktok_business/`, including the trailing slash. Copy the account-holder authorization URL generated by the approved app’s portal; save it with that app’s separate ID and secret under App credentials. The website validates the URL and adds its own session-bound, single-use state. Authorize, inspect the returned account and confirm the destination. The application checks the inspected app/creator identifiers, scopes, returned username and account settings; typing a handle or selecting professional is insufficient. [Accounts API authentication](https://business-api.tiktok.com/portal/docs/accounts-api-authentication/v1.3)
+
+Verify the canonical media domain or URL prefix through TikTok’s application ownership process. On the supplied AWS configuration, `MEDIA_PUBLIC_URL` is the canonical `.com` site, and the media path is served through the configured CloudFront distribution. The worker reads the provider’s verified property records before posting and checks that the approved public asset belongs to the configured storage path. A public media URL alone is not evidence that TikTok has verified its ownership. Before enabling delivery, verify that the live DNS/CDN route returns the intended public bytes and keep those URLs available during processing. Local preflight cannot prove live CDN routing or prevent an out-of-band overwrite after validation.
+
+Choose **TikTok Accounts API — native video publishing** under TikTok’s channel route. In each package, select an owned public video and explicitly choose **Public**, comments, Duet, Stitch, any own-brand or commercial-partnership declaration, and any AI disclosure. Confirm the native settings, save, inspect the saved preview and approve the package. This adapter rejects both promotional categories being selected together; complete that combination in TikTok. Buffer cannot silently inherit these native settings: clear them or use a route that supports them.
+
+The native adapter checks MIME type, size, owned-file identity, bytes and the current public storage binding. It does not transcode video or locally analyze duration, dimensions or frame rate. The reviewed endpoint documentation specifies MP4, MOV or WebM, a duration of 3–600 seconds subject to a lower returned account limit, at least 360 pixels in each dimension and 23–60 frames per second. The site's 512 MiB upload limit is lower than the endpoint's 1 GB limit. TikTok validates the video during processing. If account settings stop allowing an interaction you approved, the job requires review instead of silently changing the settings. [Video publishing requirements](https://business-api.tiktok.com/portal/docs/publish-a-public-video-post-to-an-owned-account/v1.3)
+
+An accepted `share_id` is a pending publishing task. The worker records it and only polls that task. Completion requires `PUBLISH_COMPLETE` and publicly viewable post IDs returned by TikTok; complete processing without visible IDs remains pending. If a mutation may have succeeded but its acknowledgement is lost, the job stays **Outcome unknown** and is never automatically reposted. Where a task ID is known, a reviewed retry reads its status. Closing a local job does not cancel a task already accepted by TikTok.
+
+If either TikTok connection requires reconnection, reauthorize that specific service. Read and native tokens are encrypted and managed independently. A lost token-renewal response cannot be safely recovered by repeatedly using an old rotating token. No real app review, account authorization, domain verification or live TikTok delivery has been performed by this release.
 
 ## 5. Prepare the media
 
@@ -138,7 +159,7 @@ Supported images are JPEG, PNG and WebP up to **25 MiB**. Supported videos are M
 
 Open the asset to review it, use **Download original**, and inspect **File details** when needed. In a publishing package, choose it under **Owned media file**. That selection takes precedence over the public URL and media-type fields. Approval binds the file's identity, storage location/version, size, MIME type and fingerprint; native upload materializes and verifies those exact bytes before transfer.
 
-Upload a new asset whenever a file changes. **Archive asset** removes it from new package selections but preserves existing approved references. Archiving does not remove a public URL or retract a file that a platform has already received. Do not use archiving as a privacy revocation control.
+Upload a new asset whenever a file changes. Older saved selections remain visible even beyond the latest 200 assets. If an existing selection is archived, missing or no longer valid, the form retains its ID and asks you to replace or remove it; a routine save cannot silently downgrade it to a URL or drop it. **Archive asset** removes it from new package selections but preserves existing approved references. Archiving does not remove a public URL or retract a file that a platform has already received. Do not use archiving as a privacy revocation control.
 
 ## 6. Prepare, review and release a package
 
@@ -180,6 +201,8 @@ If you finish or verify the existing upload in Studio, **Approved content & comp
 ## 7. Publish other founders’ stories
 
 The public submission form collects a proposal for review. It is not a self-publishing directory and does not promise coverage.
+
+The private review inbox shows 50 submissions per page, preserves the selected status filter and counts all matching submissions. Its pagination remains authenticated; private contact details and review notes never become archive content.
 
 1. Review the private submission at **Writer → Founder reviews**.
 2. Confirm identity, role, contact permission and the intended public wording.
@@ -285,4 +308,4 @@ The helper's offline inventory/readiness/plan commands make the proposed recover
 
 Run the documented restore and migrations through the restricted deployment process. Runtime web requests and instance startup do not run migrations. Keep the source backup/key/media and rollback DNS information until live acceptance succeeds. The canonical production address remains `https://www.waithakandegwa.com`, with `waithakandegwa.co.ke` and `www.waithakandegwa.co.ke` redirecting to the corresponding canonical paths after the actual edge/DNS cutover.
 
-This implementation has not made that cutover, authorized real accounts or sent real newsletters/videos/posts. Reader Google login, a universal social inbox, all-platform analytics, automatic weekly content generation and a native TikTok Direct Post app for a private own-account utility remain outside the release.
+This implementation has not made that cutover, authorized real accounts or sent real newsletters/videos/posts. Reader Google login, a universal social inbox, all-platform analytics, automatic weekly content generation and the Content Posting API Direct Post product remain outside the release. Native TikTok publishing is provided by the separately authorized Accounts API adapter.

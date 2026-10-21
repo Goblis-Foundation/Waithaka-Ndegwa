@@ -132,6 +132,9 @@ try {
     $facebook=pub_http_row("SELECT * FROM publishing_channels WHERE slug='facebook'");
     pub_http_check($facebook&&$facebook['delivery_method']==='manual'&&$facebook['account_type']==='professional_profile',
         'The disposable fixture must start with Facebook professional-profile assisted delivery.');
+    $tiktok=pub_http_row("SELECT * FROM publishing_channels WHERE slug='tiktok'");
+    pub_http_check($tiktok&&$tiktok['account_type']==='professional'&&$tiktok['delivery_method']==='manual',
+        'The fully migrated fixture must record TikTok as professional while preserving assisted delivery.');
     pub_http_check(!function_exists('publishing_send_reminder'),'The HTTP worker test must not load an email hook.');
 
     $response=pub_http_request('/write/publishing/new',null,false);
@@ -144,10 +147,34 @@ try {
     $response=pub_http_request('/write/connections');
     pub_http_check($response['status']===200&&str_contains($response['body'],'Facebook professional mode is a profile type'),
         'Connections must explain the professional-profile/Page distinction.');
+    $connectionFields=pub_http_form($response,'/write/connections/settings');
+    $connectionDocument=new DOMXPath(pub_http_document($response));
+    pub_http_check($connectionDocument->query('//input[@name="tiktok_client_id"]')->length===1
+        &&$connectionDocument->query('//input[@name="tiktok_client_secret"]')->length===1
+        &&str_contains($response['body'],'/write/connections/callback/tiktok_read'),
+        'TikTok Login Kit must expose client-key settings and the exact read-only callback.');
+    pub_http_check(pub_http_redirect(pub_http_request('/write/connections/tiktok_read/report',[],false),'/write/login'),
+        'TikTok account reports must require Writer authentication.');
+    pub_http_check(pub_http_request('/write/connections/tiktok_read/report',['csrf'=>'invalid'])['status']===419,
+        'TikTok report requests must be CSRF protected.');
+    pub_http_check(pub_http_redirect(pub_http_request('/write/connections/tiktok_read/report',$connectionFields),'/write/connections'),
+        'An unconnected TikTok account must not trigger a report or outgoing provider call.');
+    pub_http_check(pub_http_request('/write/connections/tiktok_read/report')['status']===404,
+        'A GET request must not trigger a private TikTok report.');
+    $connectionXpath=new DOMXPath(pub_http_document($response));
+    $tiktokHelp=$connectionXpath->evaluate("string(//article[.//h3[normalize-space()='TikTok']])");
+    pub_http_check(str_contains($tiktokHelp,'Declared type: professional (owner-declared)')
+        &&str_contains($response['body'],'does not verify a Business account or grant publishing access'),
+        'The actual Connections page distinguishes the TikTok declaration from verified Business status and authorization.');
+    pub_http_check($connectionXpath->query("//select[@id='fb-type' and @name='account_type']")->length===1
+        &&$connectionXpath->query("//*[@id='fb-type']")->length===1,
+        'The Facebook account-type form retains one unambiguous labeled select.');
     $response=pub_http_request('/write/publishing/new');$save=pub_http_form($response,'/write/publishing/save');
     pub_http_check($response['status']===200&&str_contains($response['headers']['cache-control']??'','no-store')
         &&str_contains($response['headers']['x-robots-tag']??'','noindex'),'Publication forms must be private and non-indexable.');
     $xpath=new DOMXPath(pub_http_document($response));
+    pub_http_check(str_contains($xpath->evaluate("string(//strong[normalize-space()='TikTok']/following-sibling::small)"),'professional (owner-declared)'),
+        'The publication composer uses the corrected TikTok declaration without claiming provider verification.');
     pub_http_check($xpath->query('//input[@type="checkbox" and starts-with(@name,"variants[") and contains(@name,"][enabled]")]')->length===6,
         'The editor must render an independent selection for each accepted channel.');
 

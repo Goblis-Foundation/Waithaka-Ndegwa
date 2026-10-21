@@ -28,6 +28,19 @@ $instagram['buffer_mode']='notification';check(publishing_capability($instagram,
 $bufferChannel['hasActiveMemberDevice']=false;check(!publishing_capability($instagram,$identity,$bufferChannel)['usable'],'Reminder requires an actual registered mobile device');
 $bufferChannel['hasActiveMemberDevice']=true;$bufferChannel['isDisconnected']=true;check(!publishing_capability($instagram,$identity,$bufferChannel)['usable'],'Disconnected provider channels cannot be scheduled');
 
+$tiktok=['slug'=>'tiktok','account_type'=>'professional','delivery_method'=>'manual'];
+check(publishing_account_type_label($tiktok)==='professional (owner-declared)','TikTok professional is an explicit owner declaration, not a verified Business subtype');
+check(publishing_account_type_label(['slug'=>'tiktok','account_type'=>'personal'])==='personal','Historical TikTok declarations are never rewritten by presentation');
+check(publishing_account_type_label(['slug'=>'tiktok','account_type'=>'business'])==='business','A more specific saved TikTok subtype is preserved');
+check(publishing_account_type_label($facebook)==='professional profile','Facebook professional-profile labeling remains distinct from a Page');
+check(publishing_capability($tiktok)['usable'],'TikTok professional keeps assisted publishing available');
+$tiktok['delivery_method']='direct';check(!publishing_capability($tiktok,$identity)['usable'],'Professional branding does not create a native TikTok authorization');
+$tiktok['delivery_method']='buffer';$tiktok['buffer_mode']='automatic';
+$tiktokRemote=['service'=>'tiktok','type'=>'profile','serviceId'=>'tiktok-fixture-id','isDisconnected'=>false,'isLocked'=>false,'isQueuePaused'=>false,'hasActiveMemberDevice'=>false,'allowedActions'=>['scheduleUpdates']];
+check(!publishing_capability($tiktok,null,$tiktokRemote)['usable'],'TikTok professional still requires a connected and confirmed partner identity');
+check(publishing_capability($tiktok,$identity,$tiktokRemote)['usable'],'TikTok partner eligibility uses returned channel rights without inventing a Business subtype');
+$tiktokRemote['allowedActions']=[];check(!publishing_capability($tiktok,$identity,$tiktokRemote)['usable'],'TikTok professional cannot bypass missing partner publishing rights');
+
 check(publishing_buffer_post_result(['id'=>'a','status'=>'sent','notificationStatus'=>'notified','externalLink'=>null],'notification')['status']==='reminder_sent','A reminder marked sent is never publication');
 check(publishing_buffer_post_result(['id'=>'a','status'=>'sent','notificationStatus'=>'markedAsPublished','externalLink'=>null],'notification')['status']==='reminder_sent','Manual completion without a post URL is not treated as verified publication');
 check(publishing_buffer_post_result(['id'=>'a','status'=>'scheduled','notificationStatus'=>null],'automatic')['status']==='delivered','Provider acceptance is distinct from publication');

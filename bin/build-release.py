@@ -97,7 +97,8 @@ def main() -> None:
             required = {"index.php", ".htaccess", "vendor/autoload.php", ".platform/hooks/postdeploy/30_worker.sh",
                         ".platform/hooks/predeploy/25_media_limits.sh", "deploy/aws/global-bundle.pem",
                         "deploy/aws/media-limits.ini", "app/newsletter.php", "app/media_library.php",
-                        "app/mail_feedback.php", "app/providers/youtube.php", "app/readiness.php"}
+                        "app/mail_feedback.php", "app/providers/youtube.php", "app/providers/tiktok.php",
+                        "app/providers/tiktok_business.php", "app/readiness.php"}
             if not required.issubset(set(app.namelist())):
                 raise RuntimeError("Application ZIP is missing a required root-level file.")
         history = temporary / "recovery-and-implementation.bundle"

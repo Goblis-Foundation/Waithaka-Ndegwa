@@ -15,7 +15,9 @@ Use [the AWS migration runbook](docs/AWS-MIGRATION.md) and [guarded installer gu
 - [ ] Validate MySQL 8.4 compatibility, restored article URLs, both media stores, private routes and sessions.
 - [ ] Check Writer → Operations, a paused worker heartbeat, immutable media previews/downloads and actual video-upload limits on the deployed edge.
 - [ ] Authorize actual Google/social resources and verify each destination in Writer.
+- [ ] For native TikTok, complete the separate Accounts API app review, authorize and confirm the owner account, verify the media domain/prefix, and check the live CDN returns the approved public video bytes. The Login Kit reporting grant cannot publish.
 - [ ] Test permitted provider formats, including an approved private YouTube test and resumable status recovery, with intended owner-controlled destinations.
+- [ ] For an approved TikTok public-video test, verify current interaction/disclosure settings, pending task status and returned public post IDs; confirm that recovery polls the original task without another publishing request.
 - [ ] Configure SES/DKIM and the signed feedback topic while mail is disabled; confirm the exact signed subscription in Writer → Mail feedback.
 - [ ] Verify received mail authentication/unsubscribe headers, human/one-click unsubscribe, feedback reconciliation and address suppression before campaign activation.
 - [ ] Configure monitoring, redacted access logs, retention, SES feedback and backups; rehearse a restore.

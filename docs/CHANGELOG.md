@@ -1,4 +1,4 @@
-# Release changes — 2026-10-21
+# Release changes — 2026-10-21 r3
 
 ## Recovered foundation
 
@@ -16,8 +16,10 @@ Based on the recovered V9 archive dated 2026-08-31. The pristine local git basel
 - Publishing packages, platform variants, immutable approved snapshots, destination binding, scheduling, completion evidence and event history.
 - Verified OAuth/resource flows for Google, Meta, LinkedIn and X; verified Buffer channel selection.
 - Native YouTube resumable upload using the separate confirmed upload/read grant, owned videos up to 512 MiB, explicit visibility/made-for-kids/altered-content/subscriber-notification choices, encrypted session checkpoints, acknowledged-byte progress and owner processing verification.
-- Direct text/link adapters for X, LinkedIn and confirmed Facebook Pages; direct single-JPEG Instagram delivery; supported Buffer delivery and assisted completion for all six channels. TikTok remains assisted or through an eligible separately authorized partner.
-- Read-only Search Console, GA4 and YouTube channel reports with separate grants.
+- Direct text/link adapters for X, LinkedIn and confirmed Facebook Pages; direct single-JPEG Instagram delivery; supported Buffer delivery and assisted completion for all six channels.
+- Native TikTok Accounts API video publishing with its own approved API for Business application and owner grant, inspected app/account/permission binding, current account settings, verified URL-property checks, exact approved interaction/promotional/AI settings and durable publish-task checkpoints. Known task IDs resume status reads; uncertain mutation outcomes cannot automatically repost. This is separate from the developer Content Posting API Direct Post product.
+- Read-only Search Console, GA4 and YouTube channel reports with separate grants. A separate TikTok Login Kit/Display API connection provides current profile totals and up to 20 recent public videos, with serialized rotating-token renewal and reconnection after an uncertain refresh result.
+- Crawlable pagination for My Thoughts, topic archives and Founder Stories, with complete eligible counts, stable ordering, normal navigation links and a canonical URL for each page. The authenticated founder review inbox also supports filtered pagination beyond its previous fixed limit.
 - Explicit migrations, encrypted database sessions, encrypted deduplicated email outbox, SES/SMTP delivery, S3 public/private storage and a separately enabled worker covering publishing, payments, newsletters and email.
 - Read-only Operations view for local runtime/restoration configuration, migration state/checksums, worker history, overdue/stale publishing and outbox work, connection attention and links to Mail feedback.
 - AWS data/edge/mail-feedback templates, Beanstalk hooks/settings, systemd timer, bounded upload configuration, scoped IAM examples, build script and isolated CI/test runner.
@@ -25,6 +27,7 @@ Based on the recovered V9 archive dated 2026-08-31. The pristine local git basel
 
 ## Corrected
 
+- TikTok is recorded as professional at the owner's direction. Additive migration `090_tiktok_professional.sql` corrects only the legacy `personal` default without changing account identities, encrypted credentials, selected routes, immutable approvals or queued jobs. Writer labels this as an owner declaration; it does not imply a verified Business subtype or API permission. The committed historical seed migration is unchanged.
 - Live article changes remain private drafts until explicit publication; stale saves fail without overwriting another edit.
 - Existing slugs and original publication dates are retained.
 - Missing CSRF tokens fail, preview requires authentication, and sanitization also examines lifted child nodes.
@@ -33,6 +36,8 @@ Based on the recovered V9 archive dated 2026-08-31. The pristine local git basel
 - Unknown social/email outcomes stop for review instead of blind retry.
 - Interrupted YouTube uploads query the saved session before sending more bytes; a lost final acknowledgement recovers the existing video ID. An expired or unknown session cannot silently start another upload. Missing or mismatched owner settings require review rather than a false completion claim.
 - Later draft edits cannot change approved media or publication settings. Private owned media cannot be silently omitted by a route that requires a public URL.
+- Saved media selections remain visible beyond the latest 200 assets. Archived, missing or incompatible selections stay explicit until replaced or removed; ordinary editing cannot silently discard them.
+- Native TikTok public-media preflight binds the approved URL to the configured storage object and exact bytes. S3 checks compare the current version before and after reading the approved version; provider-property checks cannot substitute for owned-file verification.
 - Newsletter audience snapshots exclude pending, unsubscribed and suppressed addresses. Changed consent or address identity blocks queued delivery, and pause/cancel controls apply to remaining work without replaying accepted or uncertain messages.
 - Migration `080_newsletter_confirmation_binding.sql` adds a private issuance-address hash for new confirmation tokens. Confirmation transport and token consumption must match the original mailbox. Legacy tokens remain unchanged and are accepted only when their encrypted immutable confirmation outbox proves the same issued address; missing or unreadable evidence requires fresh opt-in rather than inferring consent from the current address.
 - Public and private media have separate storage prefixes. Staging copies enforce ownership, permissions, bounded reads, length/MIME/fingerprint checks and cleanup; supplied deployment settings accommodate the application's 512 MiB video limit.
@@ -45,6 +50,6 @@ Based on the recovered V9 archive dated 2026-08-31. The pristine local git basel
 
 No AWS account resources were deployed; no live data was imported; no DNS was changed. No real social/Google account was authorized, video/social post published or newsletter campaign sent during implementation. Local synthetic fixtures establish application and protocol behavior; live AWS, MySQL 8.4, OAuth/provider and mail acceptance remain deployment checks documented separately.
 
-Facebook is a professional profile, Instagram and X are professional, LinkedIn is a member profile, YouTube is a channel and TikTok is personal. A declared type does not establish a connection or grant permissions. Facebook Page delivery requires a separately discovered Page. TikTok's current [Direct Post guidelines](https://developers.tiktok.com/doc/content-sharing-guidelines) exclude a private own-account utility; its assisted/partner route retains the platform's eligibility and content rules.
+Facebook is a professional profile, Instagram and X are professional, LinkedIn is a member profile, YouTube is a channel and TikTok is professional by owner declaration. A declared type does not establish a connection, verify a Business subtype or grant permissions. Facebook Page delivery requires a separately discovered Page. Native TikTok delivery uses the separately reviewed [API for Business Accounts API](https://business-api.tiktok.com/portal/docs/accounts-api-overview/v1.3), not the Content Posting API product whose [Direct Post guidelines](https://developers.tiktok.com/doc/content-sharing-guidelines) exclude a private own-account utility. Actual app approval, scopes, account authorization, media-domain verification and controlled live acceptance remain required. Assisted and eligible authorized partner routes remain available.
 
-Google sign-in for readers, a universal social inbox, all-platform engagement analytics, video transcoding/carousel production and native TikTok Direct Post for this private utility are not included. YouTube upload scheduling starts transfer at the chosen time and does not promise an exact public release instant. Email acceptance and server delivery are distinct from inbox placement or reading. Operations and the AWS helper's local checks do not certify a live deployment or a successful restore.
+Google sign-in for readers, a universal social inbox, all-platform engagement analytics, video transcoding/carousel production and the TikTok Content Posting API Direct Post product are not included. Native TikTok accepts owned public videos up to the site's 512 MiB limit; actual duration, dimensions, frame rate and encoding are checked by TikTok during processing, not by a local video analyzer. Native video scheduling starts delivery at the chosen time and does not promise an exact public release instant. Email acceptance and server delivery are distinct from inbox placement or reading. Operations and the AWS helper's local checks do not certify a live deployment or a successful restore.

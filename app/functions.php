@@ -262,10 +262,39 @@ function format_date(?string $date): string { return $date ? date('j F Y', strto
 function categories(): array { return db()->query('SELECT * FROM categories ORDER BY sort_order,name')->fetchAll(); }
 function category_by_slug(string $slug): ?array { $st=db()->prepare('SELECT * FROM categories WHERE slug=?');$st->execute([$slug]);return $st->fetch()?:null; }
 function published_where(): string { return "p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=NOW()"; }
-function latest_posts(int $limit=6, ?int $categoryId=null): array {
+/** Strict page parsing prevents arrays, overflow and malformed URLs becoming page one. */
+function archive_page_number(mixed $value=null): ?int {
+    if ($value===null) return 1;
+    if ((!is_string($value)&&!is_int($value))||!preg_match('/^[1-9][0-9]*$/D',(string)$value)) return null;
+    $number=filter_var($value,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+    return $number===false?null:$number;
+}
+function archive_page_path(string $path,int $page,array $query=[]): string {
+    unset($query['page']);
+    if($page>1)$query['page']=$page;
+    return $path.($query?'?'.http_build_query($query,'','&',PHP_QUERY_RFC3986):'');
+}
+/** Returns null before any offset query when a page is outside the public result set. */
+function archive_pagination(?int $page,int $total,int $perPage,string $path,array $query=[]): ?array {
+    if($page===null||$page<1||$total<0||$perPage<1||$perPage>200) return null;
+    $pages=max(1,intdiv($total,$perPage)+($total%$perPage===0?0:1));
+    if($page>$pages)return null;
+    $offset=($page-1)*$perPage;
+    return ['page'=>$page,'pages'=>$pages,'total'=>$total,'per_page'=>$perPage,'offset'=>$offset,
+        'start'=>$total?$offset+1:0,'end'=>min($total,$offset+$perPage),
+        'path'=>archive_page_path($path,$page,$query),'first'=>archive_page_path($path,1,$query),
+        'previous'=>$page>1?archive_page_path($path,$page-1,$query):null,
+        'next'=>$page<$pages?archive_page_path($path,$page+1,$query):null];
+}
+function public_post_count(?int $categoryId=null): int {
+    $sql='SELECT COUNT(*) FROM posts p WHERE '.published_where();$params=[];
+    if($categoryId!==null){$sql.=' AND p.category_id=?';$params[]=$categoryId;}
+    $st=db()->prepare($sql);$st->execute($params);return (int)$st->fetchColumn();
+}
+function latest_posts(int $limit=6, ?int $categoryId=null,int $offset=0): array {
     $sql='SELECT p.*,c.name category_name,c.slug category_slug FROM posts p LEFT JOIN categories c ON c.id=p.category_id WHERE '.published_where();
-    $params=[]; if ($categoryId) { $sql.=' AND p.category_id=?'; $params[]=$categoryId; }
-    $sql.=' ORDER BY p.published_at DESC LIMIT '.max(1,min(5000,$limit));
+    $params=[]; if ($categoryId!==null) { $sql.=' AND p.category_id=?'; $params[]=$categoryId; }
+    $sql.=' ORDER BY p.published_at DESC,p.id DESC LIMIT '.max(1,min(5000,$limit)).' OFFSET '.max(0,$offset);
     $st=db()->prepare($sql);$st->execute($params);return $st->fetchAll();
 }
 function selected_posts(int $limit=3): array {

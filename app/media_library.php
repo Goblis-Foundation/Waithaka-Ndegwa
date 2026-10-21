@@ -122,8 +122,18 @@ function media_library_import(string $path,string $originalName,array $input,int
 function media_library_asset(int $id): ?array {
     $q=db()->prepare('SELECT * FROM media_assets WHERE id=?');$q->execute([$id]);return $q->fetch()?:null;
 }
-function media_library_choices(): array {
-    return db()->query("SELECT id,title,kind,mime,bytes,sha256,public_url,visibility FROM media_assets WHERE status='ready' ORDER BY created_at DESC,id DESC LIMIT 200")->fetchAll();
+/** Include saved selections even after they age out of the recent list or are archived. */
+function media_library_choices(array $selectedIds=[]): array {
+    $columns='id,title,kind,mime,bytes,sha256,public_url,visibility,status';
+    $choices=db()->query("SELECT $columns FROM media_assets WHERE status='ready' ORDER BY created_at DESC,id DESC LIMIT 200")->fetchAll();
+    $selectedIds=array_unique(array_filter($selectedIds,static fn($id)=>is_int($id)&&$id>0));
+    $missing=array_values(array_diff($selectedIds,array_map('intval',array_column($choices,'id'))));
+    if ($missing) {
+        $query=db()->prepare("SELECT $columns FROM media_assets WHERE id IN (".implode(',',array_fill(0,count($missing),'?')).') ORDER BY created_at DESC,id DESC');
+        $query->execute($missing);
+        $choices=array_merge($choices,$query->fetchAll());
+    }
+    return $choices;
 }
 function media_library_snapshot(array $asset): array {
     return ['id'=>(int)$asset['id'],'driver'=>(string)$asset['driver'],'bucket'=>(string)$asset['bucket'],
@@ -160,7 +170,7 @@ function media_library_temp_path(): string {
     return sys_get_temp_dir().'/waithaka-media-stage-'.media_library_owner_id();
 }
 /** Pin to a DB-owned object and verify a bounded, private copy before provider use. */
-function media_library_materialize(array $approvedAsset,int $maxBytes): array {
+function media_library_materialize(array $approvedAsset,int $maxBytes,?\Aws\S3\S3Client $s3Client=null): array {
     $id=$approvedAsset['id']??null;
     if (!is_int($id) || $id<1) throw new MediaLibraryException('Invalid approved media asset.');
     $asset=media_library_asset($id);
@@ -179,8 +189,9 @@ function media_library_materialize(array $approvedAsset,int $maxBytes): array {
             if ($expected==='' || !hash_equals($expected,$frozen['bucket'])) throw new MediaLibraryException('The configured bucket does not contain this approved asset.');
             $args=['Bucket'=>$frozen['bucket'],'Key'=>$frozen['key'],'@http'=>['stream'=>true,'read_timeout'=>15]];
             if ($frozen['version_id']!=='') $args['VersionId']=$frozen['version_id'];
-            $object=media_s3_client()->getObject($args);
+            $object=($s3Client??media_s3_client())->getObject($args);
             if ((int)($object['ContentLength']??-1)!==$frozen['bytes']) throw new MediaLibraryException('The stored media size differs from its approval.');
+            if ($frozen['version_id']!=='' && (string)($object['VersionId']??'')!==$frozen['version_id']) throw new MediaLibraryException('Storage did not return the approved object version.');
             $source=$object['Body']->detach();
         } elseif ($frozen['driver']==='local') $source=fopen(media_library_local_path($asset),'rb');
         else throw new MediaLibraryException('Unknown approved storage driver.');
@@ -210,6 +221,72 @@ function media_library_materialize(array $approvedAsset,int $maxBytes): array {
         if ($temporary && is_file($temporary)) unlink($temporary);
         throw $e;
     } finally { if (is_resource($source)) fclose($source); }
+}
+/**
+ * Preflight for providers which fetch the public URL themselves, rather than our
+ * pinned staging copy. This checks current storage; it cannot prevent an external
+ * overwrite after the final check or prove that a CDN/DNS route is serving it.
+ * The optional SDK client is a dependency-injection seam for offline storage tests.
+ */
+function media_library_validate_public_asset(array $approvedAsset,int $maxBytes,?\Aws\S3\S3Client $s3Client=null): void {
+    $id=$approvedAsset['id']??null;
+    if (!is_int($id)||$id<1) throw new MediaLibraryException('Invalid approved public media asset.');
+    $asset=media_library_asset($id);
+    if (!$asset||!in_array($asset['status'],['ready','archived'],true)) throw new MediaLibraryException('The approved public media is unavailable.');
+    $frozen=media_library_snapshot($asset);
+    foreach ($frozen as $field=>$value) {
+        if (!array_key_exists($field,$approvedAsset)||$approvedAsset[$field]!==$value) throw new MediaLibraryException('The public media reference differs from the approved asset.');
+    }
+    $type=media_library_types()[$frozen['mime']]??null;
+    if ($frozen['visibility']!=='public'||!media_library_key_valid($frozen['key'],'public',$frozen['extension'])
+        ||!$type||$type['extension']!==$frozen['extension']||!preg_match('/\A[a-f0-9]{64}\z/',$frozen['sha256'])
+        ||$frozen['bytes']<1||$frozen['bytes']>min($maxBytes,media_library_max_bytes())
+        ||($type['kind']==='image'&&$frozen['bytes']>media_library_image_max_bytes())) {
+        throw new MediaLibraryException('Choose an approved public media-library file within the delivery limits.');
+    }
+    if (!in_array($frozen['driver'],['local','s3'],true)||$frozen['driver']!==(string)app_config('media.driver','local')) {
+        throw new MediaLibraryException('The configured public storage differs from this approved asset.');
+    }
+    $expectedUrl=media_library_public_url($frozen['key']);$parts=parse_url($expectedUrl);
+    if (!filter_var($expectedUrl,FILTER_VALIDATE_URL)||($parts['scheme']??'')!=='https'
+        ||(isset($parts['port'])&&(int)$parts['port']!==443)||!hash_equals($expectedUrl,$frozen['public_url'])) {
+        throw new MediaLibraryException('The approved public URL no longer maps to the configured media object.');
+    }
+    $checkCurrent=null;
+    if ($frozen['driver']==='s3') {
+        $bucket=(string)app_config('media.bucket','');
+        if ($bucket===''||!hash_equals($bucket,$frozen['bucket'])) throw new MediaLibraryException('The approved public object belongs to a different storage bucket.');
+        if ($frozen['version_id']===''||$frozen['version_id']==='null') throw new MediaLibraryException('Public provider delivery requires a recorded S3 object version. Reimport and review this asset in versioned storage.');
+        $s3Client??=media_s3_client();
+        $checkCurrent=static function()use($frozen,$s3Client):void {
+            // Deliberately omit VersionId: a historical version can still exist
+            // after the bare URL has been overwritten or given a delete marker.
+            $head=$s3Client->headObject(['Bucket'=>$frozen['bucket'],'Key'=>$frozen['key']]);
+            if (!empty($head['DeleteMarker'])||(string)($head['VersionId']??'')!==$frozen['version_id']
+                ||(int)($head['ContentLength']??-1)!==$frozen['bytes']||(string)($head['ContentType']??'')!==$frozen['mime']
+                ||!in_array((string)($head['ContentEncoding']??''),['','identity'],true)) {
+                throw new MediaLibraryException('The current public object differs from the approved version. Reimport and review it before publishing.');
+            }
+            $metadataHash=$head['Metadata']['sha256']??null;
+            if ($metadataHash!==null&&(!is_string($metadataHash)||!hash_equals($frozen['sha256'],$metadataHash))) {
+                throw new MediaLibraryException('The current public object fingerprint differs from its approval.');
+            }
+        };
+        $checkCurrent();
+    }
+    $materialized=null;
+    try {
+        // Hash the actual bytes and MIME, not a user-controlled URL or metadata hash.
+        $materialized=media_library_materialize($approvedAsset,$maxBytes,$s3Client);
+        if ($checkCurrent) $checkCurrent();
+        else {
+            // A local path may have been replaced while the private copy was read.
+            $current=media_library_inspect(media_library_local_path($asset),$maxBytes);
+            if ($current['bytes']!==$frozen['bytes']||$current['mime']!==$frozen['mime']||!hash_equals($frozen['sha256'],$current['sha256'])) {
+                throw new MediaLibraryException('The current public file differs from the approved bytes.');
+            }
+        }
+    } finally { if ($materialized!==null) media_library_release($materialized); }
 }
 function media_library_release(array $materialized): void {
     $path=$materialized['path']??null;

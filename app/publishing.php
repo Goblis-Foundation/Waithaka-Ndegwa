@@ -11,6 +11,13 @@ function publishing_channels(): array { return db()->query('SELECT * FROM publis
 function publishing_channel(string $slug): ?array { $st=db()->prepare('SELECT * FROM publishing_channels WHERE slug=?');$st->execute([$slug]);return $st->fetch()?:null; }
 function publishing_package(int $id): ?array { $st=db()->prepare('SELECT * FROM publishing_packages WHERE id=?');$st->execute([$id]);return $st->fetch()?:null; }
 
+/** Describe the saved declaration without asserting a provider-verified account subtype. */
+function publishing_account_type_label(array $channel): string {
+    $type=(string)($channel['account_type']??'');
+    if (($channel['slug']??'')==='tiktok'&&$type==='professional') return 'professional (owner-declared)';
+    return str_replace('_',' ',$type);
+}
+
 function publishing_event(?int $packageId, ?int $jobId, string $type, string $note, ?int $actorId = null): void {
     db()->prepare('INSERT INTO publishing_events(package_id,job_id,event_type,note,actor_id) VALUES(?,?,?,?,?)')->execute([$packageId,$jobId,$type,mb_substr($note,0,500),$actorId]);
 }
@@ -82,7 +89,9 @@ function publishing_default_draft(?array $post=null): array {
     foreach (['linkedin','facebook','instagram','x','youtube','tiktok'] as $slug) $draft['variants'][$slug]=[
         'enabled'=>false,'text'=>$post?trim((string)($post['standfirst']??'')."\n\n".$source):'',
         'media_url'=>'','media_asset_id'=>0,'media_type'=>$slug==='youtube'?'video':'image','alt_text'=>'','title'=>$post['title']??'','format'=>$slug==='youtube'?'video':'post',
-        'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false
+        'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false,
+        'tiktok_allow_comments'=>false,'tiktok_allow_duet'=>false,'tiktok_allow_stitch'=>false,
+        'tiktok_brand_organic'=>false,'tiktok_branded_content'=>false,'tiktok_settings_confirmed'=>false
     ];
     return $draft;
 }
@@ -105,7 +114,10 @@ function publishing_normalize_draft(array $input): array {
             'alt_text'=>mb_substr(trim((string)($v['alt_text']??'')),0,1000),'title'=>mb_substr(trim((string)($v['title']??$title)),0,100),
             'format'=>in_array($v['format']??'', ['post','reel','story','short','video'],true)?$v['format']:'post',
             'privacy'=>in_array($v['privacy']??'', ['private','unlisted','public'],true)?$v['privacy']:'private',
-            'made_for_kids'=>!empty($v['made_for_kids']),'ai_generated'=>!empty($v['ai_generated']),'notify_subscribers'=>!empty($v['notify_subscribers'])
+            'made_for_kids'=>!empty($v['made_for_kids']),'ai_generated'=>!empty($v['ai_generated']),'notify_subscribers'=>!empty($v['notify_subscribers']),
+            'tiktok_allow_comments'=>!empty($v['tiktok_allow_comments']),'tiktok_allow_duet'=>!empty($v['tiktok_allow_duet']),
+            'tiktok_allow_stitch'=>!empty($v['tiktok_allow_stitch']),'tiktok_brand_organic'=>!empty($v['tiktok_brand_organic']),
+            'tiktok_branded_content'=>!empty($v['tiktok_branded_content']),'tiktok_settings_confirmed'=>!empty($v['tiktok_settings_confirmed'])
         ];
         if (mb_strlen($draft['variants'][$slug]['text'])>20000) throw new RuntimeException('The '.$slug.' caption is too long.');
     }
@@ -129,7 +141,6 @@ function publishing_capability(array $channel, ?array $connection = null, ?array
     $slug=$channel['slug'];$method=$channel['delivery_method']??'manual';
     if ($slug==='facebook'&&($channel['account_type']??'')!=='page') return ['usable'=>$method==='manual','mode'=>'manual','reason'=>'A Facebook professional profile is completed in Facebook. Page delivery needs a separately discovered Page.'];
     if ($method==='manual') return ['usable'=>true,'mode'=>'manual','reason'=>'Writer prepares a task; you finish publishing in the platform.'];
-    if ($method==='direct'&&$slug==='tiktok') return ['usable'=>false,'mode'=>'manual','reason'=>'TikTok does not approve Direct Post apps used only as a private upload utility for your own or your team’s accounts. Use assisted posting or a separately authorized publishing partner.'];
     if (!$connection||$connection['status']!=='connected'||empty($connection['external_id'])||empty($connection['selected_resource'])) return ['usable'=>false,'mode'=>$method,'reason'=>'Connect the provider and confirm the actual destination first.'];
     if ($method==='buffer') {
         if (!$bufferChannel) return ['usable'=>false,'mode'=>'buffer','reason'=>'Select a channel returned by Buffer.'];
@@ -140,16 +151,19 @@ function publishing_capability(array $channel, ?array $connection = null, ?array
     if ($method==='direct'&&$slug==='youtube') return publishing_youtube_connection_ready($connection)
         ? ['usable'=>true,'mode'=>'direct','reason'=>'Resumable video upload is available for the confirmed YouTube channel. Each revision must include an owned video and explicit audience settings.']
         : ['usable'=>false,'mode'=>'direct','reason'=>'Authorize the separate YouTube upload connection, including upload and read scopes, then confirm the actual channel.'];
+    if ($method==='direct'&&$slug==='tiktok') return publishing_tiktok_business_connection_ready($connection)
+        ? ['usable'=>true,'mode'=>'direct','reason'=>'Native Accounts API video publishing is available for this confirmed TikTok account. Each revision needs an owned public video, explicit settings and a verified media URL property.']
+        : ['usable'=>false,'mode'=>'direct','reason'=>'Authorize the separate TikTok Accounts API app and confirm its returned account and publishing permissions. TikTok read access does not authorize posting.'];
     if ($method==='direct'&&in_array($slug,['linkedin','x','instagram','facebook'],true)) return ['usable'=>true,'mode'=>'direct','reason'=>in_array($slug,['x','linkedin','facebook'],true)?'Direct text/link publishing is available for this confirmed account.':'Direct single-image publishing is available for this professional account.'];
     return ['usable'=>false,'mode'=>$method,'reason'=>'Use Buffer or assisted publishing for this channel and format.'];
 }
 
-function publishing_service_for_channel(string $slug): string { return $slug==='facebook'?'facebook_pages':($slug==='youtube'?'google_youtube_upload':$slug); }
+function publishing_service_for_channel(string $slug): string { return match($slug){'facebook'=>'facebook_pages','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_business',default=>$slug}; }
 
 function publishing_destination(array $channel, array $variant=[]): array {
     $method=$channel['delivery_method'];
     $dest=['slug'=>$channel['slug'],'name'=>$channel['name'],'profile_url'=>$channel['profile_url'],'account_type'=>$channel['account_type'],'method'=>$method];
-    if ($channel['slug']==='youtube') $dest['visibility']=$variant['privacy']??'private';
+    if ($channel['slug']==='youtube'||($channel['slug']==='tiktok'&&$method==='direct')) $dest['visibility']=$variant['privacy']??'private';
     $connection=null;$remote=null;
     if ($method!=='manual') $connection=publishing_connection($method==='buffer'?'buffer':publishing_service_for_channel($channel['slug']));
     if ($method==='buffer') foreach(publishing_buffer_channels($connection) as $item) if($item['id']===$channel['buffer_channel_id']){$remote=$item;break;}
@@ -174,6 +188,8 @@ function publishing_validate_variant(string $slug, array $variant, array $destin
     if (($media!==''||$ownedMedia)&&$variant['media_type']==='image'&&$variant['alt_text']==='') throw new RuntimeException('Add an image description for '.$slug.'.');
     if ($method==='manual') return;
     if ($slug==='youtube'&&$method==='direct') { publishing_youtube_validate_variant($variant); return; }
+    if ($slug==='tiktok'&&$method==='direct') { publishing_tiktok_business_validate_variant($variant); return; }
+    if ($slug==='tiktok'&&$method==='buffer'&&(!empty($variant['tiktok_settings_confirmed'])||!empty($variant['tiktok_allow_comments'])||!empty($variant['tiktok_allow_duet'])||!empty($variant['tiktok_allow_stitch'])||!empty($variant['tiktok_brand_organic'])||!empty($variant['tiktok_branded_content']))) throw new RuntimeException('The selected native TikTok interaction and promotional settings need the Accounts API route or assisted publishing. This Buffer adapter cannot apply them.');
     if ($ownedMedia&&$media==='') throw new RuntimeException('This delivery route needs a public media-library asset. Keep private media for direct YouTube upload or assisted publishing.');
     if ($slug==='youtube'&&($media===''||$variant['media_type']!=='video'||$variant['title']==='')) throw new RuntimeException('YouTube delivery through Buffer needs a public video file and title.');
     if ($slug==='youtube'&&$method==='buffer'&&($variant['format']!=='short'||!empty($variant['notify_subscribers']))) throw new RuntimeException('This Buffer route supports Shorts without a custom subscriber-notification setting. Choose direct YouTube upload for a full-length video or explicit notifications.');

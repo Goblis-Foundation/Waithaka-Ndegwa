@@ -34,7 +34,7 @@ $read=$connection;$read['status']='pending_confirmation';
 yt_check(!publishing_capability($channel,$read)['usable'],'Observed identity requires destination confirmation');
 $read=$connection;$read['selected_resource']='https://youtube.com/@example';
 yt_check(!publishing_capability($channel,$read)['usable'],'Branding URL is not an observed channel ID');
-yt_check(!publishing_capability(['slug'=>'tiktok','delivery_method'=>'direct'])['usable'],'No unsupported TikTok private-utility direct route is advertised');
+yt_check(!publishing_capability(['slug'=>'tiktok','delivery_method'=>'direct'])['usable'],'Native TikTok posting requires a separate confirmed Accounts API grant');
 
 $variant=publishing_default_draft()['variants']['youtube'];
 $variant['title']='Week one: testing the problem';$variant['text']='A video from the first week.';

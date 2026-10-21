@@ -1,0 +1,50 @@
+Additional release validation — 2026-10-21 r3
+
+Composer manifest/lock
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+./composer.json is valid
+
+Exit code: 0
+
+Installed platform requirements
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+Checking platform requirements for packages in the vendor dir
+ext-ctype     *          success provided by symfony/polyfill-ctype
+ext-curl      8.3.6      success
+ext-dom       20031129   success
+ext-fileinfo  8.3.6      success
+ext-filter    8.3.6      success
+ext-gd        8.3.6      success
+ext-hash      8.3.6      success
+ext-iconv     8.3.6      success
+ext-json      8.3.6      success
+ext-mbstring  *          success provided by symfony/polyfill-mbstring
+ext-openssl   8.3.6      success
+ext-pcre      8.3.6      success
+ext-pdo       8.3.6      success
+ext-pdo_mysql 8.3.6      success
+ext-simplexml 8.3.6      success
+php           8.3.6      success
+
+Exit code: 0
+
+Locked dependency advisory audit
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+No security vulnerability advisories found.
+
+Exit code: 0
+
+PHP/JavaScript syntax
+PASS: syntax checks for 115 PHP files and 2 JavaScript files.
+
+Exit code: 0
+
+Syntax/parsing: 4 shell files, 4 Python files, 7 JSON files.
+
+CloudFormation static lint (cfn-lint 1.58.0)
+Exit code: 0
+
+git diff --check
+Exit code: 0
+
+All AWS helper tests used mocked commands. No live deployment or provider operation.

@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__.'/tiktok.php';
+require_once __DIR__.'/tiktok_business.php';
+
 /** Official endpoint references, checked 2026-10-21:
  * https://developers.google.com/identity/protocols/oauth2/web-server
  * https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2
@@ -20,6 +23,8 @@ function publishing_services(): array {
         'facebook_pages' => ['name'=>'Facebook Page discovery', 'provider'=>'facebook', 'scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'], 'description'=>'Discover Pages you manage, then choose a real Page. This cannot publish to your professional-mode profile.'],
         'linkedin' => ['name'=>'LinkedIn member', 'provider'=>'linkedin', 'scopes'=>['openid','profile','w_member_social'], 'description'=>'Requires Sign In with LinkedIn using OpenID Connect and Share on LinkedIn products. Direct delivery supports text and links; use Buffer for media.'],
         'x' => ['name'=>'X professional account', 'provider'=>'x', 'scopes'=>['tweet.read','tweet.write','users.read','offline.access'], 'description'=>'User OAuth with PKCE. Direct text/link posts use the X API and may incur usage charges. Set your spending limit in X.'],
+        'tiktok_read' => ['name'=>'TikTok read access', 'provider'=>'tiktok', 'scopes'=>publishing_tiktok_scopes(), 'description'=>'Login Kit and Display API approval are required. Verify and confirm your TikTok identity, then read profile totals and up to 20 recent public videos. This grant does not permit posting or verify a Business account type.'],
+        'tiktok_business' => ['name'=>'TikTok Accounts publishing', 'provider'=>'tiktok_business', 'scopes'=>publishing_tiktok_business_scopes(), 'description'=>'Separate API for Business app approval and account-holder authorization. Confirms the actual account and its current settings before native public video delivery from your verified owned media domain. Professional labeling and the read-only grant do not authorize this route.'],
         'buffer' => ['name'=>'Buffer', 'provider'=>'buffer', 'scopes'=>[], 'description'=>'Connect a personal API key, then select the returned channels. Channel features and publishing rights still depend on the platform and your plan.'],
     ];
 }
@@ -39,7 +44,7 @@ function publishing_client(string $provider): array {
 }
 
 function publishing_callback_url(string $service): string {
-    $callback = url('/write/connections/callback/'.$service);
+    $callback = url('/write/connections/callback/'.$service.($service==='tiktok_business'?'/':''));
     $host = strtolower((string)parse_url($callback, PHP_URL_HOST));
     $local = in_array($host, ['localhost','127.0.0.1','[::1]'], true);
     if (parse_url($callback, PHP_URL_SCHEME) !== 'https' && !($local && app_config('app_env') !== 'production')) {
@@ -69,6 +74,7 @@ function publishing_oauth_start(string $service, int $userId): string {
     db()->prepare('DELETE FROM publishing_oauth_states WHERE expires_at < UTC_TIMESTAMP()')->execute();
     db()->prepare('INSERT INTO publishing_oauth_states(state_hash,service,user_id,session_hash,verifier_encrypted,expires_at) VALUES(?,?,?,?,?,?)')
         ->execute([hash('sha256',$state),$service,$userId,hash('sha256',session_id()),encrypt_secret($verifier),gmdate('Y-m-d H:i:s',time()+600)]);
+    if($provider==='tiktok_business')return publishing_tiktok_business_authorization_url($state);
     $params = ['response_type'=>'code','client_id'=>$client['client_id'],'redirect_uri'=>publishing_callback_url($service),'state'=>$state,'scope'=>implode(' ',$definition['scopes'])];
     if (in_array($provider,['google','x'],true)) {
         $params['code_challenge'] = rtrim(strtr(base64_encode(hash('sha256',$verifier,true)), '+/', '-_'), '=');
@@ -80,6 +86,7 @@ function publishing_oauth_start(string $service, int $userId): string {
         'x'=>'https://x.com/i/oauth2/authorize',
         'instagram'=>'https://www.instagram.com/oauth/authorize',
         'facebook'=>'https://www.facebook.com/'.publishing_meta_version().'/dialog/oauth',
+        'tiktok'=>'https://www.tiktok.com/v2/auth/authorize/',
         default=>throw new RuntimeException('Unknown OAuth provider.')
     };
     if ($provider === 'google') {
@@ -90,6 +97,12 @@ function publishing_oauth_start(string $service, int $userId): string {
     } elseif ($provider === 'facebook') {
         $params['scope'] = implode(',',$definition['scopes']);
         $params['auth_type'] = 'rerequest';
+    } elseif ($provider === 'tiktok') {
+        $callback=parse_url($params['redirect_uri']);
+        if(($callback['scheme']??'')!=='https' || isset($callback['query']) || isset($callback['fragment']) || strlen($params['redirect_uri'])>=512) throw new RuntimeException('TikTok Login Kit requires a registered, static HTTPS callback address.');
+        $params['client_key']=$params['client_id'];unset($params['client_id']);
+        $params['scope']=implode(',',$definition['scopes']);
+        $params['disable_auto_auth']=1;
     }
     return $endpoint.'?'.http_build_query($params,'','&',PHP_QUERY_RFC3986);
 }
@@ -114,6 +127,19 @@ function publishing_oauth_complete(string $service, string $code, array $state, 
     $definition = publishing_services()[$service];
     $provider = $definition['provider'];
     $client = publishing_client($provider);
+    if($provider==='tiktok_business') {
+        $token=publishing_tiktok_business_token_request($client+['grant_type'=>'authorization_code','auth_code'=>$code,'redirect_uri'=>publishing_callback_url($service)]);
+        $observed=publishing_tiktok_business_identity($token);
+        publishing_save_observed_connection($service,$token,publishing_tiktok_business_granted_scopes($token['scope']),$observed,$userId);
+        return;
+    }
+    if ($provider === 'tiktok') {
+        $token=publishing_tiktok_token_request(['client_key'=>$client['client_id'],'client_secret'=>$client['client_secret'],
+            'grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>publishing_callback_url($service)]);
+        $observed=publishing_tiktok_identity($token);
+        publishing_save_observed_connection($service,$token,publishing_tiktok_granted_scopes($token['scope']),$observed,$userId);
+        return;
+    }
     $body = $client + ['grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>publishing_callback_url($service)];
     $headers = [];
     if (in_array($provider,['google','x'],true)) $body['code_verifier'] = decrypt_secret((string)$state['verifier_encrypted']);
@@ -151,6 +177,8 @@ function publishing_oauth_complete(string $service, string $code, array $state, 
 }
 
 function publishing_provider_identity(string $service, array &$token): array {
+    if($service==='tiktok_read') return publishing_tiktok_identity($token);
+    if($service==='tiktok_business')return publishing_tiktok_business_identity($token);
     $access = publishing_bearer((string)$token['access_token']);
     $provider = publishing_services()[$service]['provider'];
     $resources = [];
@@ -234,6 +262,8 @@ function publishing_confirm_connection(string $service, string $resource, int $u
 }
 
 function publishing_access_token(array $connection): string {
+    if(($connection['provider']??'')==='tiktok') return publishing_tiktok_access_token($connection);
+    if(($connection['provider']??'')==='tiktok_business')return publishing_tiktok_business_access_token($connection);
     if ($connection['status'] !== 'connected') throw new PublishingRemoteException('Reconnect and confirm the destination before publishing.',401);
     $credentials = publishing_credentials($connection);
     if (empty($credentials['access_token'])) throw new PublishingRemoteException('Reconnect this account to restore access.',401);

@@ -242,7 +242,8 @@ function wk_test_http(array $environment, string $temporaryDirectory): array
         foreach (['010_security_http.php' => 'HTTP security and shared layouts',
                   'publishing_http_test.php' => 'HTTP publishing workflow',
                   'newsletter_http_test.php' => 'HTTP newsletter workflow',
-                  'implementation_http_test.php' => 'HTTP media, operations and feedback'] as $file => $label) {
+                  'implementation_http_test.php' => 'HTTP media, operations and feedback',
+                  'archive_http_test.php' => 'HTTP archive discovery and editorial privacy'] as $file => $label) {
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $results['passed']++;
             else $results['failures'][] = $label;
         }
@@ -290,7 +291,8 @@ try {
         $passedCount = 0;
         foreach (['010_security_unit.php' => 'Pure security', 'publishing_test.php' => 'Pure publishing',
                   'runtime_config_test.php' => 'Pure runtime configuration',
-                  'newsletter_unit.php'=>'Pure newsletter policy','youtube_test.php'=>'Pure YouTube policy',
+                  'newsletter_unit.php'=>'Pure newsletter policy','youtube_test.php'=>'Pure YouTube policy','tiktok_test.php'=>'Pure TikTok permissions and reporting',
+                  'tiktok_business_test.php'=>'Pure TikTok Accounts API publishing policy',
                   'readiness_unit.php'=>'Pure operations diagnostics','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
             $suiteCount++;
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $passedCount++;
@@ -313,10 +315,12 @@ try {
                 'feedback' => 'mail_feedback_database.php',
                 'media' => 'media_library_database.php',
                 'youtube' => 'youtube_database_test.php',
+                'tiktok' => 'tiktok_database_test.php',
+                'tiktok_business' => 'tiktok_business_database_test.php',
                 'http' => '010_security_http.php',
             ];
             foreach ($suites as $suite => $file) {
-                $suiteCount += $suite === 'http' ? 4 : 1;
+                $suiteCount += $suite === 'http' ? 5 : 1;
                 $name = 'waithaka_test_'.$runId.'_'.$suite.'_test';
                 $suiteEnvironment = wk_test_suite_environment($environment, $settings, $name);
                 $prepare = [PHP_BINARY, __DIR__.'/prepare.php', '--database='.$name];

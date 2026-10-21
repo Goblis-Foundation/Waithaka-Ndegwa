@@ -9,22 +9,26 @@ final class PublishingRemoteException extends RuntimeException {
 
 /** Provider URLs are fixed in adapters. Never forward credentials to arbitrary media URLs. */
 function publishing_http(string $method, string $url, array $headers = [], ?array $body = null, bool $form = false, bool $publishingMutation = false): array {
-    $allowed = ['api.buffer.com','accounts.google.com','oauth2.googleapis.com','openidconnect.googleapis.com','www.googleapis.com','analyticsadmin.googleapis.com','analyticsdata.googleapis.com','youtube.googleapis.com','www.linkedin.com','api.linkedin.com','api.x.com','api.instagram.com','graph.instagram.com','graph.facebook.com'];
+    $allowed = ['api.buffer.com','accounts.google.com','oauth2.googleapis.com','openidconnect.googleapis.com','www.googleapis.com','analyticsadmin.googleapis.com','analyticsdata.googleapis.com','youtube.googleapis.com','www.linkedin.com','api.linkedin.com','api.x.com','api.instagram.com','graph.instagram.com','graph.facebook.com','open.tiktokapis.com','business-api.tiktok.com'];
     $parts = parse_url($url);
     if (($parts['scheme'] ?? '') !== 'https' || !in_array(strtolower($parts['host'] ?? ''), $allowed, true) || isset($parts['user']) || isset($parts['port'])) {
         throw new RuntimeException('Provider endpoint is not allowed.');
     }
     if (!function_exists('curl_init')) throw new RuntimeException('The server needs the PHP cURL extension for provider connections.');
+    $fixtureUrl=publishing_http_tiktok_fixture_url($url);
+    if($fixtureUrl===$url&&function_exists('publishing_http_tiktok_business_fixture_url'))$fixtureUrl=publishing_http_tiktok_business_fixture_url($url);
+    $fixture=$fixtureUrl!==$url;
     $responseHeaders = [];
-    $ch = curl_init($url);
+    $ch = curl_init($fixtureUrl);
     $headers[] = 'Accept: application/json';
     $options = [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => $method, CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 45,
-        CURLOPT_FOLLOWLOCATION => false, CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+        CURLOPT_FOLLOWLOCATION => false, CURLOPT_PROTOCOLS => $fixture?CURLPROTO_HTTP:CURLPROTO_HTTPS,
         CURLOPT_HEADERFUNCTION => static function ($handle, string $line) use (&$responseHeaders): int {
             $pair = explode(':', $line, 2);
             if (count($pair) === 2) $responseHeaders[strtolower(trim($pair[0]))] = trim($pair[1]);
             return strlen($line);
         }];
+    if($fixture) $options[CURLOPT_PROXY]='';
     if ($body !== null) {
         $headers[] = $form ? 'Content-Type: application/x-www-form-urlencoded' : 'Content-Type: application/json';
         $options[CURLOPT_POSTFIELDS] = $form ? http_build_query($body, '', '&', PHP_QUERY_RFC3986) : json_encode($body, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
@@ -53,6 +57,19 @@ function publishing_http(string $method, string $url, array $headers = [], ?arra
         else throw new PublishingRemoteException('The provider returned an unreadable response.', $code, $publishingMutation);
     }
     return ['data' => $data, 'headers' => $responseHeaders, 'status' => $code];
+}
+
+/** Numeric loopback fixture only; no configurable production API destination. */
+function publishing_http_tiktok_fixture_url(string $url): string {
+    $base=getenv('TIKTOK_TEST_BASE_URL');
+    if(!$base || parse_url($url,PHP_URL_HOST)!=='open.tiktokapis.com') return $url;
+    if(app_config('app_env')!=='testing' || !preg_match('~\Ahttp://127\.0\.0\.1:([1-9][0-9]{0,4})\z~',$base,$match) || (int)$match[1]>65535) {
+        throw new RuntimeException('TikTok test endpoints are restricted to an explicit testing environment and numeric loopback port.');
+    }
+    $parts=parse_url($url);
+    if(($parts['scheme']??'')!=='https' || isset($parts['user']) || isset($parts['port']) || isset($parts['fragment'])
+        || !in_array($parts['path']??'',['/v2/oauth/token/','/v2/user/info/','/v2/video/list/'],true)) throw new RuntimeException('Unsupported TikTok fixture endpoint.');
+    return $base.$parts['path'].(isset($parts['query'])?'?'.$parts['query']:'');
 }
 
 function publishing_bearer(string $token): array {

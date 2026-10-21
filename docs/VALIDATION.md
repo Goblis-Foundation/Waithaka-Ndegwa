@@ -1,45 +1,54 @@
 # Validation record
 
-Release: 2026-10-21 r2. Scope: the recovered V9 website and the full implementation release.
+Release: 2026-10-21 r3. Scope: the recovered V9 website and the full implementation release, including TikTok reporting/native publishing and archive/media corrections.
 
 ## Final combined result
 
-**All 22 suites passed: 939 PHP assertions across 21 suites, plus 43 Python deployment regression cases.** The application runtime was PHP 8.3.6 with MariaDB 10.11.14 on an isolated local server. The Python cases mock every AWS operation.
+**All 27 suites passed: 1,401 PHP assertions across 26 suites, plus 43 Python deployment regression cases.** The application runtime was PHP 8.3.6 with MariaDB 10.11.14 on an isolated local server. The Python cases mock every AWS operation.
 
 | Suite | Passing assertions or cases |
 | --- | ---: |
 | Security unit | 72 |
-| Publishing policy and provider classification | 52 |
+| Publishing policy and provider classification | 61 |
 | Runtime configuration, proxy, key, storage and worker policy | 78 |
 | Newsletter validation and rendering | 67 |
 | YouTube upload policy | 60 |
+| TikTok reporting permissions and policy | 45 |
+| TikTok Accounts API authorization and publishing policy | 109 |
 | Operations diagnostics policy | 38 |
 | Signed SNS and email contracts | 31 |
 | YouTube resumable HTTP protocol fixture | 46 |
 | Security database workflows | 35 |
 | Journeys, founder review, subscriptions and RSS | 75 |
-| Publishing database workflows | 16 |
+| Publishing database workflows | 34 |
 | Sessions, migrations, outbox and reminders | 32 |
 | Newsletter database, campaigns and consent | 92 |
 | Operations and heartbeat database workflows | 18 |
 | Signed mail feedback database workflows | 23 |
-| Owned media database workflows | 27 |
+| Owned media database workflows | 64 |
 | YouTube approval, media and worker database integration | 22 |
+| TikTok reporting OAuth and database workflows | 34 |
+| TikTok Accounts API OAuth, media and worker workflows | 77 |
 | Security and shared-layout HTTP workflows | 38 |
-| Publishing approval/scheduling HTTP workflows | 41 |
+| Publishing approval/scheduling HTTP workflows | 50 |
 | Newsletter composer/approval/consent HTTP workflows | 52 |
 | Media, Operations and feedback HTTP workflows | 24 |
-| **PHP assertion total** | **939** |
+| Archive discovery, canonical URLs and editorial privacy HTTP workflows | 124 |
+| **PHP assertion total** | **1,401** |
 | Offline AWS installation/cutover regression cases | **43** |
 
-All **105 PHP files and two JavaScript files** passed syntax checks. Four shell files, four Python files and seven JSON files also passed their syntax/parsing checks. CloudFormation lint passed for **data-stack.json, edge-stack.json and mail-feedback-stack.json**, using cfn-lint 1.58.0.
+All **115 PHP files and two JavaScript files** passed syntax checks. Four shell files, four Python files and seven JSON files also passed their syntax/parsing checks. CloudFormation lint passed for **data-stack.json, edge-stack.json and mail-feedback-stack.json**, using cfn-lint 1.58.0.
 
 Complete current evidence:
 
-- [Combined regression output](../tests/evidence/full-regression-2026-10-21-r2.txt)
-- [Dependency, syntax and deployment checks](../tests/evidence/release-checks-2026-10-21-r2.txt)
+- [Combined regression output](../tests/evidence/full-regression-2026-10-21-r3.txt)
+- [Dependency, syntax and deployment checks](../tests/evidence/release-checks-2026-10-21-r3.txt)
 
-The earlier 439-assertion foundation record remains in tests/evidence for provenance; it is superseded by the combined results above. The final command used `composer --no-plugins test` with explicit disposable loopback database settings. `php tests/run.php --help` documents the fixture contract.
+The earlier 439-assertion foundation and r2 combined records remain in tests/evidence for provenance; they are superseded by the combined results above. The final command used `composer --no-plugins test` with explicit disposable loopback database settings. `php tests/run.php --help` documents the fixture contract.
+
+### TikTok professional declaration
+
+The owner's 2026-10-21 correction records TikTok as professional, explicitly distinguished from a provider-verified Business subtype or API authorization. Migration `090_tiktok_professional.sql` updates only the legacy current-channel declaration; the historical seed migration and evidence logs remain unchanged. Passing policy and database regressions cover identity/credential/approval/job preservation, stale-review rejection, idempotence, preservation of more specific declarations and unchanged authorization requirements.
 
 ## What was exercised
 
@@ -50,6 +59,7 @@ The HTTP suites use actual local sessions, rendered forms, multipart uploads and
 - Autosaved changes stay private until explicit publication; stale article edits and stale approvals fail.
 - Writer, private previews, media downloads and reports require authentication. Mutations require the intended method and CSRF checks. Operations rejects mutations.
 - One publicly active startup journey is enforced under serialized mutation. Founder publication requires permission/claim review and a public associated article.
+- Public archive fixtures include 70 public articles and hidden/draft/future records; navigation, exact counts, stable ordering, canonical URLs, malformed/out-of-range requests and a single-article final page are exercised. Founder review fixtures include 250 submissions and verify authenticated filtered access beyond the former 200-record limit.
 - Approved social revisions and destinations stay fixed while later drafts change. Duplicate scheduling creates no duplicate job.
 - Direct and partner routes reject unsupported private-media combinations instead of silently dropping the asset.
 - Provider acceptance, verified publication, assisted completion evidence and uncertain results remain distinct.
@@ -69,8 +79,19 @@ The HTTP suites use actual local sessions, rendered forms, multipart uploads and
 - Private uploads remain private; spoofed filenames do not determine MIME type. Files have immutable keys, lengths, types and fingerprints.
 - Actual multipart upload, authenticated byte-range preview, private-path denial, archive behavior, changed bytes and out-of-bound requests are exercised.
 - Staging-directory ownership/permissions, bounded reads, approved snapshot matching and hash verification are enforced in code. Live S3 transport remains a deployment check.
+- Older saved media remains selected beyond the latest 200 assets. Archived, missing or incompatible selections remain explicit rather than being silently discarded. New selections and approvals still require an available eligible asset.
+- Public-media binding checks reject a changed URL, configured driver/bucket/prefix mismatch, changed file bytes and unpinned S3 versions. Offline AWS SDK fixtures verify the current version before/after reading the approved version and the version returned by the download. Live DNS/CDN routing and out-of-band changes after preflight remain external checks.
 - YouTube fixtures cover partial ranges, dropped worker results, lost initialization/final responses, expired sessions, wrong channels and missing/mismatched publication settings.
 - Real database integration freezes the exact media/settings, survives later draft edits and asset archiving, and recovers the original private video ID without another upload.
+
+### TikTok reporting and native publishing
+
+- The owner-declared professional label is independent of provider-returned account flags and grants. The additive migration preserves existing identities, encrypted credentials, routes, immutable approvals and jobs; the historical seed remains unchanged.
+- Reporting uses the separate Login Kit/Display API grant and actual returned open ID, username and profile/video data. Pending identity confirmation, absent counters, malformed responses, scope changes and serialized rotating-token renewal are covered by pure and real loopback/database fixtures.
+- Native publishing uses the separate API for Business Accounts API grant. The copied official portal URL requires one safe opaque client identifier, the exact callback and the necessary scopes; outgoing consent is limited to the four displayed permissions. Token inspection independently verifies the configured app ID and authorized creator, without assuming the portal client key equals the app ID.
+- Approval freezes the public owned video, caption, audience, interaction settings, promotional declarations, AI setting and destination. Fresh account restrictions, verified media-property records, actual owned bytes and storage binding are rechecked before publishing. Provider media processing enforces video duration, dimensions, frame rate and encoding; these are not analyzed locally.
+- Actual local HTTP/database fixtures exercise accepted tasks, delayed public IDs, codec rejection, missing or uncertain acknowledgements, HTTP failures and HTTP-200 error envelopes. The durable attempt checkpoint prevents automatic reposting; a known share ID is saved before returning and can only resume status reads.
+- Exact documented credential errors require reconnection, while entitlement, rate-limit and unknown codes are not misclassified as expired credentials. A reconnectable error during status recovery preserves the accepted task. Token rotation is serialized, uses exact encrypted-credential comparison and cannot replay an uncertain renewal request.
 
 ### AWS recovery helper
 
@@ -90,7 +111,7 @@ The dependency command output includes the local sandbox's root/temp-directory w
 
 ## Isolation and runtime limits
 
-Full tests require the explicit write flag and numeric loopback database target. The runner creates **ten fresh uniquely named schemas**, never reuses an existing schema and never drops a database. It passes an allowlisted environment and an empty private configuration to child processes. Tests use synthetic accounts, media and recipients, with production transport disabled or replaced by guarded local fixtures. The runner starts/stops only its own HTTP processes.
+Full tests require the explicit write flag and numeric loopback database target. The runner creates **twelve fresh uniquely named schemas**, never reuses an existing schema and never drops a database. It passes an allowlisted environment and an empty private configuration to child processes. Tests use synthetic accounts, media and recipients, with production transport disabled or replaced by guarded local fixtures. The runner starts/stops only its own HTTP processes.
 
 No real social post, YouTube upload, OAuth grant, email delivery, SQL restoration, AWS provisioning or DNS change occurred during implementation.
 
@@ -104,7 +125,7 @@ The AWS Console remained unavailable in this session. The personal website's act
 
 The runbook still requires a faithful staging restore; selected supported Beanstalk/PHP and MySQL versions; IAM/RDS TLS/network checks; certificates and DNS; Apache/PHP-FPM source protection; CloudFront redirects/cache rules; S3 object/version/private-access checks; an actual large upload; timer heartbeat and delivery controls; backup restoration; and monitoring ownership.
 
-Google and social integrations require real app registration, owner authorization, returned resource confirmation and controlled account-specific tests. Native YouTube requires an owned video and explicit approved settings. Facebook professional-profile posting remains assisted unless a real Page is confirmed. TikTok is assisted or uses an eligible separately authorized partner; this private utility does not implement a native Direct Post route.
+Google and social integrations require real app registration, owner authorization, returned resource confirmation and controlled account-specific tests. Native YouTube requires an owned video and explicit approved settings. Facebook professional-profile posting remains assisted unless a real Page is confirmed. TikTok is recorded as professional by owner declaration; this is not a verified Business subtype or an API grant. Native TikTok requires the separate Accounts API app review, actual account-holder authorization, inspected app/creator/scopes, current settings and verified media domain or URL prefix. Login Kit reporting cannot authorize publishing. No real app review, OAuth callback, TikTok domain verification or public-video delivery has been performed. Assisted and eligible separately authorized partner routes remain available.
 
 SES needs actual sender verification, DKIM and sending access, an exact configuration set/topic, signed subscription confirmation and tested bounce/complaint suppression. Inspect the received message's DKIM coverage of one-click headers. Accepted mail, recipient-server delivery, inbox placement and reading are different outcomes. The SMTP option does not inherit SES feedback; another provider needs equivalent tested feedback integration before campaigns.
 

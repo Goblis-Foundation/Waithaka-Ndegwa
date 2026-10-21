@@ -49,24 +49,26 @@ if ($path === '/') {
     exit;
 }
 
-if ($path === '/writing') { redirect(url('/my-thoughts'), 301); }
+if ($path === '/writing') { $pageNumber=archive_page_number($_GET['page']??null);if($pageNumber===null)not_found();redirect(url(archive_page_path('/my-thoughts',$pageNumber)), 301); }
 if (preg_match('~^/writing/([a-z0-9-]+)$~',$path,$m)) { redirect(url('/my-thoughts/'.$m[1]), 301); }
 
 if ($path === '/my-thoughts') {
+    $pagination=archive_pagination(archive_page_number($_GET['page']??null),public_post_count(),24,'/my-thoughts');if($pagination===null)not_found();
     render('writing',[
-        'page'=>'thoughts','posts'=>latest_posts(50),'categories'=>categories(),'activeCategory'=>null,
-        'seo'=>['title'=>'My Thoughts · Africa, Development & a Global View · Waithaka Ndegwa','description'=>'Long-form personal views from Kenya and East Africa on social entrepreneurship, agribusiness, infrastructure, innovation and travel, written for readers across Africa and the wider world.','canonical'=>url('/my-thoughts')]
+        'page'=>'thoughts','posts'=>latest_posts($pagination['per_page'],null,$pagination['offset']),'categories'=>categories(),'activeCategory'=>null,'pagination'=>$pagination,
+        'seo'=>['title'=>'My Thoughts'.($pagination['page']>1?' · Page '.$pagination['page']:'').' · Africa, Development & a Global View · Waithaka Ndegwa','description'=>'Long-form personal views from Kenya and East Africa on social entrepreneurship, agribusiness, infrastructure, innovation and travel, written for readers across Africa and the wider world.','canonical'=>url($pagination['path'])]
     ]);
     exit;
 }
 
 if (preg_match('~^/topic/([a-z0-9-]+)$~',$path,$m)) {
     $cat=category_by_slug($m[1]); if(!$cat) not_found();
+    $pagination=archive_pagination(archive_page_number($_GET['page']??null),public_post_count((int)$cat['id']),24,'/topic/'.$cat['slug']);if($pagination===null)not_found();
     $regionalTopicIntro=$cat['description'].' I follow how these questions play out across Kenya, Tanzania and Zanzibar, Uganda, Rwanda and Burundi, and how East African experience connects with ideas, investment and practice in Europe, the United Kingdom, North America and beyond.';
     render('writing',[
-        'page'=>'thoughts','posts'=>latest_posts(50,(int)$cat['id']),'categories'=>categories(),'activeCategory'=>$cat,
+        'page'=>'thoughts','posts'=>latest_posts($pagination['per_page'],(int)$cat['id'],$pagination['offset']),'categories'=>categories(),'activeCategory'=>$cat,'pagination'=>$pagination,
         'headingEyebrow'=>'Topic','heading'=>$cat['name'],'intro'=>$regionalTopicIntro,
-        'seo'=>['title'=>$cat['name'].' · Africa & Global Perspectives · Waithaka Ndegwa','description'=>$regionalTopicIntro,'canonical'=>url('/topic/'.$cat['slug'])]
+        'seo'=>['title'=>$cat['name'].($pagination['page']>1?' · Page '.$pagination['page']:'').' · Africa & Global Perspectives · Waithaka Ndegwa','description'=>$regionalTopicIntro,'canonical'=>url($pagination['path'])]
     ]);
     exit;
 }

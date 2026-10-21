@@ -15,12 +15,17 @@ function publishing_dispatch(string $path): bool {
             render_write('connections',['writeTitle'=>'Connections','connections'=>$connections,'services'=>publishing_services(),'channels'=>publishing_channels()]);return true;
         }
         if ($path==='/write/connections/settings'&&is_post()) {
-            foreach(['google','linkedin','instagram','facebook','x'] as $provider) foreach(['client_id','client_secret'] as $field) {
+            foreach(['google','linkedin','instagram','facebook','x','tiktok','tiktok_business'] as $provider) foreach(['client_id','client_secret'] as $field) {
                 $value=trim((string)($_POST[$provider.'_'.$field]??''));
                 if ($value!=='') {
                     if (strlen($value)>2000||preg_match('/[\r\n]/',$value)) throw new RuntimeException('A provider credential has an invalid format.');
                     set_setting('publishing.'.$provider.'.'.$field,$value,true);
                 }
+            }
+            $businessAuthorization=trim((string)($_POST['tiktok_business_authorization_url']??''));
+            if($businessAuthorization!==''){
+                if(strlen($businessAuthorization)>8000||preg_match('/[\r\n]/',$businessAuthorization))throw new RuntimeException('The TikTok Accounts API authorization address has an invalid format.');
+                set_setting('publishing.tiktok_business.authorization_url',$businessAuthorization,true);
             }
             $version=(string)($_POST['meta_version']??'v24.0');
             if(!preg_match('/^v\d{2}\.0$/',$version))throw new RuntimeException('Enter a valid Meta API version.');
@@ -37,14 +42,14 @@ function publishing_dispatch(string $path): bool {
             if(!isset(publishing_services()[$service]))throw new RuntimeException('Unknown provider callback.');
             $state=publishing_consume_state($service,(string)($_GET['state']??''),$userId);
             if(!empty($_GET['error']))throw new RuntimeException('Authorization was declined or cancelled. Existing publication drafts have not changed.');
-            $code=(string)($_GET['code']??'');if($code===''||strlen($code)>8000)throw new RuntimeException('The provider did not return an authorization code.');
+            $code=(string)($_GET[$service==='tiktok_business'?'auth_code':'code']??'');if($code===''||strlen($code)>8000)throw new RuntimeException('The provider did not return an authorization code.');
             publishing_oauth_complete($service,$code,$state,$userId);
             flash('success','The provider returned an account. Confirm the actual destination before using this connection.');redirect(url('/write/connections#'.$service));
         }
         if (preg_match('~^/write/connections/([a-z_]+)/confirm$~',$path,$m)&&is_post()) {
             if(empty($_POST['confirm_identity']))throw new RuntimeException('Confirm that the returned account and selected destination are yours to use.');
             publishing_confirm_connection($m[1],(string)($_POST['resource']??''),$userId);
-            flash('success','Destination confirmed. Choose its delivery route in the channel settings.');redirect(url('/write/connections#channels'));
+            flash('success','Account and destination confirmed. Use its authorized features below; publishing routes are selected separately.');redirect(url('/write/connections#'.$m[1]));
         }
         if (preg_match('~^/write/connections/([a-z_]+)/disconnect$~',$path,$m)&&is_post()) {
             if(!isset(publishing_services()[$m[1]]))throw new RuntimeException('Unknown connection.');
@@ -54,8 +59,8 @@ function publishing_dispatch(string $path): bool {
         }
         if (preg_match('~^/write/connections/([a-z_]+)/report$~',$path,$m)&&is_post()) {
             $connection=publishing_connection($m[1]);
-            if(!$connection||$connection['provider']!=='google'||$connection['status']!=='connected'||empty($connection['selected_resource']))throw new RuntimeException('Connect the relevant Google service and confirm its site, property or channel before loading a report.');
-            $report=publishing_google_report($connection);
+            if(!$connection||!in_array($m[1],['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','tiktok_read'],true)||$connection['status']!=='connected'||empty($connection['selected_resource']))throw new RuntimeException('Authorize the relevant reporting service and confirm the returned account or destination before loading a report.');
+            $report=$m[1]==='tiktok_read'?publishing_tiktok_report($connection):publishing_google_report($connection);
             render_write('connections_report',['writeTitle'=>publishing_services()[$m[1]]['name'].' report','connection'=>$connection,'report'=>$report]);return true;
         }
         if ($path==='/write/connections/channel'&&is_post()) {
@@ -130,8 +135,13 @@ function publishing_dispatch(string $path): bool {
                 publishing_event((int)$job['package_id'],(int)$job['id'],'manual_completion','Writer confirmed the published post URL.',$userId);
             } elseif($m[2]==='retry') {
                 $youtubeResume=publishing_youtube_can_resume($job);
-                if((!in_array($job['status'],['failed','reconnect'],true)&&!($job['status']==='ambiguous'&&$youtubeResume))||empty($_POST['reviewed_remote']))throw new RuntimeException('Only reviewed failed/reconnected work, or the same recoverable YouTube session, can be resumed. Unknown outcomes never create another post automatically.');
-                if($youtubeResume) {
+                $tiktokResume=publishing_tiktok_business_can_resume($job);
+                if((!in_array($job['status'],['failed','reconnect'],true)&&!($job['status']==='ambiguous'&&($youtubeResume||$tiktokResume)))||empty($_POST['reviewed_remote']))throw new RuntimeException('Only reviewed failed/reconnected work, a recoverable YouTube session or a known TikTok publishing task can be resumed. Unknown outcomes never create another post automatically.');
+                if($tiktokResume) {
+                    publishing_job_connection($job);
+                    // This resumes status reads for the saved task; it cannot submit another video.
+                    publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null]);
+                } elseif($youtubeResume) {
                     publishing_job_connection($job);
                     $state=publishing_youtube_state($job);$state['retries']=0;
                     publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
@@ -149,9 +159,9 @@ function publishing_dispatch(string $path): bool {
                 }
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_resumed','Writer reviewed the failed attempt and resumed the existing job.',$userId);
             } else {
-                $youtubePending=$job['status']==='delivered'&&publishing_youtube_can_resume($job);
-                if(!in_array($job['status'],['scheduled','assisted','failed','reconnect','ambiguous','reminder_queued','reminder_sent'],true)&&!$youtubePending)throw new RuntimeException('Manage an accepted or processing post in the provider before closing its record.');
-                if((!empty($job['remote_id'])||$job['status']==='ambiguous'||$youtubePending)&&empty($_POST['reviewed_remote']))throw new RuntimeException('Check and stop any remote publication before closing this record.');
+                $nativePending=$job['status']==='delivered'&&(publishing_youtube_can_resume($job)||publishing_tiktok_business_can_resume($job));
+                if(!in_array($job['status'],['scheduled','assisted','failed','reconnect','ambiguous','reminder_queued','reminder_sent'],true)&&!$nativePending)throw new RuntimeException('Manage an accepted or processing post in the provider before closing its record.');
+                if((!empty($job['remote_id'])||$job['status']==='ambiguous'||$nativePending)&&empty($_POST['reviewed_remote']))throw new RuntimeException('Check and stop any remote publication before closing this record.');
                 $st=db()->prepare("UPDATE publishing_jobs SET status='cancelled' WHERE id=? AND status=?");$st->execute([$job['id'],$job['status']]);
                 if($st->rowCount()!==1)throw new RuntimeException('The worker changed this job. Reload its status before continuing.');
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_cancelled','Writer cancelled the local job after checking any remote work.',$userId);

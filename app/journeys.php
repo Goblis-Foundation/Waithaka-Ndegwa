@@ -233,11 +233,18 @@ function founders_submit(array $values): string {
     $s=db()->prepare('INSERT INTO founder_submissions(reference,submission_type,submitter_name,submitter_email,founder_name,venture_name,country,story_summary,claimed_metrics,metric_basis,private_evidence_notes,founder_publication_permission,privacy_version,privacy_accepted_at,ip_hash,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     $s->execute([$ref,...array_values($values),'2026-10-21-v1',$now,ip_hash(),$now,$now]);return $ref;
 }
-function founders_public_stories(int $limit=60): array {
+function founders_public_where(): string {
+    return "f.review_status='approved' AND f.is_public=1 AND f.permission_confirmed=1 AND f.claims_reviewed=1 AND f.consent_reference IS NOT NULL AND f.consent_reference<>''
+        AND p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=?";
+}
+function founders_public_story_count(): int {
+    $s=db()->prepare('SELECT COUNT(DISTINCT p.id) FROM founder_submissions f JOIN posts p ON p.id=f.associated_post_id WHERE '.founders_public_where());
+    $s->execute([journeys_now()]);return (int)$s->fetchColumn();
+}
+function founders_public_stories(int $limit=60,int $offset=0): array {
     $s=db()->prepare("SELECT DISTINCT p.id,p.slug,p.title,p.standfirst,p.featured_image,p.featured_image_alt,p.published_at
         FROM founder_submissions f JOIN posts p ON p.id=f.associated_post_id
-        WHERE f.review_status='approved' AND f.is_public=1 AND f.permission_confirmed=1 AND f.claims_reviewed=1 AND f.consent_reference IS NOT NULL AND f.consent_reference<>''
-        AND p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=? ORDER BY p.published_at DESC LIMIT ".max(1,min(100,$limit)));
+        WHERE ".founders_public_where()." ORDER BY p.published_at DESC,p.id DESC LIMIT ".max(1,min(100,$limit)).' OFFSET '.max(0,$offset));
     $s->execute([journeys_now()]);return $s->fetchAll();
 }
 function founders_review_values(array $input,?array $post=null): array {

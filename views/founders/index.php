@@ -8,4 +8,5 @@
     <?php if($story['featured_image']):?><a class="journey-story-image" href="<?=e(url('/my-thoughts/'.$story['slug']))?>"><img src="<?=e(featured_image_url($story['featured_image']))?>" alt="<?=e($story['featured_image_alt']?:$story['title'])?>" loading="lazy" decoding="async"></a><?php endif;?>
     <div><time class="journey-meta" datetime="<?=e(date('Y-m-d',strtotime($story['published_at'])))?>"><?=e(format_date($story['published_at']))?></time><h3><a href="<?=e(url('/my-thoughts/'.$story['slug']))?>"><?=e($story['title'])?></a></h3><?php if($story['standfirst']):?><p><?=e($story['standfirst'])?></p><?php endif;?><a class="text-link" href="<?=e(url('/my-thoughts/'.$story['slug']))?>">Read the story →</a></div>
   </article><?php endforeach;?></div>
+  <?php include __DIR__.'/../partials_archive_pagination.php';?>
 </div></section>
