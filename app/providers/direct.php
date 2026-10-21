@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 function publishing_direct_deliver(array $job, array $snapshot, array $connection): array {
     $destination = publishing_decode($job['destination_json']);
+    if ($destination['slug'] === 'youtube') return publishing_youtube_deliver($job,$snapshot,$connection);
     $variant = $snapshot['variants'][$destination['slug']];
     $headers = publishing_bearer(publishing_access_token($connection));
     $target = (string)$destination['resource'];
@@ -47,6 +48,15 @@ function publishing_direct_deliver(array $job, array $snapshot, array $connectio
         return publishing_instagram_check($job,$connection);
     }
     throw new RuntimeException('Choose Buffer or assisted publishing for this channel.');
+}
+
+function publishing_direct_check(array $job, array $connection): array {
+    $destination=publishing_decode($job['destination_json']);
+    return match($destination['slug']??'') {
+        'youtube'=>publishing_youtube_check($job,$connection),
+        'instagram'=>publishing_instagram_check($job,$connection),
+        default=>throw new PublishingRemoteException('This direct delivery has no pending provider status to check. Review its existing remote post.',422),
+    };
 }
 
 function publishing_instagram_check(array $job, array $connection): array {

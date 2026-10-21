@@ -26,8 +26,10 @@ require_once __DIR__.'/functions.php';
 if (is_file(__DIR__.'/../vendor/autoload.php')) require_once __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/operations.php';
 require_once __DIR__.'/media_storage.php';
+require_once __DIR__.'/media_library.php';
+require_once __DIR__.'/mail_feedback.php';
 require_once __DIR__.'/integrations.php';
-foreach (['journeys','journey_routes','publishing','publishing_routes'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
+foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
 
 if (PHP_SAPI !== 'cli') {
     header('X-Content-Type-Options: nosniff'); header('Referrer-Policy: strict-origin-when-cross-origin'); header('X-Frame-Options: SAMEORIGIN');
@@ -48,11 +50,14 @@ if (PHP_SAPI !== 'cli') {
         }
         header('Strict-Transport-Security: max-age=31536000');
     }
-    if (preg_match('~^/(?:write|consent|payments|newsletter/(?:confirm|unsubscribe))(?:/|$)~',$requestPath) || isset($_GET['preview'])) {
+    if (preg_match('~^/(?:write|consent|payments|webhooks|newsletter/(?:confirm|unsubscribe|one-click))(?:/|$)~',$requestPath) || isset($_GET['preview'])) {
         header('Cache-Control: no-store, private, max-age=0'); header('X-Robots-Tag: noindex, nofollow, noarchive'); header('Referrer-Policy: no-referrer');
     } else header('Cache-Control: private, no-cache');
     if (!$APP_INSTALLED) { wk_fail_safe('Deployment is not configured.'); exit; }
     wk_validate_app_key(app_config('app_key'));
+    mail_feedback_webhook($requestPath);
+    // RFC 8058 recipients do not need a session, cookie, redirect or CSRF token.
+    if($requestPath==='/newsletter/one-click' && function_exists('newsletter_dispatch') && newsletter_dispatch($requestPath)) exit;
     ini_set('session.use_strict_mode','1'); ini_set('session.use_only_cookies','1');
     if (app_config('session_driver','files')==='database') { require_once __DIR__.'/sessions.php'; session_set_save_handler(new WkDatabaseSessions(),true); }
     else { $sessionDir=__DIR__.'/../storage/sessions'; if (!is_dir($sessionDir)) mkdir($sessionDir,0700,true); session_save_path($sessionDir); }

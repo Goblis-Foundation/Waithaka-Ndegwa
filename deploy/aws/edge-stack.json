@@ -136,7 +136,8 @@
                   "TLSv1.2"
                 ],
                 "HTTPPort": 80,
-                "HTTPSPort": 443
+                "HTTPSPort": 443,
+                "OriginReadTimeout": 120
               }
             },
             {

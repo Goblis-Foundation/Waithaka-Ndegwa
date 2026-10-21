@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__.'/providers/http.php';
 require_once __DIR__.'/providers/oauth.php';
 require_once __DIR__.'/providers/buffer.php';
+require_once __DIR__.'/providers/youtube.php';
 require_once __DIR__.'/providers/direct.php';
 
 function publishing_channels(): array { return db()->query('SELECT * FROM publishing_channels ORDER BY id')->fetchAll(); }
@@ -21,7 +22,7 @@ function publishing_public_url(string $url): bool {
     if ($host==='' || !str_contains($host,'.') || preg_match('/(^|\.)(localhost|local|internal|test|invalid)$/',$host)) return false;
     if (filter_var(trim($host,'[]'),FILTER_VALIDATE_IP) && !filter_var(trim($host,'[]'),FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE)) return false;
     $path=$p['path']??'/';for($i=0;$i<3;$i++)$path=rawurldecode($path);
-    if (preg_match('~/(write|consent|install|payments)(/|$)|/newsletter/(confirm|unsubscribe)(/|$)|/storage/(release-proofs|logs|private)(/|$)~i',$path)) return false;
+    if (preg_match('~/(write|consent|install|payments)(/|$)|/newsletter/(confirm|unsubscribe|one-click)(/|$)|/storage/(release-proofs|logs|private)(/|$)~i',$path)) return false;
     // Source and media URLs are distributed publicly. Do not forward private preview links,
     // subscription capabilities, OAuth tokens or signed object-storage credentials.
     foreach(preg_split('/[&;]/',(string)($p['query']??'')) as $part) {
@@ -63,6 +64,11 @@ function publishing_state_label(string $state): string {
 
 function publishing_job_label(array $job): string {
     $destination=publishing_decode($job['destination_json']??'');
+    if (($destination['slug']??'')==='youtube'&&($job['method']??'')==='direct'&&($job['status']??'')==='delivered') {
+        $state=publishing_youtube_state($job);
+        if (($state['phase']??'')==='uploading'&&!empty($state['bytes'])) return 'Uploading · '.min(100,(int)floor(100*(int)($state['offset']??0)/(int)$state['bytes'])).'% acknowledged';
+        if (($state['phase']??'')==='processing') return 'Uploaded · Processing';
+    }
     if (($job['status']??'')==='published'&&($destination['slug']??'')==='youtube') {
         $visibility=$destination['visibility']??'unknown';
         return match($visibility) {'private'=>'Uploaded · Private','unlisted'=>'Uploaded · Unlisted','public'=>'Published · Public',default=>'Upload completed'};
@@ -75,8 +81,8 @@ function publishing_default_draft(?array $post=null): array {
     $draft=['title'=>$post['title']??'','source_post_id'=>$post['id']??null,'source_url'=>$source,'notes'=>'','variants'=>[]];
     foreach (['linkedin','facebook','instagram','x','youtube','tiktok'] as $slug) $draft['variants'][$slug]=[
         'enabled'=>false,'text'=>$post?trim((string)($post['standfirst']??'')."\n\n".$source):'',
-        'media_url'=>'','media_type'=>'image','alt_text'=>'','title'=>$post['title']??'','format'=>$slug==='youtube'?'short':'post',
-        'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false
+        'media_url'=>'','media_asset_id'=>0,'media_type'=>$slug==='youtube'?'video':'image','alt_text'=>'','title'=>$post['title']??'','format'=>$slug==='youtube'?'video':'post',
+        'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false
     ];
     return $draft;
 }
@@ -89,19 +95,33 @@ function publishing_normalize_draft(array $input): array {
     $draft=['title'=>$title,'source_post_id'=>!empty($input['source_post_id'])?(int)$input['source_post_id']:null,'source_url'=>$source,'notes'=>mb_substr(trim((string)($input['notes']??'')),0,5000),'variants'=>[]];
     foreach (['linkedin','facebook','instagram','x','youtube','tiktok'] as $slug) {
         $v=is_array($input['variants'][$slug]??null)?$input['variants'][$slug]:[];
-        $media=trim((string)($v['media_url']??''));
+        $assetId=filter_var($v['media_asset_id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>PHP_INT_MAX]]);
+        if($assetId===false)throw new RuntimeException('Choose a valid media-library asset for '.$slug.'.');
+        $media=$assetId?'':trim((string)($v['media_url']??''));
         if ($media!==''&&!publishing_public_url($media)) throw new RuntimeException('Use a public HTTPS media URL without private or signed-access tokens for '.$slug.'.');
         $draft['variants'][$slug]=[
-            'enabled'=>!empty($v['enabled']),'text'=>trim((string)($v['text']??'')), 'media_url'=>$media,
+            'enabled'=>!empty($v['enabled']),'text'=>trim((string)($v['text']??'')), 'media_url'=>$media,'media_asset_id'=>$assetId,
             'media_type'=>in_array($v['media_type']??'', ['image','video'],true)?$v['media_type']:'image',
             'alt_text'=>mb_substr(trim((string)($v['alt_text']??'')),0,1000),'title'=>mb_substr(trim((string)($v['title']??$title)),0,100),
-            'format'=>in_array($v['format']??'', ['post','reel','story','short'],true)?$v['format']:'post',
+            'format'=>in_array($v['format']??'', ['post','reel','story','short','video'],true)?$v['format']:'post',
             'privacy'=>in_array($v['privacy']??'', ['private','unlisted','public'],true)?$v['privacy']:'private',
-            'made_for_kids'=>!empty($v['made_for_kids']),'ai_generated'=>!empty($v['ai_generated'])
+            'made_for_kids'=>!empty($v['made_for_kids']),'ai_generated'=>!empty($v['ai_generated']),'notify_subscribers'=>!empty($v['notify_subscribers'])
         ];
         if (mb_strlen($draft['variants'][$slug]['text'])>20000) throw new RuntimeException('The '.$slug.' caption is too long.');
     }
     return $draft;
+}
+
+/** Freeze only library-owned metadata, never a media_asset object supplied by a form. */
+function publishing_variant_with_asset(array $variant): array {
+    if (empty($variant['media_asset_id'])) { unset($variant['media_asset']); return $variant; }
+    if (!function_exists('media_library_approved_asset')) throw new RuntimeException('The media library is not installed. Apply its migration before selecting an asset.');
+    $asset=media_library_approved_asset((int)$variant['media_asset_id']);
+    $variant['media_asset']=$asset;
+    $variant['media_type']=str_starts_with((string)$asset['mime'],'video/')?'video':'image';
+    $variant['media_url']=($asset['visibility']??'')==='public'?(string)($asset['public_url']??''):'';
+    if($variant['media_url']!==''&&!publishing_public_url($variant['media_url']))throw new RuntimeException('The selected asset has no safe public delivery URL.');
+    return $variant;
 }
 
 /** Pure capability gate: configured branding is never treated as an OAuth grant. */
@@ -109,6 +129,7 @@ function publishing_capability(array $channel, ?array $connection = null, ?array
     $slug=$channel['slug'];$method=$channel['delivery_method']??'manual';
     if ($slug==='facebook'&&($channel['account_type']??'')!=='page') return ['usable'=>$method==='manual','mode'=>'manual','reason'=>'A Facebook professional profile is completed in Facebook. Page delivery needs a separately discovered Page.'];
     if ($method==='manual') return ['usable'=>true,'mode'=>'manual','reason'=>'Writer prepares a task; you finish publishing in the platform.'];
+    if ($method==='direct'&&$slug==='tiktok') return ['usable'=>false,'mode'=>'manual','reason'=>'TikTok does not approve Direct Post apps used only as a private upload utility for your own or your team’s accounts. Use assisted posting or a separately authorized publishing partner.'];
     if (!$connection||$connection['status']!=='connected'||empty($connection['external_id'])||empty($connection['selected_resource'])) return ['usable'=>false,'mode'=>$method,'reason'=>'Connect the provider and confirm the actual destination first.'];
     if ($method==='buffer') {
         if (!$bufferChannel) return ['usable'=>false,'mode'=>'buffer','reason'=>'Select a channel returned by Buffer.'];
@@ -116,6 +137,9 @@ function publishing_capability(array $channel, ?array $connection = null, ?array
         catch (Throwable $e) { return ['usable'=>false,'mode'=>'buffer','reason'=>$e->getMessage()]; }
         return ['usable'=>true,'mode'=>$channel['buffer_mode']??'automatic','reason'=>'Buffer will handle the approved delivery. Actual publication is tracked separately.'];
     }
+    if ($method==='direct'&&$slug==='youtube') return publishing_youtube_connection_ready($connection)
+        ? ['usable'=>true,'mode'=>'direct','reason'=>'Resumable video upload is available for the confirmed YouTube channel. Each revision must include an owned video and explicit audience settings.']
+        : ['usable'=>false,'mode'=>'direct','reason'=>'Authorize the separate YouTube upload connection, including upload and read scopes, then confirm the actual channel.'];
     if ($method==='direct'&&in_array($slug,['linkedin','x','instagram','facebook'],true)) return ['usable'=>true,'mode'=>'direct','reason'=>in_array($slug,['x','linkedin','facebook'],true)?'Direct text/link publishing is available for this confirmed account.':'Direct single-image publishing is available for this professional account.'];
     return ['usable'=>false,'mode'=>$method,'reason'=>'Use Buffer or assisted publishing for this channel and format.'];
 }
@@ -143,16 +167,20 @@ function publishing_destination(array $channel, array $variant=[]): array {
 
 function publishing_validate_variant(string $slug, array $variant, array $destination): void {
     $text=$variant['text'];$media=$variant['media_url'];$method=$destination['method'];
-    if ($text===''&&$media==='') throw new RuntimeException('Add content for '.$slug.'.');
+    $ownedMedia=!empty($variant['media_asset']);
+    if ($text===''&&$media===''&&!$ownedMedia) throw new RuntimeException('Add content for '.$slug.'.');
     $limits=['linkedin'=>3000,'x'=>280,'instagram'=>2200,'tiktok'=>2200,'youtube'=>5000,'facebook'=>20000];
     if (mb_strlen($text)>$limits[$slug]) throw new RuntimeException(ucfirst($slug).' exceeds the centre’s '.$limits[$slug].'-character caption limit.');
-    if ($media!==''&&$variant['media_type']==='image'&&$variant['alt_text']==='') throw new RuntimeException('Add an image description for '.$slug.'.');
+    if (($media!==''||$ownedMedia)&&$variant['media_type']==='image'&&$variant['alt_text']==='') throw new RuntimeException('Add an image description for '.$slug.'.');
     if ($method==='manual') return;
-    if ($slug==='youtube'&&($media===''||$variant['media_type']!=='video'||$variant['title']==='')) throw new RuntimeException('YouTube needs a public video file and title.');
+    if ($slug==='youtube'&&$method==='direct') { publishing_youtube_validate_variant($variant); return; }
+    if ($ownedMedia&&$media==='') throw new RuntimeException('This delivery route needs a public media-library asset. Keep private media for direct YouTube upload or assisted publishing.');
+    if ($slug==='youtube'&&($media===''||$variant['media_type']!=='video'||$variant['title']==='')) throw new RuntimeException('YouTube delivery through Buffer needs a public video file and title.');
+    if ($slug==='youtube'&&$method==='buffer'&&($variant['format']!=='short'||!empty($variant['notify_subscribers']))) throw new RuntimeException('This Buffer route supports Shorts without a custom subscriber-notification setting. Choose direct YouTube upload for a full-length video or explicit notifications.');
     if (in_array($slug,['instagram','tiktok'],true)&&$media==='') throw new RuntimeException(ucfirst($slug).' needs a media file for automatic/provider delivery.');
     if ($slug==='tiktok'&&$variant['media_type']!=='video') throw new RuntimeException('This TikTok adapter currently accepts videos. Use assisted publishing for photo posts.');
     if ($method==='direct') {
-        if (in_array($slug,['x','linkedin','facebook'],true)&&$media!=='') throw new RuntimeException('Use Buffer or assisted publishing for media on '.$slug.'. Direct delivery supports text and links.');
+        if (in_array($slug,['x','linkedin','facebook'],true)&&($media!==''||$ownedMedia)) throw new RuntimeException('Use Buffer or assisted publishing for media on '.$slug.'. Direct delivery supports text and links.');
         if (in_array($slug,['x','linkedin','facebook'],true)&&$variant['format']!=='post') throw new RuntimeException('Direct delivery on '.$slug.' supports a standard text/link post. Choose Buffer or assisted publishing for this format.');
         if ($slug==='instagram'&&($variant['media_type']!=='image'||$variant['format']!=='post'||!preg_match('/\.jpe?g$/i',(string)parse_url($media,PHP_URL_PATH)))) throw new RuntimeException('Direct Instagram delivery supports a single JPEG image post. Use Buffer or assisted delivery for Reels, Stories or other image formats.');
         if ($slug==='instagram'&&$variant['ai_generated']) throw new RuntimeException('Use Buffer or assisted Instagram publishing when the platform AI disclosure is required.');
@@ -164,6 +192,12 @@ function publishing_validate_variant(string $slug, array $variant, array $destin
 
 function publishing_save_package(array $draft, int $userId, int $id=0, int $version=0): int {
     $draft=publishing_normalize_draft($draft);
+    foreach($draft['variants'] as &$variant) {
+        $variant=publishing_variant_with_asset($variant);
+        // Store the selection in the editable draft; approval pins the immutable metadata.
+        unset($variant['media_asset']);
+    }
+    unset($variant);
     if ($draft['source_post_id']) {
         $st=db()->prepare('SELECT id FROM posts WHERE id=?');$st->execute([$draft['source_post_id']]);
         if (!$st->fetchColumn()) throw new RuntimeException('The linked article was not found.');
@@ -190,6 +224,8 @@ function publishing_approve(int $packageId, int $expectedVersion, int $userId, s
         foreach(publishing_channels() as $channel) {
             $variant=$snapshot['variants'][$channel['slug']]??[];
             if (empty($variant['enabled'])) continue;
+            $variant=publishing_variant_with_asset($variant);
+            $snapshot['variants'][$channel['slug']]=$variant;
             $destination=publishing_destination($channel,$variant);
             publishing_validate_variant($channel['slug'],$variant,$destination);
             $snapshot['destinations'][$channel['slug']]=$destination;
@@ -289,13 +325,13 @@ function publishing_work(int $limit=10): array {
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_'.$state,mb_substr($e->getMessage(),0,500));$result['attention']++;
             }
         }
-        $polls=db()->query("SELECT j.*,r.package_id FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id WHERE j.status IN ('delivered','reminder_sent') AND j.method<>'manual' AND (j.next_check_at IS NULL OR j.next_check_at<=UTC_TIMESTAMP()) ORDER BY j.next_check_at,j.id LIMIT ".$limit)->fetchAll();
+        $polls=db()->query("SELECT j.*,r.package_id,r.snapshot_json,r.content_hash FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id WHERE j.status IN ('delivered','reminder_sent') AND j.method<>'manual' AND (j.next_check_at IS NULL OR j.next_check_at<=UTC_TIMESTAMP()) ORDER BY j.next_check_at,j.id LIMIT ".$limit)->fetchAll();
         foreach($polls as $job) {
             $providerEntered=false;$confirmedFields=null;
             try {
                 $connection=publishing_job_connection($job);
                 $providerEntered=true;
-                $fields=$job['method']==='buffer'?publishing_buffer_check($job,$connection):publishing_instagram_check($job,$connection);
+                $fields=$job['method']==='buffer'?publishing_buffer_check($job,$connection):publishing_direct_check($job,$connection);
                 if ($fields['status']==='published') $fields['completed_at']=gmdate('Y-m-d H:i:s');
                 $fields['locked_at']=null;$confirmedFields=$fields;publishing_job_update((int)$job['id'],$fields);$result['checked']++;
             } catch(Throwable $e) {
@@ -303,7 +339,10 @@ function publishing_work(int $limit=10): array {
                 $ambiguous=($e instanceof PublishingRemoteException&&$e->ambiguous)||($providerEntered&&$job['method']==='direct'&&!($e instanceof PublishingRemoteException));
                 $fields=['next_check_at'=>gmdate('Y-m-d H:i:s',time()+1800),'last_error'=>mb_substr($e->getMessage(),0,500),'locked_at'=>null];
                 if ($ambiguous) $fields['status']='ambiguous';
-                elseif ($e instanceof PublishingRemoteException&&$e->httpStatus===401) $fields['status']='reconnect';
+                elseif ($e instanceof PublishingRemoteException&&$e->httpStatus===401) {
+                    $fields['status']='reconnect';
+                    db()->prepare("UPDATE publishing_connections SET status='reconnect' WHERE id=? AND external_id=? AND status='connected'")->execute([$job['connection_id'],$job['connection_external_id']]);
+                }
                 elseif (!($e instanceof PublishingRemoteException)||($e->httpStatus>=400&&$e->httpStatus<500)) $fields['status']='failed';
                 publishing_job_update((int)$job['id'],$fields);$result['attention']++;
             }

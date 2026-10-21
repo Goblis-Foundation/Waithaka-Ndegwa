@@ -10,14 +10,17 @@
     {
       "Sid": "PublicMediaPrefixOnly",
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"],
       "Resource": "arn:aws:s3:::REPLACE_PUBLIC_MEDIA_BUCKET/assets/uploads/*"
     },
     {
-      "Sid": "PrivateProofPrefixOnly",
+      "Sid": "PrivateMediaPrefixesOnly",
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject"],
-      "Resource": "arn:aws:s3:::REPLACE_PRIVATE_MEDIA_BUCKET/release-proofs/*"
+      "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"],
+      "Resource": [
+        "arn:aws:s3:::REPLACE_PRIVATE_MEDIA_BUCKET/release-proofs/*",
+        "arn:aws:s3:::REPLACE_PRIVATE_MEDIA_BUCKET/media-library/*"
+      ]
     },
     {
       "Sid": "VerifiedMailIdentityOnly",
@@ -28,6 +31,12 @@
         "arn:aws:ses:REPLACE_REGION:REPLACE_ACCOUNT_ID:configuration-set/REPLACE_CONFIGURATION_SET"
       ],
       "Condition": {"StringEquals": {"ses:FromAddress": "REPLACE_VERIFIED_FROM_ADDRESS"}}
+    },
+    {
+      "Sid": "ConfirmConfiguredMailFeedback",
+      "Effect": "Allow",
+      "Action": ["sns:ConfirmSubscription"],
+      "Resource": "REPLACE_MAIL_FEEDBACK_TOPIC_ARN"
     }
   ]
 }

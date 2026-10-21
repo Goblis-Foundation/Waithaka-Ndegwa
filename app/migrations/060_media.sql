@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS media_assets (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  public_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+  title VARCHAR(240) NOT NULL,
+  original_name VARCHAR(255) NOT NULL,
+  kind VARCHAR(20) NOT NULL,
+  mime VARCHAR(80) NOT NULL,
+  extension VARCHAR(8) NOT NULL,
+  bytes BIGINT UNSIGNED NOT NULL,
+  sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  driver VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  bucket VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+  storage_key VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  version_id VARCHAR(1024) NOT NULL DEFAULT '',
+  visibility VARCHAR(20) NOT NULL,
+  public_url VARCHAR(1000) NOT NULL DEFAULT '',
+  status VARCHAR(20) NOT NULL DEFAULT 'ready',
+  created_by BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL,
+  archived_at DATETIME NULL,
+  INDEX idx_media_assets_ready(status,created_at),
+  UNIQUE KEY uq_media_storage(driver,bucket,storage_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

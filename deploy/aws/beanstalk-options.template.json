@@ -101,6 +101,11 @@
   },
   {
     "Namespace": "aws:elbv2:loadbalancer",
+    "OptionName": "IdleTimeout",
+    "Value": "120"
+  },
+  {
+    "Namespace": "aws:elbv2:loadbalancer",
     "OptionName": "SecurityGroups",
     "Value": "REPLACE_ALB_SECURITY_GROUP"
   },

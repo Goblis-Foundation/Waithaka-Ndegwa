@@ -12,3 +12,5 @@
 /coverage/
 /.aws/
 /.phpunit.cache/
+__pycache__/
+*.pyc

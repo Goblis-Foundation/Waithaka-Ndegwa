@@ -1,5 +1,9 @@
 # Operating guide
 
+Release: 2026-10-21. The workflows below are implemented and tested with local synthetic fixtures. AWS deployment, restored live data, real account authorization and public/social/email delivery have not been performed. Use the [migration runbook](AWS-MIGRATION.md) and [validation record](VALIDATION.md) for the remaining deployment checks.
+
+Writer's main navigation is **Library, New thought, Journeys, Founder reviews, Publishing, Newsletter, Media, Connections, Operations, Consent and Settings**. New drafts and approvals are private; scheduled work is delivered only when the worker and relevant provider are enabled.
+
 ## 1. The editorial promise
 
 The project follows one startup from its starting conditions through real decisions, experiments, systems and outcomes. The website holds the complete, durable record. Social posts introduce a useful part of each chapter and link readers to the evidence.
@@ -10,7 +14,7 @@ No venture has been selected or invented for this release. Create the first jour
 
 ## 2. Create the first journey
 
-1. Sign in to **Writer → Startup Journeys → New journey**.
+1. Sign in to **Writer → Journeys → New journey**.
 2. Enter the title, venture name, starting date, phase, short public summary and starting baseline. Mark estimates, assumptions and facts clearly.
 3. Keep publication set to Draft while gathering material. The private notes field is for research and operational details that should not appear publicly.
 4. Write the first article through **New thought**. The Plan tab holds the question, private research notes and permission checks.
@@ -52,12 +56,12 @@ Use a short opening result, the question being tested, what happened, the eviden
 Use a predictable publication day in **Africa/Nairobi** time. The suggested rhythm is:
 
 - Early week: conduct the experiment, gather evidence and obtain permissions.
-- Midweek: draft the complete website chapter and select one useful lesson for social distribution.
-- Before release: review claims, quotations, captions, public media files, consent and the actual destinations.
-- Release day: publish the article, schedule its approved social package, and complete any assisted tasks.
+- Midweek: draft the complete website chapter, upload its reviewed images/video to **Media**, and prepare the social package and newsletter edition.
+- Before release: review claims, quotations, captions, media access, audience settings, consent, the actual social destinations and the saved newsletter email.
+- Release day: publish the article, schedule its approved social package and newsletter edition, and complete assisted tasks.
 - Following day: respond in the native platforms and note useful feedback for the next experiment.
 
-The publishing centre schedules one approved package at a selected time. It does not invent future weekly chapters or automatically repeat a package forever. Publish the source article before or at the social release time; linked posts that are no longer public stop delivery.
+The publishing centre schedules one approved package at a selected time. The newsletter schedules one approved edition for a fixed eligible audience. Neither workflow invents future weekly content or automatically repeats it forever. Publish the source article before or at the social release time; linked posts that are no longer public stop delivery. A newsletter imported from an article requires that article to be public already and remain public at delivery.
 
 ## 4. Connect the accounts
 
@@ -82,12 +86,12 @@ Configure the Google project’s OAuth web application and the exact callback UR
 
 Four separate grants are offered:
 
-- **Search Console:** read site search performance for a returned verified property. Ownership verification and sitemap submission remain separate actions in Google.
+- **Google Search Console:** read site search performance for a returned verified property. Ownership verification and sitemap submission remain separate actions in Google.
 - **Google Analytics:** read an existing GA4 property. The site measurement ID in Writer Settings is a separate configuration.
-- **YouTube read:** read the selected channel’s Data API figures; this is not a YouTube Analytics revenue or watch-time report.
-- **YouTube upload:** separate authorization for future/native upload capability. This release still sends video through a supported Buffer route or assisted YouTube Studio workflow.
+- **YouTube read access:** read the selected channel’s Data API figures; this is not a YouTube Analytics revenue or watch-time report.
+- **YouTube upload access:** the separate connection used by native resumable upload. This grant requests upload permission and owner read permission so the worker can verify the destination, processing and publication settings. A read-only connection cannot upload.
 
-Select and confirm the returned site, property or channel before it becomes connected. Reader-facing Google sign-in is not included.
+Select **Returned destination**, confirm that it is the intended account/resource, then choose **Confirm destination**. A successful OAuth return alone is still pending confirmation. Use **Read current report** for the connected Google service. Reader-facing Google sign-in is not included.
 
 Use the existing Google measurement property only after confirming its ownership. Public analytics scripts load after consent; private Writer, preview, payment, consent and subscription-token pages suppress analytics. URL query strings are excluded from the reported page location.
 
@@ -103,6 +107,7 @@ Start with assisted delivery to establish a reliable weekly process. Add automat
 | Direct LinkedIn | Text/link posts |
 | Direct Facebook | Text/link posts to a real confirmed Page |
 | Direct Instagram | One public JPEG image with its caption |
+| Direct YouTube | An owned MP4, MOV or WebM video up to 512 MiB, including a private library asset, with explicit settings and processing checks |
 
 Instagram is recorded as professional. Its direct route uses Instagram Login. For Reels, Stories, carousels or other unsupported direct formats, use a supported provider/native route; this release’s package supports one media file rather than a carousel builder. The website’s optimized featured WebP image is not automatically converted into an Instagram JPEG. [Meta media requirements](https://developers.facebook.com/reference/media)
 
@@ -112,17 +117,38 @@ X remains professional but needs usable API access, user authorization and the r
 
 Buffer requires a key from your Buffer account, verification of returned organizations/channels, and selection of the exact channel. Its plan and the underlying platform still determine availability. This centre does not operate other people’s personal accounts simply because their stories appear on the website.
 
+The current Buffer YouTube route supports Shorts with a public video file. Use native YouTube for a full-length video, a private library file or an explicit subscriber-notification choice. Other automatic media routes also need a public asset URL; selecting a private file does not cause it to be silently omitted from a post.
+
+TikTok remains a personal account with assisted delivery or a separately authorized eligible Buffer channel. TikTok's [Direct Post guidelines](https://developers.tiktok.com/doc/content-sharing-guidelines) exclude a private utility built only to upload to accounts you or your team manage. The application therefore does not offer a native Direct API option for TikTok. Finish audience, interaction, music, promotional-content and applicable AI-disclosure choices in TikTok when completing an assisted task. A partner connection does not remove the platform's rules.
+
+Under **Channel routes**, choose the delivery method and actual Buffer destination when relevant, then select **Save route**. Changes apply to future approvals. Existing revisions keep the destination they were approved for.
+
 Never put a social password into Writer. Use provider app credentials, OAuth or the supported Buffer key field. Removing a saved connection stops local use; revoke the app in the provider account as well when withdrawing permission. Already queued remote posts must be checked in the provider separately.
 
-## 5. Prepare, review and release a package
+## 5. Prepare the media
 
-1. Open **Writer → Publishing → Prepare a publication**. A package can be linked to an existing article.
+Open **Writer → Media → Upload an asset**. Enter a useful title, choose the file and review **Access** before selecting **Upload media**.
+
+| Access | Intended use | What a reader/provider can access |
+| --- | --- | --- |
+| Private | Review in Writer, download for assisted posting, or native YouTube upload | Preview/download requires Writer authentication; the approved upload worker transfers the file to YouTube when due |
+| Public | Media fetched by a supported social provider or linked publicly | Anyone with the public URL can view/share the file; the public-access acknowledgement is required |
+
+Supported images are JPEG, PNG and WebP up to **25 MiB**. Supported videos are MP4, MOV and WebM up to **512 MiB**, within the actual server upload limit. The media library checks the uploaded file's contents and container; it does not transcode videos or convert WebP into the JPEG needed by direct Instagram delivery. The native YouTube route does not import a remote URL.
+
+Open the asset to review it, use **Download original**, and inspect **File details** when needed. In a publishing package, choose it under **Owned media file**. That selection takes precedence over the public URL and media-type fields. Approval binds the file's identity, storage location/version, size, MIME type and fingerprint; native upload materializes and verifies those exact bytes before transfer.
+
+Upload a new asset whenever a file changes. **Archive asset** removes it from new package selections but preserves existing approved references. Archiving does not remove a public URL or retract a file that a platform has already received. Do not use archiving as a privacy revocation control.
+
+## 6. Prepare, review and release a package
+
+1. Open **Writer → Publishing → New package**. The editor is headed **Prepare a publication**. A package can be linked to an existing article.
 2. Select only the channels for this release. Write a suitable version for each audience instead of copying an identical caption everywhere.
 3. Include the article link in the caption when useful; the application does not silently append it.
-4. Use approved, public HTTPS media files. A YouTube watch page is not a raw video file. Keep approved URLs available until delivery and use a new URL for a changed asset.
-5. Save the draft, then read **Saved review**. It shows the exact saved text, media, format, visibility and destination.
-6. Confirm content review and media permissions, then approve the saved revision.
-7. Schedule the revision in Nairobi time. The worker stores/delivers scheduled jobs in UTC.
+4. Select the reviewed **Owned media file**, or use a public HTTPS media file URL where the route supports it. Native YouTube requires an owned video. A YouTube watch page is not a raw video file. Keep external media URLs available until delivery and use a new URL for a changed asset.
+5. Select **Save draft**, then read **Saved review → Review the saved version**. It shows the exact saved text, file, format, visibility, settings and destination.
+6. Confirm content review and media permissions, then select **Approve saved revision**.
+7. Choose **Release time · Africa/Nairobi**, then **Schedule approved revision**. The worker stores delivery times in UTC. This is when delivery begins; video transfer/processing can finish later.
 8. Review delivery records and complete assisted tasks in the native apps. Record the actual post URL, not the general profile URL.
 
 A new draft does not change an approved revision or existing job. Repeated scheduling of the same revision creates no duplicate jobs. If a destination changes, review and approve a new revision for new work.
@@ -131,11 +157,31 @@ A new draft does not change an approved revision or existing job. Repeated sched
 
 A local cancellation cannot cancel a post already queued remotely. Check the remote queue before closing a record with a provider ID or uncertain outcome.
 
-## 6. Publish other founders’ stories
+### Native YouTube delivery
+
+Authorize **YouTube upload access**, confirm the returned channel, then select **Direct API — use the confirmed account** in the YouTube channel route and **Save route**. The worker checks the current grant's actual channel before initializing an upload; choosing a branding URL does not select an upload destination.
+
+In the package's YouTube version, choose the owned video and review **Video title**, caption/description, **Video visibility**, the made-for-children choice, realistic altered/synthetic-content disclosure and **Ask YouTube to notify subscribers about this video**. The saved review displays both Yes and No choices explicitly. Visibility is sent as Private, Unlisted or Public; the adapter never relies on an omitted API default. The category is Education. The **Short** format does not force classification: YouTube determines eligibility.
+
+Follow **Delivery records** after release:
+
+| Display | Meaning and next step |
+| --- | --- |
+| Uploading · N% acknowledged | The saved session has acknowledged that proportion of the file. The worker continues bounded chunks and queries the same session after an interruption. |
+| Uploaded · Processing | A video ID is recorded; YouTube processing is still being checked. |
+| Uploaded · Private / Uploaded · Unlisted / Published · Public | Automatic native completion requires owner API confirmation of processing and the approved visibility, audience and disclosure settings. Manual completion records the Writer's verification instead. |
+| Reconnect required | Reauthorize the same account and confirm the approved channel before reviewing/resuming the existing job. |
+| Needs attention / Outcome unknown | Read the recorded reason and inspect the existing video/session in Studio before proceeding. A missing or mismatched returned setting is not treated as confirmation. |
+
+When offered, open **Review and resume the existing YouTube upload** and select **Resume reviewed job** after resolving the reported issue. It queries/resumes the existing session or video; it does not create another upload. A lost final response can therefore recover the original video ID. An expired or unknown session may require a new reviewed revision, after checking Studio for an existing video. Do not create a replacement merely because an acknowledgement was lost.
+
+If you finish or verify the existing upload in Studio, **Approved content & completion** provides the frozen title, copy, settings and media download. Record the actual video URL only after checking the approved visibility and any pending duplicate work. That manual completion is an operator confirmation, not new API evidence. **Cancel local job** stops future local chunks/checks; it does not delete an accepted video. The scheduled time is not a guaranteed public premiere/release time, and other Studio-only settings remain native-platform work.
+
+## 7. Publish other founders’ stories
 
 The public submission form collects a proposal for review. It is not a self-publishing directory and does not promise coverage.
 
-1. Review the private submission at **Writer → Startup Journeys → Founder submissions**.
+1. Review the private submission at **Writer → Founder reviews**.
 2. Confirm identity, role, contact permission and the intended public wording.
 3. Check claims against suitable evidence. Keep contact details and private supporting records out of the article.
 4. Obtain specific permission for quotes, photographs, video and identifiable people. The existing Consent module supports private permission records; use it where appropriate.
@@ -145,20 +191,98 @@ The public submission form collects a proposal for review. It is not a self-publ
 
 Do not present founder-reported revenue, customers, fundraising or outcomes as independently verified unless you have done that verification. Describe the period, source and limits. Do not imply that an editorial feature is an endorsement or investment recommendation.
 
-## 7. Subscriptions and distribution
+## 8. Prepare and send a newsletter edition
 
-The subscription form records a request, sends a confirmation email through the outbox, and activates the subscriber only after confirmation. Opening a confirmation/unsubscribe link displays a form; the confirming POST changes the record. Tokens expire and used confirmations cannot be replayed. Obsolete queued confirmations are suppressed.
+### Subscriptions and the audience
 
-This release does **not** compose or broadcast weekly newsletter campaigns. Before sending editions, add a campaign workflow or a supported email-platform integration with the confirmed-only audience, unsubscribe handling, bounce/complaint handling and delivery reconciliation. Do not export pending or unsubscribed addresses as an active mailing list.
+The public subscription form records a request and queues a confirmation email. The address becomes eligible only after the subscriber confirms it. Opening the ordinary confirmation/unsubscribe link displays a form; submitting that form changes the record. Confirmation tokens expire, used confirmations cannot be replayed, and obsolete queued confirmations are suppressed.
 
-RSS is already available at `/feed.xml` and includes only due public articles.
+Confirmation is bound to the mailbox for which the link was issued, both when sending the email and when accepting the confirmation. Changing an address cannot make its old link confirm a replacement mailbox. Restored legacy confirmation links work only when the original encrypted confirmation-outbox record proves the same issued address and the other validity checks pass. If that evidence is missing or unreadable, retain the historical record and ask the reader to request and confirm a fresh subscription; do not mark it confirmed manually.
 
-## 8. SEO and useful measurement
+Campaigns use a **frozen audience of eligible confirmed subscribers at the moment you schedule**. Pending requests, unsubscribed addresses and suppressed addresses are excluded. New confirmations after scheduling do not join that edition. Immediately before each queued email is sent, the application checks the subscriber's current status, address, consent revision and suppression again. A later unsubscribe or changed consent can therefore remove delivery eligibility even though the recipient remains in the historical audience record.
+
+Writer cannot mark an unconfirmed address as confirmed. The newsletter workflow does not treat an address from a founder submission, personal contact list or social account as a subscription.
+
+### Compose, review, approve and schedule
+
+1. Open **Writer → Newsletter → New edition**. Give it an **Edition title · private label**, **Email subject**, **Inbox preview text** and email body.
+2. To reuse the week's public article, open **Start from a public article**, select it and choose **Import and save draft**. Import replaces the subject, preview text and body with the public article and website link. Private working drafts are excluded. Alternatively, write a standalone edition and leave **Linked public article** empty.
+3. Use public HTTPS images and links. Private Writer links, subscription tokens and signed-access media links are rejected. The subscription explanation, mailing address and recipient-specific unsubscribe link are added automatically.
+4. Choose **Save private draft**. Open **Saved preview & approval → Review the saved email**, inspect the displayed sender/reply-to, subject and preview text, and read the exact email. **Open saved preview** has no live recipient token.
+5. Confirm the saved-content and permission checkboxes, then choose **Approve saved edition**. Saving or approving does not send email. The approval fixes the saved content, sender and footer; an edit before scheduling clears that approval.
+6. Under **Release controls**, choose the Nairobi release time and acknowledge the currently eligible confirmed audience. Select **Schedule approved edition**. An empty eligible audience cannot be scheduled.
+7. Open **Delivery report** to follow recipient outcomes. The worker queues and sends bounded batches, so a large edition may take multiple worker runs after the release time.
+
+Configure the actual sender identity and postal address before approval. Sending also requires enabled background work and a working mail transport. The editor shows **Mail transport disabled** or **Background work is disabled** when those controls are paused. A configured transport is not evidence that the provider accepted a message.
+
+Once scheduled, the edition's approved content and recipient snapshot are locked. **Copy into a new draft** creates a separate edition without approval, recipients or a schedule. Changing the configured sender/site address after approval, or making the linked article private, pauses delivery for review instead of sending content under changed assumptions.
+
+### Pause, resume, cancel and read the report
+
+Use **Pause remaining deliveries** to hold unsent work. **Resume the same edition** selects a future time while preserving the same approved content and original audience. **Cancel remaining deliveries** stops unsent work after the explicit cancellation acknowledgement. Messages already accepted by the provider cannot be recalled, and uncertain outcomes remain recorded.
+
+| Report state | What it establishes |
+| --- | --- |
+| In audience snapshot / Queued for delivery | The recipient was selected or a message is waiting; no send is confirmed. |
+| Accepted by mail provider | The email provider acknowledged the submission. This does not establish inbox placement or reading. |
+| Delivery confirmed | Verified provider feedback says the receiving mail server accepted the message. It still does not prove inbox placement or reading. |
+| Bounced / Complaint received | Verified provider feedback records the delivery failure or complaint. Hard bounces and complaints suppress future sends. |
+| Suppressed / Cancelled | Eligibility or campaign controls prevented remaining delivery. The report retains the reason. |
+| Outcome unknown / Needs attention | Investigate the record and provider logs. Unknown sends are not automatically retried. |
+
+**Processing complete** means every recipient has a recorded outcome. It can include suppressions, failures or unknown outcomes; it does not mean every reader received the email. The report provides recipient pages and **Edition history**. Open/click analytics are outside this release.
+
+### Unsubscribe and subscription preferences
+
+Every campaign email includes the normal unsubscribe link plus mail-client one-click headers. The one-click endpoint accepts the recipient token and the email client's explicit `List-Unsubscribe=One-Click` POST without requiring a login. A GET request does not unsubscribe, so merely opening or scanning the URL does not perform that change. Keep these capability links private.
+
+Open **Newsletter → Subscribers**, search/filter, and select a subscription to review its confirmation, consent revision, suppression and history. **Unsubscribe this address** stops newsletter delivery. **Suppress and unsubscribe** records a private reason. **Clear manual suppression** removes only a manual newsletter block and leaves the address unsubscribed; a fresh request and email confirmation are still needed. It does not clear provider bounce/complaint suppression.
+
+RSS remains available at `/feed.xml` and includes only due public articles. It does not depend on campaign delivery.
+
+### Configure and monitor SES feedback
+
+The AWS deployment must configure the sender identity, DKIM, sending access, SES configuration set and the exact SNS event topic. The supplied [AWS migration runbook](AWS-MIGRATION.md) covers these deployment steps and the mail-feedback template. The application receives signed notifications at `/webhooks/ses`; it validates the exact configured topic, certificate URL and signature before applying feedback, and deduplicates repeated events.
+
+After the signed subscription confirmation arrives, open **Writer → Operations → Mail feedback**. Under **Feedback connection**, select **Confirm configured SNS subscription** when offered. This confirms the configured topic through AWS; typing a topic ARN alone does not activate feedback. Verify actual delivery, bounce and complaint handling with controlled messages before enabling campaigns.
+
+**Mail delivery feedback → Recent events** shows event type, result, outbox reference and receipt time. Matching hard-bounce and complaint events create an address suppression checked by future email sends and suppress the corresponding newsletter subscription. A later delivery notification cannot erase a stronger bounce/complaint outcome. Review unmatched events through the private deployment logs rather than assuming they correspond to a campaign.
+
+The application can submit email through SES or SMTP. This release's automated delivery/bounce/complaint feedback adapter is **SES/SNS**; an SMTP configuration does not automatically provide that feedback integration.
+
+## 9. Review Operations
+
+Open **Writer → Operations → Refresh status** for a read-only view of local application state. The page does not apply migrations, connect accounts, send messages or retry jobs.
+
+| Section | How to use it |
+| --- | --- |
+| Configuration and restoration | Review runtime, key configuration, canonical HTTPS/proxy settings, sessions, database/TLS configuration, public/private storage, mail/feedback configuration and migration status. A key format check does not prove it is the original recovered key. |
+| Worker activity | Check recent starts, last reports, stage and outcome. A paused invocation can be healthy while delivery is deliberately disabled. A recent heartbeat confirms an invocation reached this database, not every host or provider. |
+| Publishing work | Inspect scheduled/overdue/stale/unknown counts and follow **Open approved package** for completion, reconnect or outcome review. |
+| Email outbox | Distinguish pending, overdue, stale claims, unknown outcomes, acknowledged and suppressed records. Follow **Review delivery feedback** for the verified SES event history. |
+
+**Checked locally** means the displayed local check succeeded. **Review needed**, **Needs attention**, **Not verified** and **Paused** describe work still required or a deliberate disabled state. None of these labels certifies live AWS permissions, certificates, network access, a successful backup restore or provider availability.
+
+The deployment controls are separate: `APP_READY` allows the restored application to serve; `WORKER_ENABLED` allows background delivery work; `MAIL_TRANSPORT` selects or disables email submission. Keep restored staging workers and mail paused. In production, review the restored jobs/outbox and confirmed destinations before enabling work so two environments cannot send the same outstanding content.
+
+Use the newsletter's delivery report for edition-specific outcomes and the publishing package for a video's detailed progress. Operations supplies the overview and links. Resolve unknown outcomes using the relevant platform or mail-provider evidence before arranging any retry; refreshing diagnostics does not replay work.
+
+## 10. SEO and useful measurement
 
 Use one canonical article per lesson. Link each chapter to its journey, related articles and the next/previous chapter. Keep descriptive page titles, clear headings, evidence, image descriptions and useful summaries. The site renders crawlable HTML, canonical metadata, structured data, social previews, sitemap and RSS.
 
 After cutover, verify both domains in Search Console, submit the canonical sitemap and inspect important restored pages. A redirect plan, schema or a connection alone does not guarantee ranking.
 
-For the first season, measure sustained publication, completed experiments, qualified reader responses and subscribers who confirm. Use Search Console and GA4 reports to learn which questions attract interested readers. Social reach and engagement remain in the platforms/Buffer; this release does not aggregate a universal inbox or all-platform analytics dashboard.
+For the first season, measure sustained publication, completed experiments, qualified reader responses and subscribers who confirm. Use Search Console and GA4 reports to learn which questions attract interested readers. Newsletter reports add evidence of provider acceptance, confirmed server delivery, bounces, complaints and suppression; these are not open/read metrics. Social reach, comments and messages remain in the platforms/Buffer; this release does not aggregate a universal inbox or all-platform analytics dashboard.
 
 The research strategy supplied with the recovered project remains the wider editorial plan. This release incorporates the corrected professional status of Facebook, Instagram and X.
+
+## 11. Deployment handoff and the AWS helper
+
+Use the [AWS migration runbook](AWS-MIGRATION.md), [deployment checklist](../DEPLOYMENT-CHECKLIST.md) and [reviewed installation/cutover helper guide](../deploy/aws/INSTALL-CUTOVER.md) to move the recovered site. The source release does not contain the live database, original private application key or current uploaded files; those inputs must come from the current host. Preserve existing Writer accounts, article URLs, consent records and outstanding queue states.
+
+The helper's offline inventory/readiness/plan commands make the proposed recovery concrete. Each phase plan binds the chosen configuration, release, recovery artifacts and preceding outputs; applying it requires its exact reviewed SHA-256. Explicit live commands check the intended AWS account. The sequence separates data/media/application/edge setup, CloudFront media access, restoration readiness, DNS cutover, worker activation and mail activation. It does not automatically import SQL, generate a replacement key, recreate the first Writer user or certify that an operator's acceptance checks were performed.
+
+Run the documented restore and migrations through the restricted deployment process. Runtime web requests and instance startup do not run migrations. Keep the source backup/key/media and rollback DNS information until live acceptance succeeds. The canonical production address remains `https://www.waithakandegwa.com`, with `waithakandegwa.co.ke` and `www.waithakandegwa.co.ke` redirecting to the corresponding canonical paths after the actual edge/DNS cutover.
+
+This implementation has not made that cutover, authorized real accounts or sent real newsletters/videos/posts. Reader Google login, a universal social inbox, all-platform analytics, automatic weekly content generation and a native TikTok Direct Post app for a private own-account utility remain outside the release.

@@ -129,8 +129,16 @@ function publishing_dispatch(string $path): bool {
                 publishing_job_update((int)$job['id'],['status'=>'published','external_url'=>$external,'completed_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>'Publication confirmed by Writer user '.$userId.'.']);
                 publishing_event((int)$job['package_id'],(int)$job['id'],'manual_completion','Writer confirmed the published post URL.',$userId);
             } elseif($m[2]==='retry') {
-                if(!in_array($job['status'],['failed','reconnect'],true)||empty($_POST['reviewed_remote']))throw new RuntimeException('Only a reviewed, failed or reconnected job can be resumed. Unknown outcomes are never automatically retried.');
-                if(!empty($job['remote_id'])) {
+                $youtubeResume=publishing_youtube_can_resume($job);
+                if((!in_array($job['status'],['failed','reconnect'],true)&&!($job['status']==='ambiguous'&&$youtubeResume))||empty($_POST['reviewed_remote']))throw new RuntimeException('Only reviewed failed/reconnected work, or the same recoverable YouTube session, can be resumed. Unknown outcomes never create another post automatically.');
+                if($youtubeResume) {
+                    publishing_job_connection($job);
+                    $state=publishing_youtube_state($job);$state['retries']=0;
+                    publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
+                } elseif(publishing_youtube_can_restart_rejected_init($job)) {
+                    publishing_job_connection($job);
+                    publishing_job_update((int)$job['id'],['status'=>'scheduled','provider_state_json'=>null,'last_error'=>null]);
+                } elseif(!empty($job['remote_id'])) {
                     publishing_job_connection($job);
                     if($job['method']!=='buffer')throw new RuntimeException('This job already has a remote ID. Review the existing post.');
                     publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null]);
@@ -141,8 +149,9 @@ function publishing_dispatch(string $path): bool {
                 }
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_resumed','Writer reviewed the failed attempt and resumed the existing job.',$userId);
             } else {
-                if(!in_array($job['status'],['scheduled','assisted','failed','reconnect','ambiguous','reminder_queued','reminder_sent'],true))throw new RuntimeException('Manage an accepted or processing post in the provider before closing its record.');
-                if((!empty($job['remote_id'])||$job['status']==='ambiguous')&&empty($_POST['reviewed_remote']))throw new RuntimeException('Check and stop any remote publication before closing this record.');
+                $youtubePending=$job['status']==='delivered'&&publishing_youtube_can_resume($job);
+                if(!in_array($job['status'],['scheduled','assisted','failed','reconnect','ambiguous','reminder_queued','reminder_sent'],true)&&!$youtubePending)throw new RuntimeException('Manage an accepted or processing post in the provider before closing its record.');
+                if((!empty($job['remote_id'])||$job['status']==='ambiguous'||$youtubePending)&&empty($_POST['reviewed_remote']))throw new RuntimeException('Check and stop any remote publication before closing this record.');
                 $st=db()->prepare("UPDATE publishing_jobs SET status='cancelled' WHERE id=? AND status=?");$st->execute([$job['id'],$job['status']]);
                 if($st->rowCount()!==1)throw new RuntimeException('The worker changed this job. Reload its status before continuing.');
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_cancelled','Writer cancelled the local job after checking any remote work.',$userId);

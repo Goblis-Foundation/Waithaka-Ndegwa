@@ -261,8 +261,14 @@ function founders_save_review(int $id,array $input,int $actor): void {
 function newsletter_token_hash(string $token): ?string { return preg_match('/^[a-f0-9]{64}$/',$token)?hash('sha256',$token):null; }
 function newsletter_create_token(int $subscriberId,string $purpose,?string $expires): string {
     if(!in_array($purpose,['confirm','unsubscribe'],true))throw new InvalidArgumentException('Unknown newsletter token purpose.');
-    $token=bin2hex(random_bytes(32));$s=db()->prepare('INSERT INTO newsletter_tokens(subscriber_id,purpose,token_hash,expires_at,created_at) VALUES(?,?,?,?,?)');
-    $s->execute([$subscriberId,$purpose,hash('sha256',$token),$expires,journeys_now()]);return $token;
+    $issuedEmailHash=null;
+    if($purpose==='confirm'){
+        $s=db()->prepare('SELECT email FROM newsletter_subscribers WHERE id=?');$s->execute([$subscriberId]);$email=$s->fetchColumn();
+        if(!is_string($email)||!filter_var($email,FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Subscriber does not exist or has an invalid email address.');
+        $issuedEmailHash=hash('sha256',strtolower(trim($email)));
+    }
+    $token=bin2hex(random_bytes(32));$s=db()->prepare('INSERT INTO newsletter_tokens(subscriber_id,purpose,token_hash,expires_at,created_at,issued_email_hash) VALUES(?,?,?,?,?,?)');
+    $s->execute([$subscriberId,$purpose,hash('sha256',$token),$expires,journeys_now(),$issuedEmailHash]);return $token;
 }
 /** Generate a per-message unsubscribe URL. Store only its hash, never the token. */
 function newsletter_unsubscribe_url(int $subscriberId): string {
@@ -270,27 +276,53 @@ function newsletter_unsubscribe_url(int $subscriberId): string {
     return url('/newsletter/unsubscribe?token='.newsletter_create_token($subscriberId,'unsubscribe',null));
 }
 function newsletter_is_confirmed(string $email): bool { $s=db()->prepare("SELECT id FROM newsletter_subscribers WHERE email=? AND status='confirmed'");$s->execute([strtolower(trim($email))]);return (bool)$s->fetchColumn(); }
+/** Private issuance proof; never add an address or hash to the public token record. */
+function newsletter_confirmation_address_matches(string $tokenHash,string $currentEmail,?string $queuedRecipient=null): bool {
+    if(!preg_match('/^[a-f0-9]{64}$/D',$tokenHash)||!filter_var($currentEmail,FILTER_VALIDATE_EMAIL))return false;
+    $s=db()->prepare("SELECT issued_email_hash FROM newsletter_tokens WHERE token_hash=? AND purpose='confirm'");$s->execute([$tokenHash]);$token=$s->fetch();if(!$token)return false;
+    $issuedHash=$token['issued_email_hash'];
+    if($issuedHash===null){
+        // Restored tokens predate issuance hashes. The original immutable outbox
+        // recipient is evidence; the subscriber's current address is not.
+        if(!function_exists('decrypt_secret'))return false;
+        $dedupeKey='newsletter-confirm:'.$tokenHash;
+        $s=db()->prepare('SELECT payload FROM email_outbox WHERE dedupe_key=?');$s->execute([hash('sha256',$dedupeKey)]);$encrypted=$s->fetchColumn();
+        if(!is_string($encrypted)||$encrypted==='')return false;
+        try{$payload=json_decode(decrypt_secret($encrypted),true,32,JSON_THROW_ON_ERROR);}catch(JsonException $error){return false;}
+        if(!is_array($payload)||($payload['dedupe_key']??null)!==$dedupeKey||!is_string($payload['to']??null)||!filter_var($payload['to'],FILTER_VALIDATE_EMAIL))return false;
+        $issuedHash=hash('sha256',strtolower(trim($payload['to'])));
+    }
+    if(!is_string($issuedHash)||!preg_match('/^[a-f0-9]{64}$/D',$issuedHash)||!hash_equals($issuedHash,hash('sha256',strtolower(trim($currentEmail)))))return false;
+    return $queuedRecipient===null || (filter_var($queuedRecipient,FILTER_VALIDATE_EMAIL)!==false&&hash_equals($issuedHash,hash('sha256',strtolower(trim($queuedRecipient)))));
+}
 /** Email workers should cancel stale confirmation jobs before any delivery call. */
-function newsletter_confirmation_deliverable(string $dedupeKey): bool {
+function newsletter_confirmation_deliverable(string $dedupeKey,?string $queuedRecipient=null): bool {
     if(!preg_match('/^newsletter-confirm:([a-f0-9]{64})$/',$dedupeKey,$match))return false;
-    $s=db()->prepare("SELECT t.id FROM newsletter_tokens t JOIN newsletter_subscribers s ON s.id=t.subscriber_id WHERE t.token_hash=? AND t.purpose='confirm' AND t.used_at IS NULL AND t.expires_at>? AND s.status='pending' LIMIT 1");
-    $s->execute([$match[1],journeys_now()]);return (bool)$s->fetchColumn();
+    $s=db()->prepare("SELECT s.email FROM newsletter_tokens t JOIN newsletter_subscribers s ON s.id=t.subscriber_id WHERE t.token_hash=? AND t.purpose='confirm' AND t.used_at IS NULL AND t.expires_at>? AND s.status='pending' AND s.suppressed_at IS NULL LIMIT 1");
+    $s->execute([$match[1],journeys_now()]);$email=$s->fetchColumn();
+    return $email && newsletter_confirmation_address_matches($match[1],(string)$email,$queuedRecipient)
+        && (!function_exists('newsletter_address_suppressed') || !newsletter_address_suppressed((string)$email));
 }
 function newsletter_request_signup(string $email,string $name): void {
     $email=journeys_email($email);$name=journeys_text($name,'Name',120);
+    if(function_exists('newsletter_address_suppressed') && newsletter_address_suppressed($email))return;
     if(!function_exists('enqueue_email'))throw new RuntimeException('Email queue is not available.');
-    $pdo=db();$pdo->beginTransaction();
+    $pdo=db();$lockedId=null;
+    $existing=$pdo->prepare('SELECT id FROM newsletter_subscribers WHERE email=?');$existing->execute([$email]);$existingId=(int)$existing->fetchColumn();
+    if($existingId && function_exists('newsletter_subscriber_lock')){newsletter_subscriber_lock($existingId,30);$lockedId=$existingId;}
+    $pdo->beginTransaction();
     try{
+        if(function_exists('newsletter_address_suppressed') && newsletter_address_suppressed($email)){$pdo->commit();return;}
         $s=$pdo->prepare('SELECT id,status FROM newsletter_subscribers WHERE email=?'.journeys_lock_suffix());$s->execute([$email]);$subscriber=$s->fetch();$now=journeys_now();
         if($subscriber&&$subscriber['status']==='confirmed'){$pdo->commit();return;}
-        if($subscriber){$id=(int)$subscriber['id'];$s=$pdo->prepare("UPDATE newsletter_subscribers SET name=?,status='pending',consent_version=?,requested_at=?,confirmed_at=NULL,updated_at=? WHERE id=?");$s->execute([$name,'2026-10-21-v1',$now,$now,$id]);}
+        if($subscriber){$id=(int)$subscriber['id'];$s=$pdo->prepare("UPDATE newsletter_subscribers SET name=?,status='pending',consent_version=?,requested_at=?,confirmed_at=NULL,updated_at=?,consent_revision=consent_revision+1 WHERE id=?");$s->execute([$name,'2026-10-21-v1',$now,$now,$id]);}
         else{$s=$pdo->prepare("INSERT INTO newsletter_subscribers(email,name,status,consent_version,requested_at,created_at,updated_at) VALUES(?,?,'pending',?,?,?,?)");$s->execute([$email,$name,'2026-10-21-v1',$now,$now,$now]);$id=(int)$pdo->lastInsertId();}
         $s=$pdo->prepare("UPDATE newsletter_tokens SET used_at=? WHERE subscriber_id=? AND purpose='confirm' AND used_at IS NULL");$s->execute([$now,$id]);
         $token=newsletter_create_token($id,'confirm',date('Y-m-d H:i:s',time()+86400));$confirm=url('/newsletter/confirm?token='.$token);$unsubscribe=newsletter_unsubscribe_url($id);
         $html='<h1>Confirm your subscription</h1><p>You asked to receive new writing and Startup Journeys from Waithaka Ndegwa.</p><p><a href="'.e($confirm).'">Confirm my subscription</a></p><p>This link expires in 24 hours. Your subscription stays inactive until you confirm. If you did not make this request, ignore this email or <a href="'.e($unsubscribe).'">cancel the request</a>.</p>';
         enqueue_email($email,'Confirm your subscription · Waithaka Ndegwa',$html,'newsletter-confirm:'.hash('sha256',$token));
         $pdo->commit();
-    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}finally{if($lockedId)newsletter_subscriber_unlock($lockedId);}
 }
 function newsletter_token_record(string $token,string $purpose,bool $lock=false): ?array {
     $hash=newsletter_token_hash($token);if(!$hash||!in_array($purpose,['confirm','unsubscribe'],true))return null;
@@ -300,14 +332,21 @@ function newsletter_token_record(string $token,string $purpose,bool $lock=false)
     return $r;
 }
 function newsletter_apply_token(string $token,string $purpose): bool {
+    $initial=newsletter_token_record($token,$purpose);
+    if(!$initial)return false;
+    $id=(int)$initial['subscriber_id'];$locked=false;
+    if(function_exists('newsletter_subscriber_lock')){newsletter_subscriber_lock($id,30);$locked=true;}
     $pdo=db();$pdo->beginTransaction();
     try{$record=newsletter_token_record($token,$purpose,true);if(!$record){$pdo->rollBack();return false;}$now=journeys_now();$id=(int)$record['subscriber_id'];
         if($purpose==='confirm'){
-            $s=$pdo->prepare("UPDATE newsletter_subscribers SET status='confirmed',confirmed_at=?,unsubscribed_at=NULL,updated_at=? WHERE id=? AND status='pending'");$s->execute([$now,$now,$id]);if($s->rowCount()!==1){$pdo->rollBack();return false;}
-        }else{$s=$pdo->prepare("UPDATE newsletter_subscribers SET status='unsubscribed',unsubscribed_at=?,updated_at=? WHERE id=?");$s->execute([$now,$now,$id]);}
+            $emailQuery=$pdo->prepare('SELECT email FROM newsletter_subscribers WHERE id=?');$emailQuery->execute([$id]);$subscriberEmail=(string)$emailQuery->fetchColumn();
+            if(!newsletter_confirmation_address_matches((string)newsletter_token_hash($token),$subscriberEmail)){$pdo->rollBack();return false;}
+            if(function_exists('newsletter_address_suppressed') && newsletter_address_suppressed($subscriberEmail)){$pdo->rollBack();return false;}
+            $s=$pdo->prepare("UPDATE newsletter_subscribers SET status='confirmed',confirmed_at=?,unsubscribed_at=NULL,updated_at=?,consent_revision=consent_revision+1 WHERE id=? AND status='pending' AND suppressed_at IS NULL");$s->execute([$now,$now,$id]);if($s->rowCount()!==1){$pdo->rollBack();return false;}
+        }else{$s=$pdo->prepare("UPDATE newsletter_subscribers SET status='unsubscribed',unsubscribed_at=?,updated_at=?,consent_revision=consent_revision+1 WHERE id=? AND status<>'unsubscribed'");$s->execute([$now,$now,$id]);}
         $s=$pdo->prepare("UPDATE newsletter_tokens SET used_at=? WHERE subscriber_id=? AND purpose='confirm' AND used_at IS NULL");$s->execute([$now,$id]);
         journeys_audit('newsletter',$id,$purpose==='confirm'?'confirmed':'unsubscribed');$pdo->commit();return true;
-    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}finally{if($locked)newsletter_subscriber_unlock($id);}
 }
 
 function journeys_rss_xml(array $posts,?string $now=null): string {

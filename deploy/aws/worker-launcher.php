@@ -10,7 +10,9 @@ try {
     if(!is_array($env))throw new RuntimeException('Environment is unavailable.');
     foreach($env as$key=>$value)if(preg_match('/\A[A-Z][A-Z0-9_]*\z/',(string)$key)&&is_scalar($value))putenv($key.'='.$value);
     unset($env,$json);
-    if(!wk_env_bool('APP_READY',false)||!wk_env_bool('WORKER_ENABLED',false))exit(0);
+    if(!wk_env_bool('APP_READY',false))exit(0);
+    // An installed but paused worker still records its diagnostic heartbeat.
+    // bin/worker.php checks WORKER_ENABLED before dispatching any delivery work.
     foreach(['DB_HOST','DB_DATABASE']as$key) {
         $value=getenv($key);
         if(!is_string($value)||$value===''||preg_match('/[;\x00-\x20\x7f]/',$value))throw new RuntimeException('Worker database configuration is incomplete.');

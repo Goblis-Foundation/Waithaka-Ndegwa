@@ -36,7 +36,7 @@ def runtime_file(path: str) -> bool:
         return True
     if path in {"bin/migrate.php", "bin/worker.php", "bin/create-writer.php"}:
         return True
-    return path in {"deploy/aws/worker-launcher.php", "deploy/aws/run-worker.sh", "deploy/aws/global-bundle.pem"}
+    return path in {"deploy/aws/worker-launcher.php", "deploy/aws/run-worker.sh", "deploy/aws/global-bundle.pem", "deploy/aws/media-limits.ini"}
 
 
 def assert_public_source(path: str) -> None:
@@ -94,7 +94,10 @@ def main() -> None:
         with zipfile.ZipFile(application) as app:
             if app.testzip() is not None:
                 raise RuntimeError("Application ZIP integrity failed.")
-            required = {"index.php", ".htaccess", "vendor/autoload.php", ".platform/hooks/postdeploy/30_worker.sh", "deploy/aws/global-bundle.pem"}
+            required = {"index.php", ".htaccess", "vendor/autoload.php", ".platform/hooks/postdeploy/30_worker.sh",
+                        ".platform/hooks/predeploy/25_media_limits.sh", "deploy/aws/global-bundle.pem",
+                        "deploy/aws/media-limits.ini", "app/newsletter.php", "app/media_library.php",
+                        "app/mail_feedback.php", "app/providers/youtube.php", "app/readiness.php"}
             if not required.issubset(set(app.namelist())):
                 raise RuntimeError("Application ZIP is missing a required root-level file.")
         history = temporary / "recovery-and-implementation.bundle"
@@ -110,6 +113,7 @@ def main() -> None:
             "WAITHAKA NDEGWA — IMPLEMENTATION RELEASE\n\n"
             "Open source/README.md and source/docs/OPERATING-GUIDE.md.\n"
             "Use source/docs/AWS-MIGRATION.md to restore and stage the site.\n"
+            "The guarded helper is documented in source/deploy/aws/INSTALL-CUTOVER.md.\n"
             "Upload deployment/application.zip as the Beanstalk source bundle,\n"
             "not this outer delivery archive. AWS account settings remain required.\n\n"
             "source/ contains the complete tracked project, tests, CI and runbooks.\n"

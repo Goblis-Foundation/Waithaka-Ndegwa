@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-function media_s3_client(): \Aws\S3\S3Client {
+function media_s3_client(int $timeout=45): \Aws\S3\S3Client {
     if (!class_exists(\Aws\S3\S3Client::class)) throw new RuntimeException('Install Composer dependencies before enabling S3.');
-    return new \Aws\S3\S3Client(['version'=>'2006-03-01','region'=>app_config('aws_region'),'http'=>['connect_timeout'=>5,'timeout'=>45]]);
+    return new \Aws\S3\S3Client(['version'=>'2006-03-01','region'=>app_config('aws_region'),'http'=>['connect_timeout'=>5,'timeout'=>max(5,min(300,$timeout))]]);
 }
 function media_safe_filename(string $filename): string {
     $name=basename($filename);if(!preg_match('/^[a-zA-Z0-9_-]+\.(?:webp|jpe?g|png|gif|pdf)$/',$name))throw new InvalidArgumentException('Invalid media filename.');return $name;

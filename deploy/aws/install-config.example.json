@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "deployment_id": "REPLACE_UNIQUE_RECOVERY_NAME",
+  "account_id": "REPLACE_EXPLICIT_12_DIGIT_ACCOUNT",
+  "region": "REPLACE_EXPLICIT_REGION",
+  "profile": "REPLACE_EXPLICIT_AWS_CLI_PROFILE",
+  "environment": "staging",
+  "state_dir": "/REPLACE_PRIVATE_DURABLE_WORKSPACE/deployment-state",
+  "secret_arn": "REPLACE_EXACT_APPLICATION_SECRET_ARN",
+  "network": {
+    "vpc_id": "REPLACE_VPC",
+    "database_subnet_ids": ["REPLACE_PRIVATE_DB_SUBNET_A", "REPLACE_PRIVATE_DB_SUBNET_B"],
+    "application_subnet_ids": ["REPLACE_APPLICATION_SUBNET_A", "REPLACE_APPLICATION_SUBNET_B"],
+    "alb_subnet_ids": ["REPLACE_ALB_SUBNET_A", "REPLACE_ALB_SUBNET_B"],
+    "application_security_group_id": "REPLACE_APPLICATION_SECURITY_GROUP",
+    "alb_security_group_id": "REPLACE_ALB_SECURITY_GROUP",
+    "associate_public_ip": true,
+    "trusted_proxy_cidrs": ["REPLACE_ACTUAL_TRUSTED_PROXY_NETWORK"]
+  },
+  "roles": {
+    "service_role": "REPLACE_EB_SERVICE_ROLE_NAME",
+    "instance_profile": "REPLACE_INSTANCE_PROFILE_NAME",
+    "instance_role": "REPLACE_INSTANCE_ROLE_NAME"
+  },
+  "database": {
+    "name": "waithaka",
+    "instance_class": "REPLACE_REVIEWED_DB_INSTANCE_CLASS",
+    "engine_version": "REPLACE_SUPPORTED_MYSQL_8_4_MINOR",
+    "multi_az": false
+  },
+  "application": {
+    "name": "REPLACE_NEW_APPLICATION_NAME",
+    "environment_name": "REPLACE_NEW_ENVIRONMENT_NAME",
+    "platform_arn": "REPLACE_SUPPORTED_PHP83_OR_PHP84_AL2023_PLATFORM_ARN",
+    "min_instances": 1,
+    "max_instances": 2
+  },
+  "domains": {
+    "canonical": "REPLACE_STAGING_CANONICAL_HOST",
+    "aliases": ["REPLACE_STAGING_CANONICAL_HOST"],
+    "origin": "REPLACE_DISTINCT_ORIGIN_HOST",
+    "viewer_certificate_arn": "REPLACE_US_EAST_1_VIEWER_CERTIFICATE_ARN",
+    "regional_certificate_arn": "REPLACE_REGIONAL_ALB_CERTIFICATE_ARN"
+  },
+  "artifacts": {
+    "application_zip": "/REPLACE_PRIVATE_WORKSPACE/deployment/application.zip",
+    "database_backup": "/REPLACE_PRIVATE_WORKSPACE/recovered/database.sql",
+    "original_key_file": "/REPLACE_PRIVATE_WORKSPACE/recovered/original-key.json",
+    "public_media_root": "/REPLACE_PRIVATE_WORKSPACE/recovered/assets/uploads",
+    "private_proofs_root": "/REPLACE_PRIVATE_WORKSPACE/recovered/storage/release-proofs",
+    "private_library_root": "/REPLACE_PRIVATE_WORKSPACE/recovered/storage/media-library"
+  },
+  "dns": {
+    "provider": "external",
+    "zones": {}
+  },
+  "mail": {
+    "transport": "disabled"
+  }
+}

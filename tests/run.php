@@ -13,8 +13,8 @@ function wk_test_help(): void
     echo <<<'HELP'
 Usage:
   php tests/run.php --lint     PHP syntax and JavaScript syntax (requires Node.js).
-  php tests/run.php --unit     Pure security, publishing and runtime tests; no database.
-  php tests/run.php            All nine suites, including isolated DB and HTTP tests.
+  php tests/run.php --unit     Pure policy/runtime tests and offline AWS-plan tests; no database.
+  php tests/run.php            All suites, including isolated DB and local HTTP tests.
 
 Full local example, for the project's isolated MariaDB server:
   WK_TEST_ALLOW_WRITES=1 \
@@ -163,6 +163,7 @@ function wk_test_fixture_environment(array $base, string $configuration): array
         'MAIL_TRANSPORT' => 'disabled',
         'MAIL_FROM' => 'fixture@example.invalid',
         'MAIL_FROM_NAME' => 'Local test fixture',
+        'MAIL_POSTAL_ADDRESS' => 'Synthetic test address',
         'MEDIA_DRIVER' => 'local',
     ]);
 }
@@ -239,7 +240,9 @@ function wk_test_http(array $environment, string $temporaryDirectory): array
         if (!$ready) throw new RuntimeException('The isolated HTTP test server did not become ready.');
         $results = ['passed' => 0, 'failures' => []];
         foreach (['010_security_http.php' => 'HTTP security and shared layouts',
-                  'publishing_http_test.php' => 'HTTP publishing workflow'] as $file => $label) {
+                  'publishing_http_test.php' => 'HTTP publishing workflow',
+                  'newsletter_http_test.php' => 'HTTP newsletter workflow',
+                  'implementation_http_test.php' => 'HTTP media, operations and feedback'] as $file => $label) {
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $results['passed']++;
             else $results['failures'][] = $label;
         }
@@ -286,21 +289,34 @@ try {
         $suiteCount = 0;
         $passedCount = 0;
         foreach (['010_security_unit.php' => 'Pure security', 'publishing_test.php' => 'Pure publishing',
-                  'runtime_config_test.php' => 'Pure runtime configuration'] as $file => $label) {
+                  'runtime_config_test.php' => 'Pure runtime configuration',
+                  'newsletter_unit.php'=>'Pure newsletter policy','youtube_test.php'=>'Pure YouTube policy',
+                  'readiness_unit.php'=>'Pure operations diagnostics','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
             $suiteCount++;
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $passedCount++;
             else $failed[] = $label;
         }
+        $suiteCount++;
+        if(wk_test_process(['python3','-B',__DIR__.'/readiness_deployment_test.py'],$environment,'Offline AWS recovery and cutover plans'))$passedCount++;
+        else $failed[]='Offline AWS recovery and cutover plans';
         if ($mode === 'all') {
+            $suiteCount++;
+            if(wk_test_process([PHP_BINARY,__DIR__.'/youtube_http_test.php'],$environment,'YouTube resumable protocol fixture'))$passedCount++;
+            else $failed[]='YouTube resumable protocol fixture';
             $suites = [
                 'security' => '010_security_database.php',
                 'journeys' => 'journeys_workflows.php',
                 'publishing' => 'publishing_database_test.php',
                 'operations' => 'operations_test.php',
+                'newsletter' => 'newsletter_database_test.php',
+                'readiness' => 'readiness_database.php',
+                'feedback' => 'mail_feedback_database.php',
+                'media' => 'media_library_database.php',
+                'youtube' => 'youtube_database_test.php',
                 'http' => '010_security_http.php',
             ];
             foreach ($suites as $suite => $file) {
-                $suiteCount += $suite === 'http' ? 2 : 1;
+                $suiteCount += $suite === 'http' ? 4 : 1;
                 $name = 'waithaka_test_'.$runId.'_'.$suite.'_test';
                 $suiteEnvironment = wk_test_suite_environment($environment, $settings, $name);
                 $prepare = [PHP_BINARY, __DIR__.'/prepare.php', '--database='.$name];

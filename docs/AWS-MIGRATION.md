@@ -1,12 +1,12 @@
 # AWS migration runbook
 
-Status: configuration templates and release bundle prepared; no live AWS resources, database import, provider authorization or DNS cutover performed.
+Status: application, reviewed deployment helper, configuration templates and release bundle prepared; no live AWS resources, database import, provider authorization or DNS cutover performed.
 
 This runbook preserves the recovered PHP application and its existing database. It is not an instruction to initialize a replacement empty website.
 
 ## Architecture and prerequisites
 
-The intended layout is Route 53 or the existing DNS provider → CloudFront → HTTPS Application Load Balancer → Elastic Beanstalk PHP/Apache. RDS stores content, sessions and delivery records. Public media is served from an S3 bucket through CloudFront Origin Access Control. Private proof files use a separate blocked-public S3 bucket and authenticated PHP downloads.
+The intended layout is Route 53 or the existing DNS provider → CloudFront → HTTPS Application Load Balancer → Elastic Beanstalk PHP/Apache. RDS stores content, sessions and delivery records. Public media is served from an S3 bucket through CloudFront Origin Access Control. Private proof files and owned private images/videos use a separate blocked-public S3 bucket and authenticated PHP downloads. SES sends approved email; signed SNS events reconcile delivery, bounces and complaints.
 
 The supplied files cover:
 
@@ -16,6 +16,8 @@ The supplied files cover:
 | edge-stack.json | CloudFront distribution, canonical redirects, public-media OAC and separate static/dynamic cache behavior |
 | beanstalk-options.template.json | Application environment settings, proxy, ALB, roles, health check, scaling bounds and secret references |
 | runtime-iam-policy.template.json | Additional application permissions to attach to the instance role after replacing placeholders |
+| mail-feedback-stack.json | SES configuration set, signed SNS topic and optional HTTPS feedback subscription |
+| install_cutover.py and INSTALL-CUTOVER.md | Offline, hash-bound phase plans, guarded AWS execution, recovery receipts and separate activation steps |
 | .ebextensions and .platform | PHP settings, source protection, runtime checks, native systemd worker timer and log rotation |
 
 Existing VPC/subnets, security groups, roles, DNS zones and certificates are inputs, not created by these templates. The release does not choose an AWS account, region or spending commitment.
@@ -30,7 +32,7 @@ Obtain a consistent export of the current database together with:
 
 - The original application key and private configuration, transferred securely.
 - All files under assets/uploads, preserving relative paths and original file bytes.
-- All private storage/release-proofs files.
+- All private storage/release-proofs files and any existing storage/media-library files.
 - Current integration settings, callback registrations, DNS records and any live scheduled work.
 - A current copy of the deployed source for comparison with the recovered V9 source.
 
@@ -56,7 +58,13 @@ Provide:
 - ACM viewer certificate in us-east-1 covering the distribution aliases, plus the regional ALB certificate. Use an origin DNS name pointing to the ALB. The template expects the origin certificate to cover that name and the forwarded canonical host [3].
 - Restricted staging access and a noindex response policy. Do not rely on an obscure preview hostname or assume APP_ENV alone blocks indexing.
 
-The supplemental IAM example intentionally has no account-wide administrator permission. Replace every REPLACE value; remove the SES statement if mail will remain disabled or use SMTP. The template does not supply the platform’s own service/instance role policies. Runtime code requires object read/write only at its two media prefixes and access to its exact application secret. Backup/migration administration is a separate role.
+The supplemental IAM example intentionally has no account-wide administrator permission. Replace every REPLACE value; remove the SES/SNS statements if those services are not used. The template does not supply the platform’s own service/instance role policies. Runtime code requires object read/write and version reads only at assets/uploads/* in the public bucket and release-proofs/* plus media-library/* in the private bucket, access to its exact application secret, and confirmation permission for its exact mail-feedback topic when SES is configured. Backup/migration administration is a separate role.
+
+### Use the guarded installation helper
+
+Follow [INSTALL-CUTOVER.md](../deploy/aws/INSTALL-CUTOVER.md) with a private copy of install-config.example.json. Supply the actual account, region, network, roles, certificates and recovered-artifact paths; the helper refuses placeholders and does not infer the website's AWS identity from other projects. It can produce plans offline. Applying a phase requires the plan's exact hash and checks the selected caller identity, resource ownership and relevant prior phases.
+
+Restore the SQL backup on a restricted host with database access, preserve the original key, and record verified source/target counts in the helper's restore receipt. A plan or unchecked receipt does not prove restoration. Recovery artifacts and receipts are bound by hashes; changed data requires fresh verification. Create-only provisioning, selective changeset checks and separate readiness, DNS, worker and mail stages keep the recovery reviewable. The supplied helper does not create a VPC, obtain certificates, recover a missing database/key, or establish provider permissions.
 
 ## 3. Create and restore the persistent data stack
 
@@ -86,6 +94,10 @@ A restored database reference such as `storage/release-proofs/2026/10/example.pd
 
 Do not put private proofs into the public media bucket or expose them through a signed/public link in article content. The application serves them through an authenticated Writer route.
 
+The new media library writes immutable private objects to media-library/YYYY/MM/<asset UUID>.<extension>, or explicitly public assets under assets/uploads. A library record freezes its storage driver, bucket/key, version, size and SHA-256. If migrating an installation that already contains these records, reconcile their storage location/version deliberately and verify the hashes; changing MEDIA_DRIVER alone does not rewrite approved media snapshots. Original V9 installations have no such new library records.
+
+The library accepts validated JPEG, PNG and WebP images up to 25 MiB and MP4, MOV or WebM video up to 512 MiB. Beanstalk includes 512 MiB PHP file/514 MiB request limits and a bounded Apache upload window; the CloudFront/ALB response settings are aligned at 120 seconds. These are configuration limits, not proof that every network can upload a maximum-size video. Test an intended video on the actual edge/ALB/PHP path. The application does not transcode videos.
+
 Preserve the original source copies and hash inventory until the migration is accepted. A later object version is not a substitute for verifying the initial import.
 
 ## 5. Apply explicit migrations
@@ -99,7 +111,7 @@ APP_CONFIG_FILE=/run/waithaka-migration.php php bin/migrate.php
 
 The configuration file must follow app/config.example.php and must contain the intended database, original key and timezone. Environment values override that file, so verify the effective target without printing secrets. On a migration shell, exclude unrelated runtime DB_* environment overrides.
 
-The runner performs the legacy additions and the numbered operations/security/journeys/publishing migrations, records checksums and uses a database advisory lock. Re-running completed migrations is a no-op. Inspect the plan first and retain a matching pre-migration database snapshot.
+The runner performs the legacy additions and the numbered operations/security/journeys/publishing/newsletter/readiness/media/feedback/confirmation-binding migrations, records checksums and uses a database advisory lock. Re-running completed migrations is a no-op. Inspect the plan first and retain a matching pre-migration database snapshot.
 
 **Do not use --fresh for this recovery.** It is only for a deliberately new empty installation and refuses a database that already contains tables. Similarly, bin/create-writer.php only creates the first user in an empty user table; restored Writer accounts are preserved.
 
@@ -135,15 +147,27 @@ Verify on the actual Apache/PHP-FPM/CloudFront environment:
 - Unknown hosts are rejected; the intended aliases redirect to the canonical host with the path and query preserved.
 - Writer login, CSRF-protected forms, draft isolation and previews work across instances; sessions persist in the database.
 - Private/token pages have no-store, noindex and no-referrer, and do not load analytics. Do not infer Apache header behavior from the built-in PHP test server alone.
-- Public S3 objects load through OAC, direct unauthenticated S3 access is denied, and private proof downloads require Writer authentication.
+- Public S3 objects load through OAC, direct unauthenticated S3 access is denied, and private proof/library downloads require Writer authentication. Verify partial video preview requests and immutable approved-asset hashes.
 - Google and provider callback addresses match the intended environment; confirm returned identities/resources, not just a successful redirect.
 - Payments are tested only against explicitly configured sandbox merchants. Unknown legacy provider/environment records remain for review.
-- The native systemd timer is installed and active. With WORKER_ENABLED=0 it exits without delivery work. No cron installation is assumed on AL2023 [5].
+- The native systemd timer is installed and active. With APP_READY=1 and WORKER_ENABLED=0 it reads the runtime secret/database and records a paused heartbeat, then exits without delivery work. Writer → Operations should show that heartbeat. With APP_READY=0 the launcher stops before fetching secrets. No cron installation is assumed on AL2023 [5].
 - The MySQL 8.4/PHP compatibility gate passes. CI is prepared, not already executed.
 
 For an owner-controlled live provider test, use a deliberately approved package/destination after deciding the content and visibility. Do not mark a route working solely because credentials saved successfully.
 
-Configure SES identity/DKIM, sending permissions, the chosen configuration set and bounce/complaint feedback before enabling SES. The outbox sends individual transactional messages and records provider acknowledgement. Campaign delivery and suppression feedback automation are not included.
+### Configure email while delivery is paused
+
+The campaign composer, approved frozen audience, one-click unsubscribe and signed SES feedback are included. They need an actual sender identity, correct postal-address footer, intended consent records and verified delivery configuration.
+
+1. Verify the SES identity/DKIM and sending quota/access in the chosen region. Deploy mail-feedback-stack.json first with FeedbackEndpoint empty. Its SNS topic uses signature version 2 and restricts SES publishing to the exact account/configuration set [9].
+2. Configure MAIL_FROM, MAIL_FROM_NAME, MAIL_POSTAL_ADDRESS, SES_REGION, SES_CONFIGURATION_SET and the exact SES_SNS_TOPIC_ARN while MAIL_TRANSPORT remains disabled. The helper's mail-setup phase grants the narrow runtime SES/SNS policy and installs this configuration without enabling sends.
+3. Update the feedback stack with the exact HTTPS canonical URL /webhooks/ses. The endpoint validates the SNS signature, certificate origin, topic and recipient binding before writing state [10].
+4. Open Writer → Mail feedback and confirm the signed pending subscription. The application calls SNS ConfirmSubscription for the configured topic; it does not fetch an arbitrary SubscribeURL.
+5. In an explicitly controlled test, verify actual inbox delivery, DKIM/SPF/DMARC configuration as applicable, List-Unsubscribe and List-Unsubscribe-Post coverage in the received message, human unsubscribe and one-click unsubscribe. For RFC 8058, inspect the received DKIM signature's signed-header list; adding the headers in PHP alone does not prove provider signing [11].
+6. Verify provider delivery/bounce/complaint events reach the signed endpoint and reconcile the correct outbox record. Hard bounces and complaints must suppress the address across newsletter and transactional outbox sends. An unsubscribe after campaign queuing must also prevent the later send.
+7. Check the actual restored pending work, mail quota and intended campaign recipients before the separate worker/mail activation phases. Record the helper's mail receipt only from completed checks.
+
+SMTP is an alternative transport, but this release's automatic provider feedback adapter is specifically SES/SNS. The guarded activation helper expects SES feedback; a different mail provider needs equivalent feedback/suppression integration and verified deployment configuration before production campaigns.
 
 ## 8. Monitoring and recovery
 
@@ -152,6 +176,8 @@ The hooks install a systemd oneshot worker and timer, running about a minute aft
 Beanstalk application/proxy log streaming is configured with thirty-day retention. The custom worker file needs an explicit unified CloudWatch Agent collection rule if central streaming is required; tail/bundle registration alone is not continuous CloudWatch collection.
 
 Add alerts for application 5xx/health failures, database availability/storage, failed worker runs, overdue scheduled jobs, pending email age and ambiguous/reconnect jobs. Set operator responsibility for reviewing those alerts. No alarm resources or on-call recipients are created by the templates.
+
+Writer → Operations reports local configuration, migration state, worker heartbeat, queue age and delivery/reconnection issues without revealing secrets or recipient lists. It does not replace CloudWatch alarms, prove live provider permissions, or measure services it cannot reach. Writer → Mail feedback separates accepted email from delivered, bounced or complained messages.
 
 Review proxy/ALB/CloudFront logs before enabling public traffic. Exclude sensitive query strings or use redaction where supported; tokens and OAuth codes must not become widely accessible logs. CloudFront access logging is not enabled by the supplied edge template. Use controlled retention and access for whichever logging route is selected.
 
@@ -187,3 +213,6 @@ Checked 2026-10-21. Platform/API requirements can change; verify the selected ac
 6. AWS — Elastic Beanstalk PHP and Composer: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_PHP.container.html
 7. AWS — extending Apache configuration: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/platforms-linux-extend.proxy.html
 8. AWS — instance log tasks and log streaming: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/using-features.logging.html
+9. AWS — SES SNS event destinations and topic policy: https://docs.aws.amazon.com/ses/latest/dg/event-publishing-add-event-destination-sns.html
+10. AWS — verify SNS message signatures: https://docs.aws.amazon.com/sns/latest/dg/sns-verify-signature-of-message.html
+11. IETF — one-click unsubscribe, RFC 8058: https://www.rfc-editor.org/info/rfc8058/
