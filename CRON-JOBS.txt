@@ -1,0 +1,13 @@
+WAITHAKA NDEGWA WEBSITE — CRON JOBS
+===================================
+
+cPanel username: afrie015
+
+REQUIRED CRON JOBS: NONE
+
+This build does not require a recurring cron job.
+- Scheduled posts become visible when their publish time is reached because visibility is evaluated on request.
+- Sitemap and RSS are generated dynamically.
+- M-Pesa, Pesapal and PayPal use callbacks/IPN/return flows.
+
+Do not add a made-up maintenance cron unless a dedicated CLI maintenance script is added in a future build.
