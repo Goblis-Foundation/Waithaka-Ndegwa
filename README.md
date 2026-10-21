@@ -103,3 +103,11 @@ Obtain the current database export, original application key/private configurati
 Live AWS deployment, DNS changes, account authorization and real provider delivery have not been performed. Google sign-in for readers, a universal social inbox, all-platform engagement analytics and the Content Posting API Direct Post product are outside this release. TikTok native publishing uses the separate Accounts API integration. Reports cover selected Search Console/GA4 properties, YouTube Data API channel figures and TikTok profile/public-video snapshots; they do not provide every platform's native analytics.
 
 This release supersedes the V9 instructions that said no cron was needed or advised opening a browser installer.
+
+## r6 dedicated AWS workload account
+
+The deployment target is now explicitly **AWS account 466401734428 (Waithaka Ndegwa)** under **AWS Organizations management account 891923193638 (AfriTrace Link)**. The management account is an organization/governance boundary only and is not a website hosting target.
+
+The primary workload region is **Africa (Cape Town), `af-south-1`**. CloudFront remains global and its viewer ACM certificate is created in **`us-east-1`**. Route 53 hosted zones and the reusable delegation set behind `ns1`–`ns4.waithakandegwa.com` are owned by **466401734428**.
+
+Before any AWS mutation read `deploy/aws/ACCOUNT-466401734428-HOSTING-PLAN.md` and run the read-only `deploy/aws/account_readiness.py`. The release includes target-pinned production and DNS example configurations, a two-AZ network baseline, and Elastic Beanstalk IAM baseline. Every existing guarded live phase still checks STS against the explicitly configured account before mutation.

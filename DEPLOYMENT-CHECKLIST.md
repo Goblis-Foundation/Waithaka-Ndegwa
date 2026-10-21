@@ -53,3 +53,16 @@ No check is marked complete merely because a configuration template exists.
 - Keep nameserver preparation and the existing application installer as separate reviewed operations. The DNS helpers do not register domains or automatically change registrar delegation/glue/DS.
 - On 21 October 2026, public recursive observations still showed webhostbox nameservers for `.com`, NXDOMAIN for `.co.ke`, and the old `G-WCKVHN823V` tag in the successful `.com` HTML. These observations do not establish domain ownership, registrar host objects, complete records or live analytics reception. Recheck before and after migration; see the dated evidence and limits in the branded nameserver guide.
 - Current CloudFormation supports `HostedZone.DelegationSetId`, but changing it replaces the zone. Preserve the DNS resource owner and rollback copies; do not treat a template update as an in-place live-zone reassignment.
+
+## r6 account 466401734428 preparation
+
+- [ ] Confirm AWS Organizations shows member account **466401734428** active under management account **891923193638**.
+- [ ] Run `deploy/aws/account_readiness.py` from either 891923193638 (assuming `OrganizationAccountAccessRole`) or directly in 466401734428; review and retain the read-only JSON report.
+- [ ] Establish role-based human administration for 466401734428, preferably through IAM Identity Center; do not use the management account or root user for routine website work.
+- [ ] Verify the organization root/SCP and centralized-root-access posture, including protection against member-account leave/close; do not duplicate organization-wide controls without checking the parent baseline.
+- [ ] Deploy `iam-baseline-stack.json` in 466401734428 / `af-south-1` and verify `waithaka-eb-service-role`, `waithaka-eb-instance-role`, and `waithaka-eb-instance-profile`.
+- [ ] Discover the AWS-managed `com.amazonaws.global.cloudfront.origin-facing` prefix list and deploy `network-stack.json` in `af-south-1`; review one-vs-two NAT gateway cost/resilience explicitly.
+- [ ] Request/validate the CloudFront viewer certificate in `us-east-1` and the ALB/origin certificate in `af-south-1`, both in account 466401734428.
+- [ ] Use `install-config.466401734428.example.json` and `branded-dns-config.466401734428.example.json` as the production configuration starting points; do not substitute another project account.
+- [ ] Create/adopt the Route 53 reusable delegation set and both public hosted zones inside **466401734428** before registering `.com` glue for `ns1`–`ns4.waithakandegwa.com`.
+- [ ] Keep SES mail transport disabled until the 466401734428 SES identity/DKIM/sandbox-production state is verified in `af-south-1`.

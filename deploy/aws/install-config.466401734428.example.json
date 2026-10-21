@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "deployment_id": "waithaka-ndegwa-production-466401734428",
+  "account_id": "466401734428",
+  "region": "af-south-1",
+  "profile": "waithaka-ndegwa-prod",
+  "environment": "production",
+  "state_dir": "/private/waithaka/deployment-state",
+  "secret_arn": "REPLACE_EXACT_APPLICATION_SECRET_ARN_IN_466401734428",
+  "network": {
+    "vpc_id": "REPLACE_WAITHAKA_VPC",
+    "database_subnet_ids": ["REPLACE_PRIVATE_DB_SUBNET_A", "REPLACE_PRIVATE_DB_SUBNET_B"],
+    "application_subnet_ids": ["REPLACE_PRIVATE_APP_SUBNET_A", "REPLACE_PRIVATE_APP_SUBNET_B"],
+    "alb_subnet_ids": ["REPLACE_PUBLIC_ALB_SUBNET_A", "REPLACE_PUBLIC_ALB_SUBNET_B"],
+    "application_security_group_id": "REPLACE_APPLICATION_SECURITY_GROUP",
+    "alb_security_group_id": "REPLACE_ALB_SECURITY_GROUP",
+    "associate_public_ip": false,
+    "trusted_proxy_cidrs": ["REPLACE_ACTUAL_CLOUDFRONT_OR_ALB_PROXY_NETWORKS"]
+  },
+  "roles": {
+    "service_role": "waithaka-eb-service-role",
+    "instance_profile": "waithaka-eb-instance-profile",
+    "instance_role": "waithaka-eb-instance-role"
+  },
+  "database": {
+    "name": "waithaka",
+    "instance_class": "REPLACE_REVIEWED_DB_INSTANCE_CLASS",
+    "engine_version": "REPLACE_SUPPORTED_MYSQL_8_4_MINOR_IN_AF_SOUTH_1",
+    "multi_az": false
+  },
+  "application": {
+    "name": "waithaka-ndegwa-web",
+    "environment_name": "waithaka-ndegwa-prod",
+    "platform_arn": "REPLACE_CURRENT_PHP_8_4_AL2023_PLATFORM_ARN_IN_AF_SOUTH_1",
+    "min_instances": 1,
+    "max_instances": 2
+  },
+  "domains": {
+    "canonical": "www.waithakandegwa.com",
+    "aliases": ["waithakandegwa.com", "www.waithakandegwa.com", "waithakandegwa.co.ke", "www.waithakandegwa.co.ke"],
+    "origin": "origin.waithakandegwa.com",
+    "viewer_certificate_arn": "REPLACE_US_EAST_1_ACM_CERTIFICATE_ARN_IN_466401734428",
+    "regional_certificate_arn": "REPLACE_AF_SOUTH_1_ALB_CERTIFICATE_ARN_IN_466401734428"
+  },
+  "artifacts": {
+    "application_zip": "/private/waithaka/release/deployment/application.zip",
+    "database_backup": "/private/waithaka/recovered/database.sql",
+    "original_key_file": "/private/waithaka/recovered/original-key.json",
+    "public_media_root": "/private/waithaka/recovered/assets/uploads",
+    "private_proofs_root": "/private/waithaka/recovered/storage/release-proofs",
+    "private_library_root": "/private/waithaka/recovered/storage/media-library"
+  },
+  "dns": {
+    "provider": "route53",
+    "zones": {
+      "waithakandegwa.com": "REPLACE_COM_HOSTED_ZONE_ID_IN_466401734428",
+      "waithakandegwa.co.ke": "REPLACE_CO_KE_HOSTED_ZONE_ID_IN_466401734428"
+    },
+    "branded_delegation_report": "/private/waithaka/branded-delegation-report.json"
+  },
+  "mail": {
+    "transport": "disabled"
+  }
+}

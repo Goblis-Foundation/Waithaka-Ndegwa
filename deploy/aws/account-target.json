@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "project": "Waithaka Ndegwa personal website",
+  "management_account_id": "891923193638",
+  "workload_account_id": "466401734428",
+  "workload_account_name": "Waithaka Ndegwa",
+  "primary_region": "af-south-1",
+  "cloudfront_certificate_region": "us-east-1",
+  "organization_access_role": "OrganizationAccountAccessRole",
+  "resource_prefix": "waithaka-ndegwa",
+  "canonical_domain": "www.waithakandegwa.com",
+  "secondary_domain": "www.waithakandegwa.co.ke",
+  "hosted_zone_domains": [
+    "waithakandegwa.com",
+    "waithakandegwa.co.ke"
+  ],
+  "branded_nameservers": [
+    "ns1.waithakandegwa.com",
+    "ns2.waithakandegwa.com",
+    "ns3.waithakandegwa.com",
+    "ns4.waithakandegwa.com"
+  ],
+  "runtime": {
+    "elastic_beanstalk_branch": "PHP 8.4 running on 64bit Amazon Linux 2023",
+    "proxy": "apache",
+    "database_engine": "mysql",
+    "database_major": "8.4"
+  },
+  "ownership_boundary": {
+    "management_account_use": "AWS Organizations, consolidated billing, organization governance and controlled member-account access only",
+    "workload_account_use": "website application, VPC, Elastic Beanstalk, RDS, S3, CloudFront, Route 53, SES, Secrets Manager, CloudWatch and related workload resources"
+  }
+}

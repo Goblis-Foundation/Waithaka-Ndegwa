@@ -1,0 +1,700 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Waithaka Ndegwa website network baseline for AWS account 466401734428 in af-south-1.",
+  "Parameters": {
+    "ProjectName": {
+      "Type": "String",
+      "Default": "waithaka-ndegwa"
+    },
+    "VpcCidr": {
+      "Type": "String",
+      "Default": "10.46.0.0/16"
+    },
+    "PublicSubnetACidr": {
+      "Type": "String",
+      "Default": "10.46.0.0/24"
+    },
+    "PublicSubnetBCidr": {
+      "Type": "String",
+      "Default": "10.46.1.0/24"
+    },
+    "AppSubnetACidr": {
+      "Type": "String",
+      "Default": "10.46.10.0/24"
+    },
+    "AppSubnetBCidr": {
+      "Type": "String",
+      "Default": "10.46.11.0/24"
+    },
+    "DbSubnetACidr": {
+      "Type": "String",
+      "Default": "10.46.20.0/24"
+    },
+    "DbSubnetBCidr": {
+      "Type": "String",
+      "Default": "10.46.21.0/24"
+    },
+    "UseTwoNatGateways": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ]
+    },
+    "CloudFrontOriginPrefixListId": {
+      "Type": "AWS::EC2::PrefixList::Id",
+      "Description": "AWS-managed prefix list com.amazonaws.global.cloudfront.origin-facing in af-south-1."
+    }
+  },
+  "Conditions": {
+    "UseTwoNat": {
+      "Fn::Equals": [
+        {
+          "Ref": "UseTwoNatGateways"
+        },
+        "true"
+      ]
+    },
+    "UseOneNat": {
+      "Fn::Equals": [
+        {
+          "Ref": "UseTwoNatGateways"
+        },
+        "false"
+      ]
+    }
+  },
+  "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VpcCidr"
+        },
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-vpc"
+            }
+          },
+          {
+            "Key": "Project",
+            "Value": {
+              "Ref": "ProjectName"
+            }
+          }
+        ]
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-igw"
+            }
+          }
+        ]
+      }
+    },
+    "AttachIgw": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "InternetGatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": {
+          "Ref": "PublicSubnetACidr"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-public-a"
+            }
+          }
+        ]
+      }
+    },
+    "PublicSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": {
+          "Ref": "PublicSubnetBCidr"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-public-b"
+            }
+          }
+        ]
+      }
+    },
+    "AppSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": {
+          "Ref": "AppSubnetACidr"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-app-a"
+            }
+          }
+        ]
+      }
+    },
+    "AppSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": {
+          "Ref": "AppSubnetBCidr"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-app-b"
+            }
+          }
+        ]
+      }
+    },
+    "DbSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": {
+          "Ref": "DbSubnetACidr"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-db-a"
+            }
+          }
+        ]
+      }
+    },
+    "DbSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "CidrBlock": {
+          "Ref": "DbSubnetBCidr"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-db-b"
+            }
+          }
+        ]
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-public-rt"
+            }
+          }
+        ]
+      }
+    },
+    "PublicDefaultRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "AttachIgw",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicAssocA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "PublicAssocB": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PublicSubnetB"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "NatEipA": {
+      "Type": "AWS::EC2::EIP",
+      "DependsOn": "AttachIgw",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "NatGatewayA": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "NatEipA",
+            "AllocationId"
+          ]
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-nat-a"
+            }
+          }
+        ]
+      }
+    },
+    "NatEipB": {
+      "Type": "AWS::EC2::EIP",
+      "Condition": "UseTwoNat",
+      "DependsOn": "AttachIgw",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "NatGatewayB": {
+      "Type": "AWS::EC2::NatGateway",
+      "Condition": "UseTwoNat",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "NatEipB",
+            "AllocationId"
+          ]
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetB"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-nat-b"
+            }
+          }
+        ]
+      }
+    },
+    "AppRouteTableA": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-app-a-rt"
+            }
+          }
+        ]
+      }
+    },
+    "AppRouteTableB": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-app-b-rt"
+            }
+          }
+        ]
+      }
+    },
+    "AppDefaultRouteA": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "AppRouteTableA"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NatGatewayA"
+        }
+      }
+    },
+    "AppDefaultRouteBOneNat": {
+      "Type": "AWS::EC2::Route",
+      "Condition": "UseOneNat",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "AppRouteTableB"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NatGatewayA"
+        }
+      }
+    },
+    "AppDefaultRouteBTwoNat": {
+      "Type": "AWS::EC2::Route",
+      "Condition": "UseTwoNat",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "AppRouteTableB"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NatGatewayB"
+        }
+      }
+    },
+    "AppAssocA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "AppSubnetA"
+        },
+        "RouteTableId": {
+          "Ref": "AppRouteTableA"
+        }
+      }
+    },
+    "AppAssocB": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "AppSubnetB"
+        },
+        "RouteTableId": {
+          "Ref": "AppRouteTableB"
+        }
+      }
+    },
+    "DbRouteTableA": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-db-a-rt"
+            }
+          }
+        ]
+      }
+    },
+    "DbRouteTableB": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-db-b-rt"
+            }
+          }
+        ]
+      }
+    },
+    "DbAssocA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "DbSubnetA"
+        },
+        "RouteTableId": {
+          "Ref": "DbRouteTableA"
+        }
+      }
+    },
+    "DbAssocB": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "DbSubnetB"
+        },
+        "RouteTableId": {
+          "Ref": "DbRouteTableB"
+        }
+      }
+    },
+    "S3Endpoint": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "VpcEndpointType": "Gateway",
+        "ServiceName": {
+          "Fn::Sub": "com.amazonaws.${AWS::Region}.s3"
+        },
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "RouteTableIds": [
+          {
+            "Ref": "AppRouteTableA"
+          },
+          {
+            "Ref": "AppRouteTableB"
+          }
+        ]
+      }
+    },
+    "AlbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "HTTPS from CloudFront origin-facing network only",
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "SourcePrefixListId": {
+              "Ref": "CloudFrontOriginPrefixListId"
+            }
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-alb-sg"
+            }
+          }
+        ]
+      }
+    },
+    "AppSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Application ingress only from Waithaka ALB",
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "SourceSecurityGroupId": {
+              "Ref": "AlbSecurityGroup"
+            }
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${ProjectName}-app-sg"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "VpcId": {
+      "Value": {
+        "Ref": "Vpc"
+      }
+    },
+    "PublicAlbSubnetIds": {
+      "Value": {
+        "Fn::Join": [
+          ",",
+          [
+            {
+              "Ref": "PublicSubnetA"
+            },
+            {
+              "Ref": "PublicSubnetB"
+            }
+          ]
+        ]
+      }
+    },
+    "PrivateAppSubnetIds": {
+      "Value": {
+        "Fn::Join": [
+          ",",
+          [
+            {
+              "Ref": "AppSubnetA"
+            },
+            {
+              "Ref": "AppSubnetB"
+            }
+          ]
+        ]
+      }
+    },
+    "PrivateDbSubnetIds": {
+      "Value": {
+        "Fn::Join": [
+          ",",
+          [
+            {
+              "Ref": "DbSubnetA"
+            },
+            {
+              "Ref": "DbSubnetB"
+            }
+          ]
+        ]
+      }
+    },
+    "AlbSecurityGroupId": {
+      "Value": {
+        "Ref": "AlbSecurityGroup"
+      }
+    },
+    "AppSecurityGroupId": {
+      "Value": {
+        "Ref": "AppSecurityGroup"
+      }
+    },
+    "NatGatewayMode": {
+      "Value": {
+        "Fn::If": [
+          "UseTwoNat",
+          "two",
+          "one"
+        ]
+      }
+    }
+  }
+}
