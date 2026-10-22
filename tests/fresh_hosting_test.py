@@ -39,4 +39,10 @@ class FreshHostingTests(unittest.TestCase):
    text=(ROOT/'deploy/aws'/name).read_text();self.assertIn('466401734428',text);self.assertIn('get-caller-identity',text)
  def test_application_bootstrap_is_packaged(self):
   text=(ROOT/'bin/build-release.py').read_text();self.assertIn('bin/fresh-bootstrap.php',text);self.assertIn('25_fresh_bootstrap.sh',text)
+ def test_beans_environment_resume_uses_valid_boolean_switch(self):
+  text=(ROOT/'deploy/aws/fresh_application.sh').read_text()
+  self.assertIn('--no-include-deleted',text)
+  self.assertNotIn('--include-deleted false',text)
+  self.assertIn('Adopting existing Elastic Beanstalk environment',text)
+  self.assertIn('Waiting for the existing environment operation to settle',text)
 if __name__=='__main__':unittest.main()

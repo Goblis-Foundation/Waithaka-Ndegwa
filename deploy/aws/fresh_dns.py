@@ -37,18 +37,25 @@ def save_state(st:dict):
 def load_state()->dict:
     return json.loads(STATE.read_text()) if STATE.exists() else {}
 
-def doh(name:str, rtype:str)->list[dict]:
+def doh_query(name:str, rtype:str, *, tolerate_dns_errors:bool=False)->dict:
     url='https://dns.google/resolve?'+urllib.parse.urlencode({'name':name,'type':rtype,'cd':'false','do':'false'})
-    req=urllib.request.Request(url,headers={'accept':'application/dns-json','user-agent':'WaithakaDNSPreparation/1.0'})
+    req=urllib.request.Request(url,headers={'accept':'application/dns-json','user-agent':'WaithakaDNSPreparation/1.1'})
     try:
         with urllib.request.urlopen(req,timeout=15) as r: data=json.load(r)
     except Exception as e:
+        if tolerate_dns_errors:
+            return {'status':-1,'answers':[],'error':str(e)}
         fail(f'Unable to snapshot current public DNS for {name} {rtype}: {e}')
     status=int(data.get('Status',-1))
-    if status not in (0,3): fail(f'Public DNS query returned status {status} for {name} {rtype}.')
     type_codes={'A':1,'NS':2,'CNAME':5,'MX':15,'TXT':16,'AAAA':28,'CAA':257}
     wanted=type_codes.get(rtype.upper())
-    return [a for a in (data.get('Answer') or []) if wanted is None or int(a.get('type',-1))==wanted]
+    answers=[a for a in (data.get('Answer') or []) if wanted is None or int(a.get('type',-1))==wanted]
+    if status not in (0,3) and not tolerate_dns_errors:
+        fail(f'Public DNS query returned status {status} for {name} {rtype}.')
+    return {'status':status,'answers':answers}
+
+def doh(name:str, rtype:str)->list[dict]:
+    return doh_query(name,rtype)['answers']
 
 def fqdn(v:str)->str: return v if v.endswith('.') else v+'.'
 
@@ -239,8 +246,16 @@ def status():
     expected={fqdn(x).lower() for x in VANITY}
     for d,zid in st.get('zones',{}).items():
         sets=rrs(zid); ns=next((x for x in sets if x['Name']==fqdn(d) and x['Type']=='NS'),None)
-        public_ns={fqdn(x.get('data','')).lower() for x in doh(d,'NS') if x.get('data')}
-        out['zones'][d]={'zone_id':zid,'vanity_ns':[x['Value'] for x in (ns or {}).get('ResourceRecords',[])], 'public_ns':sorted(public_ns),'delegated_to_vanity':public_ns==expected}
+        public=doh_query(d,'NS',tolerate_dns_errors=True)
+        public_ns={fqdn(x.get('data','')).lower() for x in public['answers'] if x.get('data')}
+        out['zones'][d]={
+          'zone_id':zid,
+          'vanity_ns':[x['Value'] for x in (ns or {}).get('ResourceRecords',[])],
+          'public_dns_status':public['status'],
+          'public_dns_error':public.get('error'),
+          'public_ns':sorted(public_ns),
+          'delegated_to_vanity':public['status']==0 and public_ns==expected
+        }
     for key,arn in st.get('certificates',{}).items():
         reg='us-east-1' if key=='viewer' else 'af-south-1'; c=aws_json(['acm','describe-certificate','--certificate-arn',arn],reg).get('Certificate',{})
         out['certificates'][key]={'arn':arn,'status':c.get('Status')}

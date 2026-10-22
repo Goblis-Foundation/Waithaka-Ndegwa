@@ -132,20 +132,48 @@ a += [
 json.dump(a,open(out,'w'),indent=2)
 PY
 
-exists="$(aws elasticbeanstalk describe-environments --application-name "$APP_NAME" --environment-names "$ENV_NAME" --include-deleted false --region "$REGION" --query 'Environments[0].Status' --output text --no-cli-pager 2>/dev/null || true)"
-if [[ -z "$exists" || "$exists" == "None" ]]; then
+environment_snapshot(){
+  aws elasticbeanstalk describe-environments \
+    --application-name "$APP_NAME" \
+    --environment-names "$ENV_NAME" \
+    --no-include-deleted \
+    --region "$REGION" \
+    --query 'Environments[0].[EnvironmentName,Status,Health,VersionLabel]' \
+    --output text --no-cli-pager 2>/dev/null || true
+}
+wait_environment_ready(){
+  local status health
+  for i in $(seq 1 120); do
+    read -r _ status health _ <<<"$(environment_snapshot)"
+    echo "Environment: ${status:-missing} / ${health:-unknown}"
+    [[ "$status" == "Ready" ]] && return 0
+    [[ "$status" == "Terminated" || -z "$status" || "$status" == "None" ]] && return 1
+    sleep 15
+  done
+  return 1
+}
+
+snapshot="$(environment_snapshot)"
+read -r existing_name existing_status existing_health existing_version <<<"$snapshot"
+if [[ -z "$existing_name" || "$existing_name" == "None" ]]; then
   echo "Creating Elastic Beanstalk production environment (workers/mail still disabled)..."
   aws elasticbeanstalk create-environment --application-name "$APP_NAME" --environment-name "$ENV_NAME" --version-label "$VERSION" --platform-arn "$PLATFORM_ARN" --option-settings "file://$OPTIONS" --region "$REGION" --no-cli-pager >/dev/null
 else
+  echo "Adopting existing Elastic Beanstalk environment: $ENV_NAME ($existing_status / $existing_health, version ${existing_version:-unknown})"
+  if [[ "$existing_status" != "Ready" ]]; then
+    echo "Waiting for the existing environment operation to settle before applying the reviewed configuration..."
+    wait_environment_ready || fail "Existing Elastic Beanstalk environment did not become Ready."
+  fi
   echo "Updating existing Elastic Beanstalk environment to application version $VERSION..."
   aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --version-label "$VERSION" --option-settings "file://$OPTIONS" --region "$REGION" --no-cli-pager >/dev/null
 fi
 
+STATUS=""; HEALTH=""
 for i in $(seq 1 120); do
-  read -r STATUS HEALTH <<<"$(aws elasticbeanstalk describe-environments --environment-names "$ENV_NAME" --region "$REGION" --query 'Environments[0].[Status,Health]' --output text --no-cli-pager)"
-  echo "Environment: $STATUS / $HEALTH"
+  read -r _ STATUS HEALTH _ <<<"$(environment_snapshot)"
+  echo "Environment: ${STATUS:-missing} / ${HEALTH:-unknown}"
   [[ "$STATUS" == "Ready" && "$HEALTH" == "Green" ]] && break
-  [[ "$STATUS" == "Terminated" ]] && fail "Elastic Beanstalk environment terminated unexpectedly."
+  [[ "$STATUS" == "Terminated" || -z "$STATUS" || "$STATUS" == "None" ]] && fail "Elastic Beanstalk environment terminated or disappeared unexpectedly."
   sleep 15
 done
 [[ "$STATUS" == "Ready" && "$HEALTH" == "Green" ]] || fail "Elastic Beanstalk did not become Ready/Green."
