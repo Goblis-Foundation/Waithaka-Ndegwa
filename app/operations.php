@@ -57,6 +57,8 @@ function email_deliver(array $payload,string $deliveryKey): string {
     $security=(string)app_config('mail.smtp_encryption','tls');
     if (!in_array($security,['tls','ssl'],true)) throw new RuntimeException('SMTP requires TLS.');
     $mail->SMTPSecure=$security; $mail->SMTPAuth=(string)app_config('mail.smtp_username','')!=='';
+    $helo=trim((string)app_config('mail.smtp_helo',''));
+    if($helo!==''){if(!preg_match('/\A(?=.{1,253}\z)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\z/i',$helo))throw new RuntimeException('SMTP HELO is invalid.');$mail->Helo=$helo;}
     $mail->Username=(string)app_config('mail.smtp_username',''); $mail->Password=(string)app_config('mail.smtp_password','');
     $mail->Timeout=25; $mail->CharSet='UTF-8';$mail->setFrom($from,$name);$mail->addAddress($payload['to']);
     if (filter_var(app_config('mail.reply_to',''),FILTER_VALIDATE_EMAIL)) $mail->addReplyTo(app_config('mail.reply_to'));

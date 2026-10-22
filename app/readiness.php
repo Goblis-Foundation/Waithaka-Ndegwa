@@ -100,7 +100,10 @@ function readiness_config_checks(array $config,array $capabilities): array {
     $checks[]=readiness_check('mail','Email delivery',$transport==='disabled'?'disabled':($mailReady?'ok':'blocked'),$transport==='disabled'?'Sending is paused':($mailReady?'A mail transport is configured':'Mail transport configuration is incomplete'),'Configuration does not prove provider acceptance or inbox delivery. Verify sender identity, feedback and suppression handling before sending.');
     $topic=$config['mail']['sns_topic_arn']??'';
     $feedback=is_string($topic)&&preg_match('/\Aarn:(aws|aws-cn|aws-us-gov):sns:[a-z]{2}(?:-[a-z]+)+-[0-9]:[0-9]{12}:[A-Za-z0-9_-]{1,256}\z/',$topic)===1;
-    $checks[]=readiness_check('mail_feedback','SES delivery feedback',$feedback?'ok':($transport==='ses'?'attention':'disabled'),$feedback?'An exact SNS topic is configured':($transport==='ses'?'Configure and verify SES feedback':'SES feedback is not configured'),'Open Mail feedback to confirm the signed subscription and inspect delivery, bounce and complaint handling. A configured topic does not prove that SES is publishing events to it.');
+    $feedbackState=$feedback?'ok':($transport==='ses'?'attention':($transport==='smtp'?'attention':'disabled'));
+    $feedbackSummary=$feedback?'An exact SNS topic is configured':($transport==='ses'?'Configure and verify SES feedback':($transport==='smtp'?'Workspace SMTP relay uses Google delivery logs rather than SES/SNS feedback':'Mail feedback is not configured'));
+    $feedbackDetail=$transport==='smtp'?'For Google Workspace SMTP relay, review Email Log Search and maintain manual suppression/correction handling; SES/SNS feedback is intentionally not used.':'Open Mail feedback to confirm the signed subscription and inspect delivery, bounce and complaint handling. A configured topic does not prove that SES is publishing events to it.';
+    $checks[]=readiness_check('mail_feedback',$transport==='smtp'?'Workspace delivery feedback':'SES delivery feedback',$feedbackState,$feedbackSummary,$feedbackDetail);
     return $checks;
 }
 function readiness_worker_health(?array $last,bool $enabled,int $now): array {

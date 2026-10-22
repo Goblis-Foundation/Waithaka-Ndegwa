@@ -237,3 +237,20 @@ Do not call the site live until all of the following are true:
 - `branded-dns-config.466401734428.example.json` — target-pinned branded DNS configuration.
 
 These additions prepare the workload account but do not create resources by themselves.
+
+## One-command CloudShell bootstrap added in r7
+
+`bootstrap-foundation.sh` packages the first live stage into one guarded command. Its default mode is read-only. `--apply` is limited to the reviewed IAM and network CloudFormation stacks and verifies the final stack states before declaring completion. It refuses an AWS caller outside the management/workload account pair and stops before all data, DNS, website traffic and SES operations.
+
+## R13 post-foundation stage
+
+After `waithaka-iam-baseline` and `waithaka-network` are complete, use `prepare-data-and-certificates.sh`.
+The read-only default resolves actual stack outputs and current platform/database capabilities. Certificate requests and the billable persistent data stack are separately gated.
+
+The certificate step requests/reuses:
+- `us-east-1`: viewer certificate for `www.waithakandegwa.com`, `waithakandegwa.com`, `www.waithakandegwa.co.ke`, `waithakandegwa.co.ke`;
+- `af-south-1`: origin certificate for `origin.waithakandegwa.com`.
+
+It writes ACM DNS-validation CNAMEs to private CloudShell evidence and makes no DNS change. CloudFront viewer certificates must be in `us-east-1`.
+
+The data step deploys `waithaka-ndegwa-production-466401734428-data` using the reviewed `data-stack.json` and the actual network outputs. It defaults to `db.t4g.small`, selects the latest visible MySQL 8.4 minor only after confirming that class/version combination is orderable in Cape Town, enables RDS deletion protection and backups, and creates retained/versioned public/private/release S3 buckets. It does not restore data or generate application secrets.

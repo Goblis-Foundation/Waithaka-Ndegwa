@@ -1,3 +1,9 @@
+# Current selected deployment route (r17)
+
+The production route is a **fresh AWS install**, not a cPanel/database migration. Use `deploy/aws/FRESH-AWS-HOSTING.md` and `deploy/aws/fresh_hosting.sh`. The IAM/network/RDS/S3 foundations in account `466401734428` are already deployed. The remaining external handoffs are registrar glue/delegation, Google Workspace SMTP relay/DKIM, and provider OAuth authorization.
+
+---
+
 # Deployment checklist
 
 Use [the AWS migration runbook](docs/AWS-MIGRATION.md), [guarded installer guide](deploy/aws/INSTALL-CUTOVER.md) and [branded nameserver guide](deploy/aws/BRANDED-NAMESERVERS.md) for the detailed steps.

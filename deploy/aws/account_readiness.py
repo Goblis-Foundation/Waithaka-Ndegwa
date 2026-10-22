@@ -47,8 +47,7 @@ def summarize_platforms(env, profile):
         "elasticbeanstalk", "list-platform-branches",
         "--region", REGION,
         "--filters",
-        "Attribute=PlatformName,Operator==,Values=PHP",
-        "Attribute=LifecycleState,Operator==,Values=supported",
+        '[{"Attribute":"PlatformName","Operator":"=","Values":["PHP"]},{"Attribute":"LifecycleState","Operator":"=","Values":["supported"]}]',
     ], profile, env, allow_fail=True)
     if not resp.get("ok", True): return resp
     rows = []

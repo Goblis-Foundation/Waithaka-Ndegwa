@@ -43,8 +43,10 @@
       ]
     },
     "CloudFrontOriginPrefixListId": {
-      "Type": "AWS::EC2::PrefixList::Id",
-      "Description": "AWS-managed prefix list com.amazonaws.global.cloudfront.origin-facing in af-south-1."
+      "Type": "String",
+      "Description": "AWS-managed prefix list com.amazonaws.global.cloudfront.origin-facing in af-south-1.",
+      "AllowedPattern": "^pl-[0-9a-zA-Z]+$",
+      "ConstraintDescription": "Must be a managed prefix list ID such as pl-1234567890abcdef0."
     }
   },
   "Conditions": {

@@ -1,23 +1,23 @@
 # Waithaka Ndegwa — startup journeys and publishing
 
-Release: 2026-10-21 r5. Built on the recovered V9 PHP/MySQL website, with the original editorial identity and personal photography preserved.
+Release: 2026-10-22 r17. Built on the recovered V9 PHP/MySQL website, with the original editorial identity and personal photography preserved, and prepared for a clean AWS installation.
 
-**This is an implemented, locally tested release package. It has not been deployed to AWS, imported the live database, connected provider accounts or published social posts.**
+**AWS account 466401734428 now has the IAM, Cape Town network and persistent RDS/S3 foundations deployed. This release continues from that state with fresh Route 53, application, CloudFront and Google Workspace automation. It does not import the former host database or uploads.**
 
 ## Start here
 
 - [Google tag and growth implementation](docs/GROWTH-IMPLEMENTATION.md): G-RN0YXC2WCH, reading paths, resources, evidence, campaign coordination, reader follow-up and search discovery.
 - [Operating guide](docs/OPERATING-GUIDE.md): weekly startup series, founder submissions, media, Google/social publishing, newsletters and Operations.
-- [AWS migration runbook](docs/AWS-MIGRATION.md): restore, stage, validate and cut over both domains.
-- [Reviewed installation and cutover helper](deploy/aws/INSTALL-CUTOVER.md): offline plans, recovery evidence and explicitly applied AWS phases.
-- [Branded nameservers](deploy/aws/BRANDED-NAMESERVERS.md): `ns1`–`ns4.waithakandegwa.com`, complete-zone preservation, resumable Route 53 preparation, registrar glue and independent delegation checks for both domains.
+- [Fresh AWS hosting](deploy/aws/FRESH-AWS-HOSTING.md): the current clean-install route from the deployed AWS foundation through Route 53, application bootstrap, CloudFront and Google Workspace.
+- [Branded nameservers](deploy/aws/BRANDED-NAMESERVERS.md): background on `ns1`–`ns4.waithakandegwa.com` and Route 53 white-label operation.
+- [Legacy migration runbook](docs/AWS-MIGRATION.md): retained for recovery history only; it is not the selected production route.
 - [Validation and limits](docs/VALIDATION.md): evidence, actual runtime and remaining external checks.
 - [Release changes](docs/CHANGELOG.md).
 - [Deployment checklist](DEPLOYMENT-CHECKLIST.md).
 
 The canonical production address is `https://www.waithakandegwa.com`. The AWS edge template redirects both apex and www versions of `waithakandegwa.co.ke`, and the .com apex, to the corresponding canonical path. Existing article addresses are retained.
 
-The intended authoritative nameservers for both domains are `ns1.waithakandegwa.com`, `ns2.waithakandegwa.com`, `ns3.waithakandegwa.com` and `ns4.waithakandegwa.com`. The new DNS helper prepares one shared Route 53 delegation set and two public zones, preserving current website/email records before the application move. The actual server addresses are obtained from the selected AWS account. They are not website aliases and are never filled with guessed IPs. Registrar access and complete existing DNS exports remain necessary for live activation.
+The intended authoritative nameservers for both domains are `ns1.waithakandegwa.com`, `ns2.waithakandegwa.com`, `ns3.waithakandegwa.com` and `ns4.waithakandegwa.com`. The fresh DNS helper creates one shared Route 53 delegation set and two public zones, snapshots currently published core `.com` records for continuity, adds ACM validation and the Google Workspace baseline, and generates the exact registrar glue handoff. The actual nameserver addresses are obtained from Route 53 and are never guessed. The user performs only the external registrar glue/delegation update.
 
 ## Implemented experience
 
@@ -80,13 +80,13 @@ composer install --no-dev --prefer-dist --no-interaction --no-scripts --no-plugi
 composer check-platform-reqs --no-dev
 ```
 
-Environment variables override the legacy private configuration. `.env.example` documents the variables; it is **not** automatically loaded. Preserve the original application encryption key when restoring existing data.
+Environment variables override the legacy private configuration. `.env.example` documents the variables; it is **not** automatically loaded. The selected clean install generates a new application key in Secrets Manager; no legacy application key is required.
 
 Schema changes run only through `bin/migrate.php`. The public installer is disabled. The runtime database account needs data access, not schema-change privileges. The supplied systemd timer invokes a bounded worker after the prior run finishes; the worker handles social/YouTube jobs, payment reconciliation, newsletter queueing and the email outbox, while recording activity for Operations.
 
-`APP_READY`, `WORKER_ENABLED` and `MAIL_TRANSPORT` are separate controls. A restored staging site can be inspected with delivery work paused. Keep the worker disabled and mail transport disabled until the restored queues, actual destinations, sender identity, feedback connection and release checks have been reviewed. Newsletter approval also needs the configured sender and postal address; changing these after approval requires review again.
+`APP_READY`, `WORKER_ENABLED` and `MAIL_TRANSPORT` are separate controls. A restored staging site can be inspected with delivery work paused. Keep the worker disabled until the fresh site, actual destinations and release checks have been reviewed. Mail remains disabled until the Google Workspace SMTP relay has been configured for the fixed AWS NAT egress IP and accepted in production. Newsletter approval also needs the configured sender and postal address; changing these after approval requires review again.
 
-SES feedback uses the exact configured SNS topic and verified signatures at `/webhooks/ses`. After a signed subscription request arrives, **Operations → Mail feedback → Confirm configured SNS subscription** completes the operator step. Verify real delivery/bounce/complaint handling before enabling campaigns. SMTP can submit messages, but this release's automated feedback adapter is SES/SNS.
+Google Workspace SMTP relay is the selected primary application mail path. The application uses `smtp-relay.gmail.com:587` with STARTTLS and IP authentication from the fixed NAT egress address; no SMTP password is stored. Workspace Email Log Search is used for provider-side delivery diagnostics. The older SES/SNS feedback adapter remains available in source but is not the selected primary transport.
 
 ## Verification and packaging
 
@@ -94,13 +94,13 @@ SES feedback uses the exact configured SNS topic and verified signatures at `/we
 
 `bin/build-release.py` builds a source archive and an Elastic Beanstalk application bundle from a clean git revision and installed locked dependencies. It excludes live configuration, uploads, logs, test fixtures and local databases. The complete delivery archive also contains the baseline/change git history for recovery.
 
-The AWS helper validates recovery inputs and writes exact plans offline. Explicit live commands check the chosen account, and `apply` requires the reviewed plan's SHA-256. It supports phased data/application/edge setup, verified media copy, the CloudFront media-policy binding, readiness, DNS cutover and separately gated worker/mail activation. SQL restore, original-key verification, migrations and live acceptance remain documented operator steps; the helper does not invent missing recovery data or initialize a replacement site.
+The selected AWS path is `deploy/aws/fresh_hosting.sh`: prepare Route 53 and the registrar handoff, then continue automatically after delegation through the clean database/Writer bootstrap, Elastic Beanstalk, CloudFront and Workspace-mail handoff. The older migration helper remains only for recovery history.
 
 ## Before live launch
 
-Obtain the current database export, original application key/private configuration, public uploads and private proof files from the current host. Restore and test them in a restricted staging environment. Configure the actual AWS account, DNS, certificates, mail identity and provider applications. The complete sequence is in the migration runbook. Never initialize an empty database over the existing site.
+This deployment intentionally starts with a fresh AWS database and storage layer. No current-host database, uploads or legacy application key are required. Run `deploy/aws/fresh_hosting.sh --prepare-dns`, perform the generated registrar glue/delegation handoff, then run `deploy/aws/fresh_hosting.sh --after-registrar` to bootstrap the clean Writer/database, deploy Elastic Beanstalk and CloudFront, and switch Route 53 website aliases. Google Workspace SMTP relay/DKIM and provider OAuth authorizations remain explicit account-owner handoffs.
 
-Live AWS deployment, DNS changes, account authorization and real provider delivery have not been performed. Google sign-in for readers, a universal social inbox, all-platform engagement analytics and the Content Posting API Direct Post product are outside this release. TikTok native publishing uses the separate Accounts API integration. Reports cover selected Search Console/GA4 properties, YouTube Data API channel figures and TikTok profile/public-video snapshots; they do not provide every platform's native analytics.
+Google sign-in for readers and a universal social inbox remain outside this release. TikTok native publishing uses the separate Accounts API integration. Reports cover selected Search Console/GA4 properties, YouTube Data API channel figures and TikTok profile/public-video snapshots; they do not provide every platform's native analytics.
 
 This release supersedes the V9 instructions that said no cron was needed or advised opening a browser installer.
 

@@ -15,7 +15,7 @@ function wk_environment_config(array $config): array {
     $map=['APP_ENV'=>'app_env','APP_URL'=>'base_url','APP_KEY'=>'app_key','APP_TIMEZONE'=>'timezone','SESSION_DRIVER'=>'session_driver',
         'DB_HOST'=>'db.host','DB_PORT'=>'db.port','DB_DATABASE'=>'db.name','DB_USERNAME'=>'db.user','DB_PASSWORD'=>'db.pass','DB_SSL_CA'=>'db.ssl_ca',
         'MAIL_TRANSPORT'=>'mail.transport','MAIL_FROM'=>'mail.from','MAIL_FROM_NAME'=>'mail.from_name','MAIL_REPLY_TO'=>'mail.reply_to',
-        'SMTP_HOST'=>'mail.smtp_host','SMTP_PORT'=>'mail.smtp_port','SMTP_USERNAME'=>'mail.smtp_username','SMTP_PASSWORD'=>'mail.smtp_password','SMTP_ENCRYPTION'=>'mail.smtp_encryption',
+        'SMTP_HOST'=>'mail.smtp_host','SMTP_PORT'=>'mail.smtp_port','SMTP_USERNAME'=>'mail.smtp_username','SMTP_PASSWORD'=>'mail.smtp_password','SMTP_ENCRYPTION'=>'mail.smtp_encryption','SMTP_HELO'=>'mail.smtp_helo',
         'SES_REGION'=>'mail.ses_region','SES_CONFIGURATION_SET'=>'mail.ses_configuration_set','SES_SNS_TOPIC_ARN'=>'mail.sns_topic_arn','MAIL_POSTAL_ADDRESS'=>'mail.postal_address',
         'MEDIA_DRIVER'=>'media.driver','MEDIA_BUCKET'=>'media.bucket','MEDIA_PRIVATE_BUCKET'=>'media.private_bucket','MEDIA_PUBLIC_URL'=>'media.public_url','AWS_REGION'=>'aws_region'];
     foreach($map as $env=>$key){$v=getenv($env);if($v===false)continue;$target=&$config;foreach(explode('.',$key) as $part)$target=&$target[$part];$target=$v;unset($target);}

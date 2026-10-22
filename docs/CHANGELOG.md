@@ -1,3 +1,8 @@
+
+## 2026-10-22 — r17 clean AWS hosting automation
+- Clean AWS install selected; legacy-host recovery is no longer a production prerequisite.
+- Route 53 white-label DNS, registrar handoff, fresh Writer/database bootstrap, Elastic Beanstalk and CloudFront are now orchestrated by `deploy/aws/fresh_hosting.sh`.
+- Google Workspace SMTP relay replaces SES as the selected application-mail path.
 # Release changes — 2026-10-21 r5
 
 ## 2026-10-21 r5 — Branded authoritative DNS

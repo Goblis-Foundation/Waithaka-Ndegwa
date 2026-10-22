@@ -1,0 +1,7 @@
+R15 — 2026-10-22
+
+- Replaces the Elastic Beanstalk PHP 8.4 selector with a branch-aware lookup using PlatformBranchName begins_with "PHP 8.4".
+- Requires PlatformStatus=Ready and PlatformLifecycleState=recommended.
+- Verifies both the returned branch name and ARN before certificate/data preparation can proceed.
+- Adds regression coverage to prevent falling back to the generic PlatformName filter.
+- No AWS resources, DNS, traffic, SES, certificates, or database changes are performed by packaging this release.

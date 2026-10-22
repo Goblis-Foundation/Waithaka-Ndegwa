@@ -1,0 +1,6 @@
+R14 — 2026-10-22
+
+- Fixes the post-foundation Elastic Beanstalk platform-version preflight: list-platform-versions uses PlatformFilter keys Type/Operator/Values, not SearchFilter Attribute.
+- Adds PlatformStatus=Ready to the platform-version filter so the resolved PHP 8.4 platform ARN is deployable.
+- Adds a regression check to prevent mixing list-platform-branches and list-platform-versions filter schemas.
+- No AWS resources, DNS, traffic, SES, certificates, or database changes are performed by packaging this release.

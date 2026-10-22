@@ -33,14 +33,26 @@ class AccountTargetTests(unittest.TestCase):
         self.assertFalse(r['AppSubnetB']['Properties']['MapPublicIpOnLaunch'])
         self.assertFalse(r['DbSubnetA']['Properties']['MapPublicIpOnLaunch'])
         self.assertIn('CloudFrontOriginPrefixListId',d['Parameters'])
+        self.assertEqual(d['Parameters']['CloudFrontOriginPrefixListId']['Type'],'String')
+        self.assertTrue(d['Parameters']['CloudFrontOriginPrefixListId']['AllowedPattern'].startswith('^pl-'))
         self.assertIn('NatGatewayB',r)
         self.assertEqual(r['NatGatewayB']['Condition'],'UseTwoNat')
+
+    def test_bootstrap_cleans_failed_network_and_validates_prefix_list(self):
+        text=(ROOT/'deploy/aws/bootstrap-foundation.sh').read_text()
+        self.assertIn('network_stack_status', text)
+        self.assertIn('Removing failed waithaka-network stack in ROLLBACK_COMPLETE before retry', text)
+        self.assertIn('--prefix-list-ids "$prefix_list_id"', text)
+        self.assertIn('com.amazonaws.global.cloudfront.origin-facing', text)
 
     def test_iam_stack_has_expected_roles(self):
         d=json.load(open(ROOT/'deploy/aws/iam-baseline-stack.json'))
         r=d['Resources']
         self.assertEqual(r['ElasticBeanstalkServiceRole']['Properties']['RoleName'],'waithaka-eb-service-role')
+        self.assertIn('arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth',r['ElasticBeanstalkServiceRole']['Properties']['ManagedPolicyArns'])
         self.assertIn('arn:aws:iam::aws:policy/AWSElasticBeanstalkManagedUpdatesCustomerRolePolicy',r['ElasticBeanstalkServiceRole']['Properties']['ManagedPolicyArns'])
+        self.assertEqual(r['ElasticBeanstalkServiceRole']['Properties']['AssumeRolePolicyDocument']['Statement'][0]['Condition']['StringEquals']['sts:ExternalId'],'elasticbeanstalk')
+        self.assertIn('arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier',r['ElasticBeanstalkInstanceRole']['Properties']['ManagedPolicyArns'])
         self.assertEqual(r['ElasticBeanstalkInstanceRole']['Properties']['RoleName'],'waithaka-eb-instance-role')
         self.assertEqual(r['ElasticBeanstalkInstanceProfile']['Properties']['InstanceProfileName'],'waithaka-eb-instance-profile')
 
@@ -50,5 +62,10 @@ class AccountTargetTests(unittest.TestCase):
         self.assertEqual(m.MANAGEMENT_ACCOUNT,'891923193638')
         self.assertEqual(m.WORKLOAD_ACCOUNT,'466401734428')
         self.assertEqual(m.REGION,'af-south-1')
+
+    def test_elastic_beanstalk_filter_uses_json_operator_equals(self):
+        text=(ROOT/'deploy/aws/account_readiness.py').read_text()
+        self.assertNotIn('Operator==', text)
+        self.assertIn('\"Operator\":\"=\"', text)
 
 if __name__=='__main__': unittest.main()
