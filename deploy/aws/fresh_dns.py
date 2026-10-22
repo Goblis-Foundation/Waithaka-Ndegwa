@@ -126,7 +126,20 @@ def upsert(zone_id:str, records:list[dict], comment:str):
     change_id=res['ChangeInfo']['Id'].split('/')[-1]
     run(['route53','wait','resource-record-sets-changed','--id',change_id])
 
+def txt_rdata(value:str)->str:
+    """Return Route 53-safe TXT RDATA, preserving valid quoted chunks."""
+    value=str(value).strip()
+    if re.fullmatch(r'(?:"(?:[^"\\]|\\.)*"(?:\s+|$))+',value):
+        return value
+    # Route 53 TXT character-strings are limited to 255 characters. Keep
+    # generated chunks comfortably below that limit and let JSON escaping
+    # provide the required surrounding quotes.
+    chunks=[value[i:i+240] for i in range(0,len(value),240)] or ['']
+    return ' '.join(json.dumps(chunk,ensure_ascii=False) for chunk in chunks)
+
 def rr(name:str,typ:str,values:list[str],ttl:int=300)->dict:
+    if typ.upper()=='TXT':
+        values=[txt_rdata(v) for v in values]
     return {'Name':fqdn(name),'Type':typ,'TTL':ttl,'ResourceRecords':[{'Value':v} for v in values]}
 
 def source_records(snapshot:dict,domain:str)->list[dict]:
