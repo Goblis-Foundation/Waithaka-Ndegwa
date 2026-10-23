@@ -4,16 +4,16 @@
     <div class="impact-groups">
     <?php $organisations=impact_organisations();foreach([
       ['org'=>0,'keys'=>['startups','permanent_staff']],
-      ['org'=>1,'keys'=>['social_enterprises']],
+      ['org'=>1,'keys'=>['social_enterprises','ubunifu_permanent_staff']],
       ['org'=>3,'keys'=>['market_access']]
     ] as$group):$org=$organisations[$group['org']];?>
       <section class="impact-group" aria-label="<?=e($org['name'])?> goals">
-        <a class="impact-organisation" href="<?=e($org['url'])?>" target="_blank" rel="noopener noreferrer" aria-label="<?=e('Visit '.$org['name'].' website (opens in a new tab)')?>">
+        <a class="impact-organisation" href="<?=e($org['url'])?>" target="_blank" rel="noopener noreferrer" aria-label="<?=e('Visit '.$org['name'])?>">
           <span class="impact-organisation-logo"><img src="<?=asset('images/organisations/'.$org['logo'])?>" alt="<?=e($org['name'].' logo')?>" width="240" height="160" loading="lazy" decoding="async"></span>
-          <h3><?=e($org['name'])?></h3><span><?=e($org['domain'])?> ↗</span><small>Visit website · opens in a new tab</small>
+          <h3><?=e($org['name'])?></h3><span>Explore the organisation ↗</span>
         </a>
         <?php if($group['org']===3):$project=$organisations[2];?>
-        <a class="impact-project" href="<?=e($project['url'])?>" target="_blank" rel="noopener noreferrer"><img src="<?=asset('images/organisations/'.$project['logo'])?>" alt="AfriTrace Link logo" width="180" height="60" loading="lazy"><span><strong>AfriTrace Link</strong><small>A project of Goblis Foundation</small><small>afritracelink.com ↗ · opens in a new tab</small></span></a>
+        <a class="impact-project" href="<?=e($project['url'])?>" target="_blank" rel="noopener noreferrer"><img src="<?=asset('images/organisations/'.$project['logo'])?>" alt="AfriTrace Link logo" width="180" height="60" loading="lazy"><span><strong>AfriTrace Link</strong><small>A project of Goblis Foundation</small><small>Explore AfriTrace Link ↗</small></span></a>
         <?php endif;?>
         <div class="impact-group-metrics">
         <?php foreach($group['keys'] as$key):$metric=impact_metrics()[$key];$report=impact_display(impact_snapshot($metric['source']),$key);?>
@@ -26,6 +26,8 @@
       </article>
         <?php endforeach;?>
         </div>
+        <?php $indirectSource=match($group['org']){0=>'goblis_group',1=>'ubunifu',default=>'goblis_foundation'};$indirect=impact_indirect_groups()[$indirectSource];$indirectSnapshot=impact_snapshot($indirectSource);$beneficiaries=impact_display($indirectSnapshot,'indirect_beneficiaries');?>
+        <aside class="impact-indirect"><h4>Indirect beneficiaries</h4><p><?=e($indirect['copy'])?></p><strong><?=$beneficiaries['value']===null?'Count awaiting verified reporting':number_format($beneficiaries['value']).' people · '.e($beneficiaries['status'])?></strong><?php if($beneficiaries['as_of']):?><small>As of <?=e(date('j M Y',strtotime($beneficiaries['as_of'])))?></small><p><?=e($indirectSnapshot['data']['beneficiary_basis']??'')?></p><?php endif;?></aside>
       </section>
     <?php endforeach;?>
     </div>
@@ -37,7 +39,7 @@
       <li><strong>Permanent staff:</strong> distinct people currently employed on permanent contracts in the qualifying Goblis Group ventures at the reporting date. Temporary workers, contractors and volunteers are excluded. This is a headcount, not full-time equivalents or a cumulative sum of hires; it does not by itself establish net new job creation.</li>
       <li><strong>Social enterprises established:</strong> distinct operating enterprises supported through Ubunifu Institute during the period, with a documented social or environmental purpose, evidence of trading and a reviewed plan for financial sustainability and impact. Course enrolment or completion alone does not qualify.</li>
       <li><strong>Connected to markets:</strong> distinct African social enterprises with evidence of a completed buyer introduction, buyer meeting, accepted market opportunity or transaction through AfriTrace Link during the period. Profile creation alone does not qualify. A connection does not necessarily mean a sale.</li></ul>
-      <p>Each source deduplicates its own enterprises and staff before publishing an aggregate report. The categories can overlap and must not be added together. AfriTrace Link is the primary market-access count; Goblis Foundation supplies corroborating programme reporting, not an additional count.</p>
+      <p><strong>Ubunifu employment target:</strong> 2,030 social enterprises incubated at Ubunifu Institute × an average of 5 permanent staff = 10,150 permanent jobs across those enterprises. Employment is generated indirectly through incubation; the enterprises employ the staff. Actual staff are counted from source reports, rather than calculated from enterprise counts.</p><p><strong>Indirect beneficiaries:</strong> count distinct people outside the directly served group with evidence of benefit, using an approved survey or documented sampling method. Do not count every household member, customer, supplier or community resident automatically. Deduplicate people across households and activities; exclude direct participants and explain sampling, geographic coverage and uncertainty. No common household multiplier is applied across African countries. Research on <a href="https://www.gov.uk/research-for-development-outputs/tracking-indirect-beneficiaries-of-complex-development-interventions-in-agriculture" target="_blank" rel="noopener noreferrer">tracking indirect beneficiaries</a> supports tracing the pathway of benefit rather than assuming reach.</p><p>Each source deduplicates its own enterprises and staff before publishing an aggregate report. The categories can overlap and must not be added together. AfriTrace Link is the primary market-access count; Goblis Foundation supplies corroborating programme reporting, not an additional count.</p>
       <?php $foundation=impact_display(impact_snapshot('goblis_foundation'),'market_access');$market=impact_display(impact_snapshot('afritrace'),'market_access');?>
       <p><strong>Goblis Foundation reporting:</strong> <?=e($foundation['status'])?>.<?php if($foundation['as_of']):?> As of <?=e(date('j M Y',strtotime($foundation['as_of'])))?>.<?php if($market['value']!==null&&$foundation['value']!==$market['value']):?> Its market-access figure differs from the primary report; reconciliation is pending.<?php endif;?><?php endif;?></p>
       <p>Configured feeds are checked every 15 minutes. Reports older than 48 hours, or sources that cannot be reached, retain their last reported figure with an update-pending label. Definitions may be refined transparently with the source organisations before their first approved reports.</p>

@@ -22,7 +22,7 @@ function studio_capture_fields(string $title,string $idea): array {
 function studio_dispatch(string $path): bool {
     if($path==='/media-centre'){
         journeys_method(['GET','HEAD']);
-        render('media_centre',['page'=>'media-centre','seo'=>['title'=>'Media centre · Waithaka Ndegwa','description'=>'Biography, interview topics, media requests and official social channels for Waithaka Ndegwa, social entrepreneur and innovation strategist in Africa.','canonical'=>url('/media-centre')]]);return true;
+        redirect(url('/contact'),301);return true;
     }
     if(!in_array($path,['/write/studio','/write/capture','/write/assist'],true))return false;
     require_auth();private_response_headers();journeys_method($path==='/write/assist'?['POST']:['GET','HEAD','POST']);

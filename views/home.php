@@ -16,7 +16,7 @@
 </section>
 
 <section class="section experience-explore"><div class="container"><span class="eyebrow">Explore</span><h2>Where would you like to begin?</h2><div class="experience-grid"><?php foreach([
-['/start-here','Start Here','An introduction and useful reading paths.'],['/my-thoughts','My Thoughts','Experience, questions and ideas from the field.'],['/startup-journeys','Startup Journeys','Follow a venture from its first question.'],['/resources','Practical resources','Tools and guides to put ideas into practice.'],['/watch','Watch','Published videos and conversations.'],['/media-centre','Media centre','Biography, interview topics and enquiries.']
+['/start-here','Start Here','An introduction and useful reading paths.'],['/my-thoughts','My Thoughts','Experience, questions and ideas from the field.'],['/startup-journeys','Startup Journeys','Follow a venture from its first question.'],['/resources','Practical resources','Tools and guides to put ideas into practice.'],['/watch','Watch','Published videos and conversations.'],['/newsletter','Weekly updates','Follow new writing and practical lessons.']
 ]as$item):?><a class="experience-card" href="<?=url($item[0])?>"><h3><?=e($item[1])?> →</h3><p><?=e($item[2])?></p></a><?php endforeach;?></div></div></section>
 <?php include __DIR__.'/impact_summary.php'; ?>
 

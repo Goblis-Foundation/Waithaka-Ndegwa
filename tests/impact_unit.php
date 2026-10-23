@@ -15,3 +15,11 @@ $offline=impact_display(['status'=>'unavailable','data'=>$clean],'startups',$now
 check(impact_metrics()['market_access']['source']==='afritrace','Foundation corroboration must not be added to the primary market count.');
 foreach(['http://example.com/report','https://127.0.0.1/report','https://example.com:8443/report','https://user:pass@example.com/report','https://example.com/report?token=secret','https://example.com/report#fragment']as$url){$rejected=false;try{impact_endpoint($url);}catch(InvalidArgumentException $e){$rejected=true;}check($rejected,'Unsafe feed URL was accepted.');}
 echo "PASS: reporting contracts, privacy, zero versus missing, stale snapshots and endpoint boundaries.\n";
+
+$ubunifu=$valid;$ubunifu['source']='ubunifu';$ubunifu['metrics']=['social_enterprises'=>2030];
+check(!isset(impact_validate($ubunifu,'ubunifu',$now)['metrics']['ubunifu_permanent_staff']),'Existing Ubunifu feeds remain compatible.');
+$ubunifu['metrics']['ubunifu_permanent_staff']=10150;check(impact_validate($ubunifu,'ubunifu',$now)['metrics']['ubunifu_permanent_staff']===10150,'Employment actuals must come from source, not a computed proxy.');
+check(impact_metrics()['ubunifu_permanent_staff']['target']===2030*5,'Ubunifu employment target uses five permanent staff per enterprise.');
+$indirect=$valid;$indirect['metrics']['indirect_beneficiaries']=0;$indirect['beneficiary_basis']='Approved sampled household survey, direct participants excluded.';$indirect['beneficiary_deduplicated']=true;
+check(impact_validate($indirect,'goblis_group',$now)['metrics']['indirect_beneficiaries']===0,'A verified indirect zero is valid.');
+unset($indirect['beneficiary_basis']);$rejected=false;try{impact_validate($indirect,'goblis_group',$now);}catch(InvalidArgumentException){$rejected=true;}check($rejected,'Indirect counts require a public methodology.');

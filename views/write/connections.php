@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="<?=asset('css/publishing.css')?>">
 <main class="write-main pub-main">
   <div class="writer-head"><div><span class="writer-kicker">Private Writer tools</span><h1>Connections</h1><p class="pub-lead">Connect the account, confirm the actual destination and choose how each channel publishes. Your account type and its granted permissions decide what is available.</p></div></div>
-  <nav class="pub-nav" aria-label="Publishing"><a href="<?=url('/write/publishing')?>">Packages & calendar</a><a href="<?=url('/write/connections')?>" aria-current="page">Connections</a><a href="#channels">Channel routes</a><a href="#credentials">App settings</a></nav>
+  <nav class="pub-nav" aria-label="Publishing"><a href="<?=url('/write/media-centre')?>">Media centre & analytics</a><a href="<?=url('/write/publishing')?>">Packages & calendar</a><a href="<?=url('/write/connections')?>" aria-current="page">Connections</a><a href="#channels">Channel routes</a><a href="#credentials">App settings</a></nav>
   <?php foreach(flashes() as $f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
   <div class="pub-hint">Facebook, Instagram, X and TikTok are recorded as professional accounts. Facebook professional mode is a profile type; a Page is a separate publishing destination. TikTok’s professional label is owner-declared; it does not verify a Business account or grant publishing access. Your six public profile links stay available while connections are being configured.</div>
   <section class="pub-section"><h2 class="pub-section-title">Authorize the features you need</h2><div class="pub-grid">

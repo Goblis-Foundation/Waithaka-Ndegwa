@@ -65,10 +65,20 @@ try{
     db()->exec("UPDATE settings SET setting_value='' WHERE setting_key='google.ga4'");growth_check(!str_contains(growth_request('/')['body'],'googletagmanager.com'),'A blank setting has no fallback tag.');
     db()->exec("UPDATE settings SET setting_value='G-RN0YXC2WCH' WHERE setting_key='google.ga4'");db()->exec("UPDATE settings SET setting_value='0' WHERE setting_key='google.analytics_enabled'");growth_check(!str_contains(growth_request('/')['body'],'googletagmanager.com'),'The explicit off switch disables the shared tag.');
     $r=growth_request('/write/account');growth_check($r['status']===302,'Account controls require authentication.');
-    foreach(['/write/studio','/write/capture','/write/assist']as$privateRoute){$r=growth_request($privateRoute);growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Studio endpoints require authentication: '.$privateRoute);}
+    foreach(['/write/studio','/write/capture','/write/assist','/write/media-centre']as$privateRoute){$r=growth_request($privateRoute);growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Studio endpoints require authentication: '.$privateRoute);}
     $r=growth_request('/write/impact');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Reporting connections require Writer authentication.');
     $r=growth_request('/write/campaigns');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Campaigns require Writer authentication.');
     $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check($r['status']===302,'The synthetic Writer can authenticate.');
+    $centre=growth_request('/write/media-centre');growth_check($centre['status']===200&&str_contains($centre['headers']['cache-control']??'','no-store')&&!str_contains($centre['body'],'googletagmanager.com'),'Media centre is private and has no analytics tracker.');
+    foreach(['LinkedIn','Facebook','Instagram','X','YouTube','TikTok']as$platform)growth_check(str_contains($centre['body'],'<h3>'.$platform.'</h3>'),'Media centre covers '.$platform);
+    $mediaCsrf=growth_csrf($centre);
+    $r=growth_request('/write/media-centre/report',['csrf'=>'invalid','action'=>'record']);growth_check($r['status']===419,'Social report writes require CSRF.');
+    $r=growth_request('/write/media-centre/report',['csrf'=>$mediaCsrf,'action'=>'record','platform'=>'facebook','account'=>'PRIVATE_METRIC_ACCOUNT','start'=>'2026-01-01','end'=>'2026-01-28','followers'=>'0','views'=>'1234','basis'=>'Synthetic native dashboard fixture']);growth_check($r['status']===302,'Native analytics can be recorded through the protected form.');
+    $centre=growth_request('/write/media-centre');growth_check(str_contains($centre['body'],'PRIVATE_METRIC_ACCOUNT')&&str_contains($centre['body'],'Owner-recorded native report')&&str_contains($centre['body'],'1,234'),'Recorded metrics retain identity, provenance and actual values.');
+    $r=growth_request('/write/media-centre/report',['csrf'=>$mediaCsrf,'action'=>'refresh','platform'=>'x']);growth_check($r['status']===302,'Unconnected API report fails recoverably.');
+    $centre=growth_request('/write/media-centre');growth_check(str_contains($centre['body'],'PRIVATE_METRIC_ACCOUNT'),'Failed report requests retain the last native report.');
+    $public=growth_request('/about');growth_check(str_contains($public['body'],'10,150')&&str_contains($public['body'],'Indirect beneficiaries')&&!str_contains($public['body'],'PRIVATE_METRIC_ACCOUNT'),'Employment target and beneficiary definitions are public; account reports stay private.');
+    growth_check(!str_contains($public['body'],'>goblisgroup.com')&&!str_contains($public['body'],'opens in a new tab'),'Organisation links mask raw domains and remove visible new-tab wording.');
     $studio=growth_request('/write/studio');growth_check($studio['status']===200&&str_contains($studio['headers']['cache-control']??'','no-store')&&!str_contains($studio['body'],'googletagmanager.com'),'Studio is private and excludes analytics.');
     $studioCsrf=growth_csrf($studio);
     $r=growth_request('/write/capture',['csrf'=>'invalid','idea'=>'A private idea']);growth_check($r['status']===419,'Capture requires CSRF.');
@@ -78,8 +88,8 @@ try{
     $r=growth_request('/write/assist',['csrf'=>$studioCsrf,'selected_text'=>'Test notes','mode'=>'outline']);growth_check($r['status']===200&&str_contains($r['body'],'Confirm that this selected text'),'AI requires explicit request consent.');
     $r=growth_request('/write/assist',['csrf'=>$studioCsrf,'selected_text'=>'Test notes','mode'=>'outline','ai_consent'=>'1']);growth_check($r['status']===200&&str_contains($r['body'],'AI is not configured'),'Missing API configuration produces honest recoverable feedback.');
     db()->prepare('DELETE FROM posts WHERE id=?')->execute([$capturedId]);
-    $r=growth_request('/media-centre');growth_check($r['status']===200&&str_contains($r['body'],'Short biography')&&str_contains($r['body'],'Official social channels'),'Public media centre renders useful content.');
-    growth_check(in_array($base.'/media-centre',$locations,true),'Media centre is included in sitemap.');
+    $r=growth_request('/media-centre');growth_check($r['status']===301&&str_ends_with($r['headers']['location']??'','/contact'),'Former public media URL redirects to contact; media centre belongs to Writer.');
+    growth_check(!in_array($base.'/media-centre',$locations,true),'Private media centre is not advertised in sitemap.');
     $r=growth_request('/write/impact');growth_check($r['status']===200&&str_contains($r['headers']['cache-control']??'','no-store')&&str_contains($r['headers']['x-robots-tag']??'','noindex')&&!str_contains($r['body'],'googletagmanager.com'),'Reporting controls are private and render without analytics.');
     $impactCsrf=growth_csrf($r);
     $r=growth_request('/write/impact',['action'=>'save','csrf'=>'invalid']);growth_check($r['status']===419,'Reporting writes require CSRF.');

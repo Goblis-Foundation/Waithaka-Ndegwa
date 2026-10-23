@@ -17,8 +17,16 @@ function impact_metrics(): array {
     return [
         'startups'=>['target'=>30,'label'=>'Successful startups','source'=>'goblis_group','copy'=>'Establish or be directly involved in 30 successful startups through Goblis Group.'],
         'permanent_staff'=>['target'=>2030,'label'=>'Permanent staff','source'=>'goblis_group','copy'=>'Build those enterprises to employ 2,030 permanent staff collectively by June 2030.'],
-        'social_enterprises'=>['target'=>2030,'label'=>'Social enterprises established','source'=>'ubunifu','copy'=>'Help establish 2,030 successful social enterprises through Ubunifu Institute.'],
+        'social_enterprises'=>['target'=>2030,'label'=>'Social enterprises established','source'=>'ubunifu','copy'=>'Help establish 2,030 successful social enterprises through incubation at Ubunifu Institute.'],
+        'ubunifu_permanent_staff'=>['target'=>10150,'label'=>'Permanent jobs through incubated enterprises','source'=>'ubunifu','optional'=>true,'copy'=>'Support 2,030 social enterprises incubated at Ubunifu Institute to employ an average of 5 permanent staff each—10,150 permanent jobs across those enterprises. Ubunifu contributes through incubation; the enterprises are the employers. This is a target, not a reported result.'],
         'market_access'=>['target'=>30000,'label'=>'African enterprises connected to markets','source'=>'afritrace','copy'=>'Connect 30,000 African social enterprises to markets through Goblis Foundation’s AfriTrace Link.'],
+    ];
+}
+function impact_indirect_groups(): array {
+    return [
+        'goblis_group'=>['label'=>'Goblis Group','copy'=>'Household members supported by employees’ earnings, and people in local supplier and service networks who experience a documented improvement in livelihoods. Employees already counted directly are excluded.'],
+        'ubunifu'=>['label'=>'Ubunifu Institute','copy'=>'Household members of enterprise founders and employees, and community members who benefit indirectly from the enterprises’ social or environmental work. Founders, employees and people directly receiving enterprise services are counted separately.'],
+        'goblis_foundation'=>['label'=>'Goblis Foundation · AfriTrace Link','copy'=>'Household members of participating producers and enterprise workers, and people benefiting from improved local supplier, logistics and market networks. A listed enterprise, buyer introduction or sale alone does not establish a beneficiary count.']
     ];
 }
 function impact_validate(array $data,string $source,?int $now=null): array {
@@ -32,9 +40,15 @@ function impact_validate(array $data,string $source,?int $now=null): array {
     if($stamp===false || $stamp<strtotime('2026-07-01T00:00:00+03:00') || $stamp>$now+300)throw new InvalidArgumentException('Invalid reporting timestamp.');
     $values=$data['metrics']??null;if(!is_array($values))throw new InvalidArgumentException('Missing aggregate metrics.');
     $keys=$source==='goblis_foundation'?['market_access']:array_keys(array_filter(impact_metrics(),fn($m)=>$m['source']===$source));
-    $metrics=[];foreach($keys as$key){$value=$values[$key]??null;if(!is_int($value)||$value<0||$value>1000000000)throw new InvalidArgumentException('Invalid aggregate count.');$metrics[$key]=$value;}
+    $metrics=[];foreach($keys as$key){if(!array_key_exists($key,$values)&&!empty(impact_metrics()[$key]['optional']))continue;$value=$values[$key]??null;if(!is_int($value)||$value<0||$value>1000000000)throw new InvalidArgumentException('Invalid aggregate count.');$metrics[$key]=$value;}
+    $basis=null;
+    if(array_key_exists('indirect_beneficiaries',$values)){
+        $value=$values['indirect_beneficiaries'];$basis=$data['beneficiary_basis']??null;
+        if(!is_int($value)||$value<0||$value>1000000000||!is_string($basis)||trim($basis)===''||mb_strlen($basis)>1500||($data['beneficiary_deduplicated']??false)!==true)throw new InvalidArgumentException('Indirect beneficiary counts require a public methodology and deduplication confirmation.');
+        $metrics['indirect_beneficiaries']=$value;$basis=trim(strip_tags($basis));
+    }
     // Deliberately discard every unrecognised field, including names, contacts and raw records.
-    return ['source'=>$source,'as_of'=>gmdate('c',$stamp),'metrics'=>$metrics,'received_at'=>gmdate('c',$now)];
+    return ['source'=>$source,'as_of'=>gmdate('c',$stamp),'metrics'=>$metrics,'received_at'=>gmdate('c',$now),'beneficiary_basis'=>$basis];
 }
 function impact_endpoint(string $url): array {
     $p=parse_url($url);
