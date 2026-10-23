@@ -108,9 +108,14 @@ Live Connections still shows the four Instagram grants connected to @iwaithakaw.
 ## Calendar and meetings acceptance — latest 23 October
 
 - Eight Google account identities were returned and each primary calendar was explicitly selected and confirmed. Reconnecting one account preserves the others. Shared/transferred calendars were not bulk-selected.
-- A live combined agenda read across the first seven confirmed accounts returned events and two supported join links with no account warning. The eighth account, Ubunifu, was then confirmed; an eight-account read remains to be checked.
+- A live combined agenda read across the first seven confirmed accounts returned events and two supported join links with no account warning. The eighth account, Ubunifu, was then confirmed; a subsequent eight-account combined read completed with no account warnings.
 - Meetings & booking at `/write/meetings` is deployed with Google Meet, Zoom, Microsoft Teams/Outlook, Webex and Calendly. Zoom, Microsoft and Webex delegated OAuth, identity confirmation, encrypted credentials, refresh handling and explicit meeting reads are implemented. They are not yet authorized: the dashboard correctly shows App setup required. Calendly is a private booking shortcut, not an API connection.
 - Meeting creation, invitations, recording and transcription remain native-provider actions. No meeting or invitation was created by this implementation. Calendar and meeting details are not sent to AI/MCP or stored in aggregate analytics.
 - Zoom Marketplace sign-in succeeded for the owner. Its app list was empty. Creating the website app is currently gated by Zoom's API License and Terms of Use; no acceptance or app creation has been claimed.
 - PageSpeed, CrUX, Picker and Gemini keys were last observed as not saved, using status labels only. No secret values were inspected. Google Postmaster's last authorization attempt returned a provider rate limit; no domain report is claimed.
 - Actual impact feed endpoints/credentials, approved postal details, owner venture/founder content, production restore acceptance and physical-device usability remain dependencies. Implemented adapters and passing tests do not establish those outcomes.
+
+
+## Zoom setup continuation
+
+With explicit owner approval, Zoom's API License and Terms of Use was accepted. A General app named **Waithaka Ndegwa Website** was created in the owner's signed-in account, with User-managed access. The exact website callback and allow-list entry were saved; strict redirect matching was enabled. Saved scopes are `user:read:user` and `meeting:read:list_meetings`. Local test shows **Add app now**. Client ID/secret transfer to the encrypted Writer settings and actual OAuth authorization are still pending; no Zoom connection or meeting read is claimed. Client-secret values were not read, logged or copied into this register.
