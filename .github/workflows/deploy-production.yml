@@ -127,7 +127,7 @@ jobs:
           echo '=== Recent Elastic Beanstalk events ==='
           aws elasticbeanstalk describe-events --environment-name waithaka-ndegwa-production --region af-south-1 --max-records 40 --no-cli-pager || true
           echo '=== Edge stack ==='
-          aws cloudformation describe-stacks --stack-name waithaka-edge --region us-east-1 --no-cli-pager || true
+          aws cloudformation describe-stacks --stack-name waithaka-edge --region af-south-1 --no-cli-pager || true
 
       - name: Production smoke test
         run: |

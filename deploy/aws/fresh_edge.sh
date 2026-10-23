@@ -11,10 +11,17 @@ STATUS="$(aws elasticbeanstalk describe-environments --environment-names "$ENV_N
 [[ "$STATUS" == Ready && "$HEALTH" == Green ]] || { echo "Elastic Beanstalk is not Ready/Green." >&2; exit 1; }
 PUBLIC_BUCKET="$(aws cloudformation describe-stacks --stack-name "$DATA_STACK" --region "$REGION" --query "Stacks[0].Outputs[?OutputKey=='PublicMedia'].OutputValue | [0]" --output text --no-cli-pager)"
 MEDIA_DOMAIN="$PUBLIC_BUCKET.s3.$REGION.amazonaws.com"
-aws cloudformation deploy --template-file "$SOURCE_DIR/deploy/aws/edge-stack.json" --stack-name "$EDGE_STACK" --parameter-overrides ViewerCertificateArn="$VIEWER_CERT" OriginDomain="$ORIGIN" MediaBucketRegionalDomain="$MEDIA_DOMAIN" --region us-east-1 --no-cli-pager
-DIST_ID="$(aws cloudformation describe-stacks --stack-name "$EDGE_STACK" --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue | [0]" --output text --no-cli-pager)"
-DIST_DOMAIN="$(aws cloudformation describe-stacks --stack-name "$EDGE_STACK" --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='DistributionDomain'].OutputValue | [0]" --output text --no-cli-pager)"
-DIST_ARN="$(aws cloudformation describe-stacks --stack-name "$EDGE_STACK" --region us-east-1 --query "Stacks[0].Outputs[?OutputKey=='DistributionArn'].OutputValue | [0]" --output text --no-cli-pager)"
+# Keep the global CloudFront resources in a Cape Town-managed stack. The viewer
+# certificate remains in us-east-1. Never create a duplicate distribution.
+EDGE_STATUS="$(aws cloudformation describe-stacks --stack-name "$EDGE_STACK" --region "$REGION" --query 'Stacks[0].StackStatus' --output text --no-cli-pager 2>/dev/null || true)"
+if [[ -z "$EDGE_STATUS" || "$EDGE_STATUS" == None ]]; then
+  EXISTING_DISTS="$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, 'www.waithakandegwa.com')].Id" --output text --no-cli-pager)"
+  [[ -z "$EXISTING_DISTS" || "$EXISTING_DISTS" == None ]] || { echo "Existing CloudFront distribution $EXISTING_DISTS must be adopted before a new edge stack is created." >&2; exit 1; }
+fi
+aws cloudformation deploy --template-file "$SOURCE_DIR/deploy/aws/edge-stack.json" --stack-name "$EDGE_STACK" --parameter-overrides ViewerCertificateArn="$VIEWER_CERT" OriginDomain="$ORIGIN" MediaBucketRegionalDomain="$MEDIA_DOMAIN" --region "$REGION" --no-cli-pager
+DIST_ID="$(aws cloudformation describe-stacks --stack-name "$EDGE_STACK" --region "$REGION" --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue | [0]" --output text --no-cli-pager)"
+DIST_DOMAIN="$(aws cloudformation describe-stacks --stack-name "$EDGE_STACK" --region "$REGION" --query "Stacks[0].Outputs[?OutputKey=='DistributionDomain'].OutputValue | [0]" --output text --no-cli-pager)"
+DIST_ARN="$(aws cloudformation describe-stacks --stack-name "$EDGE_STACK" --region "$REGION" --query "Stacks[0].Outputs[?OutputKey=='DistributionArn'].OutputValue | [0]" --output text --no-cli-pager)"
 aws cloudfront wait distribution-deployed --id "$DIST_ID" --no-cli-pager
 # Keep data-stack ownership of the media bucket policy; update only MediaDistributionArn.
 set +e
