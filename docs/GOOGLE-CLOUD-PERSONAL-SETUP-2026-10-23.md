@@ -7,7 +7,7 @@ Status: project creation and Cloud-console sign-in are not complete. The console
 Open https://console.cloud.google.com/ and sign in with the Google account intended to own the personal website integration. Use the project selector, then New project.
 
 - Project name: **Waithaka Ndegwa Website**.
-- Proposed project ID: **waithaka-ndegwa-web-2026**. Availability is unverified; use Google's suggested unique ID if unavailable and retain the actual resulting ID. Project ID is permanent after creation.
+- Actual project ID: **waithaka-ndegwa-website-512516**. Availability is unverified; use Google's suggested unique ID if unavailable and retain the actual resulting ID. Project ID is permanent after creation.
 - Choose the organisation/location intentionally. Do not silently place the personal project in another business's resource hierarchy.
 - No new paid product, billing subscription or hosting migration is requested. If Google requires a financial commitment, review it before proceeding.
 
@@ -63,3 +63,54 @@ The public GA4 measurement tag `G-RN0YXC2WCH` is already deployed and remains se
 - https://developers.google.com/analytics/devguides/reporting/data/v1/quickstart
 - https://developers.google.com/analytics/devguides/config/admin/v1/quickstart
 - https://developers.google.com/youtube/data/guides/auth/server-side-web-apps
+
+
+## Connected and verified on 23 October 2026
+
+- Personal project: `waithaka-ndegwa-website-512516`.
+- Search Console: `sc-domain:waithakandegwa.com`, live report returned.
+- GA4: Waithaka Ndegwa Website, `properties/559878271`; live report returned no rows for the period tested. Verify the deployed tag against the web stream in Google workspace before interpreting this as no visitors.
+- YouTube: personal Waithaka Ndegwa channel `UCIqcx_MiAO_p-i_oF2S160g`; Data API returned 3 videos, 416 channel views and 2 subscribers at verification. Upload permission and Direct API route confirmed, with no actual upload performed.
+- Workspace SMTP: provider accepted the owner test; inbox receipt remains unverified.
+
+## Full Google workspace release
+
+Writer → Google workspace includes multiple calendar accounts, selected-calendar private agenda, audience/search/video charts with previous-period comparisons, GA4 collection diagnostics, URL inspection, sitemap status, mobile/desktop PageSpeed, CrUX, Postmaster reports, Google Doc import, Gemini drafting and Search grounding. Saved aggregate reports can be read by an explicitly launched local MCP client. These are implemented interfaces; new API credentials, grants and accounts are not connected by deploying code.
+
+Enable the Google Calendar API, YouTube Analytics API, Google Drive API, Google Picker API, Gmail Postmaster Tools API, PageSpeed Insights API and Chrome UX Report API for features selected by the owner. Keep the four existing redirects and add:
+
+```
+https://www.waithakandegwa.com/write/connections/callback/google_calendar
+https://www.waithakandegwa.com/write/connections/callback/google_youtube_analytics
+https://www.waithakandegwa.com/write/connections/callback/google_drive
+https://www.waithakandegwa.com/write/connections/callback/google_postmaster
+```
+
+Calendar requests `calendar.calendarlist.readonly` and `calendar.events.readonly`; each account must authorize and then confirm calendars. Reconnecting one identity retains all other accounts. Up to 20 accounts and 30 selected calendars per account; explicit agenda read range up to 31 days; at most 1,000 events per calendar per request with a truncation notice. The same calendar is deduplicated across accounts. Calendar content is neither persisted as report snapshots nor exposed to MCP/AI. No Google event write or invitation permission is requested.
+
+YouTube Analytics requests `yt-analytics.readonly` plus `youtube.readonly` to discover/confirm the personal channel. Postmaster requests `postmaster.readonly` and a verified sender domain. Low-volume data can be unavailable.
+
+Drive uses `drive.file` and Picker to authorize chosen files. This Google scope permits app-selected file editing, although the application only reads document metadata and exports text. Configure a separate browser API key restricted to the canonical HTTPS origin and Picker API; it is intentionally supplied to the browser. Never use an unrestricted server key as the Picker key. The importer accepts downloadable native Google Docs only, up to 60 KB, into private drafts; no formatting, images or comments are imported.
+
+Save separate API-restricted PageSpeed/CrUX keys. Gemini uses a separate server API key, selectable model, selected-text consent, hourly limit and human editorial review. Grounding can have additional usage charges; configure provider-side quota/budget and confirm data handling before use. The app does not enable billing. Public appointment booking uses the owner-supplied Google Calendar booking link, with availability/buffers/Meet configured in Calendar. It does not expose connected calendars publicly.
+
+For the local MCP bridge, set `WAITHAKA_GOOGLE_MCP=1` and `WAITHAKA_GOOGLE_MCP_USER_ID` to the explicitly approved Writer identity, then launch `php bin/google-mcp.php` in a trusted local client with the application's secure environment. No HTTP endpoint is exposed. Only whitelisted aggregate reports saved within 30 days for that user's still-confirmed destination are readable; calendar events, drafts, queries, credentials, account names and private content are excluded. This is an application adapter, not Google's official MCP server.
+
+Check Google Auth Platform audience, production status and verification. External Testing refresh tokens generally expire after seven days for these scopes. Do not assume publishing the site changes the OAuth app's status.
+
+References checked 23 October 2026:
+- https://developers.google.com/workspace/calendar/api/auth
+- https://developers.google.com/workspace/calendar/api/v3/reference/calendarList/list
+- https://developers.google.com/workspace/calendar/api/v3/reference/events/list
+- https://developers.google.com/analytics/devguides/reporting/data/v1/basics
+- https://developers.google.com/analytics/devguides/MCP
+- https://developers.google.com/webmaster-tools/v1/urlInspection.index/inspect
+- https://developers.google.com/youtube/analytics/reference
+- https://developers.google.com/workspace/drive/api/guides/picker
+- https://developers.google.com/workspace/drive/api/reference/rest/v3/files/export
+- https://developers.google.com/speed/docs/insights/v5/get-started
+- https://developer.chrome.com/docs/crux/api
+- https://developers.google.com/workspace/gmail/postmaster/reference/rest
+- https://ai.google.dev/api/generate-content
+- https://ai.google.dev/gemini-api/docs/google-search
+- https://developers.google.com/identity/protocols/oauth2/

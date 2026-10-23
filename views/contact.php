@@ -21,3 +21,5 @@
     </form>
   </div>
 </div></section>
+
+<?php $googleBooking=google_workspace_link((string)setting('google.booking_url',''),['calendar.google.com','calendar.app.google']);if($googleBooking!==''):?><section class="section"><div class="container"><h2>Arrange a conversation</h2><p>Choose an available time for an interview, speaking enquiry or collaboration.</p><a class="btn" href="<?=e($googleBooking)?>" target="_blank" rel="noopener noreferrer">Book a conversation</a></div></section><?php endif;?>

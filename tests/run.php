@@ -296,6 +296,7 @@ try {
         foreach (['010_security_unit.php' => 'Pure security', 'publishing_test.php' => 'Pure publishing',
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
+                  'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',
                   'studio_unit.php' => 'Private capture and explicit AI drafting boundaries',
                   'meta_mcp_unit.php' => 'Local aggregate Meta MCP lifecycle and privacy',
                   'instagram_engagement_unit.php' => 'Instagram engagement ownership and private read boundaries',
@@ -343,6 +344,7 @@ try {
                 'reader' => 'reader_database_test.php',
                 'discovery' => 'discovery_database_test.php',
                 'campaign' => 'campaign_database_test.php',
+                'google' => 'google_workspace_database.php',
                 'http' => '010_security_http.php',
             ];
             foreach ($suites as $suite => $file) {

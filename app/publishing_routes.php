@@ -44,7 +44,7 @@ function publishing_dispatch(string $path): bool {
             if(!empty($_GET['error']))throw new RuntimeException('Authorization was declined or cancelled. Existing publication drafts have not changed.');
             $code=(string)($_GET[$service==='tiktok_business'?'auth_code':'code']??'');if($code===''||strlen($code)>8000)throw new RuntimeException('The provider did not return an authorization code.');
             publishing_oauth_complete($service,$code,$state,$userId);
-            flash('success','The provider returned an account. Confirm the actual destination before using this connection.');redirect(url('/write/connections#'.$service));
+            flash('success','The provider returned an account. Confirm the actual destination before using this connection.');redirect(url($service==='google_calendar'?'/write/google#calendars':'/write/connections#'.$service));
         }
         if (preg_match('~^/write/connections/([a-z_]+)/confirm$~',$path,$m)&&is_post()) {
             if(empty($_POST['confirm_identity']))throw new RuntimeException('Confirm that the returned account and selected destination are yours to use.');
