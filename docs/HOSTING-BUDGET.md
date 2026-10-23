@@ -9,3 +9,23 @@ Before adding capacity or changing infrastructure, inventory live resources and 
 Preserve the existing database, media, certificates and DNS identity. Do not delete or replace persistent resources to meet the budget. Prepare and validate any cost-reduction migration before a controlled cutover. Do not increase server count, database availability tiers or paid network services without demonstrating that the total remains within the budget.
 
 Current status: budget recorded; cost inventory and reconciliation in progress. No AWS billing limit or budget alert has yet been configured by this change.
+
+## Verified current baseline
+
+Live inventory: one t3.small application instance, one db.t4g.small MySQL instance (Single-AZ, 20 GiB gp3, 14-day backups), one NAT gateway, and the retained application load balancer.
+
+AWS public Cape Town offer files reviewed on 23 October 2026; 730 hours/month, On-Demand, before credits or taxes:
+
+| Component | USD/month |
+| --- | ---: |
+| t3.small Linux | 19.78 |
+| db.t4g.small MySQL Single-AZ | 29.93 |
+| NAT gateway hourly charge | 41.61 |
+| Application Load Balancer hourly charge | 21.90 |
+| Fixed component subtotal | 113.22 |
+
+Storage, IPv4, traffic, NAT processing, ALB LCUs, CDN, DNS, secrets, logs and applicable taxes are additional. Do not count alternative NAT products, unused RDS capacity reservations, Outposts load balancers or trust stores as separate deployed resources.
+
+Current architecture therefore does not meet the USD 75 budget. Cost reduction must address networking and instance sizing; alerts alone cannot achieve it. Database and media preservation remain mandatory. No capacity expansion is authorized by this budget instruction.
+
+Evidence: GitHub Actions Hosting cost review run 39911588408; resource inventory run 39911283295. Prices came directly from AWS regional offer files for AmazonEC2, AmazonRDS and AWSELB.
