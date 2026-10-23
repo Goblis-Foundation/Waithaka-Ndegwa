@@ -3,6 +3,11 @@ name: Deploy production
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/workflows/aws-preflight.yml'
+      - '.github/workflows/restore-history.yml'
+      - 'history/**'
+      - '**.md'
   workflow_dispatch:
 
 permissions:
@@ -88,6 +93,7 @@ jobs:
           aws-region: af-south-1
           allowed-account-ids: '466401734428'
           unset-current-credentials: true
+          retry-max-attempts: 2
           role-session-name: waithaka-github-production
 
       - name: Verify AWS target
