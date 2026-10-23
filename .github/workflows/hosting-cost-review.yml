@@ -1,0 +1,42 @@
+name: Hosting cost review
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/hosting-cost-review.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  estimate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Read public Cape Town list prices for inventoried resources
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          sources=[
+            ('AmazonEC2', lambda a: (a.get('instanceType')=='t3.small' and a.get('operatingSystem')=='Linux' and a.get('tenancy')=='Shared' and a.get('preInstalledSw')=='NA' and a.get('capacitystatus')=='Used') or 'NatGateway' in a.get('group','')),
+            ('AmazonRDS', lambda a: a.get('instanceType')=='db.t4g.small' and a.get('databaseEngine')=='MySQL' and a.get('deploymentOption')=='Single-AZ'),
+            ('AWSELB', lambda a: True),
+          ]
+          for service,select in sources:
+              url=f'https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/{service}/current/af-south-1/index.json'
+              with urllib.request.urlopen(url,timeout=120) as r: data=json.load(r)
+              print('SOURCE',url,'published',data.get('publicationDate'))
+              seen=set()
+              for sku,p in data['products'].items():
+                  a=p['attributes']
+                  if not select(a): continue
+                  for term in data.get('terms',{}).get('OnDemand',{}).get(sku,{}).values():
+                      for d in term['priceDimensions'].values():
+                          if d.get('unit')!='Hrs' or d.get('beginRange')!='0': continue
+                          rate=d['pricePerUnit'].get('USD')
+                          key=(p.get('productFamily'),a.get('instanceType'),d.get('description'),rate)
+                          if key in seen: continue
+                          seen.add(key)
+                          print(json.dumps({'family':p.get('productFamily'),'instance':a.get('instanceType'),'description':d.get('description'),'USD_per_hour':rate,'USD_per_730_hours':round(float(rate)*730,2)}))
+              del data
+          print('These are list-price components, not a total bill. Add storage, IPv4, DNS, CDN, logs, backups, traffic and applicable taxes. Target total: USD 75/month.')
+          PY
