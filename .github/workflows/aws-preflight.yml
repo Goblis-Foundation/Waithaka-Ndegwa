@@ -47,6 +47,10 @@ jobs:
           test "$(aws sts get-caller-identity --query Account --output text)" = 466401734428
           aws elasticbeanstalk describe-environments --environment-names waithaka-ndegwa-production --region af-south-1
           aws elasticbeanstalk describe-events --environment-name waithaka-ndegwa-production --region af-south-1 --max-records 25
+      - name: Inspect Cape Town edge stack events
+        shell: bash
+        run: |
+          aws cloudformation describe-stack-events --stack-name waithaka-edge --region af-south-1 --query 'StackEvents[0:20].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' --output table
       - name: Inspect startup logs without publishing credentials
         shell: bash
         run: |
