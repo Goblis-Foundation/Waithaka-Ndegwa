@@ -83,3 +83,9 @@ These preserve the reports’ scope; recommendations are not automatic authorisa
 6. Expand Meta products only with supported adapters, eligibility and exact account grants. Keep the local MCP disabled until a trusted client is configured.
 
 No social posts, DMs, newsletter sends, advertising purchases or live payment transactions were made during this audit. No new subscription was purchased. The GSC Wizard connector reports an expired subscription; native Google setup remains the intended path, without a new paid SEO subscription.
+
+## Implementation follow-up — 23 October
+
+Separated Facebook personal Login credentials from Facebook Pages/Business Login across settings, authorisation start and callback exchange. Empty personal app settings now show setup rather than silently reusing the app that rejected public-profile-only login. Existing Page and Instagram settings are preserved. This fixes the application configuration boundary; a supported personal Login app and actual consent remain pending.
+
+Operations now labels the encryption key without assuming old-data recovery, explains backup-key preservation, and uses a neutral feedback card while mail is paused rather than implying SES was selected. These changes do not enable mail or delivery workers.

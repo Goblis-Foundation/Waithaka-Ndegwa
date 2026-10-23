@@ -79,7 +79,7 @@ function readiness_https_url(mixed $value): bool {
 function readiness_config_checks(array $config,array $capabilities): array {
     $checks=[];$keyReady=false;
     try { wk_validate_app_key($config['app_key']??null);$keyReady=true; } catch(Throwable $e) {}
-    $checks[]=readiness_check('key','Recovered application key',$keyReady?'ok':'blocked',$keyReady?'Key is configured':'Key is missing or invalid','This checks key format only. Restoration must separately confirm that it is the original key used by the recovered database.');
+    $checks[]=readiness_check('key','Application encryption key',$keyReady?'ok':'blocked',$keyReady?'Key is configured':'Key is missing or invalid','This checks key format only. Preserve this key in backups; restored encrypted records require the same key.');
     $runtime=($capabilities['php_version_id']??0)>=80300&&empty($capabilities['missing_extensions']);
     $checks[]=readiness_check('runtime','PHP runtime',$runtime?'ok':'blocked',$runtime?'Required runtime is available':'A runtime requirement is missing','PHP 8.3 or newer and the required database, HTTP, DOM, image and encryption extensions are checked locally.');
     $canonical=readiness_https_url($config['base_url']??null)&&!empty($config['force_canonical']);
@@ -95,15 +95,15 @@ function readiness_config_checks(array $config,array $capabilities): array {
     $media=$config['media']??[];$s3=($media['driver']??'local')==='s3';
     $mediaReady=$s3&&!empty($capabilities['s3_sdk'])&&!empty($media['bucket'])&&!empty($media['private_bucket'])
         &&$media['bucket']!==$media['private_bucket']&&!empty($config['aws_region'])&&readiness_https_url($media['public_url']??null);
-    $checks[]=readiness_check('media','Public and private media',$mediaReady?'ok':'attention',$mediaReady?'Separate S3 stores are configured':($s3?'Complete the S3 configuration':'Media uses the application filesystem'),'No S3 request is made here. Verify restored object hashes, private access and public CDN access before enabling traffic.');
+    $checks[]=readiness_check('media','Public and private media',$mediaReady?'ok':'attention',$mediaReady?'Separate S3 stores are configured':($s3?'Complete the S3 configuration':'Media uses the application filesystem'),'No S3 request is made here. Verify object integrity, private access and public CDN access separately.');
     $transport=$config['mail']['transport']??'disabled';$mailReady=!empty($capabilities['mail_ready']);
     $checks[]=readiness_check('mail','Email delivery',$transport==='disabled'?'disabled':($mailReady?'ok':'blocked'),$transport==='disabled'?'Sending is paused':($mailReady?'A mail transport is configured':'Mail transport configuration is incomplete'),'Configuration does not prove provider acceptance or inbox delivery. Verify sender identity, feedback and suppression handling before sending.');
     $topic=$config['mail']['sns_topic_arn']??'';
     $feedback=is_string($topic)&&preg_match('/\Aarn:(aws|aws-cn|aws-us-gov):sns:[a-z]{2}(?:-[a-z]+)+-[0-9]:[0-9]{12}:[A-Za-z0-9_-]{1,256}\z/',$topic)===1;
     $feedbackState=$feedback?'ok':($transport==='ses'?'attention':($transport==='smtp'?'attention':'disabled'));
     $feedbackSummary=$feedback?'An exact SNS topic is configured':($transport==='ses'?'Configure and verify SES feedback':($transport==='smtp'?'Workspace SMTP relay uses Google delivery logs rather than SES/SNS feedback':'Mail feedback is not configured'));
-    $feedbackDetail=$transport==='smtp'?'For Google Workspace SMTP relay, review Email Log Search and maintain manual suppression/correction handling; SES/SNS feedback is intentionally not used.':'Open Mail feedback to confirm the signed subscription and inspect delivery, bounce and complaint handling. A configured topic does not prove that SES is publishing events to it.';
-    $checks[]=readiness_check('mail_feedback',$transport==='smtp'?'Workspace delivery feedback':'SES delivery feedback',$feedbackState,$feedbackSummary,$feedbackDetail);
+    $feedbackDetail=$transport==='disabled'?'Sending is paused. Google Workspace is the selected deployment mail path; configure the scoped relay and verify delivery before enabling it.':($transport==='smtp'?'For Google Workspace SMTP relay, review Email Log Search and maintain manual suppression/correction handling; SES/SNS feedback is intentionally not used.':'Open Mail feedback to confirm the signed subscription and inspect delivery, bounce and complaint handling. A configured topic does not prove that SES is publishing events to it.');
+    $checks[]=readiness_check('mail_feedback',$transport==='smtp'?'Workspace delivery feedback':($transport==='ses'?'SES delivery feedback':'Email delivery feedback'),$feedbackState,$feedbackSummary,$feedbackDetail);
     return $checks;
 }
 function readiness_worker_health(?array $last,bool $enabled,int $now): array {

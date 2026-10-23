@@ -90,3 +90,16 @@ $v['text']='Valid text';$v['media_url']='https://example.com/photo.jpg';$v['alt_
 $v['media_url']='';$v['format']='story';rejects(fn()=>publishing_validate_variant('facebook',$v,['method'=>'direct']),'Direct Facebook never turns an approved Story into a feed post');
 
 echo "Publishing policy tests passed: {$count}\n";
+
+check(publishing_client_namespace('facebook_profile')==='facebook_profile','Personal Facebook Login uses a dedicated credential namespace');
+check(publishing_client_namespace('facebook_pages')==='facebook','Existing Page credentials keep their namespace');
+check(publishing_client_namespace('instagram_insights')==='instagram','Instagram grants retain the existing app credentials');
+rejects(fn()=>publishing_client_namespace('unsupported'),'Unknown services cannot choose arbitrary credential settings');
+
+function setting(string $key, mixed $default=''): mixed { return $GLOBALS['clientFixture'][$key] ?? $default; }
+$GLOBALS['clientFixture']=['publishing.facebook.client_id'=>'page-app','publishing.facebook.client_secret'=>'page-secret'];
+check(publishing_service_client('facebook_profile')===['client_id'=>'','client_secret'=>''],'Page credentials cannot silently authorise a personal profile');
+$GLOBALS['clientFixture']['publishing.facebook_profile.client_id']='personal-app';
+$GLOBALS['clientFixture']['publishing.facebook_profile.client_secret']='personal-secret';
+check(publishing_service_client('facebook_profile')['client_id']==='personal-app','Personal Login selects its dedicated app');
+check(publishing_service_client('facebook_pages')['client_id']==='page-app','Personal Login setup does not replace the Page app');

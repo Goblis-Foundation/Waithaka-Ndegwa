@@ -147,6 +147,7 @@ try {
     $response=pub_http_request('/write/connections');
     pub_http_check($response['status']===200&&str_contains($response['body'],'Facebook professional mode is a profile type'),
         'Connections must explain the professional-profile/Page distinction.');
+    pub_http_check(str_contains($response['body'],'name="facebook_profile_client_id"')&&str_contains($response['body'],'name="facebook_profile_client_secret"'),'Personal Facebook app credentials are separate from Page settings.');
     $connectionFields=pub_http_form($response,'/write/connections/settings');
     $connectionDocument=new DOMXPath(pub_http_document($response));
     pub_http_check($connectionDocument->query('//input[@name="tiktok_client_id"]')->length===1

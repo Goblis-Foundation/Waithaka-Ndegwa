@@ -49,6 +49,16 @@ function publishing_client(string $provider): array {
     return ['client_id'=>trim((string)setting('publishing.'.$provider.'.client_id','')), 'client_secret'=>trim((string)setting('publishing.'.$provider.'.client_secret',''))];
 }
 
+/** Personal Login credentials must never fall back to a Business Login/Page app. */
+function publishing_client_namespace(string $service): string {
+    $definition = publishing_services()[$service] ?? null;
+    if (!$definition) throw new RuntimeException('Unknown connection service.');
+    return $service === 'facebook_profile' ? 'facebook_profile' : $definition['provider'];
+}
+function publishing_service_client(string $service): array {
+    return publishing_client(publishing_client_namespace($service));
+}
+
 function publishing_callback_url(string $service): string {
     $callback = url('/write/connections/callback/'.$service.($service==='tiktok_business'?'/':''));
     $host = strtolower((string)parse_url($callback, PHP_URL_HOST));
@@ -69,7 +79,7 @@ function publishing_oauth_start(string $service, int $userId): string {
     $definition = publishing_services()[$service] ?? null;
     if (!$definition || $service === 'buffer') throw new RuntimeException('This connection does not use this OAuth flow.');
     $provider = $definition['provider'];
-    $client = publishing_client($provider);
+    $client = publishing_service_client($service);
     if ($client['client_id'] === '' || $client['client_secret'] === '') throw new RuntimeException('Save this provider’s client ID and client secret first.');
     $state = bin2hex(random_bytes(32));
     $verifier = rtrim(strtr(base64_encode(random_bytes(64)), '+/', '-_'), '=');
@@ -128,7 +138,7 @@ function publishing_consume_state(string $service, string $state, int $userId): 
 function publishing_oauth_complete(string $service, string $code, array $state, int $userId): void {
     $definition = publishing_services()[$service];
     $provider = $definition['provider'];
-    $client = publishing_client($provider);
+    $client = publishing_service_client($service);
     if($provider==='tiktok_business') {
         $token=publishing_tiktok_business_token_request($client+['grant_type'=>'authorization_code','auth_code'=>$code,'redirect_uri'=>publishing_callback_url($service)]);
         $observed=publishing_tiktok_business_identity($token);

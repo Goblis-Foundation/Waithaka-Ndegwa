@@ -32,6 +32,7 @@ $config['media']['private_bucket']=$config['media']['bucket'];$config['mail']['t
 $byId=array_column(readiness_config_checks($config,$caps),null,'id');
 readiness_test($byId['media']['state']==='attention','Public and private media must not share a bucket.');
 readiness_test($byId['mail']['state']==='disabled','Paused mail must not be described as broken or live.');
+readiness_test($byId['mail_feedback']['title']==='Email delivery feedback','Paused mail does not imply SES is selected');
 $config['app_key']='';$byId=array_column(readiness_config_checks($config,$caps),null,'id');
 readiness_test($byId['key']['state']==='blocked','Missing application key should block readiness.');
 $now=(new DateTimeImmutable('2026-10-21 12:00:00',new DateTimeZone('UTC')))->getTimestamp();

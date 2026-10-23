@@ -15,7 +15,7 @@ function publishing_dispatch(string $path): bool {
             render_write('connections',['writeTitle'=>'Connections','connections'=>$connections,'services'=>publishing_services(),'channels'=>publishing_channels()]);return true;
         }
         if ($path==='/write/connections/settings'&&is_post()) {
-            foreach(['google','linkedin','instagram','facebook','x','tiktok','tiktok_business'] as $provider) foreach(['client_id','client_secret'] as $field) {
+            foreach(['google','linkedin','instagram','facebook','facebook_profile','x','tiktok','tiktok_business'] as $provider) foreach(['client_id','client_secret'] as $field) {
                 $value=trim((string)($_POST[$provider.'_'.$field]??''));
                 if ($value!=='') {
                     if (strlen($value)>2000||preg_match('/[\r\n]/',$value)) throw new RuntimeException('A provider credential has an invalid format.');
