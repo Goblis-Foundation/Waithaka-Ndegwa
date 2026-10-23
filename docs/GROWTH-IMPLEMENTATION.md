@@ -1,5 +1,8 @@
 # Global discovery, reader journeys and Google tag
 
+> **Current status — 23 October 2026:** See [weekly requirements audit](REQUIREMENTS-AUDIT-2026-10-23.md) for deployed features, verified connections and open blockers. Release-specific statements below are historical. Production is deployed on a fresh AWS installation; old-host recovery is superseded. Google Workspace is the selected mail path; sending and delivery work remain paused.
+
+
 Release r4 continues the recovered personal website. It adds the owner's requested **G-RN0YXC2WCH** measurement destination and implements the practical growth features from the SEO review. The release package contains working application code, migrations, tests and operating instructions. It does not establish a live AWS deployment or a connected Google/social account.
 
 ## 1. Google tag installation

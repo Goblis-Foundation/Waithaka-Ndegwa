@@ -1,5 +1,8 @@
 # Operating guide
 
+> **Current status — 23 October 2026:** See [weekly requirements audit](REQUIREMENTS-AUDIT-2026-10-23.md) for deployed features, verified connections and open blockers. Release-specific statements below are historical. Production is deployed on a fresh AWS installation; old-host recovery is superseded. Google Workspace is the selected mail path; sending and delivery work remain paused.
+
+
 For r4 Google tag installation, Start Here, resources/evidence, campaign coordination, reader preferences/follow-up and search reporting, begin with [Growth implementation](GROWTH-IMPLEMENTATION.md). The established publishing and delivery workflow below remains in use.
 
 Release: 2026-10-21. The workflows below are implemented and tested with local synthetic fixtures. AWS deployment, restored live data, real account authorization and public/social/email delivery have not been performed. Use the [migration runbook](AWS-MIGRATION.md) and [validation record](VALIDATION.md) for the remaining deployment checks.

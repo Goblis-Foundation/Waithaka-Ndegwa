@@ -6,8 +6,8 @@ These connections belong to Waithaka Ndegwa's personal site, not a Goblis or Afr
 | --- | --- | --- |
 | Instagram publishing | Connected @iwaithakaw; approved single JPEG feed delivery | Reels, carousels and Stories still use assisted/provider routes |
 | Instagram Insights | Separate grant, account confirmation, daily reach graph and source-labelled report history | Live account grant and first report verified; do not sum daily reach into weekly unique people |
-| Instagram comments | Separate grant and private read desk for comments on recent owned media | Account consent pending; replies and moderation remain in Instagram |
-| Instagram messaging | Separate grant and private read desk for selected recent conversations | Account consent pending; no automated replies or message-body storage; provider eligibility can limit results |
+| Instagram comments | Separate grant and private read desk for comments on recent owned media | Account grant and owned recent-media list read verified; replies and moderation remain in Instagram |
+| Instagram messaging | Separate grant and private read desk for selected recent conversations | Account grant and conversation-list read verified (empty API list); no automated replies or message-body storage; provider eligibility can limit results |
 | Facebook professional profile | Assisted publishing and source-labelled native report entry | Current Business Login app rejects public-profile-only authorization. Standard personal login setup is unresolved. Page credentials do not authorize this profile |
 | Facebook Pages | Optional separate legacy integration | Not the user's requested posting destination |
 | Local analytics MCP | Read-only stdio bridge for latest saved Facebook/Instagram aggregate reports | Disabled by default; no remote endpoint, secrets, identities, inbox, publication or provider refresh |

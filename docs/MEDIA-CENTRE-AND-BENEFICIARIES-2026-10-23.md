@@ -1,5 +1,8 @@
 # Dashboard media centre and beneficiary reporting correction
 
+> **Current status — 23 October 2026:** See [weekly requirements audit](REQUIREMENTS-AUDIT-2026-10-23.md) for deployed features, verified connections and open blockers. Release-specific statements below are historical. Production is deployed on a fresh AWS installation; old-host recovery is superseded. Google Workspace is the selected mail path; sending and delivery work remain paused.
+
+
 23 October 2026. This record supersedes the public-media-centre interpretation in the earlier website review. The requested media centre belongs inside Writer.
 
 ## Accepted corrections
