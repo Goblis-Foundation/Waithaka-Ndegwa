@@ -188,7 +188,11 @@ done
 # Add origin DNS alias to the actual ALB now that the environment exists.
 ENV_ID="$(aws elasticbeanstalk describe-environments --environment-names "$ENV_NAME" --region "$REGION" --query 'Environments[0].EnvironmentId' --output text --no-cli-pager)"
 LB_NAME="$(aws elasticbeanstalk describe-environment-resources --environment-id "$ENV_ID" --region "$REGION" --query 'EnvironmentResources.LoadBalancers[0].Name' --output text --no-cli-pager)"
-LB_ARN="$(aws elbv2 describe-load-balancers --names "$LB_NAME" --region "$REGION" --query 'LoadBalancers[0].LoadBalancerArn' --output text --no-cli-pager)"
+if [[ "$LB_NAME" == arn:* ]]; then
+  LB_ARN="$LB_NAME"
+else
+  LB_ARN="$(aws elbv2 describe-load-balancers --names "$LB_NAME" --region "$REGION" --query 'LoadBalancers[0].LoadBalancerArn' --output text --no-cli-pager)"
+fi
 LB_DNS="$(aws elbv2 describe-load-balancers --load-balancer-arns "$LB_ARN" --region "$REGION" --query 'LoadBalancers[0].DNSName' --output text --no-cli-pager)"
 LB_ZONE="$(aws elbv2 describe-load-balancers --load-balancer-arns "$LB_ARN" --region "$REGION" --query 'LoadBalancers[0].CanonicalHostedZoneId' --output text --no-cli-pager)"
 PRIMARY_ZONE="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["zones"]["waithakandegwa.com"])' "$DNS_STATE")"
