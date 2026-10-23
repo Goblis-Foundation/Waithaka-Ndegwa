@@ -27,7 +27,7 @@ aws_account(){ aws sts get-caller-identity --query Account --output text --no-cl
 [[ -f "$APP_ZIP" ]] || fail "Application bundle not found at $APP_ZIP. Upload/extract the complete release, not source alone."
 
 stack_output(){ aws cloudformation describe-stacks --stack-name "$1" --region "$REGION" --query "Stacks[0].Outputs[?OutputKey=='$2'].OutputValue | [0]" --output text --no-cli-pager; }
-require_stack(){ local s="$1"; local st; st="$(aws cloudformation describe-stacks --stack-name "$s" --region "$REGION" --query 'Stacks[0].StackStatus' --output text --no-cli-pager 2>/dev/null || true)"; [[ "$st" =~ ^(CREATE_COMPLETE|UPDATE_COMPLETE)$ ]] || fail "Required stack $s is not complete (status: ${st:-missing})."; }
+require_stack(){ local s="$1"; local st; st="$(aws cloudformation describe-stacks --stack-name "$s" --region "$REGION" --query 'Stacks[0].StackStatus' --output text --no-cli-pager 2>/dev/null || true)"; [[ "$st" =~ ^(CREATE_COMPLETE|UPDATE_COMPLETE|UPDATE_ROLLBACK_COMPLETE)$ ]] || fail "Required stack $s is not complete (status: ${st:-missing})."; }
 find_cert(){ local reg="$1" dom="$2"; aws acm list-certificates --region "$reg" --certificate-statuses PENDING_VALIDATION ISSUED --query "CertificateSummaryList[?DomainName=='$dom'].CertificateArn | [0]" --output text --no-cli-pager; }
 cert_status(){ aws acm describe-certificate --region "$1" --certificate-arn "$2" --query 'Certificate.Status' --output text --no-cli-pager; }
 
