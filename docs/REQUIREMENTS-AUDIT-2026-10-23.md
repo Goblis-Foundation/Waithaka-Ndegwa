@@ -105,17 +105,22 @@ The owner subsequently created project `waithaka-ndegwa-website-512516` and save
 Live Connections still shows the four Instagram grants connected to @iwaithakaw. Google reporting/YouTube are now connected. Personal Facebook, LinkedIn, X and TikTok developer setup remains incomplete as listed above. Google console availability, proper provider apps/consent, actual source feeds, owner content, approved postal details, inbox acceptance and physical-device/field testing remain genuine dependencies.
 
 
-## Calendar and meetings acceptance — latest 23 October
+## Calendar and meetings acceptance — latest 24 October (Africa/Nairobi)
 
 - Eight Google account identities were returned and each primary calendar was explicitly selected and confirmed. Reconnecting one account preserves the others. Shared/transferred calendars were not bulk-selected.
 - A live combined agenda read across the first seven confirmed accounts returned events and two supported join links with no account warning. The eighth account, Ubunifu, was then confirmed; a subsequent eight-account combined read completed with no account warnings.
-- Meetings & booking at `/write/meetings` is deployed with Google Meet, Zoom, Microsoft Teams/Outlook, Webex and Calendly. Zoom, Microsoft and Webex delegated OAuth, identity confirmation, encrypted credentials, refresh handling and explicit meeting reads are implemented. They are not yet authorized: the dashboard correctly shows App setup required. Calendly is a private booking shortcut, not an API connection.
+- Meetings & booking at `/write/meetings` is deployed with Google Meet, Zoom, Microsoft Teams/Outlook, Webex and Calendly. Zoom, Microsoft and Webex delegated OAuth, identity confirmation, encrypted credentials, refresh handling and explicit meeting reads are implemented. Zoom and Webex are authorized with confirmed owner identities; explicit live upcoming-meeting reads succeeded with zero returned rows. Microsoft app registration and encrypted credentials are saved, but OAuth has not produced a confirmed connection. Calendly is a private booking shortcut, not an API connection.
 - Meeting creation, invitations, recording and transcription remain native-provider actions. No meeting or invitation was created by this implementation. Calendar and meeting details are not sent to AI/MCP or stored in aggregate analytics.
-- Zoom Marketplace sign-in succeeded for the owner. Its app list was empty. Creating the website app is currently gated by Zoom's API License and Terms of Use; no acceptance or app creation has been claimed.
+- Microsoft is configured for personal and work/school accounts, with delegated User.Read and Calendars.Read. The requested personal account is signed in, but authorization returned a reconnection error. Commit 79f841f adds sanitized token-exchange versus identity-check diagnostics and rejects a Secret ID used in place of a secret Value. CI passed; production verification remains pending.
 - PageSpeed, CrUX, Picker and Gemini keys were last observed as not saved, using status labels only. No secret values were inspected. Google Postmaster's last authorization attempt returned a provider rate limit; no domain report is claimed.
 - Actual impact feed endpoints/credentials, approved postal details, owner venture/founder content, production restore acceptance and physical-device usability remain dependencies. Implemented adapters and passing tests do not establish those outcomes.
 
 
 ## Zoom setup continuation
 
-With explicit owner approval, Zoom's API License and Terms of Use was accepted. A General app named **Waithaka Ndegwa Website** was created in the owner's signed-in account, with User-managed access. The exact website callback and allow-list entry were saved; strict redirect matching was enabled. Saved scopes are `user:read:user` and `meeting:read:list_meetings`. Local test shows **Add app now**. Client ID/secret transfer to the encrypted Writer settings and actual OAuth authorization are still pending; no Zoom connection or meeting read is claimed. Client-secret values were not read, logged or copied into this register.
+With explicit owner approval, Zoom's API License and Terms of Use was accepted. A General app named **Waithaka Ndegwa Website** was created in the owner's signed-in account, with User-managed access. The exact website callback and allow-list entry were saved; strict redirect matching was enabled. Saved scopes are `user:read:user` and `meeting:read:list_meetings`. The owner saved credentials directly in encrypted Writer settings. OAuth identity confirmation and a live upcoming-meeting read succeeded; zero meetings were returned. Shared account access was not enabled. Client-secret values were not read, logged or copied into this register.
+
+
+## Webex setup continuation
+
+The owner created the website integration, saved its exact callback and delegated `spark:people_read` and `meeting:schedules_read` scopes, and entered credentials directly into private Writer settings. The owner completed authorization. Returned identity confirmation and an explicit live upcoming-meeting read succeeded with zero rows. No secret values or private meeting details are recorded here.
