@@ -47,3 +47,33 @@ jobs:
           test "$(aws sts get-caller-identity --query Account --output text)" = 466401734428
           aws elasticbeanstalk describe-environments --environment-names waithaka-ndegwa-production --region af-south-1
           aws elasticbeanstalk describe-events --environment-name waithaka-ndegwa-production --region af-south-1 --max-records 25
+      - name: Inspect startup logs without publishing credentials
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess,json,time,urllib.request,zipfile,io,re
+          def aws(*a):
+              r=subprocess.run(['aws',*a,'--region','af-south-1','--output','json'],capture_output=True,text=True)
+              if r.returncode: raise RuntimeError(r.stderr)
+              return json.loads(r.stdout or '{}')
+          name='waithaka-ndegwa-production'
+          resources=aws('elasticbeanstalk','describe-environment-resources','--environment-name',name)
+          print(json.dumps(resources))
+          aws('elasticbeanstalk','request-environment-info','--environment-name',name,'--info-type','tail')
+          for attempt in range(12):
+              time.sleep(10)
+              entries=aws('elasticbeanstalk','retrieve-environment-info','--environment-name',name,'--info-type','tail').get('EnvironmentInfo',[])
+              if entries: break
+          if not entries: raise RuntimeError('Beanstalk did not return tail logs.')
+          blocked=re.compile(r'password|secret|credential|token|APP_KEY|DB_PASS|Authorization|PRIVATE KEY',re.I)
+          for entry in entries:
+              data=urllib.request.urlopen(entry['Message'],timeout=30).read()
+              archive=zipfile.ZipFile(io.BytesIO(data))
+              for path in archive.namelist():
+                  if any(x in path for x in ['eb-engine.log','eb-hooks.log','error_log']):
+                      print('LOG '+path)
+                      lines=archive.read(path).decode('utf-8','replace').splitlines()
+                      for line in lines[-120:]:
+                          if blocked.search(line): print('[sensitive log line omitted]')
+                          else: print(line[:1600])
+          PY
