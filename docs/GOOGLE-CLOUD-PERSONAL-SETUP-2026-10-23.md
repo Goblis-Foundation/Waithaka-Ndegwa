@@ -92,7 +92,7 @@ YouTube Analytics requests `yt-analytics.readonly` plus `youtube.readonly` to di
 
 Drive uses `drive.file` and Picker to authorize chosen files. This Google scope permits app-selected file editing, although the application only reads document metadata and exports text. Configure a separate browser API key restricted to the canonical HTTPS origin and Picker API; it is intentionally supplied to the browser. Never use an unrestricted server key as the Picker key. The importer accepts downloadable native Google Docs only, up to 60 KB, into private drafts; no formatting, images or comments are imported.
 
-Save separate API-restricted PageSpeed/CrUX keys. Gemini uses a separate server API key, selectable model, selected-text consent, hourly limit and human editorial review. Grounding can have additional usage charges; configure provider-side quota/budget and confirm data handling before use. The app does not enable billing. Public appointment booking uses the owner-supplied Google Calendar booking link, with availability/buffers/Meet configured in Calendar. It does not expose connected calendars publicly.
+Save separate API-restricted PageSpeed/CrUX keys. Gemini uses a separate server API key, selectable model, selected-text consent, hourly limit and human editorial review. Grounding can have additional usage charges; configure provider-side quota/budget and confirm data handling before use. The app does not enable billing. The optional Google appointment link remains available. Native website booking was added on 24 October with separate authorization and availability controls; see the activation section below. Neither experience exposes private calendar event titles publicly.
 
 For the local MCP bridge, set `WAITHAKA_GOOGLE_MCP=1` and `WAITHAKA_GOOGLE_MCP_USER_ID` to the explicitly approved Writer identity, then launch `php bin/google-mcp.php` in a trusted local client with the application's secure environment. No HTTP endpoint is exposed. Only whitelisted aggregate reports saved within 30 days for that user's still-confirmed destination are readable; calendar events, drafts, queries, credentials, account names and private content are excluded. This is an application adapter, not Google's official MCP server.
 
@@ -114,3 +114,22 @@ References checked 23 October 2026:
 - https://ai.google.dev/api/generate-content
 - https://ai.google.dev/gemini-api/docs/google-search
 - https://developers.google.com/identity/protocols/oauth2/
+
+
+## Communication and native booking activation — 24 October
+
+Use the personal website project and existing Google OAuth web client, not the separate Goblis Group client. Add these exact Authorized redirect URIs without removing previous working entries:
+
+```text
+https://www.waithakandegwa.com/write/connections/callback/google_booking
+https://www.waithakandegwa.com/write/connections/callback/google_gmail_read
+https://www.waithakandegwa.com/write/connections/callback/google_gmail_draft
+```
+
+Google Calendar API is already used by the eight read connections. Native booking separately requests identity, calendar-list read, calendar free/busy and `calendar.events.owned`. Google grants owned-event access across owned calendars; the app restricts writes to the confirmed destination. Open Writer > Communication Centre > Availability, authorize the booking calendar, confirm the actual owned destination in Connections, review hours/types/limits, then enable public bookings. Required selected calendar failures stop slot offers.
+
+Enable Gmail API only for the mailbox features selected by the owner. Gmail read requests `gmail.readonly`; the separate draft feature requests `gmail.compose`. Compose is broader than draft creation at Google, but this application implements draft creation only, without a Gmail sending endpoint. Confirm each mailbox identity independently. Existing calendar permissions do not grant inbox access.
+
+The live booking start returned `redirect_uri_mismatch` before consent. Google Cloud console was unavailable in the agent browser, so callback registration could not be completed there. After registration, start a new authorization; do not reuse an expired OAuth URL.
+
+Phone/desktop installation and Web Push are configured in Writer > App & notifications. Browser/device permission and passkey enrollment are owner actions. The dedicated booking worker can process opted-in booking jobs without unpausing legacy newsletter or social queues.
