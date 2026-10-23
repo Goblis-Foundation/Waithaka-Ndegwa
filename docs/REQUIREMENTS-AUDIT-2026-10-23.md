@@ -6,7 +6,7 @@ Scope: Waithaka Ndegwa’s personal website, https://www.waithakandegwa.com, rep
 
 Reviewed the conversation instructions, the original 15-page **Waithaka-Ndegwa-Global-SEO-and-Growth-Research-2026-10-21.docx**, the 19-page **Waithaka-Ndegwa-Startup-Publishing-Strategy-2026.pdf**, repository implementation and operating guides, deployment results, public pages and signed-in Writer operations/connections. Research recommendations are distinguished from owner instructions below. No passwords, tokens, inbox contents or private attachments are included.
 
-Implementation baseline: `61e3a5b3d2a8dc131d080cba513408c2a5d1e699`; CI run 39971734566 and production deployment 39971734754 succeeded. PHP 8.3/8.4 and MySQL checks ran in CI. A deployed adapter is not evidence of a connected account, accepted post, delivered message, measured outcome or provider production approval.
+Current implementation baseline: `cad42b5b8e385533a317d052abd2428214414302`; application checks 40015965811 and production deployment 40015965602 succeeded. The full suite passed 51/51 on PHP 8.3 and PHP 8.4. Earlier release references below describe historical acceptance steps. PHP 8.3/8.4 and MySQL checks ran in CI. A deployed adapter is not evidence of a connected account, accepted post, delivered message, measured outcome or provider production approval.
 
 ## Direct instructions
 
@@ -34,10 +34,10 @@ Implementation baseline: `61e3a5b3d2a8dc131d080cba513408c2a5d1e699`; CI run 3997
 | LinkedIn member account | Member adapter implemented; no Page posting substituted | Dedicated app creation requires publisher Page association in LinkedIn UI; unresolved; no unrelated organisation app reused |
 | X personal account | Adapter implemented | Developer console currently signed into another organisation account; correct personal developer account and entitlement needed before setup/charges |
 | TikTok personal/professional account | Read and eligible Accounts API adapters separated | Consumer login being resolved does not establish developer app credentials; developer login/app configuration and eligibility unresolved; no automatic password retries |
-| YouTube personal channel | Reporting/upload grants separated in implementation | Google developer credentials and channel authorisation pending |
+| YouTube personal channel | Personal channel read, upload and Analytics grants confirmed; Analytics report read succeeded | No video uploaded; provider processing and publication acceptance remain separate |
 | All Meta capabilities, analytics, MCP, graphs | Capability inventory in META-CAPABILITIES.md; connected Instagram subset above; local aggregate MCP implemented, disabled | Ads/hosted MCP adapter and grants, Threads, webhooks, Live Video/oEmbed eligibility and production reviews remain open; no advertising spend or campaign changes |
-| Google mail setting | Personal domain verified; Google MX/SPF and activated DKIM verified | Scoped Workspace SMTP relay/sender setup and delivery test pending; email remains paused |
-| Global SEO for countries and territories | English public schema/canonicals, worldwide audience, robots and 25-URL canonical sitemap verified; country report limit raised to 300 | Google Search Console/GA4 reporting grants pending; no ranking/indexing guarantee for every territory |
+| Google mail setting | Domain/MX/SPF/DKIM and scoped TLS Workspace relay verified; Google accepted one owner test | Inbox placement/rendering remains unverified; global worker remains paused |
+| Global SEO for countries and territories | English public schema/canonicals, worldwide audience, robots and 25-URL canonical sitemap verified; country report limit raised to 300 | Google Search Console and GA4 reporting connected; tag matches the actual GA4 web stream; no ranking/indexing guarantee for every territory |
 | Check and retain all instructions this week | This register and supersession notices committed to Git | Update this register when a blocker is actually resolved |
 
 ## Original strategy and research recommendations
@@ -49,12 +49,12 @@ These preserve the reports’ scope; recommendations are not automatic authorisa
 | My Thoughts, personal photography and topic journeys; Start Here | Public structures implemented; use real owner content and owned media |
 | Starting from Scratch with Waithaka; one active venture per season; honest weekly chapters | Journey/episode workflows and one-active-published-journey rule implemented. First venture, charter, evidence, costs, decisions and chapters need owner input. Twelve weeks is illustrative, not a success guarantee. No recurring publication was activated |
 | Founder Stories and monthly guest features | Founder review/nomination, consent, relationship/claim basis and correction workflows implemented; first approved founder content still needed |
-| Public evidence, resources, corrections and follow-up | Resource/evidence/correction and reader workflows implemented; four original blank tools and usable downloads require editorial acceptance; do not manufacture completed experiments or 30/90-day follow-ups |
+| Public evidence, resources, corrections and follow-up | Resource/evidence/correction and reader workflows implemented; six usable blank tools deployed; future completed examples require genuine evidence; do not manufacture completed experiments or 30/90-day follow-ups |
 | Search, Watch/transcripts, talks and connected reading | Public collection/search and editorial structures implemented; validate actual content-specific video/transcript/talk assets before publication |
-| Newsletter preferences and enquiry case references | Reader/newsletter/case workflows implemented; no automatic marketing consent from enquiries; delivery still paused |
+| Newsletter preferences and enquiry case references | Reader/newsletter/case workflows implemented; no automatic marketing consent from enquiries; SMTP configured, background worker paused |
 | Immutable approved package, draft revisions and no accidental publishing | Guarded publishing/revision/approval workflows covered by repository tests; no live cross-platform publication acceptance yet |
 | Delivery reconciliation | Provider acknowledgment, published URL, uncertain outcome and assisted completion distinguished; verify actual platform before retrying unknown outcomes |
-| Google separation and privacy | GA4 tag G-RN0YXC2WCH implemented separately from reporting OAuth; private Writer pages excluded; GSC/GA4 reporting not connected. Native Google/Bing AI surfaces are not fabricated API metrics |
+| Google separation and privacy | GA4 tag G-RN0YXC2WCH implemented separately from reporting OAuth; private Writer pages excluded; GSC/GA4 reporting connected. Native Google/Bing AI surfaces are not fabricated API metrics |
 | Multilingual/global discovery | English worldwide foundation delivered. Genuine translations/hreflang depend on real translated content; no bulk country doorways, artificial backlinks or IP redirects |
 | Performance and accessibility | Responsive media/navigation and automated checks exist; p75 LCP/INP/CLS and physical-device/accessibility acceptance are not certified by deployment success |
 | IndexNow | Guarded adapter implemented; worker/env/opt-in gates required; submission receipt is not indexing. Google Indexing API is not used for ordinary articles |
@@ -76,8 +76,8 @@ These preserve the reports’ scope; recommendations are not automatic authorisa
 ## Immediate continuation queue
 
 1. Correct Facebook personal Login app/product configuration without requesting unrelated business permissions.
-2. Complete LinkedIn app publisher association, correct personal X developer sign-in, TikTok developer sign-in/app setup, and Google Cloud credentials when console access works.
-3. Finish scoped Workspace SMTP relay, sender/postal details and delivery acceptance; retain paused sending until ready.
+2. Complete LinkedIn app publisher association, correct personal X developer sign-in, TikTok developer sign-in/app setup, and remaining provider app setup. The owner-created Google project is configured; its API-key-dependent features still need secure key entry.
+3. Confirm inbox rendering, sender/postal details and approved email acceptance; retain paused background sending until ready.
 4. Obtain impact source endpoints and evidence definitions; accept first venture/founder/resource content.
 5. Verify AI generation, production restore/alerts, mobile/tablet and field performance, then enable only ready delivery channels against approved packages.
 6. Expand Meta products only with supported adapters, eligibility and exact account grants. Keep the local MCP disabled until a trusted client is configured.
@@ -100,6 +100,17 @@ The owner explicitly confirmed the prepared SMTP relay on 23 October 2026. Googl
 
 Application release `83cbfceac1f5180678fe2971dfb0982f41790c69` adds an idempotent, account/IP-guarded mail configuration step and an authenticated, CSRF-protected owner-only inbox test. Transport configured status was observed in production and Google accepted one test addressed to the signed-in owner, isaac@waithakandegwa.com. This is provider acceptance, not verified inbox placement. The connected Gmail account is a different mailbox, so receipt/rendering have not been claimed. No subscriber campaign, social post or outbox batch was released; global worker remains paused.
 
-The remaining Google Cloud task is now explicitly to create a dedicated personal-site project and sign in. The console root and credentials page both return Site Unavailable in this browser. Proposed project ID is `waithaka-ndegwa-web-2026`, subject to Google availability; no project or OAuth client is claimed as created. [Exact project/API/callback setup](GOOGLE-CLOUD-PERSONAL-SETUP-2026-10-23.md).
+The owner subsequently created project `waithaka-ndegwa-website-512516` and saved its dedicated OAuth client in Writer. Search Console, GA4, YouTube read/upload/Analytics and selected Drive files have been connected. Eight calendar identities are confirmed. The Cloud console remains unavailable in this browser; API-key-dependent tools still need private key entry. [Exact project/API/callback setup](GOOGLE-CLOUD-PERSONAL-SETUP-2026-10-23.md).
 
-Live Connections still shows the four Instagram grants connected to @iwaithakaw. Google reporting/YouTube, personal Facebook, LinkedIn, X and TikTok credentials remain incomplete as listed above. Google console availability, proper provider apps/consent, actual source feeds, owner content, approved postal details, inbox acceptance and physical-device/field testing remain genuine dependencies.
+Live Connections still shows the four Instagram grants connected to @iwaithakaw. Google reporting/YouTube are now connected. Personal Facebook, LinkedIn, X and TikTok developer setup remains incomplete as listed above. Google console availability, proper provider apps/consent, actual source feeds, owner content, approved postal details, inbox acceptance and physical-device/field testing remain genuine dependencies.
+
+
+## Calendar and meetings acceptance — latest 23 October
+
+- Eight Google account identities were returned and each primary calendar was explicitly selected and confirmed. Reconnecting one account preserves the others. Shared/transferred calendars were not bulk-selected.
+- A live combined agenda read across the first seven confirmed accounts returned events and two supported join links with no account warning. The eighth account, Ubunifu, was then confirmed; an eight-account read remains to be checked.
+- Meetings & booking at `/write/meetings` is deployed with Google Meet, Zoom, Microsoft Teams/Outlook, Webex and Calendly. Zoom, Microsoft and Webex delegated OAuth, identity confirmation, encrypted credentials, refresh handling and explicit meeting reads are implemented. They are not yet authorized: the dashboard correctly shows App setup required. Calendly is a private booking shortcut, not an API connection.
+- Meeting creation, invitations, recording and transcription remain native-provider actions. No meeting or invitation was created by this implementation. Calendar and meeting details are not sent to AI/MCP or stored in aggregate analytics.
+- Zoom Marketplace sign-in succeeded for the owner. Its app list was empty. Creating the website app is currently gated by Zoom's API License and Terms of Use; no acceptance or app creation has been claimed.
+- PageSpeed, CrUX, Picker and Gemini keys were last observed as not saved, using status labels only. No secret values were inspected. Google Postmaster's last authorization attempt returned a provider rate limit; no domain report is claimed.
+- Actual impact feed endpoints/credentials, approved postal details, owner venture/founder content, production restore acceptance and physical-device usability remain dependencies. Implemented adapters and passing tests do not establish those outcomes.

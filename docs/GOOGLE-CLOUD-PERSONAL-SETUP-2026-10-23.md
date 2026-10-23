@@ -1,6 +1,6 @@
 # Personal website Google Cloud setup · 23 October 2026
 
-Status: the owner created the personal website project and saved its OAuth client securely in Writer. Search Console, GA4, YouTube read/upload/Analytics and selected Drive files are connected. Two Google calendar accounts are confirmed; further account authorizations remain in progress. The Cloud console is unavailable in this browser.
+Status: the owner created the personal website project and saved its OAuth client securely in Writer. Search Console, GA4, YouTube read/upload/Analytics and selected Drive files are connected. Eight Google calendar accounts are confirmed with primary calendars selected. The Cloud console is unavailable in this browser.
 
 ## Project
 
