@@ -47,6 +47,15 @@ jobs:
           test "$(aws sts get-caller-identity --query Account --output text)" = 466401734428
           aws elasticbeanstalk describe-environments --environment-names waithaka-ndegwa-production --region af-south-1
           aws elasticbeanstalk describe-events --environment-name waithaka-ndegwa-production --region af-south-1 --max-records 25
+      - name: Inventory fixed-cost resources for USD 75 monthly budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          vpc_id=$(aws cloudformation describe-stacks --stack-name waithaka-network --region af-south-1 --query "Stacks[0].Outputs[?OutputKey=='VpcId'].OutputValue | [0]" --output text)
+          aws ec2 describe-nat-gateways --filter Name=vpc-id,Values="$vpc_id" --region af-south-1 --query 'NatGateways[].[NatGatewayId,State]' --output table
+          aws ec2 describe-instances --filters Name=vpc-id,Values="$vpc_id" Name=instance-state-name,Values=running --region af-south-1 --query 'Reservations[].Instances[].[InstanceId,InstanceType]' --output table
+          db_id=$(aws cloudformation describe-stack-resource --stack-name waithaka-ndegwa-production-466401734428-data --logical-resource-id Database --region af-south-1 --query StackResourceDetail.PhysicalResourceId --output text)
+          aws rds describe-db-instances --db-instance-identifier "$db_id" --region af-south-1 --query 'DBInstances[].[DBInstanceClass,MultiAZ,AllocatedStorage,StorageType,BackupRetentionPeriod]' --output table
       - name: Inspect Cape Town edge stack events
         shell: bash
         run: |
