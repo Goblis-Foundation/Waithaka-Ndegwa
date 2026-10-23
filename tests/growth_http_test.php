@@ -69,6 +69,10 @@ try{
     $r=growth_request('/write/impact');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Reporting connections require Writer authentication.');
     $r=growth_request('/write/campaigns');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Campaigns require Writer authentication.');
     $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check($r['status']===302,'The synthetic Writer can authenticate.');
+    $overview=growth_request('/write');growth_check($overview['status']===200&&str_contains($overview['body'],'Make your next idea count.')&&str_contains($overview['body'],'workspace-sidebar'),'Professional overview renders with grouped sidebar.');
+    foreach(['Workspace','Writing','Media &amp; social','Audience','Impact &amp; settings']as$group)growth_check(str_contains($overview['body'],$group),'Sidebar keeps workspace group: '.$group);
+    growth_check(str_contains($overview['body'],'id="library"')&&str_contains($overview['body'],'data-writer-search')&&str_contains($overview['body'],'data-writer-filter'),'Article library filters remain available.');
+    growth_check(str_contains($overview['body'],'of 6 platforms with confirmed account access')&&str_contains($overview['body'],'posting tasks need attention'),'Overview uses actual social connection and job summary.');
     $centre=growth_request('/write/media-centre');growth_check($centre['status']===200&&str_contains($centre['headers']['cache-control']??'','no-store')&&!str_contains($centre['body'],'googletagmanager.com'),'Media centre is private and has no analytics tracker.');
     foreach(['LinkedIn','Facebook','Instagram','X','YouTube','TikTok']as$platform)growth_check(str_contains($centre['body'],'<h3>'.$platform.'</h3>'),'Media centre covers '.$platform);
     growth_check(substr_count($centre['body'],'>Connect</button>')===6,'Unconnected dashboard presents exactly six primary Connect buttons.');

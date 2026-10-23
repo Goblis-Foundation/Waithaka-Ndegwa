@@ -58,3 +58,7 @@ The Media centre now has six prominent account cards with a single primary Conne
 ## AfriTrace geographic scope and approved logo
 
 The owner confirmed planned AfriTrace Link coverage across all 55 African countries. The 30,000-enterprise target applies across that footprint collectively, not per country. Public copy describes planned coverage, not verified current operations in every country. The supplied horizontal white-background logo replaces the previous standalone symbol in the Goblis Foundation project card. Beneficiary evidence must reflect countries actually reached; no Kenya household proxy is generalised across the footprint.
+
+## Professional dashboard organisation
+
+The shared Writer shell now groups every existing module under Workspace, Writing, Media & Social, Audience, and Impact & Settings. A persistent desktop sidebar replaces the crowded horizontal link strip; the same navigation uses a keyboard-accessible menu on phones and tablets. The Overview preserves the existing searchable article library and live status filters, adds the most recent private draft, six useful workflow cards and database-derived counts for confirmed social platform access, scheduled jobs and tasks needing attention. It makes no external API calls while loading. Connect buttons, approval gates, source reports and account settings remain intact. Private pages remain no-store/noindex and omit visitor analytics.

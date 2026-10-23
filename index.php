@@ -428,7 +428,7 @@ if ($path === '/write/logout') {
     verify_csrf();session_unset();session_destroy();redirect(url('/write/login'));
 }
 if ($path === '/write') {
-    require_auth();$posts=writer_posts();$rows=db()->query("SELECT status,COUNT(*) n FROM posts GROUP BY status")->fetchAll();$counts=['draft'=>0,'scheduled'=>0,'published'=>0,'selected'=>(int)db()->query('SELECT COUNT(*) FROM posts WHERE is_selected=1')->fetchColumn()];foreach($rows as $r)$counts[$r['status']]=(int)$r['n'];render_write('dashboard',['writeTitle'=>'My Thoughts','posts'=>$posts,'counts'=>$counts]);exit;
+    require_auth();$posts=writer_posts();$rows=db()->query("SELECT status,COUNT(*) n FROM posts GROUP BY status")->fetchAll();$counts=['draft'=>0,'scheduled'=>0,'published'=>0,'selected'=>(int)db()->query('SELECT COUNT(*) FROM posts WHERE is_selected=1')->fetchColumn()];foreach($rows as $r)$counts[$r['status']]=(int)$r['n'];render_write('dashboard',['writeTitle'=>'My Thoughts','posts'=>$posts,'counts'=>$counts,'workspace'=>writer_workspace_summary()]);exit;
 }
 if ($path === '/write/new') { require_auth();render_write('editor',['writeTitle'=>'New post','post'=>[],'categories'=>categories()]);exit; }
 if (preg_match('~^/write/edit/(\d+)$~',$path,$m)) {

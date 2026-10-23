@@ -15,6 +15,12 @@ function media_centre_platforms(): array {
 function media_centre_connect_services(): array {
     return ['linkedin'=>'linkedin','facebook'=>'facebook_pages','instagram'=>'instagram','x'=>'x','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_read'];
 }
+function writer_workspace_summary(): array {
+    $connected=0;foreach(media_centre_connect_services()as$slug=>$service){$services=[$service];if($slug==='linkedin')$services[]='linkedin_analytics';if($slug==='youtube')$services[]='google_youtube_read';if($slug==='tiktok')$services[]='tiktok_business';foreach($services as$granted){$c=publishing_connection($granted);if($c&&$c['status']==='connected'&&!empty($c['selected_resource'])){$connected++;break;}}}
+    $statuses=db()->query('SELECT status,COUNT(*) n FROM publishing_jobs GROUP BY status')->fetchAll();$attention=0;$scheduled=0;
+    foreach($statuses as$row){if($row['status']==='scheduled')$scheduled+=(int)$row['n'];elseif(in_array($row['status'],['assisted','reminder_queued','reminder_sent','failed','reconnect','ambiguous'],true))$attention+=(int)$row['n'];}
+    return ['connected'=>$connected,'attention'=>$attention,'scheduled'=>$scheduled];
+}
 function media_centre_count(mixed $value): ?int {
     if(is_int($value)&&$value>=0&&$value<=1000000000000)return $value;
     if(is_string($value)&&preg_match('/\A(?:0|[1-9][0-9]{0,12})\z/',$value)&&strlen($value)<=13&&(float)$value<=1000000000000)return (int)$value;
