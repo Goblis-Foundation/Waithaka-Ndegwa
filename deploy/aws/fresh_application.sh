@@ -74,6 +74,11 @@ PY
 }
 RUNTIME_SECRET="$(ensure_secret)"
 
+# A successful prior bootstrap is recorded by the explicit disabled flag.
+# Routine deployments must not reopen database administrator access.
+BOOTSTRAP_REQUIRED=1
+PREVIOUS_BOOTSTRAP="$(aws elasticbeanstalk describe-configuration-settings --application-name "$APP_NAME" --environment-name "$ENV_NAME" --region "$REGION" --query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='APP_FRESH_BOOTSTRAP'].Value | [0]" --output text --no-cli-pager 2>/dev/null || true)"
+[[ "$PREVIOUS_BOOTSTRAP" == 0 ]] && BOOTSTRAP_REQUIRED=0
 # Least-privilege runtime permissions; admin DB secret is temporary for first-install bootstrap only.
 POLICY_FILE="$(mktemp)"
 cat > "$POLICY_FILE" <<JSON
@@ -86,6 +91,13 @@ cat > "$POLICY_FILE" <<JSON
  ]
 }
 JSON
+if [[ "$BOOTSTRAP_REQUIRED" == 0 ]]; then
+  python3 - "$POLICY_FILE" "$RUNTIME_SECRET" <<'PY'
+import json,sys
+p=sys.argv[1]; policy=json.load(open(p)); policy['Statement'][0]['Resource']=[sys.argv[2]]
+json.dump(policy,open(p,'w'))
+PY
+fi
 aws iam put-role-policy --role-name "$INSTANCE_ROLE" --policy-name WaithakaRuntimeAccess --policy-document "file://$POLICY_FILE" --no-cli-pager
 rm -f "$POLICY_FILE"
 aws iam attach-role-policy --role-name "$INSTANCE_ROLE" --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore --no-cli-pager >/dev/null
@@ -120,7 +132,7 @@ for o in a:
 # Explicit instance class and fresh-install controls.
 a += [
  {'Namespace':'aws:ec2:instances','OptionName':'InstanceTypes','Value':'t3.small'},
- {'Namespace':'aws:elasticbeanstalk:application:environment','OptionName':'APP_FRESH_BOOTSTRAP','Value':'1'},
+ {'Namespace':'aws:elasticbeanstalk:application:environment','OptionName':'APP_FRESH_BOOTSTRAP','Value':'$BOOTSTRAP_REQUIRED'},
  {'Namespace':'aws:elasticbeanstalk:application:environment','OptionName':'WRITER_EMAIL','Value':'$WRITER_EMAIL'},
  {'Namespace':'aws:elasticbeanstalk:application:environment','OptionName':'WRITER_NAME','Value':'$WRITER_NAME'},
  {'Namespace':'aws:elasticbeanstalk:application:environment','OptionName':'DB_ADMIN_SECRET_ARN','Value':'$ADMIN_SECRET'},
@@ -129,6 +141,8 @@ a += [
  {'Namespace':'aws:elasticbeanstalk:application:environment','OptionName':'MAIL_FROM_NAME','Value':'Waithaka Ndegwa'},
  {'Namespace':'aws:elasticbeanstalk:application:environment','OptionName':'MAIL_REPLY_TO','Value':'$WRITER_EMAIL'}
 ]
+if '$BOOTSTRAP_REQUIRED' == '0':
+    a=[o for o in a if o.get('OptionName') not in ('WRITER_INITIAL_PASSWORD','DB_ADMIN_SECRET_ARN')]
 json.dump(a,open(out,'w'),indent=2)
 PY
 
