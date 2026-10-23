@@ -79,7 +79,37 @@ RUNTIME_SECRET="$(ensure_secret)"
 BOOTSTRAP_REQUIRED=1
 PREVIOUS_BOOTSTRAP="$(aws elasticbeanstalk describe-configuration-settings --application-name "$APP_NAME" --environment-name "$ENV_NAME" --region "$REGION" --query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='APP_FRESH_BOOTSTRAP'].Value | [0]" --output text --no-cli-pager 2>/dev/null || true)"
 [[ "$PREVIOUS_BOOTSTRAP" == 0 ]] && BOOTSTRAP_REQUIRED=0
-# Least-privilege runtime permissions; admin DB secret is temporary for first-install bootstrap only.
+# A checksum-bound receipt prevents routine deployments from reopening migration access.
+GOOGLE_MIGRATION_REQUIRED=0
+GOOGLE_MIGRATION_FILE="$SOURCE_DIR/app/migrations/160_google_workspace.sql"
+GOOGLE_MIGRATION_RECEIPT=""
+if [[ -f "$SOURCE_DIR/bin/google-workspace-migrate.php" && -f "$GOOGLE_MIGRATION_FILE" ]]; then
+  GOOGLE_MIGRATION_HASH="$(sha256sum "$GOOGLE_MIGRATION_FILE" | awk '{print $1}')"
+  GOOGLE_MIGRATION_RECEIPT="schema-migrations/160-$GOOGLE_MIGRATION_HASH.json"
+  if ! aws s3api head-object --bucket "$RELEASE_BUCKET" --key "$GOOGLE_MIGRATION_RECEIPT" --region "$REGION" --no-cli-pager >/dev/null 2>&1; then GOOGLE_MIGRATION_REQUIRED=1; fi
+fi
+# Incremental DDL temporarily uses the same exact administrator secret as bootstrap.
+# An EXIT trap removes that access on either deployment success or failure.
+cleanup_google_migration_access(){
+  [[ "$GOOGLE_MIGRATION_REQUIRED" == 1 ]] || return 0
+  local cleanup_policy; cleanup_policy="$(mktemp)"
+  cat > "$cleanup_policy" <<JSON
+{"Version":"2012-10-17","Statement":[
+ {"Sid":"RuntimeSecret","Effect":"Allow","Action":["secretsmanager:GetSecretValue","secretsmanager:DescribeSecret"],"Resource":"$RUNTIME_SECRET"},
+ {"Sid":"PublicMedia","Effect":"Allow","Action":["s3:GetObject","s3:GetObjectVersion","s3:PutObject"],"Resource":"arn:aws:s3:::$PUBLIC_BUCKET/assets/uploads/*"},
+ {"Sid":"PrivateMedia","Effect":"Allow","Action":["s3:GetObject","s3:GetObjectVersion","s3:PutObject"],"Resource":["arn:aws:s3:::$PRIVATE_BUCKET/release-proofs/*","arn:aws:s3:::$PRIVATE_BUCKET/media-library/*"]}
+]}
+JSON
+  local cleanup_status=0
+  aws iam put-role-policy --role-name "$INSTANCE_ROLE" --policy-name WaithakaRuntimeAccess --policy-document "file://$cleanup_policy" --no-cli-pager || cleanup_status=$?
+  rm -f "$cleanup_policy"
+  return "$cleanup_status"
+}
+if [[ "$GOOGLE_MIGRATION_REQUIRED" == 1 ]]; then
+  trap 'prior_status=$?; cleanup_google_migration_access || exit 1; exit "$prior_status"' EXIT
+fi
+# Least-privilege runtime permissions; temporary DDL access is removed after migration.
+
 POLICY_FILE="$(mktemp)"
 cat > "$POLICY_FILE" <<JSON
 {
@@ -91,7 +121,7 @@ cat > "$POLICY_FILE" <<JSON
  ]
 }
 JSON
-if [[ "$BOOTSTRAP_REQUIRED" == 0 ]]; then
+if [[ "$BOOTSTRAP_REQUIRED" == 0 && "$GOOGLE_MIGRATION_REQUIRED" == 0 ]]; then
   python3 - "$POLICY_FILE" "$RUNTIME_SECRET" <<'PY'
 import json,sys
 p=sys.argv[1]; policy=json.load(open(p)); policy['Statement'][0]['Resource']=[sys.argv[2]]
@@ -142,7 +172,7 @@ a += [
  {'Namespace':'aws:elasticbeanstalk:application:environment','OptionName':'MAIL_REPLY_TO','Value':'$WRITER_EMAIL'}
 ]
 if '$BOOTSTRAP_REQUIRED' == '0':
-    a=[o for o in a if o.get('OptionName') not in ('WRITER_INITIAL_PASSWORD','DB_ADMIN_SECRET_ARN')]
+    a=[o for o in a if o.get('OptionName') != 'WRITER_INITIAL_PASSWORD' and not (o.get('OptionName') == 'DB_ADMIN_SECRET_ARN' and '$GOOGLE_MIGRATION_REQUIRED' == '0')]
 json.dump(a,open(out,'w'),indent=2)
 PY
 
@@ -186,7 +216,7 @@ STATUS=""; HEALTH=""; READY_UNHEALTHY=0
 for i in $(seq 1 120); do
   read -r _ STATUS HEALTH DEPLOYED_VERSION <<<"$(environment_snapshot)"
   echo "Environment: ${STATUS:-missing} / ${HEALTH:-unknown}"
-  [[ "$STATUS" == "Ready" && "$HEALTH" == "Green" ]] && break
+  [[ "$STATUS" == "Ready" && "$HEALTH" == "Green" && "$DEPLOYED_VERSION" == "$VERSION" ]] && break
   if [[ "$STATUS" == "Ready" ]]; then
     [[ "$DEPLOYED_VERSION" == "$VERSION" ]] || fail "Beanstalk reverted to $DEPLOYED_VERSION instead of $VERSION. Inspect startup logs."
     READY_UNHEALTHY=$((READY_UNHEALTHY+1))
@@ -197,7 +227,18 @@ for i in $(seq 1 120); do
   [[ "$STATUS" == "Terminated" || -z "$STATUS" || "$STATUS" == "None" ]] && fail "Elastic Beanstalk environment terminated or disappeared unexpectedly."
   sleep 15
 done
-[[ "$STATUS" == "Ready" && "$HEALTH" == "Green" ]] || fail "Elastic Beanstalk did not become Ready/Green."
+[[ "$STATUS" == "Ready" && "$HEALTH" == "Green" && "$DEPLOYED_VERSION" == "$VERSION" ]] || fail "Elastic Beanstalk did not become Ready/Green on the requested release."
+if [[ "$GOOGLE_MIGRATION_REQUIRED" == 1 ]]; then
+  # Successful postdeploy hooks on this exact version prove the additive migration completed.
+  migration_receipt="$(mktemp)"
+  python3 - "$migration_receipt" "$GOOGLE_MIGRATION_HASH" "$VERSION" <<'PYRECEIPT'
+import json,sys,datetime
+json.dump({'account_id':'466401734428','migration':'160_google_workspace.sql','sha256':sys.argv[2],'release':sys.argv[3],'verified_at':datetime.datetime.now(datetime.timezone.utc).isoformat()},open(sys.argv[1],'w'))
+PYRECEIPT
+  aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$GOOGLE_MIGRATION_RECEIPT" --body "$migration_receipt" --region "$REGION" --no-cli-pager >/dev/null
+  rm -f "$migration_receipt"
+  cleanup_google_migration_access
+fi
 
 # Add origin DNS alias to the actual ALB now that the environment exists.
 ENV_ID="$(aws elasticbeanstalk describe-environments --environment-names "$ENV_NAME" --region "$REGION" --query 'Environments[0].EnvironmentId' --output text --no-cli-pager)"
@@ -219,7 +260,7 @@ aws route53 change-resource-record-sets --hosted-zone-id "$PRIMARY_ZONE" --chang
 # Successful deployment proves the fresh bootstrap hook completed. Disable it and stop injecting the one-time password.
 aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --region "$REGION" \
   --option-settings Namespace=aws:elasticbeanstalk:application:environment,OptionName=APP_FRESH_BOOTSTRAP,Value=0 \
-  --options-to-remove Namespace=aws:elasticbeanstalk:application:environmentsecrets,OptionName=WRITER_INITIAL_PASSWORD \
+  --options-to-remove Namespace=aws:elasticbeanstalk:application:environmentsecrets,OptionName=WRITER_INITIAL_PASSWORD Namespace=aws:elasticbeanstalk:application:environment,OptionName=DB_ADMIN_SECRET_ARN \
   --no-cli-pager >/dev/null
 for i in $(seq 1 80); do STATUS="$(aws elasticbeanstalk describe-environments --environment-names "$ENV_NAME" --region "$REGION" --query 'Environments[0].Status' --output text --no-cli-pager)"; [[ "$STATUS" == Ready ]] && break; sleep 10; done
 

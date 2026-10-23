@@ -16,3 +16,9 @@ google_calendar_observed($token,$scopes,['id'=>'google-one','name'=>'Reconnected
 $q=db()->prepare("SELECT * FROM google_calendar_accounts WHERE user_id=? AND google_sub='google-one'");$q->execute([$ids[0]]);$updated=$q->fetch();gwd_check($updated['status']==='pending_confirmation'&&publishing_decode($updated['selected_json'])===[],'Reconnect requires destination reconfirmation.');
 $r=['key'=>'ga4-countries','destination_hash'=>hash('sha256','properties/123'),'rows'=>[['Kenya','1']]];google_workspace_save_report($r,$ids[0]);gwd_check((int)db()->query('SELECT COUNT(*) FROM google_report_snapshots')->fetchColumn()===1,'Private report snapshot saved.');
 echo "PASS: multi-account retention, ownership, encryption, reconnect confirmation and report storage.\n";
+
+// The already-applied migration must verify using runtime SELECT only, without an admin ARN.
+$env=getenv();unset($env['DB_ADMIN_SECRET_ARN']);$pipes=[];
+$process=proc_open([PHP_BINARY,dirname(__DIR__).'/bin/google-workspace-migrate.php','--apply'],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,null,$env);
+if(!is_resource($process))throw new RuntimeException('Cannot launch migration fixture.');fclose($pipes[0]);$output=stream_get_contents($pipes[1]);$errors=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$status=proc_close($process);
+gwd_check($status===0&&str_contains($output,'already verified with runtime read access'),'An applied Google migration must not need administrator access on routine releases.');

@@ -5,6 +5,11 @@ if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
 require dirname(__DIR__).'/app/bootstrap.php';
 require dirname(__DIR__).'/app/migrations.php';
 $apply=in_array('--apply',$argv,true);
+// Routine releases use the runtime reader to verify the ledger and never reopen admin access.
+$hash=hash_file('sha256',dirname(__DIR__).'/app/migrations/160_google_workspace.sql');
+$q=db()->prepare('SELECT sha256 FROM schema_migrations WHERE name=?');$q->execute(['160_google_workspace.sql']);$already=$q->fetchColumn();
+if($already!==false){if(!hash_equals((string)$already,$hash))throw new RuntimeException('The applied Google migration differs from this release.');fwrite(STDOUT,"Google workspace migration already verified with runtime read access.\n");exit;}
+
 if(array_diff(array_slice($argv,1),['--apply','--plan']))throw new RuntimeException('Use --plan or --apply.');
 $region=(string)app_config('aws_region','');$arn=(string)getenv('DB_ADMIN_SECRET_ARN');
 if($region!=='af-south-1'||!preg_match('~^arn:aws:secretsmanager:af-south-1:466401734428:secret:[A-Za-z0-9/!_+=.@-]+$~D',$arn))throw new RuntimeException('The exact production database migration identity is required.');
