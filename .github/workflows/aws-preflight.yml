@@ -12,6 +12,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Diagnose OIDC identity and STS response without exposing tokens
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, json, base64, urllib.request, urllib.parse, urllib.error, xml.etree.ElementTree as ET
+          url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'] + '&audience=sts.amazonaws.com'
+          req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']})
+          token = json.load(urllib.request.urlopen(req))['value']
+          payload = token.split('.')[1]
+          claims = json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))
+          keys = ('iss', 'aud', 'sub', 'repository', 'repository_id', 'repository_owner_id', 'ref', 'job_workflow_ref')
+          print('OIDC identity:', json.dumps({k: claims.get(k) for k in keys}))
+          data = urllib.parse.urlencode({'Action':'AssumeRoleWithWebIdentity', 'Version':'2011-06-15', 'RoleArn':'arn:aws:iam::466401734428:role/WaithakaGitHubDeployRole', 'RoleSessionName':'waithaka-oidc-diagnosis', 'WebIdentityToken':token, 'DurationSeconds':'900'}).encode()
+          try:
+              urllib.request.urlopen(urllib.request.Request('https://sts.af-south-1.amazonaws.com/',data=data),timeout=30).read()
+              print('STS token exchange succeeded; credentials intentionally omitted.')
+          except urllib.error.HTTPError as error:
+              root = ET.fromstring(error.read())
+              for element in root.iter():
+                  if element.tag.rsplit('}',1)[-1] in ('Code','Message'): print(element.tag.rsplit('}',1)[-1] + ': ' + (element.text or ''))
+          PY
       - uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           role-to-assume: arn:aws:iam::466401734428:role/WaithakaGitHubDeployRole
