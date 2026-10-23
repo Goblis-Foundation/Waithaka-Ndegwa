@@ -39,7 +39,7 @@
 <section class="regional-lens">
   <div class="container regional-lens-grid" data-reveal>
     <div><span class="eyebrow">An African starting point</span><h2>Rooted in Kenya. Looking outward without losing the ground beneath the argument.</h2></div>
-    <div><p>Many of the questions I care about cross borders: food systems, enterprise, infrastructure, energy, trade, tourism, technology and how opportunity moves. I follow those connections across East Africa, then compare them with what I encounter in Europe, the United Kingdom, North America and elsewhere when the comparison helps rather than distracts.</p><div class="region-chips"><span>Kenya</span><span>East Africa</span><span>Europe</span><span>United Kingdom</span><span>United States</span><span>Canada</span><span>Elsewhere</span></div></div>
+    <div><p>Many of the questions I care about cross borders: food systems, enterprise, infrastructure, energy, trade, tourism, technology and how opportunity moves. I follow those connections across East Africa and the rest of Africa, then compare them with what I encounter in Europe, the United Kingdom, North America and elsewhere when the comparison helps rather than distracts.</p><div class="region-chips"><span>Kenya</span><span>East Africa</span><span>Africa</span><span>Europe</span><span>United Kingdom</span><span>United States</span><span>Canada</span><span>Elsewhere</span></div></div>
   </div>
 </section>
 
