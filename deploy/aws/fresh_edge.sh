@@ -41,7 +41,10 @@ import json,subprocess,sys,tempfile,os
 state=json.load(open(sys.argv[1])); domain=sys.argv[2]; cf_zone='Z2FDTNDATAQYW2'
 for zone,zid in state['zones'].items():
   names=[zone,'www.'+zone]
-  changes=[]
+  inventory=json.loads(subprocess.check_output(['aws','route53','list-resource-record-sets','--hosted-zone-id',zid,'--output','json']))['ResourceRecordSets']
+  # Route 53 applies a change batch atomically. Delete only exact conflicting
+  # website CNAMEs, using their complete original record definitions.
+  changes=[{'Action':'DELETE','ResourceRecordSet':record} for record in inventory if record['Type']=='CNAME' and record['Name'].rstrip('.') in names]
   for name in names:
     for typ in ('A','AAAA'):
       changes.append({'Action':'UPSERT','ResourceRecordSet':{'Name':name+'.','Type':typ,'AliasTarget':{'HostedZoneId':cf_zone,'DNSName':domain+'.','EvaluateTargetHealth':False}}})
