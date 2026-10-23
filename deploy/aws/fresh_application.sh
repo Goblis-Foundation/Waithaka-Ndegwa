@@ -168,11 +168,18 @@ else
   aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --version-label "$VERSION" --option-settings "file://$OPTIONS" --region "$REGION" --no-cli-pager >/dev/null
 fi
 
-STATUS=""; HEALTH=""
+STATUS=""; HEALTH=""; READY_UNHEALTHY=0
 for i in $(seq 1 120); do
-  read -r _ STATUS HEALTH _ <<<"$(environment_snapshot)"
+  read -r _ STATUS HEALTH DEPLOYED_VERSION <<<"$(environment_snapshot)"
   echo "Environment: ${STATUS:-missing} / ${HEALTH:-unknown}"
   [[ "$STATUS" == "Ready" && "$HEALTH" == "Green" ]] && break
+  if [[ "$STATUS" == "Ready" ]]; then
+    [[ "$DEPLOYED_VERSION" == "$VERSION" ]] || fail "Beanstalk reverted to $DEPLOYED_VERSION instead of $VERSION. Inspect startup logs."
+    READY_UNHEALTHY=$((READY_UNHEALTHY+1))
+    [[ "$READY_UNHEALTHY" -lt 8 ]] || fail "Beanstalk remained Ready/$HEALTH after deployment; inspect startup logs."
+  else
+    READY_UNHEALTHY=0
+  fi
   [[ "$STATUS" == "Terminated" || -z "$STATUS" || "$STATUS" == "None" ]] && fail "Elastic Beanstalk environment terminated or disappeared unexpectedly."
   sleep 15
 done
