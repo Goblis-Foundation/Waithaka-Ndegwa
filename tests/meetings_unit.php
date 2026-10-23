@@ -15,3 +15,8 @@ foreach(meetings_providers()as$d)foreach($d['scopes']as$s)mt_check(!preg_match('
 mt_check(meetings_event_join(['conferenceData'=>['entryPoints'=>[['entryPointType'=>'video','uri'=>'https://meet.google.com/abc-defg-hij']]]])==='https://meet.google.com/abc-defg-hij','Google conference links available in agenda');
 mt_reject('https://zoom.us/%73/1','zoom');mt_reject('https://zoom.us/j/1?%7Aak=secret','zoom');
 echo "Meeting policy checks passed: $checks\n";
+
+meetings_validate_client('microsoft',['client_id'=>'12345678-1234-1234-1234-123456789abc','client_secret'=>'fixture-secret-value']);
+$rejected=false;try{meetings_validate_client('microsoft',['client_id'=>'12345678-1234-1234-1234-123456789abc','client_secret'=>'abcdefab-1234-1234-1234-123456789abc']);}catch(RuntimeException $e){$rejected=str_contains($e->getMessage(),'Secret ID');}mt_check($rejected,'Secret identifier rejected before any network request');
+mt_check(str_contains(meetings_remote_error('microsoft','token',401),'token exchange')&&str_contains(meetings_remote_error('microsoft','identity',401),'account identity check'),'Credential and identity failures distinguished');
+mt_check(!str_contains(meetings_remote_error('microsoft','token',401),'fixture-secret-value'),'Diagnostic excludes credential values');

@@ -8,6 +8,7 @@ function publishing_dispatch(string $path): bool {
     header('Referrer-Policy: no-referrer');
     $userId=(int)current_user()['id'];
     $back=str_starts_with($path,'/write/connections')?'/write/connections':'/write/publishing';
+    if(preg_match('~^/write/connections/(?:callback/)?(meetings_[a-z]+)(?:/(?:start|confirm|disconnect))?$~',$path,$meetingMatch)&&($meetingDefinition=meetings_definition($meetingMatch[1])))$back='/write/meetings#'.$meetingDefinition['provider'];
     try {
         if (is_post()) verify_csrf();
         if ($path==='/write/connections'&&!is_post()) {

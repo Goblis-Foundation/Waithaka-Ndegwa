@@ -13,18 +13,36 @@ function meetings_service(string $provider): string {return 'meetings_'.$provide
 function meetings_definition(string $service): ?array {
     foreach(meetings_providers() as$p=>$d)if(meetings_service($p)===$service)return $d+['provider'=>$p];return null;
 }
+function meetings_validate_client(string $provider,array $client): void {
+    if($provider!=='microsoft')return;
+    if(!preg_match('/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i',(string)($client['client_id']??'')))throw new RuntimeException('Microsoft requires the Application (client) ID from this app registration.');
+    if(preg_match('/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i',(string)($client['client_secret']??'')))throw new RuntimeException('The saved Microsoft credential looks like a Secret ID. Save the client secret Value in private connection settings instead.');
+}
+function meetings_remote_error(string $provider,string $stage,int $status): string {
+    $name=meetings_providers()[$provider]['name']??'Meeting provider';
+    $step=$stage==='token'?'token exchange':'account identity check';
+    $help=match(true){
+        $status===401&&$stage==='token'=>'Check that the app client ID and secret Value belong to the same registration, and that the secret has not expired. Then start a new connection.',
+        $status===401=>'The token was not accepted for the account profile API. Review the app permissions and reconnect.',
+        $status===403=>'Review the delegated read permissions and account eligibility before reconnecting.',
+        $status===429=>'Wait before trying again; the provider rate limit was reached.',
+        $status===400&&$stage==='token'=>'Review the exact Web callback and app settings, then start a fresh connection. The authorization code may have expired.',
+        default=>'The provider could not complete this step. Check its status before trying again.'
+    };
+    return $name.' '.$step.' failed'.($status?' (HTTP '.$status.')':'').'. '.$help;
+}
 function meetings_authorize(string $service,string $state,string $verifier): string {
     $d=meetings_definition($service);if(!$d)throw new InvalidArgumentException('Unknown meeting provider.');
-    $client=publishing_client($d['provider']);
+    $client=publishing_client($d['provider']);meetings_validate_client($d['provider'],$client);
     $params=['response_type'=>'code','client_id'=>$client['client_id'],'redirect_uri'=>publishing_callback_url($service),'state'=>$state,'scope'=>implode(' ',$d['scopes'])];
     if($d['provider']==='microsoft')$params+=['prompt'=>'select_account','code_challenge'=>rtrim(strtr(base64_encode(hash('sha256',$verifier,true)),'+/','-_'),'='),'code_challenge_method'=>'S256'];
     return $d['authorize'].'?'.http_build_query($params,'','&',PHP_QUERY_RFC3986);
 }
 function meetings_token_request(string $provider,array $grant): array {
     $d=meetings_providers()[$provider]??throw new InvalidArgumentException('Unknown meeting provider.');
-    $client=publishing_client($provider);$headers=[];$body=$client+$grant;
+    $client=publishing_client($provider);meetings_validate_client($provider,$client);$headers=[];$body=$client+$grant;
     if($provider==='zoom'){$headers[]='Authorization: Basic '.base64_encode($client['client_id'].':'.$client['client_secret']);unset($body['client_id'],$body['client_secret']);}
-    $r=publishing_http('POST',$d['token'],$headers,$body,true)['data'];
+    try{$r=publishing_http('POST',$d['token'],$headers,$body,true)['data'];}catch(PublishingRemoteException $e){throw new PublishingRemoteException(meetings_remote_error($provider,'token',$e->httpStatus),$e->httpStatus);}
     if(empty($r['access_token'])||!is_string($r['access_token']))throw new RuntimeException('No access token returned. Reconnect this meeting account.');
     $r['expires_at']=time()+max(1,(int)($r['expires_in']??3600));return $r;
 }
@@ -37,7 +55,7 @@ function meetings_complete(string $service,string $code,array $state,int $uid): 
     foreach($d['scopes'] as$s)if($s!=='offline_access'&&!in_array(strtolower($s),array_map('strtolower',$scopes),true))throw new RuntimeException('A required read permission was declined.');
     $headers=publishing_bearer($token['access_token']);
     $endpoint=match($d['provider']){'zoom'=>'https://api.zoom.us/v2/users/me','microsoft'=>'https://graph.microsoft.com/v1.0/me?$select=id,displayName,mail,userPrincipalName','webex'=>'https://webexapis.com/v1/people/me'};
-    $who=publishing_http('GET',$endpoint,$headers)['data'];$id=(string)($who['id']??'');
+    try{$who=publishing_http('GET',$endpoint,$headers)['data'];}catch(PublishingRemoteException $e){throw new PublishingRemoteException(meetings_remote_error($d['provider'],'identity',$e->httpStatus),$e->httpStatus);}$id=(string)($who['id']??'');
     if($id===''||strlen($id)>255)throw new RuntimeException('The provider did not return an account identity.');
     $name=(string)($who['displayName']??trim(($who['first_name']??'').' '.($who['last_name']??'')));
     $email=(string)($who['email']??$who['mail']??$who['userPrincipalName']??($who['emails'][0]??''));
