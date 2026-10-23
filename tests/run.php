@@ -297,6 +297,7 @@ try {
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',
+                  'meetings_unit.php'=>'Meeting account, read permissions and join-link boundaries',
                   'studio_unit.php' => 'Private capture and explicit AI drafting boundaries',
                   'meta_mcp_unit.php' => 'Local aggregate Meta MCP lifecycle and privacy',
                   'instagram_engagement_unit.php' => 'Instagram engagement ownership and private read boundaries',

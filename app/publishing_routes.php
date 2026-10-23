@@ -44,12 +44,12 @@ function publishing_dispatch(string $path): bool {
             if(!empty($_GET['error']))throw new RuntimeException('Authorization was declined or cancelled. Existing publication drafts have not changed.');
             $code=(string)($_GET[$service==='tiktok_business'?'auth_code':'code']??'');if($code===''||strlen($code)>8000)throw new RuntimeException('The provider did not return an authorization code.');
             publishing_oauth_complete($service,$code,$state,$userId);
-            flash('success','The provider returned an account. Confirm the actual destination before using this connection.');redirect(url($service==='google_calendar'?'/write/google#calendars':'/write/connections#'.$service));
+            flash('success','The provider returned an account. Confirm the actual destination before using this connection.');redirect(url($service==='google_calendar'?'/write/google#calendars':(meetings_definition($service)?'/write/meetings#'.publishing_services()[$service]['provider']:'/write/connections#'.$service)));
         }
         if (preg_match('~^/write/connections/([a-z_]+)/confirm$~',$path,$m)&&is_post()) {
             if(empty($_POST['confirm_identity']))throw new RuntimeException('Confirm that the returned account and selected destination are yours to use.');
             publishing_confirm_connection($m[1],(string)($_POST['resource']??''),$userId);
-            flash('success','Account and destination confirmed. Use its authorized features below; publishing routes are selected separately.');redirect(url('/write/connections#'.$m[1]));
+            flash('success','Account and destination confirmed. Use its authorized features below; publishing routes are selected separately.');redirect(url(meetings_definition($m[1])?'/write/meetings#'.publishing_services()[$m[1]]['provider']:'/write/connections#'.$m[1]));
         }
         if (preg_match('~^/write/connections/([a-z_]+)/disconnect$~',$path,$m)&&is_post()) {
             if(!isset(publishing_services()[$m[1]]))throw new RuntimeException('Unknown connection.');

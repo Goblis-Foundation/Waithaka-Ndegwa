@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__.'/../meetings.php';
 require_once __DIR__.'/tiktok.php';
 require_once __DIR__.'/instagram_engagement.php';
 require_once __DIR__.'/tiktok_business.php';
@@ -16,6 +17,9 @@ require_once __DIR__.'/tiktok_business.php';
 function publishing_services(): array {
     $identity = ['openid', 'profile', 'email'];
     return [
+        'meetings_zoom'=>['name'=>'Zoom meetings','provider'=>'zoom','scopes'=>['user:read:user','meeting:read:list_meetings'],'description'=>'Read scheduled meetings for your own Zoom account.'],
+        'meetings_microsoft'=>['name'=>'Teams & Outlook calendar','provider'=>'microsoft','scopes'=>['User.Read','Calendars.Read','offline_access'],'description'=>'Read your Outlook calendar and Teams links for your personal, work or school account.'],
+        'meetings_webex'=>['name'=>'Webex meetings','provider'=>'webex','scopes'=>['spark:people_read','meeting:schedules_read'],'description'=>'Read scheduled meetings for your own Webex account.'],
         'google_search_console' => ['name'=>'Google Search Console', 'provider'=>'google', 'scopes'=>array_merge($identity,['https://www.googleapis.com/auth/webmasters.readonly']), 'description'=>'Read search performance for a site you select. This does not verify ownership or submit URLs.'],
         'google_analytics' => ['name'=>'Google Analytics', 'provider'=>'google', 'scopes'=>array_merge($identity,['https://www.googleapis.com/auth/analytics.readonly']), 'description'=>'Read an existing GA4 property. Adding the site measurement tag is a separate setting.'],
         'google_youtube_read' => ['name'=>'YouTube read access', 'provider'=>'google', 'scopes'=>array_merge($identity,['https://www.googleapis.com/auth/youtube.readonly']), 'description'=>'Read your selected channel and video information. No publishing permission.'],
@@ -90,6 +94,7 @@ function publishing_oauth_start(string $service, int $userId): string {
     db()->prepare('DELETE FROM publishing_oauth_states WHERE expires_at < UTC_TIMESTAMP()')->execute();
     db()->prepare('INSERT INTO publishing_oauth_states(state_hash,service,user_id,session_hash,verifier_encrypted,expires_at) VALUES(?,?,?,?,?,?)')
         ->execute([hash('sha256',$state),$service,$userId,hash('sha256',session_id()),encrypt_secret($verifier),gmdate('Y-m-d H:i:s',time()+600)]);
+    if(meetings_definition($service))return meetings_authorize($service,$state,$verifier);
     if($provider==='tiktok_business')return publishing_tiktok_business_authorization_url($state);
     $params = ['response_type'=>'code','client_id'=>$client['client_id'],'redirect_uri'=>publishing_callback_url($service),'state'=>$state,'scope'=>implode(' ',$definition['scopes'])];
     if (in_array($provider,['google','x'],true)) {
@@ -143,6 +148,7 @@ function publishing_oauth_complete(string $service, string $code, array $state, 
     $definition = publishing_services()[$service];
     $provider = $definition['provider'];
     $client = publishing_service_client($service);
+    if(meetings_definition($service)){meetings_complete($service,$code,$state,$userId);return;}
     if($provider==='tiktok_business') {
         $token=publishing_tiktok_business_token_request($client+['grant_type'=>'authorization_code','auth_code'=>$code,'redirect_uri'=>publishing_callback_url($service)]);
         $observed=publishing_tiktok_business_identity($token);
