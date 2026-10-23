@@ -20,6 +20,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ ! -f history/r22-complete.bundle ]; then
+            git cat-file -e 0e51b3e2916c6275433b100b311a25193b83c9ba^{commit}
+            git merge-base --is-ancestor 0e51b3e2916c6275433b100b311a25193b83c9ba HEAD
+            echo 'Original history is already attached; no transport bundle required.'
+            exit 0
+          fi
           git bundle verify history/r22-complete.bundle
           git fetch history/r22-complete.bundle main:refs/remotes/recovered/main
           test "$(git rev-parse refs/remotes/recovered/main)" = "0e51b3e2916c6275433b100b311a25193b83c9ba"
