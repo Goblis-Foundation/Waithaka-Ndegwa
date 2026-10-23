@@ -26,9 +26,11 @@ def bootstrap():
     if aws('sts', 'get-caller-identity')['Account'] != ACCOUNT:
         raise RuntimeError(f'Refusing changes outside AWS account {ACCOUNT}.')
     data = aws('cloudformation', 'describe-stacks', '--stack-name', DATA, '--region', REGION)['Stacks'][0]
-    if data['StackStatus'] not in ('CREATE_COMPLETE', 'UPDATE_COMPLETE'):
+    if data['StackStatus'] not in ('CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE'):
         raise RuntimeError('Persistent data stack is not ready; no infrastructure was recreated.')
     outputs = {x['OutputKey']: x['OutputValue'] for x in data['Outputs']}
+    db_id = aws('cloudformation','describe-stack-resource','--stack-name',DATA,'--logical-resource-id','Database','--region',REGION)['StackResourceDetail']['PhysicalResourceId']
+    db_arn = f'arn:aws:rds:{REGION}:{ACCOUNT}:db:{db_id}'
     buckets = [outputs[k] for k in ('PublicMedia', 'PrivateMedia', 'ReleaseArtifacts')]
     zones = aws('route53', 'list-hosted-zones')['HostedZones']
     zone_arns = []
@@ -65,6 +67,7 @@ def bootstrap():
     regional = {'StringEquals':{'aws:RequestedRegion':REGION}}
     policy = {'Version':'2012-10-17','Statement':[
         statement('ReadDeploymentMetadata', ['autoscaling:Describe*','ec2:Describe*','elasticloadbalancing:Describe*','elasticbeanstalk:Describe*','elasticbeanstalk:List*','cloudformation:Describe*','cloudformation:List*','cloudformation:GetTemplate','cloudformation:GetTemplateSummary','acm:ListCertificates','acm:DescribeCertificate','route53:ListHostedZones','route53:GetHostedZone','route53:ListResourceRecordSets','route53:ListReusableDelegationSets','route53:GetReusableDelegationSet','route53:GetChange'], '*'),
+        statement('ExistingDatabaseMetadata', ['rds:DescribeDBInstances'], db_arn, regional),
         statement('ExistingBeanstalkApplication', ['elasticbeanstalk:UpdateEnvironment','elasticbeanstalk:CreateApplicationVersion','elasticbeanstalk:RequestEnvironmentInfo','elasticbeanstalk:RetrieveEnvironmentInfo','elasticbeanstalk:RestartAppServer','elasticbeanstalk:AbortEnvironmentUpdate'], [f'arn:aws:elasticbeanstalk:{REGION}:{ACCOUNT}:application/waithaka-ndegwa',f'arn:aws:elasticbeanstalk:{REGION}:{ACCOUNT}:applicationversion/waithaka-ndegwa/*',f'arn:aws:elasticbeanstalk:{REGION}:{ACCOUNT}:environment/waithaka-ndegwa/waithaka-ndegwa-production'], regional),
         statement('OwnedStackUpdates', ['cloudformation:CreateStack','cloudformation:UpdateStack','cloudformation:CreateChangeSet','cloudformation:ExecuteChangeSet','cloudformation:DeleteChangeSet'], [f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/waithaka-edge/*', data['StackId'], f'arn:aws:cloudformation:*:{ACCOUNT}:changeSet/awscli-cloudformation-package-deploy-*/*']),
         statement('ExistingEnvironmentStack', ['cloudformation:UpdateStack','cloudformation:CancelUpdateStack','cloudformation:ContinueUpdateRollback','cloudformation:TagResource','cloudformation:UntagResource','cloudformation:SignalResource'], f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/awseb-e-8sjvpauytq-stack/*', regional),
@@ -101,6 +104,7 @@ def bootstrap():
             aws('iam','update-assume-role-policy','--role-name',ROLE,'--policy-document','file://'+str(t))
         aws('iam','put-role-policy','--role-name',ROLE,'--policy-name','WaithakaScopedAutomation','--policy-document','file://'+str(p))
         checks = [
+            ('rds:DescribeDBInstances', db_arn),
             ('cloudformation:UpdateStack', f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/awseb-e-8sjvpauytq-stack/fixture'),
             ('logs:CreateLogGroup', f'arn:aws:logs:{REGION}:{ACCOUNT}:log-group:/aws/elasticbeanstalk/waithaka-ndegwa-production/var/log/nginx/access.log'),
             ('s3:CreateBucket', f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}'),
