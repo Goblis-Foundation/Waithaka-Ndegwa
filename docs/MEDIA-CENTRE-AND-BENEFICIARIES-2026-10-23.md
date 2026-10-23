@@ -54,3 +54,7 @@ Tests cover target arithmetic, backwards-compatible impact feeds, indirect-count
 ## Simple connection entry (follow-up)
 
 The Media centre now has six prominent account cards with a single primary Connect action. Buttons enter the existing authenticated CSRF-protected OAuth start route directly. Facebook Page discovery no longer requires changing the saved professional-profile route first; discovery does not change account type or delivery settings. Returned account/destination confirmation remains required. LinkedIn analytics and TikTok native publishing remain separate, expandable permission choices rather than silently broadening a basic grant. Missing provider app credentials still block OAuth and are explained by the connection setup screen; a button is never proof that an account is authorised.
+
+## AfriTrace geographic scope and approved logo
+
+The owner confirmed planned AfriTrace Link coverage across all 55 African countries. The 30,000-enterprise target applies across that footprint collectively, not per country. Public copy describes planned coverage, not verified current operations in every country. The supplied horizontal white-background logo replaces the previous standalone symbol in the Goblis Foundation project card. Beneficiary evidence must reflect countries actually reached; no Kenya household proxy is generalised across the footprint.

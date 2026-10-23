@@ -13,7 +13,7 @@
           <h3><?=e($org['name'])?></h3><span>Explore the organisation ↗</span>
         </a>
         <?php if($group['org']===3):$project=$organisations[2];?>
-        <a class="impact-project" href="<?=e($project['url'])?>" target="_blank" rel="noopener noreferrer"><img src="<?=asset('images/organisations/'.$project['logo'])?>" alt="AfriTrace Link logo" width="180" height="60" loading="lazy"><span><strong>AfriTrace Link</strong><small>A project of Goblis Foundation</small><small>Explore AfriTrace Link ↗</small></span></a>
+        <a class="impact-project" href="<?=e($project['url'])?>" target="_blank" rel="noopener noreferrer"><img src="<?=asset('images/organisations/'.$project['logo'])?>" alt="AfriTrace Link logo" width="300" height="100" loading="lazy"><span><strong>AfriTrace Link</strong><small>A project of Goblis Foundation</small><small>Planned coverage · all 55 African countries</small><small>Explore AfriTrace Link ↗</small></span></a>
         <?php endif;?>
         <div class="impact-group-metrics">
         <?php foreach($group['keys'] as$key):$metric=impact_metrics()[$key];$report=impact_display(impact_snapshot($metric['source']),$key);?>

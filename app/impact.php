@@ -9,7 +9,7 @@ function impact_organisations(): array {
     return [
         ['name'=>'Goblis Group','url'=>'https://www.goblisgroup.com/','domain'=>'goblisgroup.com','logo'=>'goblis-group-approved.png'],
         ['name'=>'Ubunifu Institute','url'=>'https://www.ubunifuinstitute.com/','domain'=>'ubunifuinstitute.com','logo'=>'ubunifu.svg'],
-        ['name'=>'AfriTrace Link','url'=>'https://www.afritracelink.com/','domain'=>'afritracelink.com','logo'=>'afritrace.png'],
+        ['name'=>'AfriTrace Link','url'=>'https://www.afritracelink.com/','domain'=>'afritracelink.com','logo'=>'afritrace-approved.jpg'],
         ['name'=>'Goblis Foundation','url'=>'https://www.goblisfoundation.org/','domain'=>'goblisfoundation.org','logo'=>'goblis-foundation.png'],
     ];
 }
@@ -19,7 +19,7 @@ function impact_metrics(): array {
         'permanent_staff'=>['target'=>2030,'label'=>'Permanent staff','source'=>'goblis_group','copy'=>'Build those enterprises to employ 2,030 permanent staff collectively by June 2030.'],
         'social_enterprises'=>['target'=>2030,'label'=>'Social enterprises established','source'=>'ubunifu','copy'=>'Help establish 2,030 successful social enterprises through incubation at Ubunifu Institute.'],
         'ubunifu_permanent_staff'=>['target'=>10150,'label'=>'Permanent jobs through incubated enterprises','source'=>'ubunifu','optional'=>true,'copy'=>'Support 2,030 social enterprises incubated at Ubunifu Institute to employ an average of 5 permanent staff each—10,150 permanent jobs across those enterprises. Ubunifu contributes through incubation; the enterprises are the employers. This is a target, not a reported result.'],
-        'market_access'=>['target'=>30000,'label'=>'African enterprises connected to markets','source'=>'afritrace','copy'=>'Connect 30,000 African social enterprises to markets through Goblis Foundation’s AfriTrace Link.'],
+        'market_access'=>['target'=>30000,'label'=>'African enterprises connected to markets','source'=>'afritrace','copy'=>'Connect 30,000 African social enterprises to markets through Goblis Foundation’s AfriTrace Link, with planned coverage across all 55 African countries.'],
     ];
 }
 function impact_indirect_groups(): array {
