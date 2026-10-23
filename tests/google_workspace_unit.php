@@ -24,3 +24,12 @@ gw_reject(fn()=>google_mcp_snapshot('gsc-queries',[]),'MCP excludes search query
 $initialized=false;$call=['jsonrpc'=>'2.0','id'=>1,'method'=>'tools/list'];gw_check(google_mcp_request($call,$initialized)['error']['code']===-32002,'MCP initialize required');google_mcp_request(['jsonrpc'=>'2.0','id'=>2,'method'=>'initialize'],$initialized);gw_check(google_mcp_request($call,$initialized)['result']['tools'][0]['annotations']['readOnlyHint'],'MCP read-only tool');
 $bad=['jsonrpc'=>'2.0','id'=>3,'method'=>'tools/call','params'=>['name'=>'google_saved_analytics','arguments'=>['report'=>'ga4-countries','token'=>'secret']]];gw_check(google_mcp_request($bad,$initialized)['error']['code']===-32602,'MCP rejects extra arguments');
 echo "Google workspace policy checks passed: $checks\n";
+
+$priorZone=date_default_timezone_get();
+foreach(['Africa/Nairobi','America/New_York','UTC']as$zone){
+ date_default_timezone_set($zone);
+ gw_check(google_workspace_previous_period('2026-09-23','2026-10-20')===['start'=>'2026-08-26','end'=>'2026-09-22'],'Comparison is adjacent and equal-length in every server timezone.');
+ gw_check(google_workspace_shift_date('2026-10-30',1)==='2026-10-31','Agenda includes the whole selected end date.');
+ gw_check(google_workspace_previous_period('2028-03-01','2028-03-01')===['start'=>'2028-02-29','end'=>'2028-02-29'],'Leap-day comparison remains one day.');
+}
+date_default_timezone_set($priorZone);

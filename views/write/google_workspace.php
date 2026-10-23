@@ -2,6 +2,7 @@
 <main class="write-main pub-main google-workspace">
 <div class="writer-head"><div><span class="writer-kicker">Your connected Google tools</span><h1>Google workspace</h1><p>Read your audience, plan across calendars and develop ideas in one private workspace.</p></div><a class="wbtn" href="<?=url('/write/connections')?>">Account connections</a></div>
 <nav class="google-tabs" aria-label="Google workspace"><a href="#calendars">Calendars</a><a href="#reports">Audience & search</a><a href="#diagnostics">Site health</a><a href="#drafting">Drafting & files</a><a href="#email">Email</a><a href="#health">Connections</a><a href="#settings">Settings</a></nav>
+<?php foreach(flashes() as $notice):?><p class="pub-card" role="status"><?=e($notice['message'])?></p><?php endforeach;?>
 <?php if($error!==''):?><p class="pub-card" role="alert"><?=e($error)?></p><?php endif;?>
 <?php if($result):?><section class="pub-card google-result" aria-labelledby="google-result-title"><h2 id="google-result-title"><?=e($result['title'])?></h2><?php if(isset($result['start'])):?><p><?=e($result['start'])?> – <?=e($result['end'])?> · Read <?=e($result['observed_at'])?></p><?php endif;?><p><?=e($result['note']??'')?></p>
 <?php if(empty($result['rows'])):?><p>No data was returned. An unavailable or empty report is not a measured zero.</p><?php else:?>

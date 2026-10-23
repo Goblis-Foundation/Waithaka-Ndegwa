@@ -66,6 +66,18 @@ function google_workspace_date(mixed $value,string $default): string {
     $d=DateTimeImmutable::createFromFormat('!Y-m-d',$value,new DateTimeZone('UTC'));
     if(!$d||$d->format('Y-m-d')!==$value)throw new InvalidArgumentException('Choose a valid calendar date.');return $value;
 }
+/** Calendar date arithmetic must never inherit the server's local midnight offset. */
+function google_workspace_shift_date(string $date,int $days): string {
+    $date=google_workspace_date($date,'');
+    return (new DateTimeImmutable($date.'T00:00:00+00:00'))->modify(($days>=0?'+':'').$days.' days')->format('Y-m-d');
+}
+function google_workspace_previous_period(string $start,string $end): array {
+    $start=google_workspace_date($start,'');$end=google_workspace_date($end,'');
+    if($end<$start)throw new InvalidArgumentException('Choose an ordered reporting range.');
+    $days=(int)(new DateTimeImmutable($start.'T00:00:00+00:00'))->diff(new DateTimeImmutable($end.'T00:00:00+00:00'))->format('%a')+1;
+    $previousEnd=google_workspace_shift_date($start,-1);
+    return ['start'=>google_workspace_shift_date($previousEnd,-($days-1)),'end'=>$previousEnd];
+}
 function google_calendar_agenda(int $userId,string $start,string $end): array {
     if($end<$start||strtotime($end)-strtotime($start)>31*86400)throw new InvalidArgumentException('Choose a calendar range of up to 31 days.');
     $out=[];$errors=[];$seen=[];$truncated=false;
@@ -79,7 +91,7 @@ function google_calendar_agenda(int $userId,string $start,string $end): array {
             try{
                 $page='';$calendarItems=[];
                 for($n=0;$n<4;$n++){
-                    $params=['timeMin'=>$start.'T00:00:00Z','timeMax'=>gmdate('Y-m-d',strtotime($end.' +1 day')).'T00:00:00Z','singleEvents'=>'true','orderBy'=>'startTime','maxResults'=>250];if($page!=='')$params['pageToken']=$page;
+                    $params=['timeMin'=>$start.'T00:00:00Z','timeMax'=>google_workspace_shift_date($end,1).'T00:00:00Z','singleEvents'=>'true','orderBy'=>'startTime','maxResults'=>250];if($page!=='')$params['pageToken']=$page;
                     $r=publishing_http('GET','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($id).'/events?'.http_build_query($params,'','&',PHP_QUERY_RFC3986),$headers)['data'];
                     foreach($r['items']??[]as$e){if(($e['status']??'')==='cancelled')continue;$calendarItems[]=['calendar'=>$names[$id]??'Selected calendar','account'=>$a['display_name'],'title'=>$e['summary']??'Busy','start'=>$e['start']['dateTime']??$e['start']['date']??'','end'=>$e['end']['dateTime']??$e['end']['date']??'','all_day'=>isset($e['start']['date']),'url'=>google_workspace_link($e['htmlLink']??'',['calendar.google.com','www.google.com'])];}
                     $page=(string)($r['nextPageToken']??'');if($page==='')break;
@@ -89,7 +101,7 @@ function google_calendar_agenda(int $userId,string $start,string $end): array {
         }
         db()->prepare('UPDATE google_calendar_accounts SET last_read_at=UTC_TIMESTAMP() WHERE id=? AND user_id=?')->execute([$a['id'],$userId]);
     }
-    usort($out,static fn($a,$b)=>(strtotime($a['start'])?:0)<=>(strtotime($b['start'])?:0));
+    usort($out,static fn($a,$b)=>(new DateTimeImmutable($a['start'],new DateTimeZone('UTC')))->getTimestamp()<=>(new DateTimeImmutable($b['start'],new DateTimeZone('UTC')))->getTimestamp());
     return ['events'=>$out,'errors'=>$errors,'truncated'=>$truncated,'range'=>$start.' – '.$end,'timezone'=>'UTC; timed events retain their supplied offsets. All-day end dates are exclusive.'];
 }
 function google_workspace_link(string $value,array $hosts): string {
@@ -243,7 +255,7 @@ function google_workspace_dispatch(string $path): bool {
             }else{
                 if(!journeys_rate_limit('google-workspace-'.$action,(string)$uid,$action==='gemini'?8:20,3600))throw new RuntimeException('Please wait before requesting another report.');
                 if($action==='agenda')$agenda=google_calendar_agenda($uid,google_workspace_date($_POST['start']??null,gmdate('Y-m-d')),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('+7 days'))));
-                elseif($action==='report'){$key=is_string($_POST['report']??null)?$_POST['report']:'';$result=google_workspace_report($key,google_workspace_date($_POST['start']??null,gmdate('Y-m-d',strtotime('-30 days'))),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('-3 days'))));google_workspace_save_report($result,$uid);if(($_POST['compare']??'')==='1'){$days=(int)((strtotime($result['end'])-strtotime($result['start']))/86400)+1;$previousEnd=gmdate('Y-m-d',strtotime($result['start'].' -1 day'));$previousStart=gmdate('Y-m-d',strtotime($previousEnd.' -'.($days-1).' days'));$result['comparison']=google_workspace_report($key,$previousStart,$previousEnd);}}
+                elseif($action==='report'){$key=is_string($_POST['report']??null)?$_POST['report']:'';$result=google_workspace_report($key,google_workspace_date($_POST['start']??null,gmdate('Y-m-d',strtotime('-30 days'))),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('-3 days'))));google_workspace_save_report($result,$uid);if(($_POST['compare']??'')==='1'){$previous=google_workspace_previous_period($result['start'],$result['end']);$result['comparison']=google_workspace_report($key,$previous['start'],$previous['end']);}}
                 elseif(in_array($action,['ga4-diagnostics','sitemaps','inspect'],true))$result=google_workspace_diagnostics($action,is_string($_POST['url']??null)?$_POST['url']:'');
                 elseif(in_array($action,['pagespeed','crux'],true))$result=google_workspace_performance($action,is_string($_POST['url']??null)?$_POST['url']:'',($_POST['strategy']??'')==='desktop'?'desktop':'mobile');
                 elseif($action==='postmaster')$result=google_workspace_postmaster();
