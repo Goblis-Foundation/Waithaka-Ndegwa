@@ -190,7 +190,8 @@ function google_workspace_postmaster(): array {
 function google_workspace_gemini(string $input,string $mode,bool $grounded): array {
     $input=studio_input($input);$key=trim((string)setting('google.gemini_key',''));if($key==='')throw new RuntimeException('Save a Gemini API key and choose its billing/data tier first.');
     $model=(string)setting('google.gemini_model','gemini-3.8-flash');if(!preg_match('/^gemini-[a-z0-9.-]{1,80}$/D',$model))throw new RuntimeException('Choose a valid Gemini model identifier.');
-    $body=['systemInstruction'=>['parts'=>[['text'=>studio_instructions($mode).($grounded?' Use search sources to investigate claims and distinguish verified sources from suggestions.':'')]]],'contents'=>[['role'=>'user','parts'=>[['text'=>$input]]]],'generationConfig'=>['maxOutputTokens'=>2400]];
+    $instructions=studio_instructions($mode);if($grounded)$instructions=str_replace('Do not claim to have searched or verified anything.','Use grounding results and cite sources; do not call unsupported claims verified.',$instructions);
+    $body=['systemInstruction'=>['parts'=>[['text'=>$instructions.($grounded?' Use search sources to investigate claims and distinguish verified sources from suggestions.':'')]]],'contents'=>[['role'=>'user','parts'=>[['text'=>$input]]]],'generationConfig'=>['maxOutputTokens'=>2400]];
     if($grounded)$body['tools']=[['google_search'=>new stdClass()]];
     $r=publishing_http('POST','https://generativelanguage.googleapis.com/v1beta/models/'.$model.':generateContent',['x-goog-api-key: '.$key],$body)['data'];$candidate=$r['candidates'][0]??[];$text='';
     foreach($candidate['content']['parts']??[]as$part)if(empty($part['thought']))$text.=(string)($part['text']??'');
@@ -233,7 +234,7 @@ function google_workspace_dispatch(string $path): bool {
                 $a=google_calendar_owned((int)($_POST['account_id']??0),$uid);if(($_POST['confirm_identity']??'')!=='1')throw new InvalidArgumentException('Confirm this account and calendar selection.');
                 if(!is_string($_POST['revision']??null)||!hash_equals(hash('sha256',$a['credentials_encrypted'].$a['calendars_json']),$_POST['revision']))throw new InvalidArgumentException('The account changed. Reload and review the returned calendars.');
                 $selected=google_calendar_selection(publishing_decode($a['calendars_json']),$_POST['calendars']??[]);
-                $q=db()->prepare("UPDATE google_calendar_accounts SET status='connected',selected_json=? WHERE id=? AND user_id=? AND verified_at=?");$q->execute([publishing_json($selected),$a['id'],$uid,$a['verified_at']]);
+                $q=db()->prepare("UPDATE google_calendar_accounts SET status='connected',selected_json=? WHERE id=? AND user_id=? AND verified_at=? AND credentials_encrypted=? AND calendars_json=?");$q->execute([publishing_json($selected),$a['id'],$uid,$a['verified_at'],$a['credentials_encrypted'],$a['calendars_json']]);
                 flash('success','Calendar selection saved privately. Other connected accounts were retained.');redirect(url('/write/google#calendars'));
             }elseif($action==='calendar-remove'){
                 $a=google_calendar_owned((int)($_POST['account_id']??0),$uid);db()->prepare("UPDATE google_calendar_accounts SET status='disconnected',credentials_encrypted=NULL,selected_json='[]',calendars_json='[]' WHERE id=? AND user_id=?")->execute([$a['id'],$uid]);flash('success','Saved calendar access removed. You can also revoke the app in your Google account.');redirect(url('/write/google#calendars'));

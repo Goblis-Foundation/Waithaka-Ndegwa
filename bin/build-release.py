@@ -100,7 +100,7 @@ def main() -> None:
                         "app/mail_feedback.php", "app/providers/youtube.php", "app/providers/tiktok.php",
                         "app/providers/tiktok_business.php", "app/readiness.php",
                         "app/analytics.php", "views/partials_google_tag.php", "app/editorial.php",
-                        "app/reader.php", "app/discovery.php", "app/campaigns.php", "bin/fresh-bootstrap.php", ".platform/hooks/postdeploy/25_fresh_bootstrap.sh",
+                        "app/reader.php", "app/discovery.php", "app/campaigns.php", "app/google_workspace.php", "app/migrations/160_google_workspace.sql", "bin/google-workspace-migrate.php", ".platform/hooks/postdeploy/27_google_workspace.sh", "bin/fresh-bootstrap.php", ".platform/hooks/postdeploy/25_fresh_bootstrap.sh",
                         "app/migrations/100_analytics.sql", "app/migrations/110_editorial.sql",
                         "app/migrations/120_reader.sql", "app/migrations/130_discovery.sql",
                         "app/migrations/140_campaigns.sql", "views/write/campaigns.php",
