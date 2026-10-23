@@ -125,17 +125,17 @@ function google_workspace_report(string $key,string $start,string $end,?callable
     $rows=[];$columns=[];
     if(str_starts_with($key,'ga4-')){
         if(!preg_match('~^properties/\d+$~D',$id))throw new RuntimeException('Invalid GA4 property.');
-        $metrics=array_slice($spec,4);$r=$send('POST','https://analyticsdata.googleapis.com/v1beta/'.$id.':runReport',$h,['dateRanges'=>[['startDate'=>$start,'endDate'=>$end]],'dimensions'=>[['name'=>$spec[2]]],'metrics'=>array_map(static fn($m)=>['name'=>$m],$metrics),'orderBys'=>[['dimension'=>['dimensionName'=>$spec[2]],'desc'=>false]],'limit'=>100])['data'];
+        $metrics=array_slice($spec,4);$r=$send('POST','https://analyticsdata.googleapis.com/v1beta/'.$id.':runReport',$h,['dateRanges'=>[['startDate'=>$start,'endDate'=>$end]],'dimensions'=>[['name'=>$spec[2]]],'metrics'=>array_map(static fn($m)=>['name'=>$m],$metrics),'orderBys'=>[$spec[2]==='date'?['dimension'=>['dimensionName'=>'date'],'desc'=>false]:['metric'=>['metricName'=>'activeUsers'],'desc'=>true]],'limit'=>1000])['data'];
         $columns=array_merge([$spec[2]],$metrics);foreach($r['rows']??[]as$row)$rows[]=array_merge([$row['dimensionValues'][0]['value']??''],array_column($row['metricValues']??[],'value'));
     }elseif(str_starts_with($key,'gsc-')){
         if($end>gmdate('Y-m-d',strtotime('-3 days')))throw new InvalidArgumentException('Search Console reports end at least three days ago to avoid incomplete data.');
-        $r=$send('POST','https://www.googleapis.com/webmasters/v3/sites/'.rawurlencode($id).'/searchAnalytics/query',$h,['startDate'=>$start,'endDate'=>$end,'dimensions'=>[$spec[2]],'rowLimit'=>100,'dataState'=>'final'])['data'];
+        $r=$send('POST','https://www.googleapis.com/webmasters/v3/sites/'.rawurlencode($id).'/searchAnalytics/query',$h,['startDate'=>$start,'endDate'=>$end,'dimensions'=>[$spec[2]],'rowLimit'=>1000,'dataState'=>'final'])['data'];
         $columns=[$spec[2],'Clicks','Impressions','CTR (fraction)','Average position'];foreach($r['rows']??[]as$row)$rows[]=[$row['keys'][0]??'',$row['clicks']??null,$row['impressions']??null,$row['ctr']??null,$row['position']??null];
     }else{
-        $params=['ids'=>'channel=='.$id,'startDate'=>$start,'endDate'=>$end,'dimensions'=>$spec[2],'metrics'=>'views,estimatedMinutesWatched,averageViewDuration,subscribersGained,subscribersLost','sort'=>$spec[2]==='day'?'day':'-views','maxResults'=>100];
+        $params=['ids'=>'channel=='.$id,'startDate'=>$start,'endDate'=>$end,'dimensions'=>$spec[2],'metrics'=>'views,estimatedMinutesWatched,averageViewDuration,subscribersGained,subscribersLost','sort'=>$spec[2]==='day'?'day':'-views','maxResults'=>200];
         $r=$send('GET','https://youtubeanalytics.googleapis.com/v2/reports?'.http_build_query($params,'','&',PHP_QUERY_RFC3986),$h)['data'];$columns=array_column($r['columnHeaders']??[],'name');$rows=$r['rows']??[];
     }
-    return ['key'=>$key,'title'=>$spec[3],'columns'=>$columns,'rows'=>$rows,'start'=>$start,'end'=>$end,'observed_at'=>gmdate('c'),'destination_hash'=>hash('sha256',$id),'note'=>'Up to 100 rows. Empty results mean no data returned, not measured zero. Country and device reports may be privacy-limited.'];
+    return ['key'=>$key,'title'=>$spec[3],'columns'=>$columns,'rows'=>$rows,'start'=>$start,'end'=>$end,'observed_at'=>gmdate('c'),'destination_hash'=>hash('sha256',$id),'note'=>'Up to 1,000 GA4/Search rows or 200 YouTube rows. Empty results mean no data returned, not measured zero. Country and device reports may be privacy-limited.'];
 }
 function google_workspace_save_report(array $r,int $uid): void {
     db()->prepare('INSERT INTO google_report_snapshots(user_id,report_key,destination_hash,payload_json,observed_at) VALUES(?,?,?,?,UTC_TIMESTAMP())')->execute([$uid,$r['key'],$r['destination_hash'],publishing_json($r)]);
@@ -183,13 +183,13 @@ function google_workspace_performance(string $action,string $input,string $strat
 function google_workspace_postmaster(): array {
     $c=google_workspace_connection('google_postmaster');$id=$c['selected_resource'];
     if(!preg_match('~^domains/[a-z0-9.-]+$~iD',$id))throw new RuntimeException('Invalid verified domain.');
-    $r=publishing_http('GET','https://gmailpostmastertools.googleapis.com/v1/'.$id.'/trafficStats?startDate.year='.gmdate('Y',strtotime('-28 days')).'&startDate.month='.gmdate('n',strtotime('-28 days')).'&startDate.day='.gmdate('j',strtotime('-28 days')).'&pageSize=100',publishing_bearer(publishing_access_token($c)))['data'];$rows=[];
+    $r=publishing_http('GET','https://gmailpostmastertools.googleapis.com/v1/'.$id.'/trafficStats?startDate.year='.gmdate('Y',strtotime('-28 days')).'&startDate.month='.gmdate('n',strtotime('-28 days')).'&startDate.day='.gmdate('j',strtotime('-28 days')).'&endDate.year='.gmdate('Y').'&endDate.month='.gmdate('n').'&endDate.day='.gmdate('j').'&pageSize=100',publishing_bearer(publishing_access_token($c)))['data'];$rows=[];
     foreach($r['trafficStats']??[]as$d)$rows[]=[basename($d['name']??''),$d['domainReputation']??'Not returned',$d['userReportedSpamRatio']??'Not returned',$d['spfSuccessRatio']??'Not returned',$d['dkimSuccessRatio']??'Not returned',$d['dmarcSuccessRatio']??'Not returned'];
     return ['title'=>'Gmail sender reputation','columns'=>['Date','Domain reputation','Spam ratio','SPF ratio','DKIM ratio','DMARC ratio'],'rows'=>$rows,'note'=>'Postmaster may suppress low-volume data. This is aggregate Gmail reputation, not confirmation of delivery to an individual inbox. Use Workspace Email Log Search for individual delivery investigations.'];
 }
 function google_workspace_gemini(string $input,string $mode,bool $grounded): array {
     $input=studio_input($input);$key=trim((string)setting('google.gemini_key',''));if($key==='')throw new RuntimeException('Save a Gemini API key and choose its billing/data tier first.');
-    $model=(string)setting('google.gemini_model','gemini-2.5-flash');if(!preg_match('/^gemini-[a-z0-9.-]{1,80}$/D',$model))throw new RuntimeException('Choose a valid Gemini model identifier.');
+    $model=(string)setting('google.gemini_model','gemini-3.8-flash');if(!preg_match('/^gemini-[a-z0-9.-]{1,80}$/D',$model))throw new RuntimeException('Choose a valid Gemini model identifier.');
     $body=['systemInstruction'=>['parts'=>[['text'=>studio_instructions($mode).($grounded?' Use search sources to investigate claims and distinguish verified sources from suggestions.':'')]]],'contents'=>[['role'=>'user','parts'=>[['text'=>$input]]]],'generationConfig'=>['maxOutputTokens'=>2400]];
     if($grounded)$body['tools']=[['google_search'=>new stdClass()]];
     $r=publishing_http('POST','https://generativelanguage.googleapis.com/v1beta/models/'.$model.':generateContent',['x-goog-api-key: '.$key],$body)['data'];$candidate=$r['candidates'][0]??[];$text='';
