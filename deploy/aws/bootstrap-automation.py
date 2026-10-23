@@ -108,7 +108,7 @@ def bootstrap():
             ('elasticbeanstalk:UpdateEnvironment', f'arn:aws:elasticbeanstalk:{REGION}:{ACCOUNT}:environment/waithaka-ndegwa/waithaka-ndegwa-production'),
         ]
         for action, resource in checks:
-            result = aws('iam','simulate-custom-policy','--policy-input-list','file://'+str(p),'--action-names',action,'--resource-arns',resource,'--context-entries',f'ContextKeyName=aws:RequestedRegion,ContextKeyValues={REGION},ContextKeyType=string')
+            result = aws('iam','simulate-principal-policy','--policy-source-arn',f'arn:aws:iam::{ACCOUNT}:role/{ROLE}','--action-names',action,'--resource-arns',resource,'--context-entries',f'ContextKeyName=aws:RequestedRegion,ContextKeyValues={REGION},ContextKeyType=string')
             if any(x['EvalDecision'] != 'allowed' for x in result['EvaluationResults']):
                 raise RuntimeError('Permission verification failed for '+action)
             print('Verified: '+action)
