@@ -103,7 +103,7 @@ jobs:
           aws sts get-caller-identity --no-cli-pager
 
       - name: Reconstruct Route 53 deployment state
-        run: python3 deploy/aws/fresh_dns.py prepare
+        run: python3 deploy/aws/fresh_dns.py recover
 
       - name: Build immutable Beanstalk application bundle
         run: |

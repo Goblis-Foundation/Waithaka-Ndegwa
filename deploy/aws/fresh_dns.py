@@ -239,6 +239,40 @@ def prepare():
     print(f'REGISTRAR_HANDOFF={hp}')
     print('DNS preparation complete. No registrar delegation was changed by this script.')
 
+def recover():
+    """Reconstruct runner state from existing infrastructure without DNS writes."""
+    account_check()
+    zones=aws_json(['route53','list-hosted-zones']).get('HostedZones',[])
+    st={'account_id':ACCOUNT,'zones':{}}
+    delegation_ids=set()
+    for domain in (PRIMARY,SECONDARY):
+        matches=[z for z in zones if z.get('Name')==fqdn(domain) and not z.get('Config',{}).get('PrivateZone')]
+        if len(matches)!=1:
+            fail(f'Expected exactly one existing public zone for {domain}; found {len(matches)}. Recovery creates no zones.')
+        zid=matches[0]['Id'].split('/')[-1]
+        zone=aws_json(['route53','get-hosted-zone','--id',zid])
+        ds=zone.get('DelegationSet',{})
+        if not ds.get('Id') or len(ds.get('NameServers',[]))!=4:
+            fail(f'Existing zone {domain} does not expose its reusable four-server delegation set.')
+        delegation_ids.add(ds['Id'].split('/')[-1])
+        st['zones'][domain]=zid
+        st['aws_nameservers']=ds['NameServers']
+        records=rrs(zid)
+        ns=next((x for x in records if x['Name']==fqdn(domain) and x['Type']=='NS'),{})
+        if {fqdn(x['Value']).lower() for x in ns.get('ResourceRecords',[])}!={fqdn(v).lower() for v in VANITY}:
+            fail(f'Existing branded NS records for {domain} differ from the accepted delegation. No records changed.')
+    if len(delegation_ids)!=1:
+        fail('The existing zones do not share a reusable delegation set. No delegation changed.')
+    st['delegation_set_id']=delegation_ids.pop()
+    viewer=find_cert('us-east-1',CANONICAL)
+    origin=find_cert('af-south-1','origin.'+PRIMARY)
+    if not viewer or not origin:
+        fail('Existing viewer/origin certificates were not found. Recovery creates no certificates.')
+    st['certificates']={'viewer':viewer,'origin':origin}
+    st['recovered_at']=dt.datetime.now(dt.timezone.utc).isoformat()
+    save_state(st)
+    print(json.dumps({'recovered':True,'zones':st['zones'],'delegation_set_id':st['delegation_set_id']}))
+
 def status():
     account_check(); st=load_state()
     if not st: fail('Fresh DNS has not been prepared.')
@@ -263,6 +297,6 @@ def status():
 
 def main():
     ap=argparse.ArgumentParser(description='Prepare fresh Route 53 DNS and white-label nameservers for the Waithaka Ndegwa website.')
-    ap.add_argument('action',choices=['prepare','status'])
-    a=ap.parse_args(); {'prepare':prepare,'status':status}[a.action]()
+    ap.add_argument('action',choices=['prepare','recover','status'])
+    a=ap.parse_args(); {'prepare':prepare,'recover':recover,'status':status}[a.action]()
 if __name__=='__main__': main()
