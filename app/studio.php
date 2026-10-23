@@ -20,6 +20,32 @@ function studio_capture_fields(string $title,string $idea): array {
     return ['id'=>0,'title'=>$title,'content_html'=>'<p>'.nl2br(e($idea),false).'</p>','writer_note'=>'Captured in Studio. Check evidence, permissions and sources before publishing.'];
 }
 function studio_dispatch(string $path): bool {
+    if($path==='/write/mail-test'){
+        require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);
+        $result=null;
+        if(is_post()){
+            verify_csrf();
+            if(!email_transport_ready())$result='Mail transport is not configured. No test was sent.';
+            else {
+                $owner=current_user();$lock='owner-mail-test-'.(int)$owner['id'];$q=db()->prepare('SELECT GET_LOCK(?,0)');$q->execute([$lock]);
+                if(!(int)$q->fetchColumn())$result='A test is already in progress.';
+                else try {
+                    $key='mail.owner_test.'.(int)$owner['id'];$prior=json_decode((string)setting($key,'{}'),true)?:[];
+                    if(time()-(int)($prior['started']??0)<300)$result='A test was attempted recently. Check the inbox before requesting another.';
+                    else {
+                        $state=['started'=>time(),'state'=>'attempting'];set_setting($key,json_encode($state));
+                        try {
+                            $id='owner-test-'.bin2hex(random_bytes(16));
+                            email_deliver(['to'=>$owner['email'],'subject'=>'My Thoughts · email delivery check','html'=>email_design('Your website email check','<p>This is a requested delivery check from your personal website. The shared header, personalised greeting, social links and plain-text alternative are included.</p><p>No subscriber campaign or social post was released by this check.</p>',['name'=>$owner['name']]),'headers'=>[]],$id);
+                            $state['state']='provider_acknowledged';$result='Google accepted the test for your Writer account email. Check receipt and rendering in the inbox; acceptance alone does not prove delivery.';
+                        } catch(Throwable $error){$state['state']='unconfirmed';$result='The test outcome is unconfirmed. Check your inbox and private mail logs before retrying.';error_log('Owner mail test unconfirmed: '.get_class($error));}
+                        set_setting($key,json_encode($state));
+                    }
+                } finally {$q=db()->prepare('SELECT RELEASE_LOCK(?)');$q->execute([$lock]);}
+            }
+        }
+        render_write('mail_test',['writeTitle'=>'Email delivery check','result'=>$result]);return true;
+    }
     if($path==='/professional-information'){
         journeys_method(['GET','HEAD']);
         render('media_centre',['page'=>'about','seo'=>['title'=>'Professional information · Waithaka Ndegwa','description'=>'Biography, interview topics and speaking enquiries for Waithaka Ndegwa.','canonical'=>url('/professional-information')]]);return true;

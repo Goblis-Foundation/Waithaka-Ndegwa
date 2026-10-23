@@ -26,16 +26,27 @@ The application remains MAIL_TRANSPORT=disabled until you run --enable after com
 EOF
    ;;
  --enable)
-   aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --region "$REGION" --option-settings \
-     Namespace=aws:elasticbeanstalk:application:environment,OptionName=MAIL_TRANSPORT,Value=smtp \
-     Namespace=aws:elasticbeanstalk:application:environment,OptionName=MAIL_FROM,Value="$FROM" \
-     Namespace=aws:elasticbeanstalk:application:environment,OptionName=MAIL_FROM_NAME,Value="Waithaka Ndegwa" \
-     Namespace=aws:elasticbeanstalk:application:environment,OptionName=MAIL_REPLY_TO,Value="$FROM" \
-     Namespace=aws:elasticbeanstalk:application:environment,OptionName=SMTP_HOST,Value=smtp-relay.gmail.com \
-     Namespace=aws:elasticbeanstalk:application:environment,OptionName=SMTP_PORT,Value=587 \
-     Namespace=aws:elasticbeanstalk:application:environment,OptionName=SMTP_ENCRYPTION,Value=tls \
-     Namespace=aws:elasticbeanstalk:application:environment,OptionName=SMTP_HELO,Value="$DOMAIN" \
-     --no-cli-pager >/dev/null
+   [[ "$NAT_IP" == "15.240.2.118" ]] || { echo "Relay IP differs from the approved Google rule; refusing activation." >&2; exit 1; }
+   export WK_MAIL_REGION="$REGION" WK_MAIL_ENV="$ENV_NAME"
+   python3 - <<'PYMAIL'
+import json, os, subprocess
+region=os.environ['WK_MAIL_REGION']; name=os.environ['WK_MAIL_ENV']
+def aws(*args):
+    return json.loads(subprocess.check_output(['aws','elasticbeanstalk',*args,'--region',region,'--output','json','--no-cli-pager'],text=True))
+ns='aws:elasticbeanstalk:application:environment'
+desired={'MAIL_TRANSPORT':'smtp','MAIL_FROM':'isaac@waithakandegwa.com','MAIL_FROM_NAME':'Waithaka Ndegwa','MAIL_REPLY_TO':'isaac@waithakandegwa.com','SMTP_HOST':'smtp-relay.gmail.com','SMTP_PORT':'587','SMTP_ENCRYPTION':'tls','SMTP_HELO':'waithakandegwa.com'}
+current=aws('describe-configuration-settings','--application-name','waithaka-ndegwa','--environment-name',name)
+options=current['ConfigurationSettings'][0]['OptionSettings']
+values={v['OptionName']:v.get('Value','') for v in options if v['Namespace']==ns}
+changes=[{'Namespace':ns,'OptionName':k,'Value':v} for k,v in desired.items() if values.get(k)!=v]
+if changes:
+    aws('update-environment','--environment-name',name,'--option-settings',json.dumps(changes))
+    subprocess.run(['aws','elasticbeanstalk','wait','environment-updated','--environment-names',name,'--region',region],check=True)
+    print('Workspace application mail configuration applied.')
+else:
+    print('Workspace application mail configuration already matches.')
+# Deliberately leave WORKER_ENABLED unchanged: transport configuration is not permission to drain queues.
+PYMAIL
    echo "Google Workspace SMTP relay configuration applied to Elastic Beanstalk. NAT egress IP: $NAT_IP"
    echo "Newsletter approval remains blocked until a real postal address is configured; no address has been invented."
    ;;

@@ -120,6 +120,9 @@ jobs:
       - name: Continue production deployment
         run: bash deploy/aws/fresh_hosting.sh --after-registrar
 
+      - name: Apply confirmed Workspace mail relay
+        run: bash deploy/aws/google_workspace.sh --enable
+
       - name: Deployment diagnostics on failure
         if: failure()
         run: |

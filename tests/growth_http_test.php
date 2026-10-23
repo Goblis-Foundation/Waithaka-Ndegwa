@@ -94,6 +94,8 @@ try{
     $r=growth_request('/write/assist',['csrf'=>$studioCsrf,'selected_text'=>'Test notes','mode'=>'outline','ai_consent'=>'1']);growth_check($r['status']===200&&str_contains($r['body'],'AI is not configured'),'Missing API configuration produces honest recoverable feedback.');
     db()->prepare('DELETE FROM posts WHERE id=?')->execute([$capturedId]);
     $professional=growth_request('/professional-information');growth_check($professional['status']===200&&str_contains($professional['body'],'Short biography')&&!str_contains($professional['body'],'PRIVATE_METRIC_ACCOUNT'),'Professional information is public without exposing private Media Centre reports.');
+    $r=growth_request('/write/mail-test',['csrf'=>'invalid']);growth_check($r['status']===419,'Owner mail acceptance requires CSRF before any delivery.');
+    $r=growth_request('/write/mail-test');growth_check($r['status']===200&&str_contains($r['body'],'does not process the outbox'),'Mail acceptance is owner-scoped and separate from outbox processing.');
     $r=growth_request('/media-centre');growth_check($r['status']===301&&str_ends_with($r['headers']['location']??'','/contact'),'Former public media URL redirects to contact; media centre belongs to Writer.');
     growth_check(!in_array($base.'/media-centre',$locations,true),'Private media centre is not advertised in sitemap.');
     $r=growth_request('/write/impact');growth_check($r['status']===200&&str_contains($r['headers']['cache-control']??'','no-store')&&str_contains($r['headers']['x-robots-tag']??'','noindex')&&!str_contains($r['body'],'googletagmanager.com'),'Reporting controls are private and render without analytics.');
