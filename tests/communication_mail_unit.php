@@ -1,0 +1,11 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__).'/app/functions.php';require_once dirname(__DIR__).'/app/email_design.php';require dirname(__DIR__).'/app/communication_mail.php';
+$CONFIG=['base_url'=>'https://www.waithakandegwa.com'];function publishing_connection(string $s):array{return ['status'=>'connected','connected_by'=>1,'selected_resource'=>'fixture','display_name'=>'Fixture'];}function publishing_access_token(array $c):string{return 'fixture-token';}
+function mc(bool $ok,string $message):void{if(!$ok)throw new RuntimeException($message);}
+function mr(callable $f):void{try{$f();}catch(InvalidArgumentException){return;}throw new RuntimeException('Expected rejection');}
+$p=['mimeType'=>'multipart/alternative','parts'=>[['mimeType'=>'text/html','body'=>['data'=>base64_encode('<script>bad</script>')]],['mimeType'=>'text/plain','body'=>['data'=>rtrim(strtr(base64_encode('Plain message'),'+/','-_'),'=')]]]];mc(comm_mail_text($p)==='Plain message','Only plain text body');mc(comm_mail_text(['mimeType'=>'text/html','body'=>['data'=>'secret']])==='','No HTML renderer');mc(comm_mail_headers(['headers'=>[['name'=>'Subject','value'=>'Example'],['name'=>'Authorization','value'=>'secret']]])===['subject'=>'Example'],'Header allowlist');
+mr(fn()=>comm_mail_mime('a@example.invalid',"Subject\r\nBcc: hidden@example.invalid",'Body'));mr(fn()=>comm_mail_mime("a@example.invalid\r\n",'Subject','Body'));
+$mime=comm_mail_mime('a@example.invalid','Subject','Private draft','Amina');mc(str_contains($mime,'multipart/alternative')&&str_contains($mime,'text/html'),'Branded MIME alternatives');mc(!str_contains($mime,'Bcc:'),'No hidden recipient header');
+$calls=[];$http=function($m,$u,$h)use(&$calls){$calls[]=[$m,$u];if(str_contains($u,'?labelIds='))return ['data'=>['messages'=>[['id'=>'abc123']],'nextPageToken'=>'more']];return ['data'=>['id'=>'abc123','payload'=>['headers'=>[['name'=>'Subject','value'=>'Fixture']]]]];};$r=comm_mail_read(1,'',$http);mc(count($r['messages'])===1&&$r['more'],'Bounded inbox and incomplete status');mc(count($calls)===2&&$calls[0][0]==='GET'&&str_starts_with($calls[0][1],'https://gmail.googleapis.com/'),'Fixed read-only provider endpoint');mr(fn()=>comm_mail_read(1,'../../other',$http));
+echo "PASS: bounded private inbox, plain-text only, header isolation and draft MIME safety.\n";

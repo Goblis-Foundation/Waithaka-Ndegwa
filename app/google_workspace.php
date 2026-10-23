@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 /** Personal Google workspace. All remote reads are explicit; no background calendar replication. */
 function google_workspace_identity(string $service,array $who,array $headers): array {
+    if(in_array($service,['google_gmail_read','google_gmail_draft'],true))return [['id'=>(string)$who['sub'],'name'=>(string)($who['email']??'My mailbox'),'type'=>'mailbox']];
     if($service==='google_drive')return [['id'=>(string)$who['sub'],'name'=>(string)($who['email']??'Selected files'),'type'=>'drive_account']];
     if($service==='google_postmaster'){
         $r=publishing_http('GET','https://gmailpostmastertools.googleapis.com/v1/domains?pageSize=100',$headers)['data'];$out=[];

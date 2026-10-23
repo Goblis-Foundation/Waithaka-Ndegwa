@@ -297,6 +297,7 @@ try {
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',
+                  'communication_mail_unit.php'=>'Mailbox privacy and draft header boundaries',
                   'app_security_unit.php'=>'Passkey origin, challenge and assertion verification',
                   'communication_unit.php'=>'Availability, DST and notification boundaries',
                   'meetings_unit.php'=>'Meeting account, read permissions and join-link boundaries',
