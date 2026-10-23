@@ -1,0 +1,7 @@
+R21 — GitHub Actions deployment control plane
+- Canonical repository target: iwaithakaw/Waithaka-Ndegwa.
+- Adds one-time GitHub OIDC bootstrap for AWS account 466401734428.
+- Uses PowerUserAccess plus narrowly scoped IAM bridge rather than long-lived AWS keys.
+- Adds CI + production deployment workflow with persistent GitHub logs.
+- Production deployment is serialized and restart-safe through existing AWS state.
+- Adds repository publishing helper for renaming the existing empty repo and pushing source without force.

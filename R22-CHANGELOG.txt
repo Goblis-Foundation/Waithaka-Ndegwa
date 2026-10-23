@@ -1,0 +1,5 @@
+R22 — 2026-10-22
+- Canonical GitHub repository moved to Goblis-Foundation/Waithaka-Ndegwa.
+- One-time publisher transfers/renames the existing iwaithakaw/WaithakaNdegwa repository instead of duplicating it.
+- AWS GitHub OIDC trust pins the transferred repository ID, Goblis Foundation organization ID, immutable post-transfer GitHub OIDC subject, and main branch.
+- Goblis Foundation organization ownership is governance/delivery only; public Waithaka website identity remains personal.
