@@ -39,7 +39,7 @@ function fresh_apply_sql(PDO $pdo,string $file): void {
 
 $region=(string)app_config('aws_region','');
 $adminArn=trim((string)getenv('DB_ADMIN_SECRET_ARN'));
-if($region===''||!preg_match('~\Aarn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+\z~',$adminArn))fresh_fail('DB_ADMIN_SECRET_ARN is not configured.');
+if($region===''||!preg_match('~\Aarn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/!_+=.@-]+\z~',$adminArn))fresh_fail('DB_ADMIN_SECRET_ARN is not configured.');
 $secret=fresh_secret_json($adminArn,$region);
 $pdo=fresh_admin_pdo($secret);
 $lock='wk-fresh-bootstrap-'.substr(hash('sha256',(string)app_config('db.name')),0,40);
