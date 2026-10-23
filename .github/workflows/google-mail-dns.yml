@@ -1,0 +1,33 @@
+name: Configure Google Workspace mail DNS
+on:
+  push:
+    branches: [main]
+    paths: ['deploy/aws/google_mail_dns.py', '.github/workflows/google-mail-dns.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: waithaka-google-mail-dns
+  cancel-in-progress: false
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::466401734428:role/WaithakaGitHubDeployRole
+          aws-region: af-south-1
+          allowed-account-ids: '466401734428'
+          role-session-name: waithaka-google-mail-dns
+      - name: Publish reviewed mail records and verify read-back
+        run: python3 deploy/aws/google_mail_dns.py --apply
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: google-mail-dns-review
+          path: mail-dns-*.json
+          if-no-files-found: ignore
+          retention-days: 30
