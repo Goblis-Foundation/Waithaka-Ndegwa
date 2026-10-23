@@ -1,0 +1,6 @@
+<?php
+// All values and labels are escaped; no third-party chart scripts run in Writer.
+$chartPoints=array_slice($trend['points'],0,20);$peak=max(1,...array_column($chartPoints,'value'));$chartCoordinates=[];
+foreach($chartPoints as$i=>$point)$chartCoordinates[]=round(20+$i*(360/max(1,count($chartPoints)-1)),2).','.round(110-90*$point['value']/$peak,2);
+?>
+<figure class="media-trend"><figcaption><?=e($trend['label'])?></figcaption><svg viewBox="0 0 400 130" role="img" aria-label="<?=e($trend['label'].'. Exact values in the table below.')?>" style="width:100%;height:auto;max-height:180px"><path d="M20 15V110H385" fill="none" stroke="currentColor" opacity=".25"/><polyline points="<?=e(implode(' ',$chartCoordinates))?>" fill="none" stroke="currentColor" stroke-width="3"/><?php foreach($chartCoordinates as$coordinate):[$cx,$cy]=explode(',',$coordinate);?><circle cx="<?=e($cx)?>" cy="<?=e($cy)?>" r="3" fill="currentColor"/><?php endforeach;?></svg><details><summary>View exact graph values</summary><table><thead><tr><th scope="col">Observation / period end</th><th scope="col">Value</th></tr></thead><tbody><?php foreach($chartPoints as$point):?><tr><th scope="row"><?=e($point['label'])?></th><td><?=number_format($point['value'])?></td></tr><?php endforeach;?></tbody></table></details></figure>

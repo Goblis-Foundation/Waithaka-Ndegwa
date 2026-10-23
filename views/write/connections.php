@@ -6,6 +6,7 @@
   <div class="pub-hint">Facebook, Instagram, X and TikTok are recorded as professional accounts. Facebook professional mode is a profile type; a Page is a separate publishing destination. TikTok’s professional label is owner-declared; it does not verify a Business account or grant publishing access. Your six public profile links stay available while connections are being configured.</div>
   <section class="pub-section"><h2 class="pub-section-title">Authorize the features you need</h2><div class="pub-grid">
   <?php foreach($services as $service=>$definition):$connection=$connections[$service]??null;$status=$connection['status']??'disconnected';$resources=publishing_decode($connection['resources_json']??null);$metadata=publishing_decode($connection['metadata_json']??null);?>
+    <?php if($service==='facebook_pages'):?><details class="pub-card"><summary>Optional Facebook Page integration</summary><p>Your personal professional-mode profile does not need Page discovery. Saved app credentials remain available for separately managed Pages.</p><?php endif;?>
     <article class="pub-card pub-provider" id="<?=e($service)?>"><div class="pub-card-top"><h3><?=e($definition['name'])?></h3><span class="pub-status <?=e($status)?>"><?=e(publishing_state_label($status))?></span></div>
       <p><?=e($definition['description'])?></p>
       <?php if($connection&&$connection['external_id']):?><dl><dt>Provider account</dt><dd><?=e($connection['display_name'])?></dd><dt>Account ID</dt><dd><?=e($connection['external_id'])?></dd><dt>Last verified</dt><dd><?=e(publishing_local_time($connection['verified_at']))?></dd><?php if($connection['selected_resource']):?><dt>Destination</dt><dd><?php $selectedName=$connection['selected_resource'];foreach($resources as $resource)if($resource['id']===$connection['selected_resource'])$selectedName=$resource['name'];?><?=e($selectedName)?></dd><?php endif;?></dl><?php endif;?>
@@ -27,7 +28,7 @@
       <?php endif;?>
       <?php if($status==='connected'&&in_array($service,['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','tiktok_read'],true)):?><form method="post" action="<?=url('/write/connections/'.$service.'/report')?>"><?=csrf_field()?><button class="wbtn" type="submit">Read current report</button></form><?php endif;?>
       <?php if($connection&&$status!=='disconnected'):?><form method="post" action="<?=url('/write/connections/'.$service.'/disconnect')?>"><?=csrf_field()?><button class="pub-muted-button" type="submit">Remove saved connection</button></form><?php endif;?>
-    </article>
+    </article><?php if($service==='facebook_pages'):?></details><?php endif;?>
   <?php endforeach;?></div></section>
   <section id="channels" class="pub-section pub-connection-anchor"><h2 class="pub-section-title">Channel routes</h2><p>Each saved route applies to the next approved revision. An existing approved package keeps its original destination.</p><div class="pub-grid">
   <?php $buffer=$connections['buffer']??null;$bufferChannels=publishing_buffer_channels($buffer);foreach($channels as $channel):$slug=$channel['slug'];$letter=['linkedin'=>'in','facebook'=>'f','instagram'=>'◎','x'=>'X','youtube'=>'▶','tiktok'=>'♪'][$slug];?>

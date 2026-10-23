@@ -5,7 +5,7 @@ declare(strict_types=1);
 function media_centre_platforms(): array {
     return [
         'linkedin'=>['name'=>'LinkedIn','service'=>'linkedin_analytics','note'=>'Member post analytics needs the approved analytics product and a separate read grant.'],
-        'facebook'=>['name'=>'Facebook','service'=>'facebook_pages','note'=>'The API returns confirmed Page data. Professional-profile insights can be recorded from the native dashboard.'],
+        'facebook'=>['name'=>'Facebook','service'=>'','note'=>'Your professional-mode personal profile uses assisted posting and native Professional Dashboard reports. Page API credentials do not provide profile publishing or profile Insights.'],
         'instagram'=>['name'=>'Instagram','service'=>'instagram','note'=>'Connected professional-account totals are available where returned. Record additional Insights from the native dashboard.'],
         'x'=>['name'=>'X','service'=>'x','note'=>'Account totals use your authorised X API access and may incur API charges.'],
         'youtube'=>['name'=>'YouTube','service'=>'google_youtube_read','note'=>'Channel totals use the confirmed YouTube channel; period-specific Studio analytics can be recorded separately.'],
@@ -13,10 +13,10 @@ function media_centre_platforms(): array {
     ];
 }
 function media_centre_connect_services(): array {
-    return ['linkedin'=>'linkedin','facebook'=>'facebook_pages','instagram'=>'instagram','x'=>'x','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_read'];
+    return ['linkedin'=>'linkedin','facebook'=>'','instagram'=>'instagram','x'=>'x','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_read'];
 }
 function writer_workspace_summary(): array {
-    $connected=0;foreach(media_centre_connect_services()as$slug=>$service){$services=[$service];if($slug==='linkedin')$services[]='linkedin_analytics';if($slug==='youtube')$services[]='google_youtube_read';if($slug==='tiktok')$services[]='tiktok_business';foreach($services as$granted){$c=publishing_connection($granted);if($c&&$c['status']==='connected'&&!empty($c['selected_resource'])){$connected++;break;}}}
+    $connected=0;foreach(media_centre_connect_services()as$slug=>$service){if($service==='')continue;$services=[$service];if($slug==='linkedin')$services[]='linkedin_analytics';if($slug==='youtube')$services[]='google_youtube_read';if($slug==='tiktok')$services[]='tiktok_business';foreach($services as$granted){$c=publishing_connection($granted);if($c&&$c['status']==='connected'&&!empty($c['selected_resource'])){$connected++;break;}}}
     $statuses=db()->query('SELECT status,COUNT(*) n FROM publishing_jobs GROUP BY status')->fetchAll();$attention=0;$scheduled=0;
     foreach($statuses as$row){if($row['status']==='scheduled')$scheduled+=(int)$row['n'];elseif(in_array($row['status'],['assisted','reminder_queued','reminder_sent','failed','reconnect','ambiguous'],true))$attention+=(int)$row['n'];}
     return ['connected'=>$connected,'attention'=>$attention,'scheduled'=>$scheduled];
@@ -54,8 +54,9 @@ function media_centre_save_report(array $report): void {
 }
 function media_centre_api_report(string $slug,array $connection,?callable $transport=null): array {
     if(!isset(media_centre_platforms()[$slug])||($connection['status']??'')!=='connected'||empty($connection['selected_resource']))throw new InvalidArgumentException('Connect and confirm this account before requesting its report.');
+    if($slug==='facebook')throw new InvalidArgumentException('Use a native Professional Dashboard report for your Facebook profile. Page access cannot report on this profile.');
     $expected=media_centre_platforms()[$slug]['service'];
-    if(($connection['service']??'')!==$expected && !($slug==='youtube'&&($connection['service']??'')==='google_youtube_upload'))throw new InvalidArgumentException('The reporting connection does not match this platform.');
+    if(($connection['service']??'')!==$expected && !($slug==='instagram'&&($connection['service']??'')==='instagram_insights') && !($slug==='youtube'&&($connection['service']??'')==='google_youtube_upload'))throw new InvalidArgumentException('The reporting connection does not match this platform.');
     $metrics=[];$period='Current cumulative account totals';$basis='Provider API';$id=(string)$connection['selected_resource'];
     $add=static function(string $label,mixed $value)use(&$metrics):void{$count=media_centre_count($value);if($count!==null)$metrics[$label]=$count;};
     if($slug==='tiktok'){$r=publishing_tiktok_report($connection);foreach(['follower_count'=>'Followers','following_count'=>'Following','likes_count'=>'Profile likes','video_count'=>'Public videos']as$key=>$label)$add($label,$r['summary'][$key]??null);$basis=$r['note'];}
@@ -63,7 +64,7 @@ function media_centre_api_report(string $slug,array $connection,?callable $trans
     else{
         $headers=publishing_bearer(publishing_access_token($connection));$get=$transport??static fn(string $url,array $h):array=>publishing_http('GET',$url,$h)['data'];
         if($slug==='x'){$r=$get('https://api.x.com/2/users/me?user.fields=public_metrics',$headers)['data']??[];if(($r['id']??'')!==$id)throw new InvalidArgumentException('X returned a different account.');foreach(['followers_count'=>'Followers','following_count'=>'Following','tweet_count'=>'Posts']as$key=>$label)$add($label,$r['public_metrics'][$key]??null);}
-        elseif($slug==='instagram'){$r=$get('https://graph.instagram.com/'.publishing_meta_version().'/'.rawurlencode($id).'?fields=id,user_id,followers_count,media_count',$headers);if((string)($r['user_id']??$r['id']??'')!==$id)throw new InvalidArgumentException('Instagram returned a different account.');$add('Followers',$r['followers_count']??null);$add('Published media',$r['media_count']??null);$basis='Professional-account profile totals; these are not reach, impressions or period-specific Insights.';}
+        elseif($slug==='instagram'){if(($connection['service']??'')==='instagram_insights')return media_centre_instagram_insights($connection,$get,$headers);$r=$get('https://graph.instagram.com/'.publishing_meta_version().'/'.rawurlencode($id).'?fields=id,user_id,followers_count,media_count',$headers);if((string)($r['user_id']??$r['id']??'')!==$id)throw new InvalidArgumentException('Instagram returned a different account.');$add('Followers',$r['followers_count']??null);$add('Published media',$r['media_count']??null);$basis='Professional-account profile totals; these are not reach, impressions or period-specific Insights.';}
         elseif($slug==='facebook'){$r=$get('https://graph.facebook.com/'.publishing_meta_version().'/'.rawurlencode($id).'?fields=id,followers_count',$headers);if((string)($r['id']??'')!==$id)throw new InvalidArgumentException('Facebook returned a different Page.');$add('Page followers',$r['followers_count']??null);$basis='Confirmed Page follower snapshot; not professional-profile Insights or period-specific reach.';}
         elseif($slug==='linkedin'){
             if(!in_array('r_member_postAnalytics',publishing_decode($connection['scopes_json']??null),true))throw new InvalidArgumentException('LinkedIn analytics permission has not been granted.');
@@ -76,6 +77,35 @@ function media_centre_api_report(string $slug,array $connection,?callable $trans
     if(!$metrics)throw new InvalidArgumentException('The provider returned no supported metrics. Missing data is unavailable, not zero.');
     return ['platform'=>$slug,'account'=>(string)$connection['display_name'].' · '.$id,'source'=>'Connected provider API','basis'=>$basis,'period'=>$period,'observed_at'=>gmdate('c'),'metrics'=>$metrics];
 }
+/** A daily reach series is never summed into unique people across days. */
+function media_centre_instagram_insights(array $connection, callable $get, array $headers): array {
+    if(!in_array('instagram_business_manage_insights',publishing_decode($connection['scopes_json']??null),true))throw new InvalidArgumentException('Authorize the separate Instagram Insights permission first.');
+    $id=(string)$connection['selected_resource'];$base='https://graph.instagram.com/'.publishing_meta_version().'/'.rawurlencode($id);
+    $who=$get($base.'?fields=id,user_id,username',$headers);
+    if((string)($who['user_id']??$who['id']??'')!==$id)throw new InvalidArgumentException('Instagram returned a different Insights account.');
+    $end=new DateTimeImmutable('today',new DateTimeZone('UTC'));$start=$end->modify('-7 days');
+    $response=$get($base.'/insights?'.http_build_query(['metric'=>'reach','period'=>'day','since'=>$start->getTimestamp(),'until'=>$end->getTimestamp()],'','&',PHP_QUERY_RFC3986),$headers);
+    $points=[];
+    foreach($response['data']??[]as$metric){if(($metric['name']??'')!=='reach'||($metric['period']??'')!=='day')continue;
+        foreach($metric['values']??[]as$row){$count=media_centre_count($row['value']??null);$time=$row['end_time']??'';
+            if($count===null||!is_string($time)||!preg_match('/\A\d{4}-\d{2}-\d{2}T/',$time))continue;
+            try{$at=new DateTimeImmutable($time);}catch(Exception){continue;}
+            if($at<=$start||$at>$end)continue;$points[$at->getTimestamp()]=['label'=>$at->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i').' UTC (period end)','value'=>$count];
+        }
+    }
+    if(!$points)throw new InvalidArgumentException('Instagram returned no daily reach values. Check Insights approval and account eligibility; missing data is unavailable, not zero.');
+    ksort($points);$points=array_values($points);$latest=$points[count($points)-1];
+    return ['platform'=>'instagram','account'=>(string)$connection['display_name'].' · '.$id,'source'=>'Connected provider API','basis'=>'Instagram daily reach, provider-defined day boundaries. The same person may appear on multiple days. Daily reach is not added into a unique weekly audience. Latest daily value ends '.$latest['label'].'.','period'=>$start->format('Y-m-d').' to '.$end->format('Y-m-d').' (exclusive end, UTC query)','observed_at'=>gmdate('c'),'metrics'=>['Latest daily accounts reached'=>$latest['value']],'series'=>['label'=>'Daily accounts reached','points'=>$points]];
+}
+/** Comparable snapshot history only: never mix API and owner-entered reports or periods. */
+function media_centre_trend(array $history): array {
+    $latest=$history[0]??[];$metrics=$latest['metrics']??[];
+    if(!$metrics)return []; $label=array_key_first($metrics);$points=[];
+    foreach(array_reverse($history)as$r){if(($r['account']??null)!==($latest['account']??null)||($r['source']??null)!==($latest['source']??null)||($r['period']??null)!==($latest['period']??null)||($r['basis']??null)!==($latest['basis']??null))continue;
+        $value=media_centre_count($r['metrics'][$label]??null);if($value===null)continue;$points[]=['label'=>(string)$r['observed_at'],'value'=>$value];
+    }
+    return count($points)>1?['label'=>$label.' — comparable saved snapshots','points'=>$points]:[];
+}
 function media_centre_dispatch(string $path): bool {
     if(!in_array($path,['/write/media-centre','/write/media-centre/report'],true))return false;
     require_auth();private_response_headers();journeys_method($path==='/write/media-centre/report'?['POST']:['GET','HEAD']);
@@ -86,7 +116,8 @@ function media_centre_dispatch(string $path): bool {
             if(($_POST['action']??'')==='record')$report=media_centre_manual($_POST);
             elseif(($_POST['action']??'')==='refresh'){
                 $slug=$_POST['platform']??'';if(!is_string($slug)||!isset(media_centre_platforms()[$slug]))throw new InvalidArgumentException('Choose a social account.');
-                $service=media_centre_platforms()[$slug]['service'];$connection=publishing_connection($service);
+                $service=media_centre_platforms()[$slug]['service'];if($service==='')throw new InvalidArgumentException('Record a native report for this personal profile.');$connection=publishing_connection($service);
+                if($slug==='instagram'){$insights=publishing_connection('instagram_insights');if($insights&&$insights['status']==='connected'&&!empty($insights['selected_resource'])){if($connection&&$connection['status']==='connected'&&$connection['selected_resource']!==$insights['selected_resource'])throw new InvalidArgumentException('Instagram publishing and Insights accounts differ. Confirm the same account before refreshing.');$connection=$insights;}}
                 if($slug==='youtube'&&(!$connection||$connection['status']!=='connected'))$connection=publishing_connection('google_youtube_upload');
                 $report=media_centre_api_report($slug,$connection??[]);
             }else throw new InvalidArgumentException('Choose a reporting action.');
