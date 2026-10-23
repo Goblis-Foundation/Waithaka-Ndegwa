@@ -26,7 +26,7 @@ function comm_push_user(int $uid,string $category): void {$p=comm_get('preferenc
 function comm_mail_job(array $job,array $cfg): void {
     if($job['status']!=='pending')return;$b=comm_get('booking.'.$job['booking']);if(!$b||$b['version']!==$job['version']){$job['status']='superseded';comm_put('mail.'.$job['id'],$job);return;}
     if(email_address_suppressed($b['email'])){$job['status']='suppressed';comm_put('mail.'.$job['id'],$job);return;}
-    $job['status']='sending';comm_put('mail.'.$job['id'],$job);
+    $job['status']='sending';$job['started']=time();comm_put('mail.'.$job['id'],$job);
     try{$when=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($b['timezone']))->format('l, j F Y · H:i T');$title=match($job['event']){'requested'=>'Meeting request received','confirmed'=>'Your meeting is confirmed','rescheduled'=>'Your meeting time has changed','reminder'=>'Your meeting is coming up','declined'=>'An update on your meeting request',default=>'Your meeting has been cancelled'};
         $body='<p>'.e($cfg['types'][$b['type']]['name']).'</p><p><strong>'.e($when).'</strong></p><p>Status: '.e(ucfirst($b['status'])).'.</p>';if($b['status']==='requested')$body.='<p>Please wait for confirmation before making plans.</p>';if($b['status']==='confirmed'&&$b['join']!=='')$body.=email_design_button('Join meeting',$b['join']);$body.=email_design_button('Manage this booking',comm_manage_url($b));$html=email_design($title,$body,['name'=>$b['first']]);
         $provider=email_deliver(['to'=>$b['email'],'subject'=>$title.' · Waithaka Ndegwa','html'=>$html,'headers'=>[]],hash('sha256','communication:'.$job['id']));$job['status']='accepted';$job['provider_acknowledged']=time();
@@ -35,9 +35,14 @@ function comm_mail_job(array $job,array $cfg): void {
 function communication_work(): array {
     $cfg=comm_config();if(empty($cfg['worker']))return ['enabled'=>false];
     return comm_lock('worker',function()use($cfg){$count=0;$now=time();foreach(comm_records('booking')as$b){if($b['status']==='confirmed'&&$b['start']>$now&&$b['start']<=$now+86400){$key=$b['id'].'.'.$b['version'].'.reminder';if(!comm_get('mail.'.$key))comm_queue_mail($b,'reminder');}}
-        foreach(comm_records('mail',10000)as$j){if($count>=10)break;if($j['status']==='pending'){comm_mail_job($j,$cfg);$count++;}}
-        $signal=comm_get('signal');$summary=reader_operations_summary();$signature=hash('sha256',json_encode([$signal['id']??'', $summary['enquiries_open'],$summary['enquiries_overdue']]));$prior=comm_get('worker');
-        if(($prior['signature']??'')!==$signature){$category=($prior['enquiries']??null)!==$summary['enquiries_open']?'enquiries':($signal['category']??'enquiries');$p=comm_get('preferences.'.$cfg['owner'],comm_preferences([]));if(!comm_quiet($p)){comm_push_user((int)$cfg['owner'],$category);$prior['signature']=$signature;}}
+        foreach(comm_records('mail',10000)as$j){if($j['status']==='sending'&&($j['started']??$j['created'])<$now-900){$j['status']='review';comm_put('mail.'.$j['id'],$j);}if($count>=10)break;if($j['status']==='pending'){comm_mail_job($j,$cfg);$count++;}}
+        $signal=comm_get('signal');$summary=reader_operations_summary();$prior=comm_get('worker');
+        $latest=(int)db()->query('SELECT COALESCE(MAX(id),0) FROM reader_enquiries')->fetchColumn();
+        $q=db()->prepare('SELECT service,status FROM publishing_connections WHERE connected_by=? ORDER BY service');$q->execute([$cfg['owner']]);$connections=hash('sha256',json_encode($q->fetchAll()));
+        $categories=[];if(($prior['latest_enquiry']??0)!==$latest||($prior['overdue']??0)!==$summary['enquiries_overdue'])$categories[]='enquiries';
+        if(($prior['connections']??$connections)!==$connections)$categories[]='connections';
+        if(($prior['signal']??'')!==($signal['id']??''))$categories[]=$signal['category']??'bookings';
+        $p=comm_get('preferences.'.$cfg['owner'],comm_preferences([]));if(!comm_quiet($p)){foreach(array_unique($categories)as$category)comm_push_user((int)$cfg['owner'],$category);$prior['latest_enquiry']=$latest;$prior['overdue']=$summary['enquiries_overdue'];$prior['connections']=$connections;$prior['signal']=$signal['id']??'';}
         $prior['enquiries']=$summary['enquiries_open'];$prior['heartbeat']=$now;comm_put('worker',$prior);return ['enabled'=>true,'mail_processed'=>$count];
     });
 }

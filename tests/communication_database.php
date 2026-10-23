@@ -3,6 +3,7 @@ declare(strict_types=1);
 if(PHP_SAPI!=='cli'||getenv('APP_ENV')!=='testing')exit(2);
 require __DIR__.'/prepare.php';$settings=wk_test_database_settings();$database=(string)(getenv('DB_DATABASE')?:getenv('WK_TEST_DB_NAME'));wk_test_assert_database_name($database);
 $CONFIG=['app_env'=>'testing','base_url'=>'https://www.waithakandegwa.com','app_key'=>'local-test-key-not-for-production-use','db'=>$settings+['name'=>$database]];
+$APP_INSTALLED=true;
 require dirname(__DIR__).'/app/functions.php';require dirname(__DIR__).'/app/communication.php';require dirname(__DIR__).'/app/communication_notifications.php';
 function cd(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);}
 $b=['id'=>str_repeat('a',32),'nonce'=>str_repeat('b',48),'email'=>'fixture@example.invalid','first'=>'Synthetic','last'=>'Person','status'=>'requested','end'=>time()+3600,'version'=>1];comm_put('booking.'.$b['id'],$b);
