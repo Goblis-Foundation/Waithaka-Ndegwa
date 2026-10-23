@@ -85,7 +85,8 @@ jobs:
                   print('LOG '+path)
                   lines=body.decode('utf-8','replace').splitlines()
                   for line in lines[-300:]:
-                      if 'DB_ADMIN_SECRET_ARN is not configured.' in line: print('Bootstrap: DB_ADMIN_SECRET_ARN is not configured.')
+                      if re.search(r'Application error [A-F0-9]{12} [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+',line): print(re.search(r'Application error [A-F0-9]{12} [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+',line).group(0))
+                      elif 'DB_ADMIN_SECRET_ARN is not configured.' in line: print('Bootstrap: DB_ADMIN_SECRET_ARN is not configured.')
                       elif 'AWS Secrets Manager SDK is unavailable.' in line: print('Bootstrap: AWS Secrets Manager SDK is unavailable.')
                       elif 'Database administrator secret is malformed.' in line: print('Bootstrap: Database administrator secret is malformed.')
                       elif 'Database administrator secret is incomplete.' in line: print('Bootstrap: Database administrator secret is incomplete.')
