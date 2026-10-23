@@ -27,6 +27,7 @@
         <details class="pub-small-gap"><summary class="pub-help">Requested permissions</summary><div class="pub-code"><?=e(implode("\n",$definition['scopes']))?></div></details>
       <?php endif;?>
       <?php if($status==='connected'&&in_array($service,['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','tiktok_read'],true)):?><form method="post" action="<?=url('/write/connections/'.$service.'/report')?>"><?=csrf_field()?><button class="wbtn" type="submit">Read current report</button></form><?php endif;?>
+      <?php if($status==='connected'&&in_array($service,['instagram_comments','instagram_messages'],true)):?><a class="wbtn" href="<?=url('/write/connections/'.$service.'/engagement')?>">Open engagement desk</a><?php endif;?>
       <?php if($connection&&$status!=='disconnected'):?><form method="post" action="<?=url('/write/connections/'.$service.'/disconnect')?>"><?=csrf_field()?><button class="pub-muted-button" type="submit">Remove saved connection</button></form><?php endif;?>
     </article><?php if($service==='facebook_pages'):?></details><?php endif;?>
   <?php endforeach;?></div></section>

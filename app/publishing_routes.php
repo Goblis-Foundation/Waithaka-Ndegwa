@@ -57,6 +57,21 @@ function publishing_dispatch(string $path): bool {
             publishing_event(null,null,'connection_removed',publishing_services()[$m[1]]['name'].' saved access removed.',$userId);
             flash('success','Saved access removed. Review any existing provider queue separately; removing a connection does not cancel posts already accepted there.');redirect(url($back));
         }
+        if(preg_match('~^/write/connections/(instagram_comments|instagram_messages)/engagement$~',$path,$m)) {
+            journeys_method(['GET','HEAD','POST']);private_response_headers();
+            $connection=publishing_connection($m[1]);
+            if(!$connection||$connection['status']!=='connected'||empty($connection['selected_resource']))throw new RuntimeException('Connect and confirm this Instagram feature before opening its desk.');
+            $primary=publishing_connection('instagram');
+            if($primary&&$primary['status']==='connected'&&$primary['selected_resource']!==$connection['selected_resource'])throw new RuntimeException('Instagram publishing and engagement accounts differ. Confirm the same account first.');
+            $report=null;
+            if(is_post()){
+                if(!journeys_rate_limit('instagram-engagement',(string)$userId,12,3600))throw new RuntimeException('Please wait before requesting another engagement report.');
+                $action=$_POST['action']??'list';$resource=$_POST['resource']??'';
+                if(!is_string($action)||!is_string($resource)||strlen($resource)>255)throw new RuntimeException('Choose a supported account item.');
+                $report=publishing_instagram_engagement($connection,$action,$resource);
+            }
+            render_write('instagram_engagement',['writeTitle'=>publishing_services()[$m[1]]['name'],'connection'=>$connection,'report'=>$report]);return true;
+        }
         if (preg_match('~^/write/connections/([a-z_]+)/report$~',$path,$m)&&is_post()) {
             $connection=publishing_connection($m[1]);
             if(!$connection||!in_array($m[1],['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','tiktok_read'],true)||$connection['status']!=='connected'||empty($connection['selected_resource']))throw new RuntimeException('Authorize the relevant reporting service and confirm the returned account or destination before loading a report.');

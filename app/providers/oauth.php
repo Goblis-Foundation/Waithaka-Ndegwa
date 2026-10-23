@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__.'/tiktok.php';
+require_once __DIR__.'/instagram_engagement.php';
 require_once __DIR__.'/tiktok_business.php';
 
 /** Official endpoint references, checked 2026-10-21:
@@ -21,6 +22,8 @@ function publishing_services(): array {
         'google_youtube_upload' => ['name'=>'YouTube upload access', 'provider'=>'google', 'scopes'=>array_merge($identity,['https://www.googleapis.com/auth/youtube.readonly','https://www.googleapis.com/auth/youtube.upload']), 'description'=>'Separate upload grant for resumable video delivery from your media library. Confirm the channel, choose Direct API, and approve visibility, audience and altered-content disclosure for each video. Upload completion and YouTube processing are tracked separately.'],
         'instagram' => ['name'=>'Instagram professional', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_content_publish'], 'description'=>'Instagram Login for a Business or Creator account. Direct delivery currently supports one JPEG image; use Buffer or assisted publishing for other formats.'],
         'instagram_insights' => ['name'=>'Instagram Insights', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_insights'], 'description'=>'Separate read access for professional-account reach. Publishing keeps its existing connection; confirm the same account before reading Insights.'],
+        'instagram_comments' => ['name'=>'Instagram comments', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_comments'], 'description'=>'Read comments on your own recent media in a private engagement desk. This permission can also enable moderation at Meta; this site currently reads only. Replies and moderation are completed in Instagram.'],
+        'instagram_messages' => ['name'=>'Instagram messages', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_messages'], 'description'=>'Read your professional account’s conversations and selected recent messages on explicit request. No automatic replies, AI processing or message storage. Send replies in Instagram.'],
         'facebook_profile' => ['name'=>'Facebook personal profile', 'provider'=>'facebook', 'scopes'=>['public_profile'], 'description'=>'Confirm your own Facebook identity. Professional-mode profile posting remains assisted, and analytics use native Professional Dashboard reports. This login does not request Page access or grant automatic profile publishing.'],
         'facebook_pages' => ['name'=>'Facebook Page discovery', 'provider'=>'facebook', 'scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'], 'description'=>'Discover Pages you manage, then choose a real Page. This cannot publish to your professional-mode profile.'],
         'linkedin_analytics' => ['name'=>'LinkedIn member analytics','provider'=>'linkedin','scopes'=>['openid','profile','r_member_postAnalytics'],'description'=>'Separate approved analytics product and member consent. Read aggregate post impressions, reach and reactions; this does not grant publishing permission.'],

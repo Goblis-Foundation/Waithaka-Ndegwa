@@ -297,6 +297,7 @@ try {
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'studio_unit.php' => 'Private capture and explicit AI drafting boundaries',
+                  'instagram_engagement_unit.php' => 'Instagram engagement ownership and private read boundaries',
                   'media_centre_unit.php' => 'Social reporting privacy, input and identity boundaries',
                   'newsletter_unit.php'=>'Pure newsletter policy','youtube_test.php'=>'Pure YouTube policy','tiktok_test.php'=>'Pure TikTok permissions and reporting',
                   'tiktok_business_test.php'=>'Pure TikTok Accounts API publishing policy',
