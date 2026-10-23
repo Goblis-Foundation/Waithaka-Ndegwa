@@ -1,5 +1,5 @@
 <main class="write-main writer-dashboard">
-  <div class="writer-head writer-head-rich"><div><span class="writer-kicker">Private publishing desk</span><h1>My Thoughts</h1><div class="muted">One place to capture, refine, schedule and publish long-form work.</div></div><div class="writer-actions"><a class="wbtn" href="<?=url('/my-thoughts')?>" target="_blank">View archive ↗</a><a class="wbtn primary" href="<?=url('/write/new')?>">+ New thought</a></div></div>
+  <div class="writer-head writer-head-rich"><div><span class="writer-kicker">Private publishing desk</span><h1>My Thoughts</h1><div class="muted">One place to capture, refine, schedule and publish long-form work.</div></div><div class="writer-actions"><a class="wbtn" href="<?=url('/write/studio')?>">Studio · capture & AI</a><a class="wbtn" href="<?=url('/my-thoughts')?>" target="_blank">View archive ↗</a><a class="wbtn primary" href="<?=url('/write/new')?>">+ New thought</a></div></div>
   <?php foreach(flashes() as $f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
 
   <section class="dashboard-grid writer-stats" aria-label="Publishing overview">

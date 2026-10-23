@@ -1,16 +1,22 @@
 <section class="section impact-section" id="goals-2030" aria-labelledby="goals-title">
   <div class="container">
     <div class="section-heading"><div><span class="eyebrow">My commitments · 1 July 2026–30 June 2030</span><h2 id="goals-title">Building opportunity. Accountable to results.</h2></div><p>Three connected ambitions: build enterprises, strengthen social entrepreneurship and open access to markets.</p></div>
-    <nav class="impact-organisations" aria-label="Visit the organisations behind my 2030 goals">
-      <?php foreach(impact_organisations() as$org):?>
-      <a class="impact-organisation" href="<?=e($org['url'])?>" target="_blank" rel="noopener noreferrer" aria-label="<?=e('Visit '.$org['name'].' website (opens in a new tab)')?>">
-        <span class="impact-organisation-logo"><img src="<?=asset('images/organisations/'.$org['logo'])?>" alt="<?=e($org['name'].' logo')?>" width="240" height="80" loading="lazy" decoding="async"></span>
-        <strong><?=e($org['name'])?></strong><span><?=e($org['domain'])?> <b aria-hidden="true">↗</b></span><small>Visit website · opens in a new tab</small>
-      </a>
-      <?php endforeach;?>
-    </nav>
-    <div class="impact-grid">
-      <?php foreach(impact_metrics() as$key=>$metric):$report=impact_display(impact_snapshot($metric['source']),$key);?>
+    <div class="impact-groups">
+    <?php $organisations=impact_organisations();foreach([
+      ['org'=>0,'keys'=>['startups','permanent_staff']],
+      ['org'=>1,'keys'=>['social_enterprises']],
+      ['org'=>3,'keys'=>['market_access']]
+    ] as$group):$org=$organisations[$group['org']];?>
+      <section class="impact-group" aria-label="<?=e($org['name'])?> goals">
+        <a class="impact-organisation" href="<?=e($org['url'])?>" target="_blank" rel="noopener noreferrer" aria-label="<?=e('Visit '.$org['name'].' website (opens in a new tab)')?>">
+          <span class="impact-organisation-logo"><img src="<?=asset('images/organisations/'.$org['logo'])?>" alt="<?=e($org['name'].' logo')?>" width="240" height="160" loading="lazy" decoding="async"></span>
+          <h3><?=e($org['name'])?></h3><span><?=e($org['domain'])?> ↗</span><small>Visit website · opens in a new tab</small>
+        </a>
+        <?php if($group['org']===3):$project=$organisations[2];?>
+        <a class="impact-project" href="<?=e($project['url'])?>" target="_blank" rel="noopener noreferrer"><img src="<?=asset('images/organisations/'.$project['logo'])?>" alt="AfriTrace Link logo" width="180" height="60" loading="lazy"><span><strong>AfriTrace Link</strong><small>A project of Goblis Foundation</small><small>afritracelink.com ↗ · opens in a new tab</small></span></a>
+        <?php endif;?>
+        <div class="impact-group-metrics">
+        <?php foreach($group['keys'] as$key):$metric=impact_metrics()[$key];$report=impact_display(impact_snapshot($metric['source']),$key);?>
       <article class="impact-card">
         <span class="eyebrow"><?=e(impact_sources()[$metric['source']])?></span>
         <p class="impact-target"><?=number_format($metric['target'])?><small>Target by June 2030</small></p>
@@ -18,7 +24,10 @@
         <div class="impact-reported"><span><?=e($report['status'])?></span><strong><?=$report['value']===null?'—':number_format($report['value'])?></strong>
         <?php if($report['as_of']):?><small>Reported as of <time datetime="<?=e($report['as_of'])?>"><?=e(date('j M Y',strtotime($report['as_of'])))?></time></small><?php else:?><small>Progress will appear when the source system supplies an approved report.</small><?php endif;?></div>
       </article>
-      <?php endforeach;?>
+        <?php endforeach;?>
+        </div>
+      </section>
+    <?php endforeach;?>
     </div>
     <p class="impact-context">These are my goals, not a claim of results already achieved. Progress comes from the organisations’ reporting systems. Missing data is shown as unavailable, rather than zero. These figures describe shared work with teams and partners, not outcomes attributable to me alone.</p>
     <details class="impact-method"><summary>How progress will be counted</summary>

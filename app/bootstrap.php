@@ -25,6 +25,7 @@ date_default_timezone_set((string)($CONFIG['timezone']??'Africa/Nairobi'));
 require_once __DIR__.'/functions.php';
 require_once __DIR__.'/impact.php';
 require_once __DIR__.'/writer_account.php';
+require_once __DIR__.'/studio.php';
 require_once __DIR__.'/analytics.php';
 if (is_file(__DIR__.'/../vendor/autoload.php')) require_once __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/operations.php';

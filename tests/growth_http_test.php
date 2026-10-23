@@ -65,9 +65,21 @@ try{
     db()->exec("UPDATE settings SET setting_value='' WHERE setting_key='google.ga4'");growth_check(!str_contains(growth_request('/')['body'],'googletagmanager.com'),'A blank setting has no fallback tag.');
     db()->exec("UPDATE settings SET setting_value='G-RN0YXC2WCH' WHERE setting_key='google.ga4'");db()->exec("UPDATE settings SET setting_value='0' WHERE setting_key='google.analytics_enabled'");growth_check(!str_contains(growth_request('/')['body'],'googletagmanager.com'),'The explicit off switch disables the shared tag.');
     $r=growth_request('/write/account');growth_check($r['status']===302,'Account controls require authentication.');
+    foreach(['/write/studio','/write/capture','/write/assist']as$privateRoute){$r=growth_request($privateRoute);growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Studio endpoints require authentication: '.$privateRoute);}
     $r=growth_request('/write/impact');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Reporting connections require Writer authentication.');
     $r=growth_request('/write/campaigns');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Campaigns require Writer authentication.');
     $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check($r['status']===302,'The synthetic Writer can authenticate.');
+    $studio=growth_request('/write/studio');growth_check($studio['status']===200&&str_contains($studio['headers']['cache-control']??'','no-store')&&!str_contains($studio['body'],'googletagmanager.com'),'Studio is private and excludes analytics.');
+    $studioCsrf=growth_csrf($studio);
+    $r=growth_request('/write/capture',['csrf'=>'invalid','idea'=>'A private idea']);growth_check($r['status']===419,'Capture requires CSRF.');
+    $r=growth_request('/write/capture',['csrf'=>$studioCsrf,'title'=>$prefix.' idea','idea'=>"PRIVATE_CAPTURE <script>alert(1)</script>\nA second observation."]);growth_check($r['status']===302&&preg_match('~/write/edit/(\d+)$~',$r['headers']['location']??'',$captureMatch)===1,'Capture creates a real saved draft.');
+    $capturedId=(int)$captureMatch[1];$captured=writer_post_by_id($capturedId);growth_check($captured['status']==='draft'&&str_contains($captured['content_html'],'&lt;script&gt;'),'Captured text is escaped and remains private.');
+    $public=growth_request('/my-thoughts');growth_check(!str_contains($public['body'],'PRIVATE_CAPTURE'),'Captured ideas never appear in public archive.');
+    $r=growth_request('/write/assist',['csrf'=>$studioCsrf,'selected_text'=>'Test notes','mode'=>'outline']);growth_check($r['status']===200&&str_contains($r['body'],'Confirm that this selected text'),'AI requires explicit request consent.');
+    $r=growth_request('/write/assist',['csrf'=>$studioCsrf,'selected_text'=>'Test notes','mode'=>'outline','ai_consent'=>'1']);growth_check($r['status']===200&&str_contains($r['body'],'AI is not configured'),'Missing API configuration produces honest recoverable feedback.');
+    db()->prepare('DELETE FROM posts WHERE id=?')->execute([$capturedId]);
+    $r=growth_request('/media-centre');growth_check($r['status']===200&&str_contains($r['body'],'Short biography')&&str_contains($r['body'],'Official social channels'),'Public media centre renders useful content.');
+    growth_check(in_array($base.'/media-centre',$locations,true),'Media centre is included in sitemap.');
     $r=growth_request('/write/impact');growth_check($r['status']===200&&str_contains($r['headers']['cache-control']??'','no-store')&&str_contains($r['headers']['x-robots-tag']??'','noindex')&&!str_contains($r['body'],'googletagmanager.com'),'Reporting controls are private and render without analytics.');
     $impactCsrf=growth_csrf($r);
     $r=growth_request('/write/impact',['action'=>'save','csrf'=>'invalid']);growth_check($r['status']===419,'Reporting writes require CSRF.');
@@ -76,7 +88,7 @@ try{
     foreach(['/','/about'] as $goalRoute){$r=growth_request($goalRoute);growth_check($r['status']===200&&str_contains($r['body'],'goals-2030')&&str_contains($r['body'],'30,000')&&str_contains($r['body'],'2,030')&&str_contains($r['body'],'Awaiting source data'),'Goals distinguish targets and unavailable progress: '.$goalRoute);}
     foreach(['/','/about'] as $logoRoute){
         $r=growth_request($logoRoute);$document=new DOMDocument();@$document->loadHTML($r['body']);$xpath=new DOMXPath($document);
-        foreach(impact_organisations()as$org){$nodes=$xpath->query('//nav[contains(@class,"impact-organisations")]/a[@href="'.$org['url'].'"]');growth_check($nodes->length===1,'Each organisation has one website link under the introduction.');$node=$nodes->item(0);growth_check($node->getAttribute('target')==='_blank'&&str_contains($node->getAttribute('rel'),'noopener')&&$node->getElementsByTagName('img')->length===1,'Organisation logo links open a new tab safely.');}
+        foreach(impact_organisations()as$org){$nodes=$xpath->query('//div[contains(@class,"impact-groups")]//a[@href="'.$org['url'].'"]');growth_check($nodes->length===1,'Each organisation has one website link under the introduction.');$node=$nodes->item(0);growth_check($node->getAttribute('target')==='_blank'&&str_contains($node->getAttribute('rel'),'noopener')&&$node->getElementsByTagName('img')->length===1,'Organisation logo links open a new tab safely.');}
     }
     $r=growth_request('/');growth_check(str_contains($r['body'],'Writer sign in')&&str_contains($r['body'],'/write/login'),'Public footer makes the Writer login discoverable.');
     $r=growth_request('/write/campaigns/'.$post);growth_check($r['status']===200&&str_contains($r['headers']['cache-control']??'','no-store')&&!str_contains($r['body'],'googletagmanager.com'),'Campaign plans render privately without analytics.');$csrf=growth_csrf($r);

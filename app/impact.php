@@ -7,7 +7,7 @@ function impact_sources(): array {
 }
 function impact_organisations(): array {
     return [
-        ['name'=>'Goblis Group','url'=>'https://www.goblisgroup.com/','domain'=>'goblisgroup.com','logo'=>'goblis-group.svg'],
+        ['name'=>'Goblis Group','url'=>'https://www.goblisgroup.com/','domain'=>'goblisgroup.com','logo'=>'goblis-group-approved.png'],
         ['name'=>'Ubunifu Institute','url'=>'https://www.ubunifuinstitute.com/','domain'=>'ubunifuinstitute.com','logo'=>'ubunifu.svg'],
         ['name'=>'AfriTrace Link','url'=>'https://www.afritracelink.com/','domain'=>'afritracelink.com','logo'=>'afritrace.png'],
         ['name'=>'Goblis Foundation','url'=>'https://www.goblisfoundation.org/','domain'=>'goblisfoundation.org','logo'=>'goblis-foundation.png'],

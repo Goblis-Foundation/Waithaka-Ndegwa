@@ -20,12 +20,12 @@ function openai_text(string $instructions,string $input,int $maxTokens=700): ?st
     $model=trim((string)setting('openai.model','gpt-5.4-mini')) ?: 'gpt-5.4-mini';
     try{
         $r=http_json('POST','https://api.openai.com/v1/responses',['Authorization: Bearer '.$key],[
-            'model'=>$model,'instructions'=>$instructions,'input'=>$input,'max_output_tokens'=>$maxTokens
+            'model'=>$model,'instructions'=>$instructions,'input'=>$input,'store'=>false,'max_output_tokens'=>$maxTokens
         ],30);
         if(!empty($r['output_text']))return trim((string)$r['output_text']);
         $out='';foreach(($r['output']??[]) as $item){foreach(($item['content']??[]) as $c){if(isset($c['text']))$out.=$c['text'];}}
         return trim($out)?:null;
-    }catch(Throwable $e){error_log('OpenAI: '.$e->getMessage());return null;}
+    }catch(Throwable $e){error_log('OpenAI request failed: '.get_class($e));return null;}
 }
 
 function auto_editorial_metadata(string $title,string $standfirst,string $html,string $category): array {

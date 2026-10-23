@@ -7,7 +7,7 @@ if (!installed()) {
 }
 
 $path = path_only();
-if (impact_writer_route($path) || writer_account_route($path)) exit;
+if (impact_writer_route($path) || writer_account_route($path) || studio_dispatch($path)) exit;
 if (str_starts_with($path,'/write') || str_starts_with($path,'/consent/') || str_starts_with($path,'/payments/')) private_response_headers();
 // Optional modules may handle additional routes without changing legacy URLs.
 if (function_exists('app_extension_route') && app_extension_route($path)) exit;
@@ -391,7 +391,7 @@ if ($path === '/feed.xml') {
 }
 
 if ($path === '/sitemap.xml') {
-    header('Content-Type: application/xml; charset=utf-8');$posts=latest_posts(5000);$cats=categories();$static=['/','/my-thoughts','/about','/contact','/contribute','/privacy','/cookies','/legal','/terms','/contribution-terms','/editorial-independence'];
+    header('Content-Type: application/xml; charset=utf-8');$posts=latest_posts(5000);$cats=categories();$static=['/','/media-centre','/my-thoughts','/about','/contact','/contribute','/privacy','/cookies','/legal','/terms','/contribution-terms','/editorial-independence'];
     $entries=[];
     foreach($static as $s)$entries[]=['loc'=>url($s)];
     foreach($cats as $c)$entries[]=['loc'=>url('/topic/'.$c['slug'])];

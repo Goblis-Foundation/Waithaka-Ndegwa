@@ -98,7 +98,7 @@ function discovery_search(string $query,int $page=1,string $type='all',int $perP
 }
 
 function discovery_public_path(string $path): bool {
-    return in_array($path,['/','/about','/my-thoughts','/startup-journeys','/founders','/start-here','/resources','/watch'],true)
+    return in_array($path,['/','/about','/media-centre','/my-thoughts','/startup-journeys','/founders','/start-here','/resources','/watch'],true)
         || preg_match('~\A/(?:my-thoughts|startup-journeys|resources|watch)/[a-z0-9][a-z0-9_-]{0,259}\z~',$path)===1;
 }
 
@@ -140,11 +140,11 @@ function discovery_sync_public_urls_locked(): array {
             $collectionHashes['/'][$canonical]=$hash;
             if($document['type']==='founder')$collectionHashes['/founders'][$canonical]=$hash;
         }
-        $collections=['/','/about','/my-thoughts','/startup-journeys','/founders'];
+        $collections=['/','/about','/media-centre','/my-thoughts','/startup-journeys','/founders'];
         if(function_exists('editorial_search_documents'))$collections=array_merge($collections,['/start-here','/resources','/watch']);
         foreach($collections as $path) {
             $hashes=$collectionHashes[$path]??[];ksort($hashes,SORT_STRING);
-            $files=match($path){'/'=>['home.php'],'/about'=>['about.php'],'/my-thoughts'=>['writing.php'],'/founders'=>['founders/index.php'],'/startup-journeys'=>['journeys/index.php'],'/start-here'=>['editorial/start.php'],'/resources','/watch'=>['editorial/collection.php'],default=>[]};
+            $files=match($path){'/'=>['home.php'],'/about'=>['about.php'],'/media-centre'=>['media_centre.php'],'/my-thoughts'=>['writing.php'],'/founders'=>['founders/index.php'],'/startup-journeys'=>['journeys/index.php'],'/start-here'=>['editorial/start.php'],'/resources','/watch'=>['editorial/collection.php'],default=>[]};
             foreach($files as $file){$full=dirname(__DIR__).'/views/'.$file;if(is_file($full))$hashes['view:'.$file]=hash_file('sha256',$full);}
             discovery_reconcile_url(url($path),'collection:'.$path,hash('sha256',json_encode($hashes,JSON_THROW_ON_ERROR)),$run,$stats);
         }

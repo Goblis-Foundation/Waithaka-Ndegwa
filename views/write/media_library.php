@@ -4,7 +4,7 @@
 <?php if($error):?><div role="alert" class="notice error"><?=e($error)?></div><?php endif;?>
 <?php foreach(flashes()as$message):?><div role="status" class="notice <?=e($message['type'])?>"><?=e($message['message'])?></div><?php endforeach;?>
 <section class="wk-media-upload" aria-labelledby="upload-heading">
-<h2 id="upload-heading">Upload an asset</h2>
+<h2 id="upload-heading">Upload an asset</h2><p>On a phone, choose File to select existing media or take a photograph if your device offers it. Confirm permission before uploading. Keep the page open until the upload finishes.</p>
 <form method="post" enctype="multipart/form-data">
 <?=csrf_field()?>
 <label>Title<input name="title" maxlength="240" required value="<?=e(is_string($_POST['title']??null)?$_POST['title']:'')?>" placeholder="Week 01 — testing the problem"></label>
@@ -15,10 +15,10 @@
 <button class="btn" type="submit">Upload media</button>
 </form>
 </section>
-<section aria-labelledby="assets-heading"><h2 id="assets-heading">Your assets</h2>
+<section aria-labelledby="assets-heading"><h2 id="assets-heading">Your assets</h2><label>Find media<input type="search" data-media-search placeholder="Search title, type or access" aria-label="Find media"></label><p data-media-search-status role="status"></p>
 <?php if(!$assets):?><div class="wk-media-empty"><h3>Your media library is ready.</h3><p>Upload the first image or video for your Startup Journey. Private media stays accessible through Writer until you approve a platform upload.</p></div>
 <?php else:?><div class="wk-media-grid">
-<?php foreach($assets as$item):?><article class="wk-media-card">
+<?php foreach($assets as$item):?><article class="wk-media-card" data-media-card data-search="<?=e(mb_strtolower($item['title'].' '.$item['kind'].' '.$item['visibility']))?>">
 <?php if($item['kind']==='image'):?><img src="<?=url('/write/media/'.$item['id'].'/preview')?>" loading="lazy" alt=""><?php else:?><div class="wk-media-video" aria-hidden="true">Video</div><?php endif;?>
 <div><p class="wk-media-meta"><?=e(ucfirst($item['visibility']))?> · <?=e(media_library_bytes((int)$item['bytes']))?> · <?=e(ucfirst($item['status']))?></p><h3><a href="<?=url('/write/media/'.$item['id'])?>"><?=e($item['title'])?></a></h3><p class="muted"><?=e($item['mime'])?></p></div>
 </article><?php endforeach;?></div><?php endif;?>
