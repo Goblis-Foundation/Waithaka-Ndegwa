@@ -1,0 +1,1307 @@
+{
+  "checked_on": "2026-10-23",
+  "timezone": "Africa/Nairobi",
+  "method": "Purposive 100-reference first-party public-text screen; not a traffic ranking, conversion study or 100-site visual/mobile audit.",
+  "references": [
+    {
+      "id": 1,
+      "group": "Africa",
+      "name": "Nthanda Manduwi",
+      "url": "https://nthanda.com/",
+      "evidence": {
+        "ref": "turn38view0",
+        "source": "https://nthanda.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Portfolio taxonomy, writing, press and venture routes; simplify rather than reproduce the large menu."
+    },
+    {
+      "id": 2,
+      "group": "Africa",
+      "name": "Adaora Mbelu",
+      "url": "https://adaorambelu.com/",
+      "evidence": {
+        "ref": "turn38view1",
+        "source": "https://adaorambelu.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Mission-led biography and featured-in area; pair identity with a specific next step."
+    },
+    {
+      "id": 3,
+      "group": "Africa",
+      "name": "Geraldine Kyazze",
+      "url": "https://geraldinekyazze.com/",
+      "evidence": {
+        "ref": "turn38view2",
+        "source": "https://geraldinekyazze.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Projects, speaking, blog and work-with-me routes; distinguish collaboration from reading."
+    },
+    {
+      "id": 4,
+      "group": "Africa",
+      "name": "Phanice of Africa",
+      "url": "https://www.phanice.africa/",
+      "evidence": {
+        "ref": "turn38view3",
+        "source": "https://www.phanice.africa/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Publication cards label forthcoming work; distinguish planned material from available content."
+    },
+    {
+      "id": 5,
+      "group": "Africa",
+      "name": "Brook Abebe",
+      "url": "https://brookabebe.com/",
+      "evidence": {
+        "ref": "turn52search0",
+        "source": "https://brookabebe.com/about/",
+        "status": "Indexed first-party text; live fetch failed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Indexed biography connects African systems thinking with essays and practical projects; current layout unverified."
+    },
+    {
+      "id": 6,
+      "group": "Africa",
+      "name": "Misi Africa",
+      "url": "https://www.misiafrica.com/",
+      "evidence": {
+        "ref": "turn38view5",
+        "source": "https://www.misiafrica.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Story, journal, portfolio and subscription; make the personal-to-enterprise relationship legible."
+    },
+    {
+      "id": 7,
+      "group": "Africa",
+      "name": "Faith Olaniyi",
+      "url": "https://faitholaniyi.com/",
+      "evidence": {
+        "ref": "turn38view6",
+        "source": "https://faitholaniyi.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Selected work, speaking and speaker-kit links; create purpose-specific enquiry paths."
+    },
+    {
+      "id": 8,
+      "group": "Africa",
+      "name": "Erick Matsanza / Spice Without Borders",
+      "url": "https://www.spicewithoutborders.org/about/erick-inghatt-matsanza/",
+      "evidence": {
+        "ref": "turn38view7",
+        "source": "https://www.spicewithoutborders.org/about/erick-inghatt-matsanza/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Practitioner profile sits within a larger ecosystem; keep personal and institutional destinations distinct."
+    },
+    {
+      "id": 9,
+      "group": "Africa",
+      "name": "Patrice Habinshuti",
+      "url": "https://habpat.weebly.com/",
+      "evidence": {
+        "ref": "turn38view8",
+        "source": "https://habpat.weebly.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "CV-like taxonomy demonstrates completeness; avoid making readers navigate an entire résumé."
+    },
+    {
+      "id": 10,
+      "group": "Africa",
+      "name": "Olamidotun Votu-Obada",
+      "url": "https://www.olamidotunvo.com/",
+      "evidence": {
+        "ref": "turn38view9",
+        "source": "https://www.olamidotunvo.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Speaking, podcast, books and social routes; label content format before the click."
+    },
+    {
+      "id": 11,
+      "group": "Africa",
+      "name": "Vusi Thembekwayo",
+      "url": "https://vusithembekwayo.com/",
+      "evidence": {
+        "ref": "turn39view0",
+        "source": "https://vusithembekwayo.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Role-based biography, press room and booking; borrow clarity, not promotional superlatives."
+    },
+    {
+      "id": 12,
+      "group": "Africa",
+      "name": "Tony Elumelu",
+      "url": "https://www.tonyelumelu.com/",
+      "evidence": {
+        "ref": "turn37search3",
+        "source": "https://www.tonyelumelu.com/",
+        "status": "Indexed first-party homepage; live fetch timed out"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Indexed homepage separates video, library and personal interests; current rendered layout not verified."
+    },
+    {
+      "id": 13,
+      "group": "Africa",
+      "name": "Dambisa Moyo",
+      "url": "https://dambisamoyo.com/",
+      "evidence": {
+        "ref": "turn39view2",
+        "source": "https://dambisamoyo.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Speaking, books, news and press-kit links; provide a concise professional information route."
+    },
+    {
+      "id": 14,
+      "group": "Africa",
+      "name": "Innovation Village",
+      "url": "https://innovationvillage.co.ug/",
+      "evidence": {
+        "ref": "turn39view3",
+        "source": "https://innovationvillage.co.ug/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Empower, build and finance missions; explain the pathway from capability to opportunity."
+    },
+    {
+      "id": 15,
+      "group": "Africa",
+      "name": "iHub",
+      "url": "https://ihub.co.ke/",
+      "evidence": {
+        "ref": "turn39view4",
+        "source": "https://ihub.co.ke/",
+        "status": "Partial first-party extraction includes verification prompt"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Programmes, resources and events; partial extraction, not a completed visual assessment."
+    },
+    {
+      "id": 16,
+      "group": "Africa",
+      "name": "CcHUB",
+      "url": "https://cchub.africa/",
+      "evidence": {
+        "ref": "turn39view5",
+        "source": "https://cchub.africa/",
+        "status": "Partial first-party extraction includes verification prompt"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Focus areas, startups and innovation support; partial extraction includes a verification prompt."
+    },
+    {
+      "id": 17,
+      "group": "Africa",
+      "name": "ALX Africa",
+      "url": "https://www.alxafrica.com/",
+      "evidence": {
+        "ref": "turn39view6",
+        "source": "https://www.alxafrica.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Track-based learning routes and learner stories; useful audience segmentation, not a personal-site LMS."
+    },
+    {
+      "id": 18,
+      "group": "Africa",
+      "name": "Mo Ibrahim Foundation",
+      "url": "https://mo.ibrahim.foundation/",
+      "evidence": {
+        "ref": "turn39view7",
+        "source": "https://mo.ibrahim.foundation/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Research and data portals sit beside news; distinguish evidence from commentary."
+    },
+    {
+      "id": 19,
+      "group": "Africa",
+      "name": "Tony Elumelu Foundation",
+      "url": "https://www.tonyelumelufoundation.org/",
+      "evidence": {
+        "ref": "turn39view8",
+        "source": "https://www.tonyelumelufoundation.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Impact reports, financials and beneficiary stories have distinct routes; do not copy its country-count convention."
+    },
+    {
+      "id": 20,
+      "group": "Africa",
+      "name": "SHOFCO",
+      "url": "https://www.shofco.org/",
+      "evidence": {
+        "ref": "turn39view9",
+        "source": "https://www.shofco.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Impact measurement and stories have separate destinations; connect reported outcomes to method."
+    },
+    {
+      "id": 21,
+      "group": "Author-builders",
+      "name": "Seth Godin",
+      "url": "https://www.sethgodin.com/",
+      "evidence": {
+        "ref": "turn36search0",
+        "source": "https://www.sethgodin.com/",
+        "status": "Indexed first-party homepage; open returned no text"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Indexed homepage prioritises writing, books and speaking; no usable open-page text returned."
+    },
+    {
+      "id": 22,
+      "group": "Author-builders",
+      "name": "James Clear",
+      "url": "https://jamesclear.com/",
+      "evidence": {
+        "ref": "turn41view1",
+        "source": "https://jamesclear.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Articles grouped by subject and a named newsletter; create guided entry to a growing archive."
+    },
+    {
+      "id": 23,
+      "group": "Author-builders",
+      "name": "Simon Sinek",
+      "url": "https://simonsinek.com/",
+      "evidence": {
+        "ref": "turn41view2",
+        "source": "https://simonsinek.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Audience routes for individuals, businesses and coaches; adapt only reader-relevant segmentation."
+    },
+    {
+      "id": 24,
+      "group": "Author-builders",
+      "name": "Brené Brown",
+      "url": "https://brenebrown.com/",
+      "evidence": {
+        "ref": "turn41view3",
+        "source": "https://brenebrown.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Books and podcasts use clear format groupings; avoid mixing all media in one undifferentiated feed."
+    },
+    {
+      "id": 25,
+      "group": "Author-builders",
+      "name": "Adam Grant",
+      "url": "https://adamgrant.net/",
+      "evidence": {
+        "ref": "turn41view4",
+        "source": "https://adamgrant.net/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Writing, speaking, books and press destinations; show the reason for each professional link."
+    },
+    {
+      "id": 26,
+      "group": "Author-builders",
+      "name": "Daniel Pink",
+      "url": "https://www.danpink.com/",
+      "evidence": {
+        "ref": "turn41view5",
+        "source": "https://www.danpink.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Newsletter, speaking and press enquiries are distinct; route each enquiry to the correct purpose."
+    },
+    {
+      "id": 27,
+      "group": "Author-builders",
+      "name": "Susan Cain",
+      "url": "https://susancain.net/",
+      "evidence": {
+        "ref": "turn41view6",
+        "source": "https://susancain.net/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Biography, media kit, articles and community links; keep credibility assets easy to find."
+    },
+    {
+      "id": 28,
+      "group": "Author-builders",
+      "name": "Angela Duckworth",
+      "url": "https://angeladuckworth.com/",
+      "evidence": {
+        "ref": "turn41view7",
+        "source": "https://angeladuckworth.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Research, publications, measures and worksheets; link a practical tool to its intellectual basis."
+    },
+    {
+      "id": 29,
+      "group": "Author-builders",
+      "name": "Ryan Holiday",
+      "url": "https://ryanholiday.net/",
+      "evidence": {
+        "ref": "turn41view8",
+        "source": "https://ryanholiday.net/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Best articles, archive and reading list; offer an editor-selected route as well as chronology."
+    },
+    {
+      "id": 30,
+      "group": "Author-builders",
+      "name": "Cal Newport",
+      "url": "https://calnewport.com/",
+      "evidence": {
+        "ref": "turn41view9",
+        "source": "https://calnewport.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Scholarship and writing are separate from press; make evidence and public interpretation distinguishable."
+    },
+    {
+      "id": 31,
+      "group": "Author-builders",
+      "name": "Oliver Burkeman",
+      "url": "https://www.oliverburkeman.com/",
+      "evidence": {
+        "ref": "turn42view0",
+        "source": "https://www.oliverburkeman.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "A named twice-monthly newsletter communicates a concrete promise; publish only a cadence you can sustain."
+    },
+    {
+      "id": 32,
+      "group": "Author-builders",
+      "name": "Austin Kleon",
+      "url": "https://austinkleon.com/",
+      "evidence": {
+        "ref": "turn42view1",
+        "source": "https://austinkleon.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Blog-first navigation and stable permalinks; let original writing remain the durable record."
+    },
+    {
+      "id": 33,
+      "group": "Author-builders",
+      "name": "Derek Sivers",
+      "url": "https://sive.rs/",
+      "evidence": {
+        "ref": "turn42view2",
+        "source": "https://sive.rs/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "About, now, articles and contact have concise routes; make current focus easy to understand."
+    },
+    {
+      "id": 34,
+      "group": "Author-builders",
+      "name": "Paul Graham",
+      "url": "https://paulgraham.com/",
+      "evidence": {
+        "ref": "turn53view1",
+        "source": "https://paulgraham.com/articles.html",
+        "status": "First-party archive reviewed; sparse homepage"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "The archive suggests a few starting articles; curatorship can reduce choice overload."
+    },
+    {
+      "id": 35,
+      "group": "Author-builders",
+      "name": "Jason Fried",
+      "url": "https://world.hey.com/jason",
+      "evidence": {
+        "ref": "turn49view0",
+        "source": "https://world.hey.com/jason",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Simple dated posts, email subscription and RSS; useful publishing does not require heavy interaction."
+    },
+    {
+      "id": 36,
+      "group": "Author-builders",
+      "name": "David Heinemeier Hansson",
+      "url": "https://dhh.dk/",
+      "evidence": {
+        "ref": "turn42view5",
+        "source": "https://dhh.dk/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Personal roles link to distinct work and social destinations; describe each relationship accurately."
+    },
+    {
+      "id": 37,
+      "group": "Author-builders",
+      "name": "Chris Guillebeau",
+      "url": "https://chrisguillebeau.com/",
+      "evidence": {
+        "ref": "turn42view6",
+        "source": "https://chrisguillebeau.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Blog, search, books and speaking; search should complement rather than replace clear organisation."
+    },
+    {
+      "id": 38,
+      "group": "Author-builders",
+      "name": "Ness Labs / Anne-Laure Le Cunff",
+      "url": "https://nesslabs.com/",
+      "evidence": {
+        "ref": "turn42view7",
+        "source": "https://nesslabs.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Best, popular and latest article routes; editorial selection differs from chronological freshness."
+    },
+    {
+      "id": 39,
+      "group": "Author-builders",
+      "name": "Forte Labs / Tiago Forte",
+      "url": "https://fortelabs.com/",
+      "evidence": {
+        "ref": "turn42view8",
+        "source": "https://fortelabs.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Start Here and free-resource routes; explain a reader pathway before offering many tools."
+    },
+    {
+      "id": 40,
+      "group": "Author-builders",
+      "name": "Ali Abdaal",
+      "url": "https://aliabdaal.com/",
+      "evidence": {
+        "ref": "turn42view9",
+        "source": "https://aliabdaal.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Format and subject routes coexist; avoid turning every subject into a main-menu item."
+    },
+    {
+      "id": 41,
+      "group": "Systems and social change",
+      "name": "Jacqueline Novogratz / Acumen",
+      "url": "https://acumen.org/jacqueline-novogratz/",
+      "evidence": {
+        "ref": "turn43view0",
+        "source": "https://acumen.org/jacqueline-novogratz/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Founder profile connects biography with institutional knowledge; maintain the personal/organisation boundary."
+    },
+    {
+      "id": 42,
+      "group": "Systems and social change",
+      "name": "Yunus Centre",
+      "url": "https://www.muhammadyunus.org/",
+      "evidence": {
+        "ref": "turn43view1",
+        "source": "https://www.muhammadyunus.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Social-business information and participation routes; explain concepts before asking readers to engage."
+    },
+    {
+      "id": 43,
+      "group": "Systems and social change",
+      "name": "Kate Raworth",
+      "url": "https://www.kateraworth.com/",
+      "evidence": {
+        "ref": "turn43view2",
+        "source": "https://www.kateraworth.com/",
+        "status": "Sparse first-party homepage text"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Book-focused homepage with limited extracted text; no detailed card-layout conclusion."
+    },
+    {
+      "id": 44,
+      "group": "Systems and social change",
+      "name": "Mariana Mazzucato",
+      "url": "https://marianamazzucato.com/",
+      "evidence": {
+        "ref": "turn43view3",
+        "source": "https://marianamazzucato.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Reports and events appear as distinct content types; show document provenance and event dates."
+    },
+    {
+      "id": 45,
+      "group": "Systems and social change",
+      "name": "Rutger Bregman",
+      "url": "https://rutgerbregman.com/",
+      "evidence": {
+        "ref": "turn43view4",
+        "source": "https://rutgerbregman.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Books, videos and movement links have separate roles; connect an idea to an action carefully."
+    },
+    {
+      "id": 46,
+      "group": "Systems and social change",
+      "name": "Roman Krznaric",
+      "url": "https://www.romankrznaric.com/",
+      "evidence": {
+        "ref": "turn43view5",
+        "source": "https://www.romankrznaric.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Lean book-and-talk homepage; a small set of strong destinations can be sufficient."
+    },
+    {
+      "id": 47,
+      "group": "Systems and social change",
+      "name": "Hilary Cottam",
+      "url": "https://www.hilarycottam.com/",
+      "evidence": {
+        "ref": "turn43view6",
+        "source": "https://www.hilarycottam.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Practice, books and blog are distinct; show how ideas become real-world methods."
+    },
+    {
+      "id": 48,
+      "group": "Systems and social change",
+      "name": "Geoff Mulgan",
+      "url": "https://www.geoffmulgan.com/",
+      "evidence": {
+        "ref": "turn43view7",
+        "source": "https://www.geoffmulgan.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Reports, media and academic references; make the evidence trail accessible."
+    },
+    {
+      "id": 49,
+      "group": "Systems and social change",
+      "name": "Otto Scharmer",
+      "url": "https://www.ottoscharmer.com/",
+      "evidence": {
+        "ref": "turn51search0",
+        "source": "https://ottoscharmer.com/wp-content/uploads/2023/09/2015-The-Success-of-u-lab-english.pdf",
+        "status": "Limited: old first-party-hosted PDF only; no current layout conclusion"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Only an old hosted PDF was retrieved; no current website structure or design recommendation is inferred."
+    },
+    {
+      "id": 50,
+      "group": "Systems and social change",
+      "name": "David Peter Stroh / Bridgeway Partners",
+      "url": "https://www.bridgewaypartners.com/",
+      "evidence": {
+        "ref": "turn53view3",
+        "source": "https://bridgewaypartners.com/resources/",
+        "status": "First-party resources page reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Books, articles, webinars and case studies form a resource library; classify resources by use."
+    },
+    {
+      "id": 51,
+      "group": "Systems and social change",
+      "name": "Presencing Institute",
+      "url": "https://www.presencing.org/",
+      "evidence": {
+        "ref": "turn40view0",
+        "source": "https://www.presencing.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Theory, resources and programmes form a learning pathway; keep the personal site lighter than an institution."
+    },
+    {
+      "id": 52,
+      "group": "Systems and social change",
+      "name": "Doughnut Economics Action Lab",
+      "url": "https://doughnuteconomics.org/",
+      "evidence": {
+        "ref": "turn40view1",
+        "source": "https://doughnuteconomics.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Tools, stories, themes and community routes; connect practical methods to examples of application."
+    },
+    {
+      "id": 53,
+      "group": "Systems and social change",
+      "name": "Ashoka",
+      "url": "https://www.ashoka.org/",
+      "evidence": {
+        "ref": "turn53view5",
+        "source": "https://www.ashoka.org/en-us/collection/changemaker-stories-youth",
+        "status": "First-party collection reviewed; root fetch failed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Changemaker story collections use thematic and regional navigation; retain contextual African detail."
+    },
+    {
+      "id": 54,
+      "group": "Systems and social change",
+      "name": "Skoll Foundation",
+      "url": "https://skoll.org/",
+      "evidence": {
+        "ref": "turn40view3",
+        "source": "https://skoll.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Awards, stories and media resources occupy distinct routes; case profiles need an identifiable subject."
+    },
+    {
+      "id": 55,
+      "group": "Systems and social change",
+      "name": "Schwab Foundation",
+      "url": "https://www.schwabfound.org/",
+      "evidence": {
+        "ref": "turn50search2",
+        "source": "https://www.schwabfound.org/",
+        "status": "Indexed first-party text; direct fetch forbidden"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Indexed award and innovation categories; direct page access blocked, no visual verdict."
+    },
+    {
+      "id": 56,
+      "group": "Systems and social change",
+      "name": "Echoing Green",
+      "url": "https://echoinggreen.org/",
+      "evidence": {
+        "ref": "turn40view5",
+        "source": "https://echoinggreen.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Fellow profiles and thinking links connect people with ideas; avoid unsupported endorsement claims."
+    },
+    {
+      "id": 57,
+      "group": "Systems and social change",
+      "name": "Ashden",
+      "url": "https://ashden.org/",
+      "evidence": {
+        "ref": "turn53view6",
+        "source": "https://ashden.org/uk-climate-solutions/",
+        "status": "First-party collection reviewed; root timed out"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "A climate-solutions collection leads to practical tools; explain who each resource is for."
+    },
+    {
+      "id": 58,
+      "group": "Systems and social change",
+      "name": "School for Social Entrepreneurs",
+      "url": "https://www.the-sse.org/",
+      "evidence": {
+        "ref": "turn40view7",
+        "source": "https://www.the-sse.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Support programmes have explicit duration and purpose; useful labels beat vague invitation cards."
+    },
+    {
+      "id": 59,
+      "group": "Systems and social change",
+      "name": "Hatch Enterprise",
+      "url": "https://hatchenterprise.org/",
+      "evidence": {
+        "ref": "turn40view8",
+        "source": "https://hatchenterprise.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Programmes and methodology are separate; explain the approach without duplicating an institutional catalogue."
+    },
+    {
+      "id": 60,
+      "group": "Systems and social change",
+      "name": "Impact Hub",
+      "url": "https://impacthub.net/",
+      "evidence": {
+        "ref": "turn40view9",
+        "source": "https://impacthub.net/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Audience-based services and impact routes; adapt the pathway, not the corporate scale."
+    },
+    {
+      "id": 61,
+      "group": "Global thinkers and practitioners",
+      "name": "Nilekani Philanthropies",
+      "url": "https://nilekaniphilanthropies.org/",
+      "evidence": {
+        "ref": "turn49view1",
+        "source": "https://nilekaniphilanthropies.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "A short collaboration directory links to separate organisations; label affiliations clearly."
+    },
+    {
+      "id": 62,
+      "group": "Global thinkers and practitioners",
+      "name": "Nithin Kamath",
+      "url": "https://nithinkamath.me/",
+      "evidence": {
+        "ref": "turn46view1",
+        "source": "https://nithinkamath.me/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "A personal homepage explicitly distinguishes founder writing from company activity."
+    },
+    {
+      "id": 63,
+      "group": "Global thinkers and practitioners",
+      "name": "David Hieatt / The DO Lectures",
+      "url": "https://thedolectures.com/speakers/david-hieatt/",
+      "evidence": {
+        "ref": "turn49view2",
+        "source": "https://thedolectures.com/speakers/david-hieatt/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "A speaker profile connects talks and learning content; identify duration and format."
+    },
+    {
+      "id": 64,
+      "group": "Global thinkers and practitioners",
+      "name": "Ford Foundation",
+      "url": "https://www.fordfoundation.org/",
+      "evidence": {
+        "ref": "turn49view3",
+        "source": "https://www.fordfoundation.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "The institutional homepage groups its mission and work; an organisation benchmark, not a personal biography."
+    },
+    {
+      "id": 65,
+      "group": "Global thinkers and practitioners",
+      "name": "Amitav Ghosh",
+      "url": "https://amitavghosh.com/",
+      "evidence": {
+        "ref": "turn46view4",
+        "source": "https://amitavghosh.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Books, news, contributions and blog have separate routes; preserve a coherent personal voice."
+    },
+    {
+      "id": 66,
+      "group": "Global thinkers and practitioners",
+      "name": "Chimamanda Ngozi Adichie",
+      "url": "https://www.chimamanda.com/",
+      "evidence": {
+        "ref": "turn46view5",
+        "source": "https://www.chimamanda.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Books and authored work have a clear central place; distinctive voice matters more than template imitation."
+    },
+    {
+      "id": 67,
+      "group": "Global thinkers and practitioners",
+      "name": "TACSI",
+      "url": "https://www.tacsi.org.au/",
+      "evidence": {
+        "ref": "turn49view4",
+        "source": "https://www.tacsi.org.au/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Work, ideas and organisational values are navigable; connect case studies to a wider method."
+    },
+    {
+      "id": 68,
+      "group": "Global thinkers and practitioners",
+      "name": "Social Traders",
+      "url": "https://www.socialtraders.com.au/",
+      "evidence": {
+        "ref": "turn49view5",
+        "source": "https://www.socialtraders.com.au/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Social procurement, reports and value measurement; separate commercial outcomes from participation counts."
+    },
+    {
+      "id": 69,
+      "group": "Global thinkers and practitioners",
+      "name": "Naomi Klein",
+      "url": "https://naomiklein.org/",
+      "evidence": {
+        "ref": "turn46view8",
+        "source": "https://naomiklein.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Current project, publications and events have distinct destinations; show whether material is published or upcoming."
+    },
+    {
+      "id": 70,
+      "group": "Global thinkers and practitioners",
+      "name": "Charles Eisenstein",
+      "url": "https://charleseisenstein.org/",
+      "evidence": {
+        "ref": "turn46view9",
+        "source": "https://charleseisenstein.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Practitioner / author-led",
+      "observation": "Writing, books, newsletter and content licensing are explicit; state permissions where reuse is offered."
+    },
+    {
+      "id": 71,
+      "group": "Global thinkers and practitioners",
+      "name": "Indy Johar / Dark Matter Labs",
+      "url": "https://darkmatterlabs.org/",
+      "evidence": {
+        "ref": "turn44view0",
+        "source": "https://darkmatterlabs.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "A conceptual taxonomy organises systems work; avoid abstract labels without plain-language explanations."
+    },
+    {
+      "id": 72,
+      "group": "Global thinkers and practitioners",
+      "name": "Anil Gupta / Honey Bee Network",
+      "url": "https://honeybee.org/",
+      "evidence": {
+        "ref": "turn51search3",
+        "source": "https://honeybee.org/scout.php",
+        "status": "Limited: indexed first-party text; direct fetch forbidden"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Only indexed scouting text was available; no current design or navigation conclusion."
+    },
+    {
+      "id": 73,
+      "group": "Global thinkers and practitioners",
+      "name": "Barefoot College International",
+      "url": "https://www.barefootcollege.org/",
+      "evidence": {
+        "ref": "turn44view2",
+        "source": "https://www.barefootcollege.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "What-we-do, news and involvement routes; keep public understanding ahead of administrative functions."
+    },
+    {
+      "id": 74,
+      "group": "Global thinkers and practitioners",
+      "name": "Selco Foundation",
+      "url": "https://selcofoundation.org/",
+      "evidence": {
+        "ref": "turn44view3",
+        "source": "https://selcofoundation.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Work is divided into livelihood sectors; use sector context to explain practical outcomes."
+    },
+    {
+      "id": 75,
+      "group": "Global thinkers and practitioners",
+      "name": "BRAC",
+      "url": "https://www.brac.net/",
+      "evidence": {
+        "ref": "turn44view4",
+        "source": "https://www.brac.net/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "History and country/entity routes distinguish institutional roles; do not transplant an organisational mega-menu."
+    },
+    {
+      "id": 76,
+      "group": "Global thinkers and practitioners",
+      "name": "Aravind Eye Care",
+      "url": "https://aravind.org/",
+      "evidence": {
+        "ref": "turn44view5",
+        "source": "https://aravind.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Service, training and research routes reflect different needs; do not copy healthcare intake flows."
+    },
+    {
+      "id": 77,
+      "group": "Global thinkers and practitioners",
+      "name": "Rainmatter Foundation",
+      "url": "https://rainmatter.org/",
+      "evidence": {
+        "ref": "turn53view0",
+        "source": "https://rainmatter.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Place-based ecology, partners and blog routes; connect field observations with systemic explanations."
+    },
+    {
+      "id": 78,
+      "group": "Global thinkers and practitioners",
+      "name": "SEWA",
+      "url": "https://www.sewa.org/",
+      "evidence": {
+        "ref": "turn44view7",
+        "source": "https://www.sewa.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Services, history and accountability links are visible; make operational context understandable."
+    },
+    {
+      "id": 79,
+      "group": "Global thinkers and practitioners",
+      "name": "Goonj",
+      "url": "https://goonj.org/",
+      "evidence": {
+        "ref": "turn52search1",
+        "source": "https://goonj.org/cfw/",
+        "status": "Indexed first-party stories; homepage timed out"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Indexed community-action stories use place and problem context; show participant agency and evidence."
+    },
+    {
+      "id": 80,
+      "group": "Global thinkers and practitioners",
+      "name": "Pratham",
+      "url": "https://www.pratham.org/",
+      "evidence": {
+        "ref": "turn44view9",
+        "source": "https://www.pratham.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Programmes distinguish education, second-chance learning and vocational work; explain intended audience."
+    },
+    {
+      "id": 81,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Our World in Data",
+      "url": "https://ourworldindata.org/",
+      "evidence": {
+        "ref": "turn47view0",
+        "source": "https://ourworldindata.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Topics connect data with explanatory articles; attach definitions and limitations to quantitative claims."
+    },
+    {
+      "id": 82,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Stanford Social Innovation Review",
+      "url": "https://ssir.org/",
+      "evidence": {
+        "ref": "turn47view1",
+        "source": "https://ssir.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Social issues and editorial formats support discovery; keep My Thoughts freely accessible."
+    },
+    {
+      "id": 83,
+      "group": "Editorial, climate and ecosystem",
+      "name": "MIT Solve",
+      "url": "https://solve.mit.edu/",
+      "evidence": {
+        "ref": "turn47view2",
+        "source": "https://solve.mit.edu/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Innovator and challenge routes are distinct; distinguish the solution, its evidence and its application."
+    },
+    {
+      "id": 84,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Nesta",
+      "url": "https://www.nesta.org.uk/",
+      "evidence": {
+        "ref": "turn47view3",
+        "source": "https://www.nesta.org.uk/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Mission areas structure research and public ideas; connect a theme to specific work."
+    },
+    {
+      "id": 85,
+      "group": "Editorial, climate and ecosystem",
+      "name": "IDEO.org",
+      "url": "https://www.ideo.org/",
+      "evidence": {
+        "ref": "turn47view4",
+        "source": "https://www.ideo.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Work, perspectives, services and tools have distinct roles; case studies should explain process and outcomes."
+    },
+    {
+      "id": 86,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Design Kit",
+      "url": "https://www.designkit.org/",
+      "evidence": {
+        "ref": "turn47view5",
+        "source": "https://www.designkit.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Methods use short purpose statements; resource cards should say what the reader can do."
+    },
+    {
+      "id": 87,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Frog",
+      "url": "https://www.frog.co/",
+      "evidence": {
+        "ref": "turn47view6",
+        "source": "https://www.frog.co/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Work and insights are separated; borrow case-study clarity without heavy visual effects."
+    },
+    {
+      "id": 88,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Sistema B",
+      "url": "https://www.sistemab.org/",
+      "evidence": {
+        "ref": "turn47view7",
+        "source": "https://www.sistemab.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Country routes reflect a real regional network; geography pages require real differentiated content."
+    },
+    {
+      "id": 89,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Project Drawdown",
+      "url": "https://drawdown.org/",
+      "evidence": {
+        "ref": "turn47view8",
+        "source": "https://drawdown.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "A solutions library supports action through evidence; avoid presenting every solution as locally validated."
+    },
+    {
+      "id": 90,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Ellen MacArthur Foundation",
+      "url": "https://www.ellenmacarthurfoundation.org/",
+      "evidence": {
+        "ref": "turn47view9",
+        "source": "https://www.ellenmacarthurfoundation.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Priority themes lead to concrete circular-economy work; connect concepts to examples."
+    },
+    {
+      "id": 91,
+      "group": "Editorial, climate and ecosystem",
+      "name": "One Acre Fund",
+      "url": "https://oneacrefund.org/",
+      "evidence": {
+        "ref": "turn45view0",
+        "source": "https://oneacrefund.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Farmer-focused positioning connects work and impact; name the participant and intended change."
+    },
+    {
+      "id": 92,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Fundación Avina",
+      "url": "https://www.avina.net/",
+      "evidence": {
+        "ref": "turn45view1",
+        "source": "https://www.avina.net/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Transparency, annual reports and geographic work have explicit routes; build traceable claims."
+    },
+    {
+      "id": 93,
+      "group": "Editorial, climate and ecosystem",
+      "name": "WRI",
+      "url": "https://www.wri.org/",
+      "evidence": {
+        "ref": "turn45view2",
+        "source": "https://www.wri.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Topic-filtered perspectives support a large knowledge library; add filters only as content warrants."
+    },
+    {
+      "id": 94,
+      "group": "Editorial, climate and ecosystem",
+      "name": "IIED",
+      "url": "https://www.iied.org/",
+      "evidence": {
+        "ref": "turn45view3",
+        "source": "https://www.iied.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Case-study and insight cards carry format and date; make article identity clear before the click."
+    },
+    {
+      "id": 95,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Global Innovation Fund",
+      "url": "https://www.globalinnovation.fund/",
+      "evidence": {
+        "ref": "turn45view4",
+        "source": "https://www.globalinnovation.fund/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Impact report and learning routes distinguish outcomes from news."
+    },
+    {
+      "id": 96,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Village Capital",
+      "url": "https://vilcap.com/",
+      "evidence": {
+        "ref": "turn45view5",
+        "source": "https://vilcap.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Startup programmes and ecosystem resources are different pathways; explain how each creates value."
+    },
+    {
+      "id": 97,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Endeavor",
+      "url": "https://endeavor.org/",
+      "evidence": {
+        "ref": "turn45view6",
+        "source": "https://endeavor.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Entrepreneurs, mentors and global community are distinct entities; separate people from company evidence."
+    },
+    {
+      "id": 98,
+      "group": "Editorial, climate and ecosystem",
+      "name": "ANDE",
+      "url": "https://andeglobal.org/",
+      "evidence": {
+        "ref": "turn45view7",
+        "source": "https://andeglobal.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Research and ecosystem membership have clear roles; public reading should not require membership."
+    },
+    {
+      "id": 99,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Africa No Filter",
+      "url": "https://africanofilter.org/",
+      "evidence": {
+        "ref": "turn45view8",
+        "source": "https://africanofilter.org/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Evidence and storytelling tools support African narratives; use dignity and context in founder stories."
+    },
+    {
+      "id": 100,
+      "group": "Editorial, climate and ecosystem",
+      "name": "Africa Is a Country",
+      "url": "https://africasacountry.com/",
+      "evidence": {
+        "ref": "turn45view9",
+        "source": "https://africasacountry.com/",
+        "status": "First-party page text reviewed"
+      },
+      "type": "Adjacent organisation / publication",
+      "observation": "Editorial publication and newsletter routes foreground African perspectives; keep topic organisation subordinate to the writing."
+    }
+  ]
+}
