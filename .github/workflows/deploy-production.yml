@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore:
       - '.github/workflows/aws-preflight.yml'
+      - '.github/workflows/hosting-cost-review.yml'
       - '.github/workflows/restore-history.yml'
       - 'history/**'
       - '**.md'
@@ -131,9 +132,24 @@ jobs:
 
       - name: Production smoke test
         run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --location --max-time 30 https://www.waithakandegwa.com/ >/dev/null
-          HTML="$(curl --fail --silent --show-error --location --max-time 30 https://www.waithakandegwa.com/)"
-          COUNT="$(printf '%s' "$HTML" | grep -o 'G-RN0YXC2WCH' | wc -l | tr -d ' ')"
-          test "$COUNT" -ge 1
-          echo "Production homepage is reachable and the configured GA4 ID is present."
+          python3 - <<'PY'
+          import json,time,urllib.request
+          base='https://www.waithakandegwa.com'
+          def read(path):
+              request=urllib.request.Request(base+path,headers={'User-Agent':'Waithaka-Deployment-Verification/1.0','Cache-Control':'no-cache'})
+              with urllib.request.urlopen(request,timeout=30) as response:
+                  if response.status!=200: raise RuntimeError('Unexpected HTTP status')
+                  return response.read().decode('utf-8')
+          for attempt in range(18):
+              try:
+                  html=read('/')
+                  if 'G-RN0YXC2WCH' not in html: raise RuntimeError('Expected GA4 destination not yet visible')
+                  if 'My Thoughts' not in html: raise RuntimeError('Expected homepage content not yet visible')
+                  if json.loads(read('/healthz')).get('ok') is not True: raise RuntimeError('Application health check is not ready')
+                  print('PASS: HTTPS homepage, expected GA4 destination, editorial content and database health.')
+                  break
+              except Exception as error:
+                  print('Verification attempt',attempt+1,'not ready:',type(error).__name__)
+                  if attempt==17: raise RuntimeError('Production acceptance checks did not pass after DNS propagation retries') from None
+                  time.sleep(10)
+          PY
