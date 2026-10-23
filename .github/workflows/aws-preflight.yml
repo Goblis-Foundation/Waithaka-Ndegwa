@@ -57,8 +57,6 @@ jobs:
               if r.returncode: raise RuntimeError(r.stderr)
               return json.loads(r.stdout or '{}')
           name='waithaka-ndegwa-production'
-          resources=aws('elasticbeanstalk','describe-environment-resources','--environment-name',name)
-          print(json.dumps(resources))
           aws('elasticbeanstalk','request-environment-info','--environment-name',name,'--info-type','tail')
           for attempt in range(12):
               time.sleep(10)
