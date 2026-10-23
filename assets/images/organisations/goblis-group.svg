@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-labelledby="title desc">
+<title id="title">Goblis Group</title><desc id="desc">Goblis Group global holding and investment identity.</desc>
+<defs>
+  <linearGradient id="navy" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#0B3562"/><stop offset="1" stop-color="#0E5D8B"/></linearGradient>
+  <linearGradient id="green" x1="0" x2="1"><stop stop-color="#117A4D"/><stop offset="1" stop-color="#2A9B63"/></linearGradient>
+</defs>
+<g transform="translate(12 10) scale(.95)">
+  <circle cx="80" cy="80" r="59" fill="none" stroke="url(#navy)" stroke-width="18" stroke-dasharray="292 80" stroke-linecap="round" transform="rotate(-38 80 80)"/>
+  <path d="M84 67h50v18H99c-2 20-14 33-31 41-1-12 2-23 9-33 7-10 15-18 24-23-5-2-11-3-17-3z" fill="#D7A216"/>
+  <path d="M33 115c19 10 39 10 59 1 13-6 24-16 32-30-1 19-8 34-21 46-19 18-47 23-71 11z" fill="url(#green)"/>
+  <g fill="none" stroke="#D7A216" stroke-width="2.7" opacity=".9"><path d="M52 46c10-8 23-12 38-12 13 0 25 3 35 10"/><path d="M45 60c14-6 30-9 47-8 14 1 27 4 38 9"/><path d="M49 79c17-4 34-4 51 0"/><path d="M78 35c-10 15-15 31-15 47 0 14 4 27 11 39"/><path d="M99 38c8 13 12 27 11 42"/></g>
+</g>
+<text x="184" y="90" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="63" font-weight="760" letter-spacing="-2" fill="#0B3562">Goblis</text>
+<text x="374" y="90" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="63" font-weight="760" letter-spacing="-2" fill="#D7A216">Group</text>
+<text x="188" y="127" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" letter-spacing="5" fill="#0B3562">PEOPLE • PARTNERSHIPS • PROSPERITY</text>
+</svg>

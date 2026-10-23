@@ -1,6 +1,14 @@
 <section class="section impact-section" id="goals-2030" aria-labelledby="goals-title">
   <div class="container">
     <div class="section-heading"><div><span class="eyebrow">My commitments · 1 July 2026–30 June 2030</span><h2 id="goals-title">Building opportunity. Accountable to results.</h2></div><p>Three connected ambitions: build enterprises, strengthen social entrepreneurship and open access to markets.</p></div>
+    <nav class="impact-organisations" aria-label="Visit the organisations behind my 2030 goals">
+      <?php foreach(impact_organisations() as$org):?>
+      <a class="impact-organisation" href="<?=e($org['url'])?>" target="_blank" rel="noopener noreferrer" aria-label="<?=e('Visit '.$org['name'].' website (opens in a new tab)')?>">
+        <span class="impact-organisation-logo"><img src="<?=asset('images/organisations/'.$org['logo'])?>" alt="<?=e($org['name'].' logo')?>" width="240" height="80" loading="lazy" decoding="async"></span>
+        <strong><?=e($org['name'])?></strong><span><?=e($org['domain'])?> <b aria-hidden="true">↗</b></span><small>Visit website · opens in a new tab</small>
+      </a>
+      <?php endforeach;?>
+    </nav>
     <div class="impact-grid">
       <?php foreach(impact_metrics() as$key=>$metric):$report=impact_display(impact_snapshot($metric['source']),$key);?>
       <article class="impact-card">

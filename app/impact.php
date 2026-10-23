@@ -5,6 +5,14 @@ declare(strict_types=1);
 function impact_sources(): array {
     return ['goblis_group'=>'Goblis Group','ubunifu'=>'Ubunifu Institute','afritrace'=>'AfriTrace Link','goblis_foundation'=>'Goblis Foundation'];
 }
+function impact_organisations(): array {
+    return [
+        ['name'=>'Goblis Group','url'=>'https://www.goblisgroup.com/','domain'=>'goblisgroup.com','logo'=>'goblis-group.svg'],
+        ['name'=>'Ubunifu Institute','url'=>'https://www.ubunifuinstitute.com/','domain'=>'ubunifuinstitute.com','logo'=>'ubunifu.svg'],
+        ['name'=>'AfriTrace Link','url'=>'https://www.afritracelink.com/','domain'=>'afritracelink.com','logo'=>'afritrace.png'],
+        ['name'=>'Goblis Foundation','url'=>'https://www.goblisfoundation.org/','domain'=>'goblisfoundation.org','logo'=>'goblis-foundation.png'],
+    ];
+}
 function impact_metrics(): array {
     return [
         'startups'=>['target'=>30,'label'=>'Successful startups','source'=>'goblis_group','copy'=>'Establish or be directly involved in 30 successful startups through Goblis Group.'],

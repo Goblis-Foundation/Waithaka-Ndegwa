@@ -64,6 +64,7 @@ try{
     $home=growth_request('/');growth_check(str_contains($home['body'],'srcset=')&&str_contains($home['body'],'480w'),'Actual smaller public photography is offered to responsive browsers.');
     db()->exec("UPDATE settings SET setting_value='' WHERE setting_key='google.ga4'");growth_check(!str_contains(growth_request('/')['body'],'googletagmanager.com'),'A blank setting has no fallback tag.');
     db()->exec("UPDATE settings SET setting_value='G-RN0YXC2WCH' WHERE setting_key='google.ga4'");db()->exec("UPDATE settings SET setting_value='0' WHERE setting_key='google.analytics_enabled'");growth_check(!str_contains(growth_request('/')['body'],'googletagmanager.com'),'The explicit off switch disables the shared tag.');
+    $r=growth_request('/write/account');growth_check($r['status']===302,'Account controls require authentication.');
     $r=growth_request('/write/impact');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Reporting connections require Writer authentication.');
     $r=growth_request('/write/campaigns');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Campaigns require Writer authentication.');
     $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check($r['status']===302,'The synthetic Writer can authenticate.');
@@ -73,13 +74,33 @@ try{
     $r=growth_request('/write/impact',['action'=>'save','csrf'=>$impactCsrf,'goblis_group_url'=>'http://127.0.0.1/internal']);growth_check($r['status']===302,'Unsafe reporting connection is rejected through the form.');
     growth_check(!setting('impact.url.goblis_group',''),'Unsafe reporting URL was not persisted.');
     foreach(['/','/about'] as $goalRoute){$r=growth_request($goalRoute);growth_check($r['status']===200&&str_contains($r['body'],'goals-2030')&&str_contains($r['body'],'30,000')&&str_contains($r['body'],'2,030')&&str_contains($r['body'],'Awaiting source data'),'Goals distinguish targets and unavailable progress: '.$goalRoute);}
+    foreach(['/','/about'] as $logoRoute){
+        $r=growth_request($logoRoute);$document=new DOMDocument();@$document->loadHTML($r['body']);$xpath=new DOMXPath($document);
+        foreach(impact_organisations()as$org){$nodes=$xpath->query('//nav[contains(@class,"impact-organisations")]/a[@href="'.$org['url'].'"]');growth_check($nodes->length===1,'Each organisation has one website link under the introduction.');$node=$nodes->item(0);growth_check($node->getAttribute('target')==='_blank'&&str_contains($node->getAttribute('rel'),'noopener')&&$node->getElementsByTagName('img')->length===1,'Organisation logo links open a new tab safely.');}
+    }
     $r=growth_request('/');growth_check(str_contains($r['body'],'Writer sign in')&&str_contains($r['body'],'/write/login'),'Public footer makes the Writer login discoverable.');
     $r=growth_request('/write/campaigns/'.$post);growth_check($r['status']===200&&str_contains($r['headers']['cache-control']??'','no-store')&&!str_contains($r['body'],'googletagmanager.com'),'Campaign plans render privately without analytics.');$csrf=growth_csrf($r);
     $r=growth_request('/write/campaigns/'.$post,['csrf'=>'invalid','version'=>'0','objective'=>'read','success_measure'=>'Readership']);growth_check($r['status']===419,'Campaign saves enforce CSRF.');
     $r=growth_request('/write/campaigns/'.$post,['csrf'=>$csrf,'version'=>'0','objective'=>'subscribe','success_measure'=>'Confirmed subscription count']);growth_check($r['status']===302&&campaign_plan($post)['objective']==='subscribe','Campaign objectives persist through the real Writer form.');
     $r=growth_request('/write/campaigns/'.$post);growth_check(str_contains($r['body'],'utm_source=instagram')&&str_contains($r['body'],'utm_source=tiktok'),'Professional channels have campaign links in the real UI.');
+    $account=growth_request('/write/account');growth_check($account['status']===200&&str_contains($account['headers']['cache-control']??'','no-store'),'Account form renders privately.');$accountCsrf=growth_csrf($account);
+    $newPassword=bin2hex(random_bytes(18));
+    $r=growth_request('/write/account',['csrf'=>'invalid','current_password'=>$password,'new_password'=>$newPassword,'confirm_password'=>$newPassword]);growth_check($r['status']===419,'Password change enforces CSRF.');
+    $r=growth_request('/write/account',['csrf'=>$accountCsrf,'current_password'=>'wrong','new_password'=>$newPassword,'confirm_password'=>$newPassword]);growth_check($r['status']===302,'Incorrect current password is rejected.');
+    $q=db()->prepare('SELECT password_hash FROM users WHERE id=?');$q->execute([$user]);growth_check(password_verify($password,$q->fetchColumn()),'Wrong current password does not modify the account.');
+    $r=growth_request('/write/account',['csrf'=>$accountCsrf,'current_password'=>$password,'new_password'=>$newPassword,'confirm_password'=>'different']);growth_check($r['status']===302,'Mismatched new passwords are rejected.');
+    $primaryCookie=$cookie;$secondaryCookie=tempnam(sys_get_temp_dir(),'wk-secondary-cookie-');$cookie=$secondaryCookie;
+    $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check($r['status']===302,'Second fixture session can sign in before password rotation.');$cookie=$primaryCookie;
+    $r=growth_request('/write/account',['csrf'=>$accountCsrf,'current_password'=>$password,'new_password'=>$newPassword,'confirm_password'=>$newPassword]);growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Password change signs out the current session.');
+    $q->execute([$user]);growth_check(password_verify($newPassword,$q->fetchColumn()),'New password hash is saved.');
+    $cookie=$secondaryCookie;$r=growth_request('/write/account');growth_check($r['status']===302,'Password rotation invalidates the other Writer session.');$cookie=$primaryCookie;
+    $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check(str_ends_with($r['headers']['location']??'','/write/login'),'Old password no longer authenticates.');
+    $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$newPassword]);growth_check(str_ends_with($r['headers']['location']??'','/write'),'New password authenticates.');
+    $r=growth_request('/write/account');growth_check($r['status']===200,'The refreshed session works after password rotation.');
     echo "Growth and Google tag HTTP checks passed: $checks\n";
 }finally{
+    if(isset($secondaryCookie)&&is_file($secondaryCookie))unlink($secondaryCookie);
+    db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['auth.password_epoch.'.$user]);
     foreach($prior as$key=>$value)db()->prepare('UPDATE settings SET setting_value=? WHERE setting_key=?')->execute([$value,$key]);
     db()->prepare('DELETE FROM posts WHERE id=?')->execute([$post]);db()->prepare('DELETE FROM users WHERE id=?')->execute([$user]);if(is_file($cookie))unlink($cookie);
 }

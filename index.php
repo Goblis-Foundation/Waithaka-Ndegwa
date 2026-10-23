@@ -7,7 +7,7 @@ if (!installed()) {
 }
 
 $path = path_only();
-if (impact_writer_route($path)) exit;
+if (impact_writer_route($path) || writer_account_route($path)) exit;
 if (str_starts_with($path,'/write') || str_starts_with($path,'/consent/') || str_starts_with($path,'/payments/')) private_response_headers();
 // Optional modules may handle additional routes without changing legacy URLs.
 if (function_exists('app_extension_route') && app_extension_route($path)) exit;
