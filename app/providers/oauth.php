@@ -64,10 +64,6 @@ function publishing_oauth_start(string $service, int $userId): string {
     $definition = publishing_services()[$service] ?? null;
     if (!$definition || $service === 'buffer') throw new RuntimeException('This connection does not use this OAuth flow.');
     $provider = $definition['provider'];
-    if ($service === 'facebook_pages') {
-        $channel = publishing_channel('facebook');
-        if (($channel['account_type'] ?? '') !== 'page') throw new RuntimeException('Select Facebook Page in the channel settings before discovering Pages. A professional profile is a different account type.');
-    }
     $client = publishing_client($provider);
     if ($client['client_id'] === '' || $client['client_secret'] === '') throw new RuntimeException('Save this provider’s client ID and client secret first.');
     $state = bin2hex(random_bytes(32));

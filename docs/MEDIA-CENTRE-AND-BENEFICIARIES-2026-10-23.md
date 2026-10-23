@@ -50,3 +50,7 @@ Primary technical sources: [LinkedIn Member Post Statistics](https://learn.micro
 ## Validation scope
 
 Tests cover target arithmetic, backwards-compatible impact feeds, indirect-count methodology/deduplication requirements, malformed dates/counts, zero-versus-missing semantics, platform binding, API identity mismatch, private HTTP routes, CSRF, all six dashboard cards, native report persistence, failed-refresh retention and separation from public content. CI validates PHP 8.3/8.4 with isolated MySQL 8.4 before the existing AWS deployment. Live account metrics still require owner-authorised accounts and cannot be validated using synthetic fixture reports.
+
+## Simple connection entry (follow-up)
+
+The Media centre now has six prominent account cards with a single primary Connect action. Buttons enter the existing authenticated CSRF-protected OAuth start route directly. Facebook Page discovery no longer requires changing the saved professional-profile route first; discovery does not change account type or delivery settings. Returned account/destination confirmation remains required. LinkedIn analytics and TikTok native publishing remain separate, expandable permission choices rather than silently broadening a basic grant. Missing provider app credentials still block OAuth and are explained by the connection setup screen; a button is never proof that an account is authorised.

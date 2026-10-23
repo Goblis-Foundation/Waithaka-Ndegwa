@@ -71,6 +71,7 @@ try{
     $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check($r['status']===302,'The synthetic Writer can authenticate.');
     $centre=growth_request('/write/media-centre');growth_check($centre['status']===200&&str_contains($centre['headers']['cache-control']??'','no-store')&&!str_contains($centre['body'],'googletagmanager.com'),'Media centre is private and has no analytics tracker.');
     foreach(['LinkedIn','Facebook','Instagram','X','YouTube','TikTok']as$platform)growth_check(str_contains($centre['body'],'<h3>'.$platform.'</h3>'),'Media centre covers '.$platform);
+    growth_check(substr_count($centre['body'],'>Connect</button>')===6,'Unconnected dashboard presents exactly six primary Connect buttons.');
     $mediaCsrf=growth_csrf($centre);
     $r=growth_request('/write/media-centre/report',['csrf'=>'invalid','action'=>'record']);growth_check($r['status']===419,'Social report writes require CSRF.');
     $r=growth_request('/write/media-centre/report',['csrf'=>$mediaCsrf,'action'=>'record','platform'=>'facebook','account'=>'PRIVATE_METRIC_ACCOUNT','start'=>'2026-01-01','end'=>'2026-01-28','followers'=>'0','views'=>'1234','basis'=>'Synthetic native dashboard fixture']);growth_check($r['status']===302,'Native analytics can be recorded through the protected form.');

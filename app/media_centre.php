@@ -12,6 +12,9 @@ function media_centre_platforms(): array {
         'tiktok'=>['name'=>'TikTok','service'=>'tiktok_read','note'=>'Profile totals and up to 20 public videos use the separate read grant; native analytics may offer more detail.']
     ];
 }
+function media_centre_connect_services(): array {
+    return ['linkedin'=>'linkedin','facebook'=>'facebook_pages','instagram'=>'instagram','x'=>'x','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_read'];
+}
 function media_centre_count(mixed $value): ?int {
     if(is_int($value)&&$value>=0&&$value<=1000000000000)return $value;
     if(is_string($value)&&preg_match('/\A(?:0|[1-9][0-9]{0,12})\z/',$value)&&strlen($value)<=13&&(float)$value<=1000000000000)return (int)$value;
