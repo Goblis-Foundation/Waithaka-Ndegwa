@@ -86,11 +86,27 @@ function editorial_templates(): array {
             ]
         ]
     ];
+    $definitions['impact-definition-sheet']=[
+        'title'=>'Impact definition sheet','summary'=>'Define a result before counting it: who qualifies, which records support it and how overlap will be handled.',
+        'sections'=>[
+            'Define the claim'=>"Programme and reporting period:\nOutput, outcome or longer-term impact?\nMetric and unit (people, enterprises or transactions):\nEligibility and exclusions:\nTarget versus observed result:",
+            'Record the evidence'=>"Source owner and reporting date:\nCollection method and consent:\nUnique record or deduplication approach:\nMissing records and sampling limits:\nSelf-reported, checked or independently verified?",
+            'Prevent double counting'=>"Overlap with other programmes:\nDirect participants versus indirect beneficiaries:\nEvidence of the pathway of benefit:\nUncertainty and alternative explanations:\nWho reviews the report before publication?",
+            'Illustrative example — not a programme result'=>"A hypothetical workshop has 20 attendance records and 18 distinct participants. Report 18 participants, not 20 enterprises created. Attendance alone is not evidence of trading or job creation."
+        ]];
+    $definitions['market-access-readiness-checklist']=[
+        'title'=>'Market access readiness checklist','summary'=>'Check whether an enterprise can respond to a buyer, deliver its offer and document what a market connection achieves.',
+        'sections'=>[
+            'Describe the offer'=>"[ ] A named buyer segment and use case are clear.\n[ ] Product specification, quality and available volume are documented.\n[ ] Price, currency, payment terms and delivery limits are clear.\n[ ] Required local standards or approvals have been checked.",
+            'Prepare to deliver'=>"[ ] Production capacity and lead time are realistic.\n[ ] Packaging, logistics, traceability and returns are understood.\n[ ] Working capital needs and payment risks are recorded.\n[ ] A responsible contact can respond to buyer questions.",
+            'Follow the connection'=>"Introduction date and permission:\nBuyer meeting or accepted opportunity:\nOrder or transaction evidence, if any:\nDelivery and customer feedback:\nA listing or introduction must not be reported as a completed sale.",
+            'Illustrative example — not a real transaction'=>"A hypothetical producer receives a buyer introduction but no order. Record one introduction, zero verified sales, and the next follow-up date. Do not infer revenue or employment."
+        ]];
     $result=[];
     foreach($definitions as $slug=>$definition){
-        $html='<p>This is a blank working tool. Replace the prompts with your own observations; do not treat an unanswered field as evidence.</p>';
+        $html='<p>Version 23 October 2026. Allow 20–30 minutes for an initial draft; evidence collection takes longer.</p><p>This is a blank working tool. Replace the prompts with your own observations; do not treat an unanswered field as evidence.</p>';
         foreach($definition['sections'] as $heading=>$prompts){$html.='<h2>'.htmlspecialchars($heading,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</h2><ul>';foreach(explode("\n",$prompts) as $prompt)$html.='<li>'.htmlspecialchars($prompt,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</li>';$html.='</ul>';}
-        $result[$slug]=['id'=>'template-'.$slug,'type'=>'resource','slug'=>$slug,'title'=>$definition['title'],'summary'=>$definition['summary'],'content_html'=>$html,'format'=>'Blank worksheet / checklist','builtin'=>true,'published_at'=>null,'updated_at'=>null];
+        $result[$slug]=['id'=>'template-'.$slug,'type'=>'resource','slug'=>$slug,'title'=>$definition['title'],'summary'=>$definition['summary'],'content_html'=>$html,'format'=>'Blank worksheet / checklist','builtin'=>true,'version'=>'2026-10-23','effort'=>'Allow 20–30 minutes for an initial draft; evidence collection takes longer.','published_at'=>null,'updated_at'=>null];
     }
     return $result;
 }
@@ -216,7 +232,7 @@ function editorial_search_documents(): array {
     return $documents;
 }
 function editorial_sitemap_entries(): array {
-    $entries=[['loc'=>url('/start-here')],['loc'=>url('/resources')],['loc'=>url('/watch')]];
+    $entries=[['loc'=>url('/professional-information')],['loc'=>url('/start-here')],['loc'=>url('/resources')],['loc'=>url('/watch')]];
     foreach(editorial_search_documents() as $document){$entry=['loc'=>$document['url']];if($document['updated_at'])$entry['lastmod']=date(DATE_ATOM,strtotime($document['updated_at']));$entries[]=$entry;}return $entries;
 }
 function editorial_watch_schema(array $item): array {

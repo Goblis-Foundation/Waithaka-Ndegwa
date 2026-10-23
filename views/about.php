@@ -16,3 +16,41 @@
 <section class="section journey-section"><div class="container"><div class="section-heading" data-reveal><div><span class="eyebrow">Learning by doing and going</span><h2>A life is more than a résumé.</h2></div><p>These moments represent the environments that keep widening my frame of reference.</p></div><div class="journey-grid"><article data-reveal><figure><img <?=responsive_image_attrs(asset('images/journey/early-office.webp'))?> alt="An early office and learning environment" loading="lazy"></figure><span>Learning</span><h3>Curiosity becomes discipline</h3><p>Education widened my questions about institutions, countries and development.</p></article><article data-reveal><figure><img <?=responsive_image_attrs(asset('images/journey/on-the-road.webp'))?> alt="Working and travelling on the road" loading="lazy"></figure><span>Building</span><h3>Ideas meet constraints</h3><p>Work makes questions about people, resources, risk and sustainability unavoidable.</p></article><article data-reveal><figure><img <?=responsive_image_attrs(asset('images/journey/netherlands-windmill.webp'))?> alt="Travelling in the Netherlands" loading="lazy"></figure><span>Perspective</span><h3>Other systems sharpen the eye</h3><p>Seeing how other places organise movement, land and daily life reveals alternatives that are easy to miss at home.</p></article><article data-reveal><figure><img <?=responsive_image_attrs(asset('images/journey/skydiving.webp'))?> alt="A skydiving experience while travelling" loading="lazy"></figure><span>Travel</span><h3>Perspective needs movement</h3><p>New places reveal different ways of organising everyday life and opportunity.</p></article></div></div></section>
 
 <section class="section surface"><div class="container about-forward"><figure data-reveal><img <?=responsive_image_attrs(asset('images/journey/archery.webp'))?> alt="Practising archery outdoors" loading="lazy" decoding="async"></figure><div data-reveal><span class="eyebrow">What I carry forward</span><h2>Opportunity changed my direction. I want it to travel further.</h2><p>I know what it means to begin with limited choices, and I know how much education, encouragement and a timely opportunity can alter the direction of a life. I do not romanticise either poverty or success.</p><p>The lesson I carry forward is practical: when opportunity reaches you, make something of it — and where possible, widen the path for someone else.</p><div class="personal-note"><strong>Personal views.</strong> The views expressed on this website are my own and do not necessarily represent the views or positions of any business, institution or organisation with which I may be associated.</div><a class="button button-primary" href="<?=url('/my-thoughts')?>">Explore My Thoughts</a></div></div></section>
+
+<section class="home-intro">
+  <div class="container home-intro-grid" data-reveal>
+    <span class="eyebrow">The lens</span>
+    <h2>I am interested in the space between a good idea and what actually happens when people have to live with it.</h2>
+    <p>That means looking beyond sectors in isolation. Agriculture depends on roads and markets. Enterprise depends on institutions and capital. Innovation matters when it solves a real problem. Travel is useful when it changes what I notice back home.</p>
+  </div>
+</section>
+
+<section class="section approach-section surface">
+  <div class="container">
+    <div class="section-heading narrow-heading" data-reveal><div><span class="eyebrow">How I approach the world</span><h2>A point of view should be earned, not merely announced.</h2></div><p>I try to move from observation to context, from context to testing, and from testing to a view that can still change.</p></div>
+    <div class="process-line" aria-label="How I form a point of view">
+      <article data-reveal><span class="process-number">01</span><div><small>Observe</small><h3>Start with reality</h3><p>Listen, look closely and understand the experience before reaching for the explanation.</p></div></article>
+      <article data-reveal><span class="process-number">02</span><div><small>Connect</small><h3>Follow the system</h3><p>Trace the links between people, markets, land, infrastructure, institutions, capital and incentives.</p></div></article>
+      <article data-reveal><span class="process-number">03</span><div><small>Test</small><h3>Challenge the easy answer</h3><p>Bring in costs, trade-offs, implementation constraints and competing evidence.</p></div></article>
+      <article data-reveal><span class="process-number">04</span><div><small>Revisit</small><h3>Keep the view alive</h3><p>Publish what I can defend today and change it when better evidence deserves to win.</p></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="section tested-section">
+  <div class="container">
+    <div class="section-heading" data-reveal><div><span class="eyebrow">Where the thinking gets tested</span><h2>Reality has a way of exposing weak assumptions.</h2></div><p>Much of what I write is tested first in places where decisions have consequences.</p></div>
+    <div class="tested-grid">
+      <article class="tested-card" data-reveal><figure><img <?=responsive_image_attrs(asset('images/journey/community-event.webp'))?> alt="A community gathering" loading="lazy" decoding="async"></figure><div><span>People & enterprise</span><h3>Can an idea work for the people expected to carry it?</h3><p>Working with entrepreneurs and communities keeps attention on incentives, dignity, execution and whether value is actually created.</p><ul><li>Participation</li><li>Governance</li><li>Markets</li></ul></div></article>
+      <article class="tested-card" data-reveal><figure><img <?=responsive_image_attrs(asset('images/journey/farm-produce.webp'))?> alt="Agricultural produce in the field" loading="lazy" decoding="async"></figure><div><span>Land & production</span><h3>Does the system still work when nature joins the discussion?</h3><p>Agriculture makes interdependence visible: soil, water, weather, labour, storage, transport and price all meet in one outcome.</p><ul><li>Resilience</li><li>Productivity</li><li>Value chains</li></ul></div></article>
+      <article class="tested-card" data-reveal><figure><img <?=responsive_image_attrs(asset('images/journey/infrastructure.webp'))?> alt="Modern transport infrastructure seen while travelling" loading="lazy" decoding="async"></figure><div><span>Infrastructure & places</span><h3>What does a system feel like to the person using it?</h3><p>Travel and infrastructure turn policy into lived experience — movement, access, reliability, cost and the everyday design of opportunity.</p><ul><li>Access</li><li>Movement</li><li>Public systems</li></ul></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="section origin-section surface">
+  <div class="container origin-feature">
+    <div class="origin-media" data-reveal><figure><img <?=responsive_image_attrs(asset('images/journey/water-source.webp'))?> alt="At a rural water source" loading="lazy" decoding="async"></figure><figure><img <?=responsive_image_attrs(asset('images/journey/city-overlook.webp'))?> alt="Looking over a city while travelling" loading="lazy" decoding="async"></figure></div>
+    <div class="origin-copy" data-reveal><span class="eyebrow">From Nyeri outward</span><h2>The place I come from still shapes what I notice.</h2><p>I was born and raised in Charity, Endarasha, Nyeri County. In a rural setting, land, water, farming, roads, markets and livelihoods are not abstract policy concepts. They are everyday life.</p><p>That beginning did not give me all the answers. It gave me reasons to keep asking better questions about opportunity, dignity, enterprise and the systems that surround them.</p><a class="text-link" href="<?=url('/about')?>">Read the story behind the lens →</a></div>
+  </div>
+</section>

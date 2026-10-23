@@ -20,6 +20,10 @@ function studio_capture_fields(string $title,string $idea): array {
     return ['id'=>0,'title'=>$title,'content_html'=>'<p>'.nl2br(e($idea),false).'</p>','writer_note'=>'Captured in Studio. Check evidence, permissions and sources before publishing.'];
 }
 function studio_dispatch(string $path): bool {
+    if($path==='/professional-information'){
+        journeys_method(['GET','HEAD']);
+        render('media_centre',['page'=>'about','seo'=>['title'=>'Professional information · Waithaka Ndegwa','description'=>'Biography, interview topics and speaking enquiries for Waithaka Ndegwa.','canonical'=>url('/professional-information')]]);return true;
+    }
     if($path==='/media-centre'){
         journeys_method(['GET','HEAD']);
         redirect(url('/contact'),301);return true;

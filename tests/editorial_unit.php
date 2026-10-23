@@ -20,7 +20,7 @@ eu_check($toc===editorial_toc('<h2 id="attacker" onclick="bad()">Problem &amp; e
 eu_check(editorial_toc('<p>No headings.</p>')['items']===[],'Short content does not invent a contents list');
 eu_check(count(editorial_toc(str_repeat('<h2>Section</h2>',105))['items'])===100,'Contents navigation remains bounded on unusually long articles');
 
-$templates=editorial_templates();eu_check(count($templates)===4,'The starting collection has four genuine blank tools');
+$templates=editorial_templates();eu_check(count($templates)===6,'The collection has six genuine blank tools');
 foreach($templates as $slug=>$template){
     eu_check($template['builtin']===true&&$template['published_at']===null&&$template['updated_at']===null,'Blank templates do not invent personal publication histories');
     $download=editorial_download_text($template);eu_check(str_contains($download,'Source: https://www.waithakandegwa.com/resources/'.$slug)&&!str_contains($download,'<h2>'),'The downloadable text contains real prompts and its public source URL');
