@@ -79,3 +79,14 @@ foreach([
 nl_unit_check(newsletter_delivery_key('newsletter-campaign:'.str_repeat('a',64))===str_repeat('a',64),'Campaign dedupe keys parse only their expected prefix.');
 nl_unit_check(newsletter_delivery_key('newsletter-confirm:'.str_repeat('a',64))===null,'Confirmation tokens cannot identify campaign deliveries.');
 echo "PASS: {$checks} newsletter unit assertions\n";
+
+$designed=email_design('Thanks <reader>','<p>Safe body.</p>',['name'=>'Amina <script>','preheader'=>'A private preview']);
+nl_unit_check(str_contains($designed,'Hello Amina &lt;script&gt;,')&&!str_contains($designed,'<script>'),'Names are escaped in the shared salutation');
+foreach(social_links()as$network=>$link)nl_unit_check(str_contains($designed,e($link))&&str_contains($designed,$network),'The footer includes the public '.$network.' profile');
+nl_unit_check(!str_contains($designed,'<img')&&str_contains($designed,'role="presentation"'),'Branded emails remain readable when images are blocked');
+nl_unit_check(str_contains(email_design_text($designed),'https://www.linkedin.com/in/iwaithakaw/')&&!str_contains(email_design_text($designed),'A private preview'),'Plain text retains link destinations and omits the hidden preheader');
+$welcome=newsletter_lifecycle_html('welcome',['first_name'=>'Amina','name'=>'Other name'],'https://example.com/unsubscribe');
+nl_unit_check(str_contains($welcome,'Hello Amina,')&&str_contains($welcome,'Thank you for subscribing.')&&str_contains($welcome,'https://example.com/unsubscribe'),'Welcome appreciates the reader and provides direct unsubscribe');
+$goodbye=newsletter_lifecycle_html('goodbye',['first_name'=>'Amina']);
+nl_unit_check(str_contains($goodbye,'Your subscription has ended.')&&!str_contains($goodbye,'Confirm my subscription'),'Goodbye never tries to reactivate consent');
+nl_unit_check(newsletter_lifecycle_identity('newsletter-lifecycle:welcome:12:3')===['kind'=>'welcome','id'=>12,'revision'=>'3']&&newsletter_lifecycle_identity('newsletter-lifecycle:other:12:3')===null,'Lifecycle delivery keys accept only the two supported messages');

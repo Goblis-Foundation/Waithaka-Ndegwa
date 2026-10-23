@@ -49,10 +49,13 @@ try {
     $posts = []; foreach (['published', 'draft', 'scheduled'] as $status) { db()->prepare('INSERT INTO posts(user_id,category_id,title,slug,standfirst,content_html,status,published_at) VALUES(?,?,?,?,?,?,?,?)')->execute([$actor, $topicId, 'Reader source '.$status.' '.$suffix, 'reader-source-'.$status.'-'.$suffix, 'Source summary '.$suffix, '<p>Source body.</p>', $status, date('Y-m-d H:i:s', time() + ($status === 'scheduled' ? 86400 : -60))]); $posts[$status] = (int)db()->lastInsertId(); }
     $response = rh_request('/newsletter'); $signup = rh_form($response, '/newsletter');
     rh_check($response['status'] === 200 && str_contains($response['body'], 'name="topic_ids[]"') && str_contains($response['body'], '/newsletter/preferences/request'), 'The actual signup form exposes subject choices and a management entry point.');
-    $fields = $signup + ['name' => 'PRIVATE READER NAME '.$suffix, 'email' => $email, 'subscribe_ack' => '1', 'receive_all' => '0', 'topic_ids' => [$topicId]];
+    rh_check(str_contains(rh_request('/newsletter')['body'],'autocomplete="given-name"')&&str_contains(rh_request('/newsletter')['body'],'autocomplete="family-name"'),'Subscription form exposes first and last name autofill fields');
+    $fields = $signup + ['first_name' => 'PRIVATE READER', 'last_name' => 'NAME '.$suffix, 'email' => $email, 'subscribe_ack' => '1', 'receive_all' => '0', 'topic_ids' => [$topicId]];
     rh_check(rh_request('/newsletter', array_replace($fields, ['csrf' => 'bad']))['status'] === 419, 'Signup choices require the ordinary session CSRF token.');
     $response = rh_request('/newsletter', $fields); $subscriber = rh_row('SELECT * FROM newsletter_subscribers WHERE email=?', [$email]); $sid = (int)($subscriber['id'] ?? 0); if ($sid) $subscriberIds[] = $sid;
     rh_check(rh_redirect($response, '/newsletter') && $sid > 0 && $subscriber['status'] === 'pending' && reader_preferences($sid)['topic_ids'] === [$topicId], 'Real signup POST preserves choices without bypassing double opt-in.');
+    rh_check($subscriber['first_name']==='PRIVATE READER'&&$subscriber['last_name']==='NAME '.$suffix,'Subscriber names are stored separately without guessing');
+    $invalid=rh_request('/newsletter',array_replace($fields,['last_name'=>'']));rh_check($invalid['status']===422,'Public signup requires a last name on the server');
     $confirm = rh_latest_token($email, '/newsletter/confirm'); $response = rh_request('/newsletter/confirm?token='.$confirm); $form = rh_form($response, '/newsletter/confirm');
     rh_check(rh_redirect(rh_request('/newsletter/confirm', $form), '/newsletter') && newsletter_subscriber($sid)['status'] === 'confirmed', 'The existing confirmation form still activates the requested subscription.');
     $link = reader_issue_link('preferences', $sid); $path = '/newsletter/preferences?token='.$link['token']; $response = rh_request($path);

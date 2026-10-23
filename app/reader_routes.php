@@ -19,7 +19,7 @@ function reader_dispatch(string $path): bool {
             try {
                 if (empty($_POST['company_website'])) {
                     if (!journeys_checked($_POST['subscribe_ack'] ?? null)) throw new ReaderValidationException('Please confirm that you want to receive these emails.');
-                    $email = journeys_email($_POST['email'] ?? ''); $name = reader_text($_POST['name'] ?? '', 'Name', 120);
+                    $email = journeys_email($_POST['email'] ?? ''); $first=reader_text($_POST['first_name']??'', 'First name',60,true);$last=reader_text($_POST['last_name']??'', 'Last name',59,true);$name=$first.' '.$last;
                     if (!journeys_rate_limit('newsletter-ip', ip_hash(), 8) || !journeys_rate_limit('newsletter-email', $email, 3)) { http_response_code(429); header('Retry-After: 3600'); $error = 'Too many requests were received. Please try again later.'; }
                     else reader_request_signup($email, $name, $_POST);
                 }

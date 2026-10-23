@@ -53,9 +53,9 @@ function journeys_dispatch(string $path): bool {
             if(!empty($_POST['company_website'])){flash('success','Your request has been recorded. A subscription becomes active only after email confirmation.');redirect(url('/newsletter'));}
             try{
                 if(!journeys_checked($_POST['subscribe_ack']??null))throw new JourneyValidationException('Please confirm that you want to receive these emails.');
-                $email=journeys_email($_POST['email']??'');$name=journeys_text($_POST['name']??'','Name',120);
+                $email=journeys_email($_POST['email']??'');$first=journeys_text($_POST['first_name']??'','First name',60,true);$last=journeys_text($_POST['last_name']??'','Last name',59,true);$name=$first.' '.$last;
                 if(!journeys_rate_limit('newsletter-ip',ip_hash(),8)||!journeys_rate_limit('newsletter-email',$email,3)){http_response_code(429);header('Retry-After: 3600');$error='Too many requests were received. Please try again later.';}
-                else{newsletter_request_signup($email,$name);flash('success','Your request has been recorded. A subscription becomes active only after email confirmation.');redirect(url('/newsletter'));}
+                else{newsletter_request_signup($email,$name,['first_name'=>$first,'last_name'=>$last]);flash('success','Your request has been recorded. A subscription becomes active only after email confirmation.');redirect(url('/newsletter'));}
             }catch(Throwable $e){$error=journeys_route_error($e);}
         }
         journeys_public_render('journeys/newsletter',['values'=>$values,'error'=>$error],'Follow My Thoughts','Receive new writing and Startup Journeys by email, or subscribe to the RSS feed.','/newsletter','newsletter');
@@ -66,7 +66,7 @@ function journeys_dispatch(string $path): bool {
         if(!$record){http_response_code(410);$error=$purpose==='confirm'?'This confirmation link has expired or was already used. You can request a new link.':'This unsubscribe link is not available. You can contact me for help.';}
         elseif(is_post()){
             journeys_verify_csrf();
-            try{if(newsletter_apply_token($token,$purpose)){flash('success',$purpose==='confirm'?'Your subscription is confirmed. You can unsubscribe at any time.':'You have been unsubscribed. You will not receive future newsletter editions unless you subscribe and confirm again.');redirect(url('/newsletter'));}
+            try{if(newsletter_apply_token($token,$purpose,$purpose==='unsubscribe'&&journeys_checked($_POST['email_receipt']??null))){flash('success',$purpose==='confirm'?'Thank you for subscribing. Your subscription is confirmed. A welcome email will follow when delivery is available. You can unsubscribe at any time.':'You have been unsubscribed. You will not receive future newsletter editions unless you subscribe and confirm again.');redirect(url('/newsletter'));}
                 http_response_code(410);$error='This link is no longer valid. Please request a new confirmation link or contact me for help.';
             }catch(Throwable $e){$error=journeys_route_error($e);}
         }

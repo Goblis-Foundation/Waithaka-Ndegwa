@@ -39,6 +39,16 @@ function newsletter_dispatch(string $path): bool {
         if(!journeys_rate_limit('newsletter-writer',(string)$actor,120,60)){http_response_code(429);header('Retry-After: 60');echo 'Too many changes. Please retry in a minute.';return true;}
         if(!empty($_POST['company_website'])){http_response_code(422);echo 'Invalid form.';return true;}
     }
+    if($path==='/write/newsletter/templates'){
+        journeys_method(['GET','HEAD']);$sample=['first_name'=>'Amina','name'=>'Amina Example'];
+        $previews=[
+            'Confirm your email'=>email_design('One small step to stay connected.','<p>Thank you for your interest in My Thoughts. Confirm your email to join the conversation.</p>'.email_design_button('Confirm my subscription',url('/newsletter')).'<p>The live confirmation link expires in 24 hours. This preview has no subscriber token.</p>',['name'=>'Amina']),
+            'Welcome'=>newsletter_lifecycle_html('welcome',$sample,url('/newsletter/preferences/request')),
+            'Unsubscribe receipt'=>newsletter_lifecycle_html('goodbye',$sample),
+            'Contact acknowledgement'=>email_design('Thank you for getting in touch.','<p>Your message has been received and saved for review.</p><p><strong>Your reference:</strong> WK-PREVIEW</p><p>I appreciate you taking the time to write. If a response is needed, I will follow up using the contact details you provided.</p>',['name'=>'Amina']),
+        ];
+        render_write('email_templates',['writeTitle'=>'Email design','previews'=>$previews]);return true;
+    }
     if($path==='/write/newsletter'){
         journeys_method(['GET','HEAD']);
         $campaigns=db()->query('SELECT * FROM newsletter_campaigns ORDER BY updated_at DESC,id DESC LIMIT 100')->fetchAll();

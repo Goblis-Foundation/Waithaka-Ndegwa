@@ -78,10 +78,11 @@ function reader_issue_link(string $purpose, int $id, int $ttl = 604800, ?int $fi
     db()->prepare('INSERT INTO reader_links(purpose,subscriber_id,founder_id,nonce_hash,issued_email_hash,consent_revision,expires_at,created_at) VALUES(?,?,?,?,?,?,?,UTC_TIMESTAMP())')
         ->execute([$purpose, $identity['subscriber_id'], $identity['founder_id'], $hash, newsletter_email_hash($email), $purpose === 'preferences' ? $subject['consent_revision'] : null, gmdate('Y-m-d H:i:s', $expires)]);
     $token = reader_sign_link($purpose, $nonce, $expires);
-    return ['id' => (int)db()->lastInsertId(), 'nonce_hash' => $hash, 'token' => $token, 'url' => url(($purpose === 'preferences' ? '/newsletter/preferences' : '/founders/follow-up').'?token='.$token), 'email' => $email];
+    return ['id' => (int)db()->lastInsertId(), 'nonce_hash' => $hash, 'token' => $token, 'url' => url(($purpose === 'preferences' ? '/newsletter/preferences' : '/founders/follow-up').'?token='.$token), 'email' => $email,'name'=>(string)(($subject['first_name']??'')?:($subject['name']??($subject['submitter_name']??'')))];
 }
 function reader_queue_link(array $link, string $subject, string $intro): int {
-    $html = '<h1>'.e($subject).'</h1><p>'.e($intro).'</p><p><a href="'.e($link['url']).'">Open your private link</a></p><p>This link expires in seven days. Keep it private. If you did not request this message, you can ignore it. This message does not subscribe you to marketing emails.</p>';
+    $html = '<p>'.e($intro).'</p><p><a href="'.e($link['url']).'">Open your private link</a></p><p>This link expires in seven days. Keep it private. If you did not request this message, you can ignore it. This message does not subscribe you to marketing emails.</p>';
+    $html=email_design($subject,$html,['name'=>(string)($link['name']??'')]);
     $id = enqueue_email($link['email'], $subject.' · Waithaka Ndegwa', $html, 'reader-link:'.$link['nonce_hash']);
     db()->prepare('UPDATE reader_links SET outbox_id=? WHERE id=?')->execute([$id, $link['id']]); return $id;
 }
@@ -134,7 +135,7 @@ function reader_store_preferences(int $subscriberId, array $values): void {
 }
 function reader_request_signup(string $email, string $name, array $input): void {
     $GLOBALS['reader_signup_preferences'] = reader_preference_values($input);
-    try { newsletter_request_signup($email, $name); } finally { unset($GLOBALS['reader_signup_preferences']); }
+    try { newsletter_request_signup($email, $name,isset($input['first_name'],$input['last_name'])?['first_name'=>$input['first_name'],'last_name'=>$input['last_name']]:null); } finally { unset($GLOBALS['reader_signup_preferences']); }
 }
 /** Hook inside the existing signup transaction; confirmed addresses return first. */
 function reader_capture_signup_preferences(int $subscriberId): void {
@@ -228,6 +229,10 @@ function reader_contact_submit(array $message, array $input = []): int {
         error_log('Recorded enquiry notification failed: '.get_class($error));
         try { $pdo->prepare("UPDATE reader_enquiries SET notification_state='failed' WHERE id=?")->execute([$id]); } catch (Throwable $ignored) { /* The committed enquiry remains the authoritative receipt. */ }
     }
+    try {
+        $html=email_design('Thank you for getting in touch.','<p>Your message has been received and saved for review.</p><p style="padding:16px;background:#f3f1eb;border-left:3px solid #be955f"><strong>Your reference</strong><br>'.e($values['reference']).'</p><p>I appreciate you taking the time to write. If a response is needed, I will follow up using the contact details you provided.</p><p>Please keep this reference if you contact me about the same enquiry.</p>',['name'=>$values['first_name'],'preheader'=>'Your enquiry has been received.']);
+        enqueue_email($values['email'],'Message received · '.$values['reference'].' · Waithaka Ndegwa',$html,'contact-receipt:'.$values['reference']);
+    } catch(Throwable $error){error_log('Enquiry receipt queue failed: '.get_class($error));}
     return $id;
 }
 function reader_enquiry(int $id): ?array {

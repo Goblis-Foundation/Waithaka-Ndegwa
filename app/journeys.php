@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/email_design.php';
 
 /** Startup journeys, reviewed founder stories and a double-opt-in mailing list. */
 final class JourneyValidationException extends InvalidArgumentException {}
@@ -312,8 +313,11 @@ function newsletter_confirmation_deliverable(string $dedupeKey,?string $queuedRe
     return $email && newsletter_confirmation_address_matches($match[1],(string)$email,$queuedRecipient)
         && (!function_exists('newsletter_address_suppressed') || !newsletter_address_suppressed((string)$email));
 }
-function newsletter_request_signup(string $email,string $name): void {
-    $email=journeys_email($email);$name=journeys_text($name,'Name',120);
+function newsletter_request_signup(string $email,string $name,?array $identity=null): void {
+    $email=journeys_email($email);if(mb_strlen($email)>190)throw new JourneyValidationException('Email address is too long.');$name=journeys_text($name,'Name',120);
+    $first=$identity===null?'':journeys_text($identity['first_name']??'','First name',60,true);
+    $last=$identity===null?'':journeys_text($identity['last_name']??'','Last name',59,true);
+    if($identity!==null)$name=$first.' '.$last;
     if(function_exists('newsletter_address_suppressed') && newsletter_address_suppressed($email))return;
     if(!function_exists('enqueue_email'))throw new RuntimeException('Email queue is not available.');
     $pdo=db();$lockedId=null;
@@ -326,10 +330,11 @@ function newsletter_request_signup(string $email,string $name): void {
         if($subscriber&&$subscriber['status']==='confirmed'){$pdo->commit();return;}
         if($subscriber){$id=(int)$subscriber['id'];$s=$pdo->prepare("UPDATE newsletter_subscribers SET name=?,status='pending',consent_version=?,requested_at=?,confirmed_at=NULL,updated_at=?,consent_revision=consent_revision+1 WHERE id=?");$s->execute([$name,'2026-10-21-v1',$now,$now,$id]);}
         else{$s=$pdo->prepare("INSERT INTO newsletter_subscribers(email,name,status,consent_version,requested_at,created_at,updated_at) VALUES(?,?,'pending',?,?,?,?)");$s->execute([$email,$name,'2026-10-21-v1',$now,$now,$now]);$id=(int)$pdo->lastInsertId();}
+        $pdo->prepare('UPDATE newsletter_subscribers SET first_name=?,last_name=? WHERE id=?')->execute([$first,$last,$id]);
         $s=$pdo->prepare("UPDATE newsletter_tokens SET used_at=? WHERE subscriber_id=? AND purpose='confirm' AND used_at IS NULL");$s->execute([$now,$id]);
         if(function_exists('reader_capture_signup_preferences'))reader_capture_signup_preferences($id);
         $token=newsletter_create_token($id,'confirm',date('Y-m-d H:i:s',time()+86400));$confirm=url('/newsletter/confirm?token='.$token);$unsubscribe=newsletter_unsubscribe_url($id);
-        $html='<h1>Confirm your subscription</h1><p>You asked to receive new writing and Startup Journeys from Waithaka Ndegwa.</p><p><a href="'.e($confirm).'">Confirm my subscription</a></p><p>This link expires in 24 hours. Your subscription stays inactive until you confirm. If you did not make this request, ignore this email or <a href="'.e($unsubscribe).'">cancel the request</a>.</p>';
+        $html=email_design('One small step to stay connected','<p>Thank you for your interest in My Thoughts. Please confirm your email to receive new writing, Startup Journeys and reflections from the work along the way.</p>'.email_design_button('Confirm my subscription',$confirm).'<p>This link expires in 24 hours. You will receive newsletter editions only after you confirm.</p><p>If you did not ask to subscribe, ignore this email or <a href="'.e($unsubscribe).'">cancel the request</a>.</p>',['name'=>$first!==''?$first:$name,'preheader'=>'Confirm your email to join My Thoughts.','footer'=>'<p>This email confirms a subscription request. <a href="'.e($unsubscribe).'">Cancel this request</a> if it was not yours.</p>']);
         enqueue_email($email,'Confirm your subscription · Waithaka Ndegwa',$html,'newsletter-confirm:'.hash('sha256',$token));
         $pdo->commit();
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}finally{if($lockedId)newsletter_subscriber_unlock($lockedId);}
@@ -341,7 +346,7 @@ function newsletter_token_record(string $token,string $purpose,bool $lock=false)
     if($purpose==='confirm'&&(!empty($r['used_at'])||(!empty($r['expires_at'])&&$r['expires_at']<=journeys_now())))return null;
     return $r;
 }
-function newsletter_apply_token(string $token,string $purpose): bool {
+function newsletter_apply_token(string $token,string $purpose,bool $receipt=false): bool {
     $initial=newsletter_token_record($token,$purpose);
     if(!$initial)return false;
     $id=(int)$initial['subscriber_id'];$locked=false;
@@ -354,7 +359,10 @@ function newsletter_apply_token(string $token,string $purpose): bool {
             if(function_exists('newsletter_address_suppressed') && newsletter_address_suppressed($subscriberEmail)){$pdo->rollBack();return false;}
             $s=$pdo->prepare("UPDATE newsletter_subscribers SET status='confirmed',confirmed_at=?,unsubscribed_at=NULL,updated_at=?,consent_revision=consent_revision+1 WHERE id=? AND status='pending' AND suppressed_at IS NULL");$s->execute([$now,$now,$id]);if($s->rowCount()!==1){$pdo->rollBack();return false;}
         }else{$s=$pdo->prepare("UPDATE newsletter_subscribers SET status='unsubscribed',unsubscribed_at=?,updated_at=?,consent_revision=consent_revision+1 WHERE id=? AND status<>'unsubscribed'");$s->execute([$now,$now,$id]);}
+        $changed=$s->rowCount()>0;
         $s=$pdo->prepare("UPDATE newsletter_tokens SET used_at=? WHERE subscriber_id=? AND purpose='confirm' AND used_at IS NULL");$s->execute([$now,$id]);
+        if($purpose==='confirm'&&function_exists('newsletter_queue_lifecycle'))newsletter_queue_lifecycle($id,'welcome');
+        elseif($purpose==='unsubscribe'&&$receipt&&$changed&&function_exists('newsletter_queue_lifecycle'))newsletter_queue_lifecycle($id,'goodbye');
         journeys_audit('newsletter',$id,$purpose==='confirm'?'confirmed':'unsubscribed');$pdo->commit();return true;
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}finally{if($locked)newsletter_subscriber_unlock($id);}
 }

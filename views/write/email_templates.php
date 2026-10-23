@@ -1,0 +1,5 @@
+<main class="write-main pub-main">
+<div class="writer-head"><div><span class="writer-kicker">Private email studio</span><h1>A thoughtful welcome.<br>A clear goodbye.</h1><p>Review the email design on desktop or a narrow screen. These are synthetic previews; no message is sent and no subscriber link is created.</p></div><a class="wbtn" href="<?=url('/write/newsletter')?>">Back to newsletter</a></div>
+<nav aria-label="Email previews"><?php foreach(array_keys($previews)as$i=>$label):?><a class="wbtn" href="#email-<?=$i?>"><?=e($label)?></a> <?php endforeach;?></nav>
+<?php foreach($previews as$label=>$html):static $previewIndex=0;?><section id="email-<?=$previewIndex++?>" style="margin-top:32px"><h2><?=e($label)?></h2><iframe title="<?=e($label.' email preview')?>" sandbox="" referrerpolicy="no-referrer" srcdoc="<?=e($html)?>" style="display:block;width:100%;max-width:680px;height:960px;border:1px solid #d9dfd7;border-radius:12px;background:#f3f1eb"></iframe></section><?php endforeach;?>
+</main>

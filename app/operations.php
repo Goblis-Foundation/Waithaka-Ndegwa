@@ -19,6 +19,7 @@ function email_safe_headers(array $headers): array {
 function enqueue_email(string $to,string $subject,string $html,string $dedupeKey,array $headers=[]): int {
     if (!filter_var($to,FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/',$to.$subject) || $dedupeKey==='') throw new InvalidArgumentException('Invalid email request.');
     if (mb_strlen($subject)>250 || strlen($html)>500000) throw new InvalidArgumentException('Email is too large.');
+    if(!str_contains($html,'<body data-email-design="waithaka-v1"'))$html=email_design($subject,$html);
     $payload=encrypt_secret(json_encode(['to'=>$to,'subject'=>$subject,'html'=>$html,'dedupe_key'=>$dedupeKey,'headers'=>email_safe_headers($headers)],JSON_THROW_ON_ERROR));
     $q=db()->prepare('INSERT INTO email_outbox(dedupe_key,payload) VALUES(?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)');
     $q->execute([hash('sha256',$dedupeKey),$payload]);return (int)db()->lastInsertId();
@@ -33,7 +34,7 @@ function email_transport_ready(): bool {
 function email_ses_arguments(array $payload,string $deliveryKey): array {
     $from=(string)app_config('mail.from'); $name=(string)app_config('mail.from_name','Waithaka Ndegwa');
     if(!filter_var($from,FILTER_VALIDATE_EMAIL)||preg_match('/[\r\n]/',$name.$from))throw new InvalidArgumentException('Invalid configured email sender.');
-    $text=html_entity_decode(strip_tags(str_replace(['</p>','<br>','<br />'],"\n",$payload['html'])),ENT_QUOTES|ENT_HTML5,'UTF-8');
+    $text=email_design_text($payload['html']);
     $formatter=new \PHPMailer\PHPMailer\PHPMailer(true);$formatter->CharSet='UTF-8';
     $args=['FromEmailAddress'=>$formatter->addrFormat([$from,$name]),'Destination'=>['ToAddresses'=>[$payload['to']]],'Content'=>['Simple'=>[
         'Subject'=>['Data'=>$payload['subject'],'Charset'=>'UTF-8'], 'Body'=>['Html'=>['Data'=>$payload['html'],'Charset'=>'UTF-8'],'Text'=>['Data'=>$text,'Charset'=>'UTF-8']]]],
@@ -45,7 +46,7 @@ function email_ses_arguments(array $payload,string $deliveryKey): array {
 }
 function email_deliver(array $payload,string $deliveryKey): string {
     $from=(string)app_config('mail.from'); $name=(string)app_config('mail.from_name','Waithaka Ndegwa');
-    $text=html_entity_decode(strip_tags(str_replace(['</p>','<br>','<br />'],"\n",$payload['html'])),ENT_QUOTES|ENT_HTML5,'UTF-8');
+    $text=email_design_text($payload['html']);
     if (app_config('mail.transport')==='ses') {
         $client=new \Aws\SesV2\SesV2Client(['version'=>'2019-09-27','region'=>app_config('mail.ses_region',app_config('aws_region')),'retries'=>0,'http'=>['connect_timeout'=>5,'timeout'=>25]]);
         $args=email_ses_arguments($payload,$deliveryKey);
@@ -113,6 +114,13 @@ function email_work(int $limit=10,?callable $testTransport=null): array {
                 }
                 if(email_address_suppressed((string)$payload['to'])){
                     db()->prepare("UPDATE email_outbox SET status='suppressed',error_code='recipient_suppressed' WHERE id=?")->execute([$row['id']]);$stats['suppressed']++;continue;
+                }
+            }
+            if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:')){
+                $identity=newsletter_lifecycle_identity($payload['dedupe_key']);
+                if($identity){newsletter_subscriber_lock($identity['id'],5);$confirmationSubscriber=$identity['id'];}
+                if(!$identity||!newsletter_lifecycle_deliverable($payload['dedupe_key'],(string)$payload['to'])){
+                    db()->prepare("UPDATE email_outbox SET status='suppressed',error_code='subscription_notice_obsolete' WHERE id=?")->execute([$row['id']]);$stats['suppressed']++;continue;
                 }
             }
             if(str_starts_with($payload['dedupe_key'],'newsletter-campaign:') && function_exists('newsletter_email_gate')){
@@ -189,13 +197,14 @@ function email_work(int $limit=10,?callable $testTransport=null): array {
     return $stats;
 }
 function publishing_send_reminder(array $job,array $snapshot): bool {
-    $to='';
-    if (!empty($job['created_by'])) {$q=db()->prepare('SELECT email FROM users WHERE id=? AND is_active=1');$q->execute([(int)$job['created_by']]);$to=(string)$q->fetchColumn();}
+    $to='';$recipientName='Waithaka';
+    if (!empty($job['created_by'])) {$q=db()->prepare('SELECT email,name FROM users WHERE id=? AND is_active=1');$q->execute([(int)$job['created_by']]);$owner=$q->fetch();if($owner){$to=(string)$owner['email'];$recipientName=(string)$owner['name'];}}
     if (!$to) $to=(string)setting('contact.recipient','');
     if (!filter_var($to,FILTER_VALIDATE_EMAIL)) return false;
     $dest=json_decode((string)($job['destination_json']??'{}'),true)?:[];$slug=(string)($dest['slug']??'');
     $variant=$snapshot['variants'][$slug]??[];
     $html='<p>A publishing task is ready for '.e($dest['name']??$slug).'.</p><h2>'.e($snapshot['title']??'Weekly update').'</h2><p>'.nl2br(e($variant['text']??'')).'</p><p><a href="'.e(url('/write/publishing')).'">Review the approved copy in Writer</a></p><p>This reminder does not mean that the social post has been published. Complete the platform steps and record its URL in Writer.</p>';
+    $html=email_design('Your publishing task is ready.',$html,['name'=>$recipientName]);
     $id=enqueue_email($to,'Publishing task ready · '.mb_substr($snapshot['title']??'Weekly update',0,150),$html,'publishing:'.$job['job_key']);
     $q=db()->prepare('SELECT status FROM email_outbox WHERE id=?');$q->execute([$id]);
     // A deduplicated sent/ambiguous/suppressed row is not a new queued reminder.

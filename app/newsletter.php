@@ -182,10 +182,35 @@ function newsletter_transition(int $id,string $action,int $expectedState,int $ac
         newsletter_event($id,null,null,$status,$action==='pause'?'Paused future deliveries; previously accepted messages cannot be recalled.':($action==='resume'?'Resumed the same approved edition and original audience.':'Cancelled unsent deliveries; accepted or uncertain deliveries remain recorded.'),$actor);db()->commit();
     }catch(Throwable $error){if(db()->inTransaction())db()->rollBack();throw $error;}finally{newsletter_unlock($lock);}
 }
-function newsletter_html(array $snapshot, ?string $unsubscribe = null, ?string $preferences = null): string {
+function newsletter_html(array $snapshot, ?string $unsubscribe = null, ?string $preferences = null, string $name = ''): string {
     $footer=$unsubscribe?'<a href="'.e($unsubscribe).'">Unsubscribe</a>':'<span>Unsubscribe link — unique to each recipient</span>';
     if(function_exists('reader_preference_url'))$footer.=$preferences?' · <a href="'.e($preferences).'">Email preferences</a>':' · <span>Email preferences — private recipient link</span>';
-    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'.e($snapshot['subject']).'</title></head><body style="margin:0;background:#f4f2ed;color:#243536;font-family:Arial,sans-serif"><div style="display:none;max-height:0;overflow:hidden">'.e($snapshot['preheader']).'</div><main style="max-width:640px;margin:24px auto;padding:32px;background:#fff"><p style="font-size:13px;letter-spacing:1px;color:#536b65">'.e($snapshot['sender']['name']).'</p>'.$snapshot['body_html'].'<hr style="border:0;border-top:1px solid #ddd;margin-top:32px"><footer style="font-size:13px;line-height:1.6;color:#586966"><p>You receive this edition because you confirmed your subscription to Waithaka Ndegwa’s writing.</p><p>'.$footer.' · <a href="'.e($snapshot['site_url']).'">Visit the website</a></p><p>'.nl2br(e($snapshot['sender']['postal_address'])).'</p></footer></main></body></html>';
+    return email_design($snapshot['subject'],$snapshot['body_html'],['name'=>$name,'preheader'=>$snapshot['preheader'],'site_url'=>$snapshot['site_url'],'postal_address'=>$snapshot['sender']['postal_address'],'footer'=>'<p>You receive this edition because you confirmed your subscription to Waithaka Ndegwa’s writing.</p><p>'.$footer.'</p>']);
+}
+function newsletter_lifecycle_html(string $kind,array $subscriber,?string $unsubscribe=null): string {
+    $name=(string)(($subscriber['first_name']??'')?:($subscriber['name']??''));
+    if($kind==='welcome')return email_design('Thank you for subscribing.','<p>I appreciate you making space for My Thoughts in your inbox. I look forward to sharing practical ideas, honest learning and the experience of turning challenges into lasting value.</p><p>Your subscription is now confirmed. You will receive new writing and Startup Journeys that match your preferences.</p>'.email_design_button('Explore My Thoughts',url('/my-thoughts')).'<p>Thank you for being part of the conversation.</p>',['name'=>$name,'preheader'=>'You are now subscribed to My Thoughts.','unsubscribe'=>$unsubscribe,'preferences'=>url('/newsletter/preferences/request')]);
+    if($kind!=='goodbye')throw new InvalidArgumentException('Unknown subscription message.');
+    return email_design('Your subscription has ended.','<p>Your request is complete. You will no longer receive newsletter editions from My Thoughts.</p><p>Thank you for the time you have shared with me. You are always welcome to read the website at your own pace.</p><p>There is nothing else you need to do.</p>',['name'=>$name,'preheader'=>'You have been unsubscribed. No further action is needed.','footer'=>'<p>This is the one-time unsubscribe receipt you requested. It does not restart your subscription. You will not receive further newsletter editions unless you subscribe and confirm again.</p>']);
+}
+function newsletter_queue_lifecycle(int $id,string $kind): void {
+    $subscriber=newsletter_subscriber($id);if(!$subscriber)return;
+    $unsubscribe=$kind==='welcome'?newsletter_unsubscribe_url($id):null;
+    $html=newsletter_lifecycle_html($kind,$subscriber,$unsubscribe);
+    $headers=$kind==='welcome'?['List-Unsubscribe'=>'<'.newsletter_one_click_url($id).'>','List-Unsubscribe-Post'=>'List-Unsubscribe=One-Click']:[];
+    enqueue_email($subscriber['email'],$kind==='welcome'?'Thank you for subscribing · Waithaka Ndegwa':'You are unsubscribed · Waithaka Ndegwa',$html,'newsletter-lifecycle:'.$kind.':'.$id.':'.$subscriber['consent_revision'],$headers);
+}
+function newsletter_lifecycle_identity(string $key): ?array {
+    if(!preg_match('/\Anewsletter-lifecycle:(welcome|goodbye):([1-9][0-9]{0,18}):([1-9][0-9]{0,18})\z/',$key,$m))return null;
+    return ['kind'=>$m[1],'id'=>(int)$m[2],'revision'=>(string)$m[3]];
+}
+function newsletter_lifecycle_deliverable(string $key,string $recipient): bool {
+    $identity=newsletter_lifecycle_identity($key);if(!$identity)return false;
+    $subscriber=newsletter_subscriber($identity['id']);
+    return $subscriber && (string)$subscriber['consent_revision']===$identity['revision']
+        && hash_equals(newsletter_email_hash($subscriber['email']),newsletter_email_hash($recipient))
+        && $subscriber['status']===($identity['kind']==='welcome'?'confirmed':'unsubscribed')
+        && empty($subscriber['suppressed_at']) && !newsletter_address_suppressed($recipient);
 }
 function newsletter_envelope_hash(array $payload): string {
     $headers=$payload['headers']??[];ksort($headers,SORT_STRING);
@@ -236,7 +261,7 @@ function newsletter_work(int $limit=100): array {
                 if(!$subscriber||!newsletter_recipient_eligible($subscriber,$delivery)||(function_exists('reader_newsletter_matches')&&!reader_newsletter_matches((int)$subscriber['id'],$snapshot))){db()->prepare("UPDATE newsletter_deliveries SET status='suppressed',last_error='recipient_ineligible' WHERE id=?")->execute([$delivery['id']]);$stats['suppressed']++;continue;}
                 $unsubscribe=newsletter_unsubscribe_url((int)$subscriber['id']);$oneClick=newsletter_one_click_url((int)$subscriber['id']);$headers=['List-Unsubscribe'=>'<'.$oneClick.'>','List-Unsubscribe-Post'=>'List-Unsubscribe=One-Click'];
                 $preferences=function_exists('reader_preference_url')?reader_preference_url((int)$subscriber['id']):null;
-                $html=newsletter_html($snapshot,$unsubscribe,$preferences);$payload=['to'=>$subscriber['email'],'subject'=>$snapshot['subject'],'html'=>$html,'headers'=>$headers];$outbox=enqueue_email($subscriber['email'],$snapshot['subject'],$html,'newsletter-campaign:'.$delivery['delivery_key'],$headers);
+                $html=newsletter_html($snapshot,$unsubscribe,$preferences,(string)(($subscriber['first_name']??'')?:($subscriber['name']??'')));$payload=['to'=>$subscriber['email'],'subject'=>$snapshot['subject'],'html'=>$html,'headers'=>$headers];$outbox=enqueue_email($subscriber['email'],$snapshot['subject'],$html,'newsletter-campaign:'.$delivery['delivery_key'],$headers);
                 db()->prepare("UPDATE newsletter_deliveries SET status='queued',outbox_id=?,envelope_hash=?,queued_at=UTC_TIMESTAMP() WHERE id=?")->execute([$outbox,newsletter_envelope_hash($payload),$delivery['id']]);$stats['queued']++;
             }
             db()->prepare("UPDATE newsletter_campaigns SET status='sending',updated_at=UTC_TIMESTAMP() WHERE id=?")->execute([$id]);db()->commit();

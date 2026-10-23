@@ -5,11 +5,11 @@
     <form method="post" action="<?=e(url('/newsletter'))?>" class="journey-form">
       <?=csrf_field()?>
       <div class="journey-honey" aria-hidden="true"><label for="newsletter-website">Leave this field empty</label><input id="newsletter-website" name="company_website" type="text" tabindex="-1" autocomplete="off"></div>
-      <div class="field"><label for="newsletter-name">Your name <span class="optional">(optional)</span></label><input id="newsletter-name" name="name" type="text" maxlength="120" autocomplete="given-name" value="<?=e(journeys_field($values,'name'))?>"></div>
-      <div class="field"><label for="newsletter-email">Email address</label><input id="newsletter-email" name="email" type="email" maxlength="254" autocomplete="email" required value="<?=e(journeys_field($values,'email'))?>"></div>
+      <div class="newsletter-name-grid"><div class="field"><label for="newsletter-first-name">First name</label><input id="newsletter-first-name" name="first_name" type="text" maxlength="60" autocomplete="given-name" required value="<?=e(journeys_field($values,'first_name'))?>"></div><div class="field"><label for="newsletter-last-name">Last name</label><input id="newsletter-last-name" name="last_name" type="text" maxlength="59" autocomplete="family-name" required value="<?=e(journeys_field($values,'last_name'))?>"></div></div>
+      <div class="field"><label for="newsletter-email">Email address</label><input id="newsletter-email" name="email" type="email" inputmode="email" autocapitalize="none" spellcheck="false" maxlength="190" autocomplete="email" required value="<?=e(journeys_field($values,'email'))?>"></div>
       <?php if (isset($preferenceChoices)): $choices = $preferenceChoices; require __DIR__.'/../reader/preference_fields.php'; endif; ?>
       <label class="journey-check"><input type="checkbox" name="subscribe_ack" value="1" required <?=journeys_checked($values['subscribe_ack']??null)?'checked':''?>><span>I would like to receive Waithaka Ndegwa’s writing by email. I have read the <a href="<?=e(url('/privacy'))?>">Privacy Policy</a>.</span></label>
-      <button class="button" type="submit">Request confirmation →</button><p class="journey-help">Your subscription becomes active only after you use the confirmation link sent to your address.</p>
+      <button class="button" type="submit">Join My Thoughts →</button><p class="journey-help">Your subscription becomes active only after you use the confirmation link sent to your address.</p>
     </form><p class="journey-help">Already subscribed? <a href="<?=e(url('/newsletter/preferences/request'))?>">Manage topics, journeys or unsubscribe</a>. Asking for a management link does not resubscribe you.</p>
   </div>
 </div></section>

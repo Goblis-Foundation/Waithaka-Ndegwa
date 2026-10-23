@@ -89,3 +89,7 @@ No social posts, DMs, newsletter sends, advertising purchases or live payment tr
 Separated Facebook personal Login credentials from Facebook Pages/Business Login across settings, authorisation start and callback exchange. Empty personal app settings now show setup rather than silently reusing the app that rejected public-profile-only login. Existing Page and Instagram settings are preserved. This fixes the application configuration boundary; a supported personal Login app and actual consent remain pending.
 
 Operations now labels the encryption key without assuming old-data recovery, explains backup-key preservation, and uses a neutral feedback card while mail is paused rather than implying SES was selected. These changes do not enable mail or delivery workers.
+
+## Subscription and email follow-up
+
+New instruction: modern first-name/last-name/email subscription, appreciative welcome, designed unsubscribe receipt, and a shared header, personalised salutation and six-profile footer for all email including contact acknowledgements. Implementation and research are recorded in [Email design](EMAIL-DESIGN-2026-10-23.md). Mail transport remains paused; deployment does not establish inbox delivery.

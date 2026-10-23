@@ -119,7 +119,7 @@ nl_db_check(email_work()['enabled']===false&&nl_db_outbox($da)['status']==='pend
 $state=(int)newsletter_campaign($campaign)['state_version'];newsletter_transition($campaign,'pause',$state,$actor);
 nl_db_reject(fn()=>newsletter_transition($campaign,'resume',$state,$actor,$when),'Stale release controls cannot change campaign state.');
 nl_db_check(nl_db_run_gate($da)['action']==='defer','Pausing a queued edition defers its final transport gate.');
-$calls=0;$stats=email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});
+$calls=0;$stats=email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});
 nl_db_check($calls===0&&$stats['deferred']===2,'The real mail worker cannot deliver a paused edition.');
 $gate=newsletter_email_gate($payload['dedupe_key'],$payload,(int)$da['outbox_id']);
 $second=new PDO('mysql:host='.$host.';port='.$port.';dbname='.$name.';charset=utf8mb4',$user,$pass,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
@@ -137,7 +137,7 @@ nl_db_check($stats['sent']===1&&count($accepted)===1&&$accepted[0]['to']==='reci
 nl_db_check(nl_db_delivery($campaign,$b)['status']==='suppressed','Unsubscribe after queueing suppresses the old delivery.');
 nl_db_check(nl_db_delivery($campaign,$a)['status']==='accepted','Provider acceptance is not falsely reported as delivery.');
 nl_db_check(newsletter_campaign($campaign)['status']==='completed','Processing completes only after all recipients have a recorded outcome.');
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'duplicate';});nl_db_check($calls===0,'Acknowledged messages are never sent twice.');
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'duplicate';});nl_db_check($calls===0,'Acknowledged messages are never sent twice.');
 foreach(['delivered','bounced','complained','delivered']as$feedback){db()->beginTransaction();newsletter_delivery_feedback((int)$da['outbox_id'],$feedback,'synthetic-provider-id');db()->commit();}
 newsletter_email_acknowledged($payload['dedupe_key'],(int)$da['outbox_id'],'synthetic-provider-id');newsletter_email_reconcile();
 nl_db_check(nl_db_delivery($campaign,$a)['status']==='complained','Late delivery or acknowledgement cannot erase stronger complaint feedback.');
@@ -170,27 +170,27 @@ $confirmation=nl_db_row('SELECT * FROM email_outbox ORDER BY id DESC LIMIT 1');$
 preg_match('~/newsletter/confirm\?token=([a-f0-9]{64})~',$confirmationPayload['html'],$confirmMatch);
 nl_db_check(isset($confirmMatch[1])&&newsletter_apply_token($confirmMatch[1],'confirm'),'The re-subscription requires and consumes its new confirmation token.');
 nl_db_check(nl_db_run_gate($renewalDelivery)['action']==='suppress','New confirmation does not revive an old queued audience membership.');
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});nl_db_check($calls===0,'Neither obsolete campaign nor consumed confirmation mail reaches transport.');
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});nl_db_check($calls===0,'Neither obsolete campaign nor consumed confirmation mail reaches transport.');
 
 // Cancellation is durable and preserves already-known outcomes.
 [$cancelCampaign,$cancelRevision]=nl_db_approved('Cancel fixture');nl_db_schedule($cancelCampaign,$cancelRevision);nl_db_due($cancelCampaign);newsletter_work();$cancelDelivery=nl_db_delivery($cancelCampaign,$renewed);
 newsletter_transition($cancelCampaign,'cancel',(int)newsletter_campaign($cancelCampaign)['state_version'],$actor);
 nl_db_check(nl_db_outbox($cancelDelivery)['status']==='suppressed'&&nl_db_delivery($cancelCampaign,$renewed)['status']==='cancelled','Cancelling an edition suppresses its pending outbox and recipient entry atomically.');
 nl_db_reject(fn()=>newsletter_schedule($cancelCampaign,$cancelRevision,$when,(int)newsletter_campaign($cancelCampaign)['state_version'],$actor),'Cancelled editions cannot be scheduled again.');
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});nl_db_check($calls===0,'Cancelled messages never reach transport.');
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});nl_db_check($calls===0,'Cancelled messages never reach transport.');
 
 // Unknown provider outcomes are held, not blindly retried.
 [$uncertainCampaign,$uncertainRevision]=nl_db_approved('Lost response fixture');nl_db_schedule($uncertainCampaign,$uncertainRevision);nl_db_due($uncertainCampaign);newsletter_work();
 $uncertainDelivery=nl_db_delivery($uncertainCampaign,$renewed);$calls=0;
-$stats=email_work(100,function()use(&$calls){$calls++;throw new RuntimeException('Synthetic response loss after possible provider acceptance.');});
+$stats=email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;throw new RuntimeException('Synthetic response loss after possible provider acceptance.');});
 nl_db_check($calls===1&&$stats['ambiguous']===1&&nl_db_delivery($uncertainCampaign,$renewed)['status']==='ambiguous','An uncertain send is retained as an explicit ambiguous outcome.');
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'duplicate';});nl_db_check($calls===0,'An ambiguous delivery is never automatically replayed.');
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'duplicate';});nl_db_check($calls===0,'An ambiguous delivery is never automatically replayed.');
 
 // A queue payload must exactly match its approved recipient envelope.
 [$tamperCampaign,$tamperRevision]=nl_db_approved('Envelope fixture');nl_db_schedule($tamperCampaign,$tamperRevision);nl_db_due($tamperCampaign);newsletter_work();
 $tamperDelivery=nl_db_delivery($tamperCampaign,$renewed);$tampered=nl_db_payload($tamperDelivery);$tampered['subject']='Unapproved replacement';
 db()->prepare('UPDATE email_outbox SET payload=? WHERE id=?')->execute([encrypt_secret(json_encode($tampered,JSON_THROW_ON_ERROR)),$tamperDelivery['outbox_id']]);
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});
 nl_db_check($calls===0&&nl_db_delivery($tamperCampaign,$renewed)['status']==='failed','Changed queued content fails its final envelope check before transport.');
 
 // Withdrawn articles and changed addresses stop the queue and the final send.
@@ -216,13 +216,13 @@ nl_db_check(abs((new DateTimeImmutable($repaired['accepted_at'],new DateTimeZone
 
 [$addressCampaign,$addressRevision]=nl_db_approved('Recipient address fixture');nl_db_schedule($addressCampaign,$addressRevision);nl_db_due($addressCampaign);newsletter_work();$addressDelivery=nl_db_delivery($addressCampaign,$renewed);
 db()->prepare('UPDATE newsletter_subscribers SET email=? WHERE id=?')->execute(['changed-address@example.invalid',$renewed]);
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});
 nl_db_check($calls===0&&nl_db_delivery($addressCampaign,$renewed)['status']==='suppressed','Changing a subscriber address cannot redirect a frozen audience delivery.');
 
 [$feedbackCampaign,$feedbackRevision]=nl_db_approved('Late suppression fixture');nl_db_schedule($feedbackCampaign,$feedbackRevision);nl_db_due($feedbackCampaign);newsletter_work();$feedbackDelivery=nl_db_delivery($feedbackCampaign,$renewed);
 $changedEmail=newsletter_subscriber($renewed)['email'];
 db()->prepare("INSERT INTO mail_suppressions(email_hash,email_encrypted,reason,created_at,updated_at) VALUES(?,?,'hard_bounce',UTC_TIMESTAMP(),UTC_TIMESTAMP())")->execute([email_address_hash($changedEmail),encrypt_secret($changedEmail)]);
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});
 nl_db_check($calls===0&&nl_db_delivery($feedbackCampaign,$renewed)['status']==='suppressed','New central suppression after queueing wins before campaign transport.');
 nl_db_check((int)nl_db_scalar('SELECT COUNT(*) FROM newsletter_events WHERE campaign_id=?',[$feedbackCampaign])>=3,'Draft, approval and schedule transitions retain an audit trail.');
 nl_db_check((int)nl_db_scalar('SELECT COUNT(*) FROM newsletter_deliveries WHERE status IN (\'pending\',\'queued\')')===0,'The fixture leaves no eligible delivery waiting for accidental transport.');
@@ -242,12 +242,12 @@ nl_db_check(nl_db_scalar('SELECT issued_email_hash FROM newsletter_tokens WHERE 
 $publicRecord=newsletter_token_record($boundToken,'confirm');
 nl_db_check(!array_key_exists('email',$publicRecord)&&!array_key_exists('issued_email_hash',$publicRecord),'Public confirmation token metadata exposes neither address nor issuance hash.');
 db()->prepare('UPDATE newsletter_subscribers SET email=? WHERE id=?')->execute(['changed-before-send@example.invalid',$bound['id']]);
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});
 nl_db_check($calls===0&&nl_db_scalar('SELECT status FROM email_outbox WHERE id=?',[$boundOutbox['id']])==='suppressed','An address change before queue transport suppresses the old confirmation email.');
 nl_db_check(!newsletter_apply_token($boundToken,'confirm')&&newsletter_subscriber((int)$bound['id'])['status']==='pending','An old capability cannot confirm the changed subscriber address.');
 
 [$sentBinding,$sentOutbox,$sentPayload,$sentToken]=$confirmationFixture('changed-after-send');
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'synthetic-confirmation-ack';});
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'synthetic-confirmation-ack';});
 nl_db_check($calls===1&&nl_db_scalar('SELECT status FROM email_outbox WHERE id=?',[$sentOutbox['id']])==='sent','An unchanged confirmation recipient reaches only the offline fixture transport.');
 db()->prepare('UPDATE newsletter_subscribers SET email=? WHERE id=?')->execute(['changed-after-send@example.invalid',$sentBinding['id']]);
 nl_db_check(!newsletter_apply_token($sentToken,'confirm')&&newsletter_subscriber((int)$sentBinding['id'])['status']==='pending','A link already delivered to the previous mailbox cannot confirm a later replacement address.');
@@ -256,7 +256,7 @@ nl_db_check(!newsletter_apply_token($sentToken,'confirm')&&newsletter_subscriber
 nl_db_check(newsletter_confirmation_deliverable($queuePayload['dedupe_key'],strtoupper($queueBinding['email'])),'Equivalent address casing preserves valid confirmation eligibility.');
 nl_db_check(!newsletter_confirmation_deliverable($queuePayload['dedupe_key'],'different-envelope@example.invalid'),'Final confirmation gating compares the immutable envelope recipient too.');
 $queuePayload['to']='different-envelope@example.invalid';db()->prepare('UPDATE email_outbox SET payload=? WHERE id=?')->execute([encrypt_secret(json_encode($queuePayload,JSON_THROW_ON_ERROR)),$queueOutbox['id']]);
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});
 nl_db_check($calls===0&&nl_db_scalar('SELECT status FROM email_outbox WHERE id=?',[$queueOutbox['id']])==='suppressed','A misbound confirmation envelope cannot send a capability to another mailbox.');
 
 // Additive migration leaves old rows untouched; use encrypted issuance evidence
@@ -272,7 +272,7 @@ db()->prepare('UPDATE newsletter_tokens SET issued_email_hash=NULL WHERE token_h
 db()->prepare('UPDATE newsletter_subscribers SET email=? WHERE id=?')->execute(['legacy-changed-address@example.invalid',$legacyChanged['id']]);
 nl_db_check(!newsletter_confirmation_deliverable($legacyChangedPayload['dedupe_key'],$legacyChangedPayload['to']),'Legacy evidence cannot be rebound from its original mailbox to a changed current address.');
 nl_db_check(!newsletter_apply_token($legacyChangedToken,'confirm'),'Legacy token consumption rejects a different current address.');
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send';});nl_db_check($calls===0,'Misbound legacy confirmations never reach transport.');
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send';});nl_db_check($calls===0,'Misbound legacy confirmations never reach transport.');
 
 $unproved=nl_db_subscriber('confirmation-legacy-unproved','pending',false);$unprovedToken=newsletter_create_token($unproved,'confirm',date('Y-m-d H:i:s',time()+3600));$unprovedHash=hash('sha256',$unprovedToken);
 db()->prepare('UPDATE newsletter_tokens SET issued_email_hash=NULL WHERE token_hash=?')->execute([$unprovedHash]);
@@ -281,10 +281,25 @@ nl_db_check((int)nl_db_scalar('SELECT COUNT(*) FROM newsletter_tokens WHERE toke
 newsletter_request_signup('confirmation-legacy-unproved@example.invalid','Fresh opt-in fixture');$fresh=nl_db_row('SELECT payload FROM email_outbox ORDER BY id DESC LIMIT 1');$freshPayload=json_decode(decrypt_secret($fresh['payload']),true,512,JSON_THROW_ON_ERROR);
 preg_match('~/newsletter/confirm\?token=([a-f0-9]{64})~',$freshPayload['html'],$freshMatch);
 nl_db_check(isset($freshMatch[1])&&newsletter_apply_token($freshMatch[1],'confirm'),'A reader with unprovable legacy history can complete a fresh bound double opt-in.');
-$calls=0;email_work(100,function()use(&$calls){$calls++;return 'must-not-send-consumed';});nl_db_check($calls===0,'Consumed replacement confirmation mail is suppressed normally.');
+$calls=0;email_work(100,function($payload)use(&$calls){if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:'))return 'fixture-lifecycle-notice';$calls++;return 'must-not-send-consumed';});nl_db_check($calls===0,'Consumed replacement confirmation mail is suppressed normally.');
 
 [$unreadable,$unreadableOutbox,$unreadablePayload,$unreadableToken]=$confirmationFixture('legacy-unreadable');
 db()->prepare('UPDATE newsletter_tokens SET issued_email_hash=NULL WHERE token_hash=?')->execute([hash('sha256',$unreadableToken)]);
 db()->prepare("UPDATE email_outbox SET payload='invalid encrypted fixture',status='suppressed' WHERE id=?")->execute([$unreadableOutbox['id']]);
 nl_db_check(!newsletter_confirmation_deliverable($unreadablePayload['dedupe_key'],$unreadable['email'])&&!newsletter_apply_token($unreadableToken,'confirm'),'Unreadable legacy issuance evidence fails closed without disclosing its contents.');
+
+// Lifecycle notices are bound to the exact recipient and consent revision.
+$lifecycle=nl_db_subscriber('lifecycle-reader');
+$life=newsletter_subscriber($lifecycle);$key='newsletter-lifecycle:welcome:'.$lifecycle.':'.$life['consent_revision'];
+nl_db_check(newsletter_lifecycle_deliverable($key,$life['email'])&&!newsletter_lifecycle_deliverable($key,'other@example.invalid'),'Welcome cannot be redirected to another mailbox');
+newsletter_queue_lifecycle($lifecycle,'welcome');newsletter_queue_lifecycle($lifecycle,'welcome');
+nl_db_check((int)nl_db_scalar('SELECT COUNT(*) FROM email_outbox WHERE dedupe_key=?',[hash('sha256',$key)])===1,'The welcome queue is idempotent per consent revision');
+$byeToken=newsletter_create_token($lifecycle,'unsubscribe',null);
+nl_db_check(newsletter_apply_token($byeToken,'unsubscribe',true),'Requested human unsubscribe receipt records the change');
+$life=newsletter_subscriber($lifecycle);$byeKey='newsletter-lifecycle:goodbye:'.$lifecycle.':'.$life['consent_revision'];
+nl_db_check(!newsletter_lifecycle_deliverable($key,$life['email'])&&newsletter_lifecycle_deliverable($byeKey,$life['email']),'Unsubscribe suppresses an unsent welcome but allows the explicitly requested receipt');
+$before=(int)nl_db_scalar('SELECT COUNT(*) FROM email_outbox');newsletter_apply_token($byeToken,'unsubscribe',true);
+nl_db_check((int)nl_db_scalar('SELECT COUNT(*) FROM email_outbox')===$before,'Repeated unsubscribe cannot queue another receipt');
+$lifeCalls=0;email_work(100,function($payload)use(&$lifeCalls,$byeKey){if($payload['dedupe_key']===$byeKey)$lifeCalls++;return 'offline-lifecycle-receipt';});
+nl_db_check($lifeCalls===1,'The requested receipt reaches only the offline test transport once');
 echo "PASS: {$checks} newsletter database assertions (offline transport only)\n";

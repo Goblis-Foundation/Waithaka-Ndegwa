@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/email_design.php';
 
 function app_config(?string $key = null, mixed $default = null): mixed {
     global $CONFIG;
@@ -600,7 +601,7 @@ function send_contact_email(array $m): bool {
     $body="New message from waithakandegwa.com\n\nReference: {$m['reference']}\nName: {$m['first_name']} {$m['last_name']}\nEmail: {$m['email']}\nPhone: {$m['phone_code']} {$m['phone']}\nLocation: {$m['city']}, {$m['country']}\n\nMessage:\n{$m['message']}\n";
     $from=trim((string)setting('mail.from','noreply@waithakandegwa.com')); if(!filter_var($from,FILTER_VALIDATE_EMAIL))$from='noreply@waithakandegwa.com';
     $safeReply=str_replace(["\r","\n"],'',$m['email']);
-    if(function_exists('enqueue_email')){try{enqueue_email($to,$subject,'<pre>'.e($body).'</pre>','contact:'.$m['reference']);return true;}catch(Throwable $e){error_log('Contact email queue failed for '.$m['reference']);return false;}}
+    if(function_exists('enqueue_email')){try{enqueue_email($to,$subject,email_design('A new website enquiry','<p>A message has been saved in your reader desk.</p><p><strong>Reference:</strong> '.e($m['reference']).'</p><p><strong>From:</strong> '.e($m['first_name'].' '.$m['last_name']).' · '.e($m['email']).'</p><p>'.nl2br(e($m['message'])).'</p>'.email_design_button('Open the reader desk',url('/write/readers')),['name'=>'Waithaka']),'contact:'.$m['reference']);return true;}catch(Throwable $e){error_log('Contact email queue failed for '.$m['reference']);return false;}}
     $headers=['From: Waithaka Ndegwa Website <'.$from.'>','Reply-To: '.$safeReply,'Content-Type: text/plain; charset=UTF-8'];
     return @mail($to,$subject,$body,implode("\r\n",$headers));
 }
@@ -706,7 +707,7 @@ function release_consent_text(array $release): string {
 function notify_writer(string $subject,string $body): bool {
     $to=trim((string)setting('contact.recipient',''));if($to===''||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;
     $from=trim((string)setting('mail.from','noreply@waithakandegwa.com'));if(!filter_var($from,FILTER_VALIDATE_EMAIL))$from='noreply@waithakandegwa.com';
-    if(function_exists('enqueue_email')){try{enqueue_email($to,$subject,'<pre>'.e($body).'</pre>','notify:'.hash('sha256',$subject.'|'.$body));return true;}catch(Throwable $e){error_log('Writer notification queue failed.');return false;}}
+    if(function_exists('enqueue_email')){try{enqueue_email($to,$subject,email_design($subject,'<p style="white-space:pre-wrap">'.e($body).'</p>',['name'=>'Waithaka']),'notify:'.hash('sha256',$subject.'|'.$body));return true;}catch(Throwable $e){error_log('Writer notification queue failed.');return false;}}
     $headers=['From: Waithaka Ndegwa Website <'.$from.'>','Content-Type: text/plain; charset=UTF-8'];
     return @mail($to,$subject,$body,implode("\r\n",$headers));
 }

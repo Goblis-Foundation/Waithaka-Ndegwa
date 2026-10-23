@@ -28,6 +28,7 @@ function db(): PDO { return $GLOBALS['journeysTestDb']; }
 function app_config(?string $key=null,mixed $default=null): mixed { return $key==='app_key'?'isolated-journeys-test-key':$default; }
 function ip_hash(): string { return hash('sha256','journeys-test-connection'); }
 function url(string $path=''): string { return 'https://www.waithakandegwa.com'.($path===''?'/':$path); }
+function social_links(): array { return []; }
 function e(?string $text): string { return htmlspecialchars((string)$text,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'); }
 function slugify(string $text): string { return trim((string)preg_replace('/[^a-z0-9]+/','-',strtolower($text)),'-'); }
 function excerpt(string $text,int $length=160): string { return mb_substr(trim(strip_tags($text)),0,$length); }
