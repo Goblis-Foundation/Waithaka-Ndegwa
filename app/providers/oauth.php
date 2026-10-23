@@ -21,6 +21,7 @@ function publishing_services(): array {
         'google_youtube_upload' => ['name'=>'YouTube upload access', 'provider'=>'google', 'scopes'=>array_merge($identity,['https://www.googleapis.com/auth/youtube.readonly','https://www.googleapis.com/auth/youtube.upload']), 'description'=>'Separate upload grant for resumable video delivery from your media library. Confirm the channel, choose Direct API, and approve visibility, audience and altered-content disclosure for each video. Upload completion and YouTube processing are tracked separately.'],
         'instagram' => ['name'=>'Instagram professional', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_content_publish'], 'description'=>'Instagram Login for a Business or Creator account. Direct delivery currently supports one JPEG image; use Buffer or assisted publishing for other formats.'],
         'instagram_insights' => ['name'=>'Instagram Insights', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_insights'], 'description'=>'Separate read access for professional-account reach. Publishing keeps its existing connection; confirm the same account before reading Insights.'],
+        'facebook_profile' => ['name'=>'Facebook personal profile', 'provider'=>'facebook', 'scopes'=>['public_profile'], 'description'=>'Confirm your own Facebook identity. Professional-mode profile posting remains assisted, and analytics use native Professional Dashboard reports. This login does not request Page access or grant automatic profile publishing.'],
         'facebook_pages' => ['name'=>'Facebook Page discovery', 'provider'=>'facebook', 'scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'], 'description'=>'Discover Pages you manage, then choose a real Page. This cannot publish to your professional-mode profile.'],
         'linkedin_analytics' => ['name'=>'LinkedIn member analytics','provider'=>'linkedin','scopes'=>['openid','profile','r_member_postAnalytics'],'description'=>'Separate approved analytics product and member consent. Read aggregate post impressions, reach and reactions; this does not grant publishing permission.'],
         'linkedin' => ['name'=>'LinkedIn member', 'provider'=>'linkedin', 'scopes'=>['openid','profile','w_member_social'], 'description'=>'Requires Sign In with LinkedIn using OpenID Connect and Share on LinkedIn products. Direct delivery supports text and links; use Buffer for media.'],
@@ -220,6 +221,7 @@ function publishing_provider_identity(string $service, array &$token): array {
         $base = 'https://graph.facebook.com/'.publishing_meta_version();
         $who = publishing_http('GET',$base.'/me?fields=id,name',$access)['data'];
         $id = (string)($who['id'] ?? ''); $name = (string)($who['name'] ?? 'Facebook user');
+        if($service==='facebook_profile'){$resources[]=['id'=>$id,'name'=>$name,'type'=>'profile'];$metadata['access_note']='Identity only. Professional mode is owner-declared. No profile publishing or Insights API access.';}else{
         $permissions = publishing_http('GET',$base.'/me/permissions',$access)['data']['data'] ?? [];
         $granted = array_column(array_filter($permissions,static fn($p)=>($p['status']??'')==='granted'),'permission');
         foreach (publishing_services()[$service]['scopes'] as $permission) if (!in_array($permission,$granted,true)) throw new RuntimeException('Facebook Page access is missing a required permission.');
@@ -231,6 +233,7 @@ function publishing_provider_identity(string $service, array &$token): array {
             $token['page_tokens'][(string)$page['id']] = $page['access_token'];
         }
         $metadata['pagination_note'] = !empty($response['paging']['next']) ? 'The first 100 Pages are shown. Use a provider integration if your Page is outside this list.' : '';
+        }
     } else throw new RuntimeException('Unsupported connection provider.');
     if ($id === '' || strlen($id) > 255) throw new RuntimeException('The provider did not return a usable account identity.');
     return ['id'=>$id,'name'=>mb_substr($name,0,255),'resources'=>$resources,'metadata'=>$metadata];

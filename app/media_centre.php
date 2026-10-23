@@ -13,7 +13,7 @@ function media_centre_platforms(): array {
     ];
 }
 function media_centre_connect_services(): array {
-    return ['linkedin'=>'linkedin','facebook'=>'','instagram'=>'instagram','x'=>'x','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_read'];
+    return ['linkedin'=>'linkedin','facebook'=>'facebook_profile','instagram'=>'instagram','x'=>'x','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_read'];
 }
 function writer_workspace_summary(): array {
     $connected=0;foreach(media_centre_connect_services()as$slug=>$service){if($service==='')continue;$services=[$service];if($slug==='linkedin')$services[]='linkedin_analytics';if($slug==='youtube')$services[]='google_youtube_read';if($slug==='tiktok')$services[]='tiktok_business';foreach($services as$granted){$c=publishing_connection($granted);if($c&&$c['status']==='connected'&&!empty($c['selected_resource'])){$connected++;break;}}}

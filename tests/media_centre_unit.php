@@ -24,7 +24,7 @@ echo "PASS: social analytics input, zero/missing, identity, source and grant bou
 mc_check(array_keys(media_centre_connect_services())===array_keys(media_centre_platforms()),'Every platform has one primary Connect action.');
 mc_check(media_centre_connect_services()['linkedin']==='linkedin'&&media_centre_connect_services()['youtube']==='google_youtube_upload','Primary grants support posting without silently adding separate analytics products.');
 
-mc_check(media_centre_connect_services()['facebook']==='','A Page grant is never the primary personal Facebook connection.');
+mc_check(media_centre_connect_services()['facebook']==='facebook_profile','A Page grant is never the primary personal Facebook connection.');
 mc_reject(fn()=>media_centre_api_report('facebook',['service'=>'facebook_pages','status'=>'connected','selected_resource'=>'123']));
 $ig=['service'=>'instagram_insights','status'=>'connected','selected_resource'=>'123','display_name'=>'@fixture','scopes_json'=>'["instagram_business_basic","instagram_business_manage_insights"]'];
 $end=new DateTimeImmutable('today',new DateTimeZone('UTC'));$calls=[];
