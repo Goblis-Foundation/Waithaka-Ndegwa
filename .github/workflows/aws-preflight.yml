@@ -66,12 +66,15 @@ jobs:
           blocked=re.compile(r'password|secret|credential|token|APP_KEY|DB_PASS|Authorization|PRIVATE KEY',re.I)
           for entry in entries:
               data=urllib.request.urlopen(entry['Message'],timeout=30).read()
-              archive=zipfile.ZipFile(io.BytesIO(data))
-              for path in archive.namelist():
-                  if any(x in path for x in ['eb-engine.log','eb-hooks.log','error_log']):
-                      print('LOG '+path)
-                      lines=archive.read(path).decode('utf-8','replace').splitlines()
-                      for line in lines[-120:]:
-                          if blocked.search(line): print('[sensitive log line omitted]')
-                          else: print(line[:1600])
+              if zipfile.is_zipfile(io.BytesIO(data)):
+                  archive=zipfile.ZipFile(io.BytesIO(data))
+                  logs=[(path,archive.read(path)) for path in archive.namelist() if any(x in path for x in ['eb-engine.log','eb-hooks.log','error_log'])]
+              else:
+                  logs=[('Beanstalk tail logs',data)]
+              for path,body in logs:
+                  print('LOG '+path)
+                  lines=body.decode('utf-8','replace').splitlines()
+                  for line in lines[-300:]:
+                      if blocked.search(line): print('[sensitive log line omitted]')
+                      else: print(line[:1600])
           PY
