@@ -63,13 +63,20 @@ function meetings_access_token(string $provider,int $uid): string {
 function meetings_link(string $value,string $provider): string {
     if($value==='')return '';
     if(strlen($value)>3000||preg_match('/[\x00-\x20\x7f\\\\]/',$value))throw new InvalidArgumentException('Enter a valid HTTPS meeting or booking link.');
+    $decoded=rawurldecode($value);if(preg_match('/[\x00-\x20\x7f\\\\]/',$decoded))throw new InvalidArgumentException('Encoded control characters are not allowed.');
     $p=parse_url($value);$host=strtolower($p['host']??'');
     $domains=match($provider){'google'=>['meet.google.com','calendar.google.com','calendar.app.google'],'zoom'=>['zoom.us','zoom.com'],'microsoft'=>['teams.microsoft.com','teams.live.com','teams.cloud.microsoft'],'webex'=>['webex.com'],'calendly'=>['calendly.com'],default=>[]};
     $ok=false;foreach($domains as$d)if($host===$d||(($provider==='zoom'||$provider==='webex')&&str_ends_with($host,'.'.$d)))$ok=true;
     if(!$ok||($p['scheme']??'')!=='https'||isset($p['user'])||isset($p['pass'])||isset($p['port'])||isset($p['fragment']))throw new InvalidArgumentException('Use an HTTPS link from the selected meeting platform.');
-    if($provider==='zoom'&&preg_match('~^/(?:s|start)(?:/|$)~',$p['path']??''))throw new InvalidArgumentException('Save a participant join link, never a host start link.');
-    if(preg_match('/(?:^|&)(?:zak|access_token|token|code|client_secret)=/i',$p['query']??''))throw new InvalidArgumentException('Do not save an authentication or host access link.');
+    if($provider==='zoom'&&preg_match('~^/(?:s|start)(?:/|$)~i',rawurldecode($p['path']??'')))throw new InvalidArgumentException('Save a participant join link, never a host start link.');
+    if(preg_match('/(?:^|&)(?:zak|access_token|token|code|client_secret)=/i',rawurldecode($p['query']??'')))throw new InvalidArgumentException('Do not save an authentication or host access link.');
     return $value;
+}
+function meetings_event_join(array $event): string {
+    $candidates=[];if(is_string($event['hangoutLink']??null))$candidates[]=$event['hangoutLink'];
+    foreach($event['conferenceData']['entryPoints']??[]as$entry)if(($entry['entryPointType']??'')==='video'&&is_string($entry['uri']??null))$candidates[]=$entry['uri'];
+    foreach($candidates as$link)foreach(['google','zoom','microsoft','webex']as$provider){try{return meetings_link($link,$provider);}catch(InvalidArgumentException){}}
+    return '';
 }
 function meetings_read(string $provider,int $uid,?callable $transport=null): array {
     if(!isset(meetings_providers()[$provider]))throw new InvalidArgumentException('Choose a supported meeting account.');

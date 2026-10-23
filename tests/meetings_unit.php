@@ -12,4 +12,6 @@ $r=meetings_read('microsoft',1,$fixture);mt_check(count($r['rows'])===1&&$r['lim
 $fixture=function(){return ['data'=>['meetings'=>[['topic'=>'Zoom test','start_url'=>'https://zoom.us/s/secret','join_url'=>'https://evil.test']]]];};
 $r=meetings_read('zoom',1,$fixture);mt_check($r['rows'][0]['join']===''&&!str_contains(json_encode($r),'secret'),'Host links and foreign links excluded');
 foreach(meetings_providers()as$d)foreach($d['scopes']as$s)mt_check(!preg_match('/write|admin|recording|transcript/i',$s),'Only delegated read scopes');
+mt_check(meetings_event_join(['conferenceData'=>['entryPoints'=>[['entryPointType'=>'video','uri'=>'https://meet.google.com/abc-defg-hij']]]])==='https://meet.google.com/abc-defg-hij','Google conference links available in agenda');
+mt_reject('https://zoom.us/%73/1','zoom');mt_reject('https://zoom.us/j/1?%7Aak=secret','zoom');
 echo "Meeting policy checks passed: $checks\n";

@@ -1,13 +1,13 @@
 # Personal website Google Cloud setup · 23 October 2026
 
-Status: project creation and Cloud-console sign-in are not complete. The console root and credentials page currently return “Site Unavailable” in the connected browser. No project ID or OAuth client has been claimed as created.
+Status: the owner created the personal website project and saved its OAuth client securely in Writer. Search Console, GA4, YouTube read/upload/Analytics and selected Drive files are connected. Two Google calendar accounts are confirmed; further account authorizations remain in progress. The Cloud console is unavailable in this browser.
 
 ## Project
 
 Open https://console.cloud.google.com/ and sign in with the Google account intended to own the personal website integration. Use the project selector, then New project.
 
 - Project name: **Waithaka Ndegwa Website**.
-- Actual project ID: **waithaka-ndegwa-website-512516**. Availability is unverified; use Google's suggested unique ID if unavailable and retain the actual resulting ID. Project ID is permanent after creation.
+- Actual project ID: **waithaka-ndegwa-website-512516**. Owner-confirmed project; retain this ID.
 - Choose the organisation/location intentionally. Do not silently place the personal project in another business's resource hierarchy.
 - No new paid product, billing subscription or hosting migration is requested. If Google requires a financial commitment, review it before proceeding.
 
