@@ -31,3 +31,11 @@ No live test booking, meeting invitation, social post, newsletter batch or push 
 ## Research references
 
 Calendly scheduling/help, Cal.com API v2, Front shared inbox, Brevo Conversations, HubSpot Conversations, Buffer Community, Google Calendar events/freeBusy, Microsoft Graph calendarView/getSchedule, WCAG 2.2, Apple Web Push/WebKit Home Screen requirements. Current-source research completed in the conversation on 24 October 2026.
+
+## Live acceptance
+
+Core release fdec060 deployed successfully. Live Writer confirmed Today, Availability, App settings, update checks, Devices & passkeys and a dedicated booking-worker heartbeat. All eight existing Google accounts were selected for conflict checks and five proposed meeting types saved. Public booking remains closed pending destination authorization. Device alerts remain off; no browser permission, passkey enrollment or external invitation was triggered.
+
+Gmail release 1e8cf07 passed all 55 suites on PHP 8.3 and 8.4/MySQL 8.4. Live external Gmail reads/drafts remain unverified without their separate grants. Google Cloud console returned Site Unavailable in this browser. Owner must register the exact additional callbacks shown in Connections for google_booking, google_gmail_read and google_gmail_draft, and enable Gmail API for mail features.
+
+Final review removed a nested public main landmark and narrowed the booking grant from full calendar read to free/busy plus owned-event access. These changes do not widen existing connections.
