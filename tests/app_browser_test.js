@@ -1,0 +1,12 @@
+'use strict';
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const serviceEvents={},documentEvents={};let reloads=0,approved=false,lastBanner=null;
+const element=()=>({children:[],setAttribute(){},append(child){this.children.push(child);},remove(){}});
+const registration={waiting:null,addEventListener(){},update:async()=>{}};
+const document={body:{dataset:{},append(e){lastBanner=e;}},querySelector(){return null;},querySelectorAll(){return[];},addEventListener(n,f){documentEvents[n]=f;}};
+const context={navigator:{serviceWorker:{controller:null,register:async()=>registration,addEventListener(n,f){serviceEvents[n]=f;}}},document,window:{},addEventListener(){},setInterval(){},setTimeout(){},confirm(){return approved;},location:{reload(){reloads++;}},Date,Intl,URL,Uint8Array};document.createElement=element;
+vm.runInNewContext(fs.readFileSync('assets/js/app.js','utf8'),context);
+serviceEvents.controllerchange();assert.equal(reloads,0,'First install must not reload a working page');assert.equal(lastBanner,null,'First install needs no update prompt');
+serviceEvents.controllerchange();assert.equal(reloads,0,'An update activated by another tab must not reload this tab');assert.ok(lastBanner.children[0],'Offer a manual reload');
+documentEvents.input();lastBanner.children[0].onclick();assert.equal(reloads,0,'Unsaved work can reject the update');approved=true;lastBanner.children[0].onclick();assert.equal(reloads,1,'Explicit approval reloads exactly once');
+console.log('PASS: first install, cross-tab updates and unsaved-work reload control.');

@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require dirname(__DIR__).'/app/communication.php';require dirname(__DIR__).'/app/communication_notifications.php';
+require dirname(__DIR__).'/app/meetings.php';require dirname(__DIR__).'/app/communication.php';require dirname(__DIR__).'/app/communication_notifications.php';
 function cc(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);}
 function reject(callable $f):void{try{$f();}catch(InvalidArgumentException){return;}throw new RuntimeException('Expected validation rejection.');}
 foreach(['2026-02-29','2026-13-01','yesterday',[],"2026-01-01\n"]as$d)reject(fn()=>comm_date($d));cc(comm_date('2028-02-29')==='2028-02-29','Leap date');reject(fn()=>comm_zone('Bogus/Zone'));
@@ -16,3 +16,5 @@ foreach(['http://fcm.googleapis.com/x','https://fcm.googleapis.com.evil.test/x',
 $key=openssl_pkey_new(['private_key_type'=>OPENSSL_KEYTYPE_EC,'curve_name'=>'prime256v1']);openssl_sign('fixture',$der,$key,OPENSSL_ALGO_SHA256);cc(strlen(comm_es256_raw($der))===64,'VAPID signature width');
 $sw=file_get_contents(dirname(__DIR__).'/sw.js');cc(!str_contains($sw,"caches.put")&&!str_contains($sw,'e.data.json'),'No private response cache or push payload');
 echo "PASS: availability, DST, reservation states, buffers, quiet hours and notification boundaries.\n";
+
+$b=['id'=>'fixture','join'=>''];$e=['extendedProperties'=>['private'=>['websiteBooking'=>'fixture']],'conferenceData'=>['createRequest'=>['status'=>['statusCode'=>'pending']]]];cc(comm_conference_result($b,$e)['conference_status']==='pending','Async conference remains pending');$e['hangoutLink']='https://meet.google.com/abc-defg-hij';cc(comm_conference_result($b,$e)['conference_status']==='ready','Async conference becomes joinable');$e['extendedProperties']['private']['websiteBooking']='different';$failed=false;try{comm_conference_result($b,$e);}catch(RuntimeException){$failed=true;}cc($failed,'Reject a different meeting identity');

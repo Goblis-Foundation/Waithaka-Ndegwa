@@ -34,7 +34,7 @@ function comm_mail_job(array $job,array $cfg): void {
 }
 function communication_work(): array {
     $cfg=comm_config();if(empty($cfg['worker']))return ['enabled'=>false];
-    return comm_lock('worker',function()use($cfg){$count=0;$now=time();foreach(comm_records('booking')as$b){if($b['status']==='confirmed'&&$b['start']>$now&&$b['start']<=$now+86400){$key=$b['id'].'.'.$b['version'].'.reminder';if(!comm_get('mail.'.$key))comm_queue_mail($b,'reminder');}}
+    return comm_lock('worker',function()use($cfg){$count=0;$now=time();$conferenceReads=0;foreach(comm_records('booking')as$b){if($conferenceReads<10&&$b['status']==='confirmed'&&$b['join']===''){comm_refresh_conference($b,$cfg);$conferenceReads++;}if($b['status']==='confirmed'&&$b['start']>$now&&$b['start']<=$now+86400){$key=$b['id'].'.'.$b['version'].'.reminder';if(!comm_get('mail.'.$key))comm_queue_mail($b,'reminder');}}
         foreach(comm_records('mail',10000)as$j){if($j['status']==='sending'&&($j['started']??$j['created'])<$now-900){$j['status']='review';comm_put('mail.'.$j['id'],$j);}if($count>=10)break;if($j['status']==='pending'){comm_mail_job($j,$cfg);$count++;}}
         $signal=comm_get('signal');$summary=reader_operations_summary();$prior=comm_get('worker');
         $latest=(int)db()->query('SELECT COALESCE(MAX(id),0) FROM reader_enquiries')->fetchColumn();

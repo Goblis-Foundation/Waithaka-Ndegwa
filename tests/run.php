@@ -317,6 +317,9 @@ try {
             else $failed[] = $label;
         }
         $suiteCount++;
+        if(wk_test_process(['node',__DIR__.'/app_browser_test.js'],$environment,'App installation and unsaved update lifecycle'))$passedCount++;
+        else $failed[]='App installation and unsaved update lifecycle';
+        $suiteCount++;
         if(wk_test_process(['node',__DIR__.'/analytics_browser_test.js'],$environment,'Offline Google tag consent and duplicate-event states'))$passedCount++;
         else $failed[]='Offline Google tag consent and duplicate-event states';
         $suiteCount++;

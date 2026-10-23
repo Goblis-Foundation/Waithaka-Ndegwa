@@ -73,9 +73,21 @@ function comm_provider_event(array $b,array $cfg): array {
     catch(PublishingRemoteException $e){if($e->httpStatus===409){$r=publishing_http('GET',$base.'/'.$eventId,['Authorization: Bearer '.$token])['data'];if(($r['extendedProperties']['private']['websiteBooking']??'')===$b['id'])return $r;}throw $e;}
 }
 function comm_confirm(array $b,array $cfg): array {
-    $b['status']='creating';comm_put('booking.'.$b['id'],$b);
-    try{$r=comm_provider_event($b,$cfg);$b['event_id']=$r['id'];$b['calendar']=comm_writer_connection($cfg)['selected_resource'];$b['join']=meetings_event_join($r);$b['status']='confirmed';$b['version']++;comm_put('booking.'.$b['id'],$b);comm_queue_mail($b,'confirmed');comm_event('bookings',$b['id']);return $b;}
+    $b['conference_status']='pending';$b['conference_attempts']=0;$b['conference_checked']=0;$b['status']='creating';comm_put('booking.'.$b['id'],$b);
+    try{$r=comm_provider_event($b,$cfg);$b['event_id']=$r['id'];$b['calendar']=comm_writer_connection($cfg)['selected_resource'];$b['join']=meetings_event_join($r);$b['conference_status']=$b['join']!==''?'ready':'pending';$b['status']='confirmed';$b['version']++;comm_put('booking.'.$b['id'],$b);comm_queue_mail($b,'confirmed');comm_event('bookings',$b['id']);return $b;}
     catch(Throwable $e){$b['status']='review';comm_put('booking.'.$b['id'],$b);comm_event('connections',$b['id']);throw new RuntimeException('Your request was saved, but calendar confirmation needs review. Please do not submit it again.');}
+}
+function comm_conference_result(array $b,array $event): array {
+    if(($event['extendedProperties']['private']['websiteBooking']??'')!==$b['id'])throw new RuntimeException('The meeting identity could not be verified.');
+    $b['join']=meetings_event_join($event);$state=$event['conferenceData']['createRequest']['status']['statusCode']??'pending';
+    $b['conference_status']=$b['join']!==''?'ready':($state==='failure'?'unavailable':'pending');return $b;
+}
+function comm_refresh_conference(array $b,array $cfg): void {
+    if($b['status']!=='confirmed'||$b['join']!==''||$b['end']<time()||($b['conference_attempts']??0)>=6||($b['conference_checked']??0)>time()-60)return;
+    comm_lock('reservations',function()use($b,$cfg){$b=comm_get('booking.'.$b['id']);if($b['status']!=='confirmed'||$b['join']!=='')return;$b['conference_attempts']=($b['conference_attempts']??0)+1;$b['conference_checked']=time();
+        try{$c=comm_writer_connection($cfg);$r=publishing_http('GET','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($b['calendar']).'/events/'.rawurlencode($b['event_id']),['Authorization: Bearer '.publishing_access_token($c)])['data'];$b=comm_conference_result($b,$r);}catch(Throwable){$b['conference_status']='pending';}
+        if($b['conference_attempts']>=6&&$b['join']===''){$b['conference_status']='unavailable';comm_event('connections',$b['id']);}comm_put('booking.'.$b['id'],$b);
+    });
 }
 function comm_make_booking(array $cfg,array $input): array {
     $type=reader_choice($input['type']??'', $cfg['types'],'meeting');$date=comm_date($input['date']??null);$zone=comm_zone($input['timezone']??'UTC');

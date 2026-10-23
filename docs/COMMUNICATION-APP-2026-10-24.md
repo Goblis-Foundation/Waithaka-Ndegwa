@@ -39,3 +39,5 @@ Core release fdec060 deployed successfully. Live Writer confirmed Today, Availab
 Gmail release 1e8cf07 passed all 55 suites on PHP 8.3 and 8.4/MySQL 8.4. Live external Gmail reads/drafts remain unverified without their separate grants. Google Cloud console returned Site Unavailable in this browser. Owner must register the exact additional callbacks shown in Connections for google_booking, google_gmail_read and google_gmail_draft, and enable Gmail API for mail features.
 
 Final review removed a nested public main landmark and narrowed the booking grant from full calendar read to free/busy plus owned-event access. These changes do not widen existing connections.
+
+Reliability acceptance: delayed Google Meet conference links are refreshed by the scoped worker with bounded, identity-checked reads. First installation never forces a reload; an update activated from another tab asks before reloading unsaved work. An offline JavaScript lifecycle fixture covers these reload boundaries.
