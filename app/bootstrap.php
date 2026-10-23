@@ -23,6 +23,7 @@ $APP_INSTALLED = (is_file($CONFIG_FILE) && is_file(__DIR__.'/../storage/installe
 if ($APP_INSTALLED && PHP_SAPI==='cli') wk_validate_app_key($CONFIG['app_key']??null);
 date_default_timezone_set((string)($CONFIG['timezone']??'Africa/Nairobi'));
 require_once __DIR__.'/functions.php';
+require_once __DIR__.'/impact.php';
 require_once __DIR__.'/analytics.php';
 if (is_file(__DIR__.'/../vendor/autoload.php')) require_once __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/operations.php';

@@ -2,6 +2,10 @@
 declare(strict_types=1);
 if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
 require dirname(__DIR__).'/app/bootstrap.php';
+// Aggregate reporting is independent of paused mail/social delivery. No feeds means no network calls.
+if ($APP_INSTALLED && app_config('app_env')==='production') {
+    try { impact_sync(); } catch (Throwable $e) { error_log('Impact reporting refresh unavailable.'); }
+}
 // Staging can serve restored content without draining live external delivery work.
 $enabled=$APP_INSTALLED && (bool)app_config('worker_enabled',false);
 $run=$APP_INSTALLED && function_exists('readiness_worker_begin')?readiness_worker_begin($enabled):null;

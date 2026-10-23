@@ -3,9 +3,9 @@
     <div class="home-hero-copy" data-reveal>
       <span class="eyebrow">On the frontlines of social change in Africa</span>
       <h1>Waithaka<br>Ndegwa</h1>
-      <p class="hero-lead">My experience and views on social entrepreneurship, agribusiness, infrastructure, innovation, and the world I encounter along the way.</p>
-      <p class="hero-note">I write from experience: what I see while building, travelling, working with people, following systems and asking why some ideas create opportunity while others never leave the page.</p>
-      <div class="button-row"><a class="button button-primary" href="<?=url('/my-thoughts')?>">Read My Thoughts</a><a class="button button-secondary" href="<?=url('/start-here')?>">Start Here</a></div>
+      <p class="hero-lead">On the frontlines of social change in Africa, building practical solutions to some of the world’s most pressing social, economic, and environmental challenges.</p>
+      <p class="hero-note">I am a social entrepreneur, innovation strategist, and ecosystem builder turning ideas, talent, and real-world challenges into sustainable enterprises and measurable impact.</p>
+      <div class="button-row"><a class="button button-primary" href="<?=url('/my-thoughts')?>">Read My Thoughts</a><a class="button button-secondary" href="#goals-2030">My 2030 goals</a></div>
     </div>
     <div class="home-hero-media" data-reveal>
       <figure class="hero-main-image"><img <?=responsive_image_attrs(asset('images/journey/speaking.webp'))?> alt="Waithaka Ndegwa speaking at an event" fetchpriority="high" decoding="async"></figure>
@@ -14,6 +14,8 @@
     </div>
   </div>
 </section>
+
+<?php include __DIR__.'/impact_summary.php'; ?>
 
 <?php $activeJourney=function_exists('journeys_home_feature')?journeys_home_feature():null; ?>
 <section class="home-build-section">

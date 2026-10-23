@@ -295,6 +295,7 @@ try {
         $passedCount = 0;
         foreach (['010_security_unit.php' => 'Pure security', 'publishing_test.php' => 'Pure publishing',
                   'runtime_config_test.php' => 'Pure runtime configuration',
+                  'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'newsletter_unit.php'=>'Pure newsletter policy','youtube_test.php'=>'Pure YouTube policy','tiktok_test.php'=>'Pure TikTok permissions and reporting',
                   'tiktok_business_test.php'=>'Pure TikTok Accounts API publishing policy',
                   'analytics_unit.php'=>'Analytics destination and campaign privacy',

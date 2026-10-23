@@ -7,6 +7,7 @@ if (!installed()) {
 }
 
 $path = path_only();
+if (impact_writer_route($path)) exit;
 if (str_starts_with($path,'/write') || str_starts_with($path,'/consent/') || str_starts_with($path,'/payments/')) private_response_headers();
 // Optional modules may handle additional routes without changing legacy URLs.
 if (function_exists('app_extension_route') && app_extension_route($path)) exit;
@@ -24,9 +25,10 @@ function person_schema(): array {
     return [
         '@context'=>'https://schema.org','@type'=>'Person','name'=>'Waithaka Ndegwa','url'=>url('/about'),
         'image'=>asset('images/journey/conversation.webp'),'birthPlace'=>['@type'=>'Place','name'=>'Nyeri, Kenya'],
-        'description'=>'On the frontlines of social change in Africa, contributing to the world’s most pressing problems.',
+        'description'=>'On the frontlines of social change in Africa, building practical solutions to some of the world’s most pressing social, economic, and environmental challenges.',
+        'jobTitle'=>['Social entrepreneur','Innovation strategist','Ecosystem builder'],
         'sameAs'=>array_values(social_links()),
-        'knowsAbout'=>['Social entrepreneurship','Agribusiness','National infrastructure','Innovation','Travel'],
+        'knowsAbout'=>['Social entrepreneurship','Agribusiness','National infrastructure','Innovation','Travel','Renewable energy','Regenerative agriculture','Circular economy','Impact investment','Education','Inclusive economic growth'],
     ];
 }
 
@@ -45,7 +47,7 @@ if ($path === '/') {
         ],
         'audience'=>['@type'=>'Audience','audienceType'=>'Readers interested in African development, social entrepreneurship, agribusiness, infrastructure, innovation and travel']
     ]];
-    render('home',['page'=>'home','latest'=>$latest,'selected'=>$selected,'topicStats'=>$topicStats,'schema'=>$schema,'seo'=>['title'=>'Waithaka Ndegwa · Social Entrepreneurship, Agribusiness, Infrastructure & Innovation','description'=>'Personal experience and views from Africa on social entrepreneurship, agribusiness, infrastructure, innovation and travel — rooted in Kenya and connected to a global audience.','canonical'=>url('/')]]);
+    render('home',['page'=>'home','latest'=>$latest,'selected'=>$selected,'topicStats'=>$topicStats,'schema'=>$schema,'seo'=>['title'=>'Waithaka Ndegwa · Social Entrepreneur, Innovation Strategist & Ecosystem Builder','description'=>'Social entrepreneur, innovation strategist and ecosystem builder advancing sustainable enterprises, inclusive growth and practical solutions across Africa.','canonical'=>url('/')]]);
     exit;
 }
 
@@ -103,7 +105,7 @@ if (preg_match('~^/my-thoughts/([a-z0-9-]+)$~',$path,$m)) {
 
 if ($path === '/about') {
     $profile=['@context'=>'https://schema.org','@type'=>'ProfilePage','mainEntity'=>person_schema(),'url'=>url('/about'),'name'=>'About Waithaka Ndegwa'];
-    render('about',['page'=>'about','schema'=>[$profile],'seo'=>['title'=>'About Waithaka Ndegwa · Africa, Enterprise & Global Perspective','description'=>'Waithaka Ndegwa was born in Nyeri, Kenya. His experience across enterprise, agriculture, infrastructure, innovation and travel shapes a distinctly African perspective with global curiosity.','canonical'=>url('/about')]]);
+    render('about',['page'=>'about','schema'=>[$profile],'seo'=>['title'=>'About Waithaka Ndegwa · Purpose, Practice & 2030 Goals','description'=>'Meet Waithaka Ndegwa: social entrepreneur, innovation strategist and ecosystem builder. Explore his work, approach and enterprise, employment and market-access goals for 2030.','canonical'=>url('/about')]]);
     exit;
 }
 
