@@ -65,3 +65,13 @@ foreach(['/storage/private/proof.jpg','/assets/images/../../app/config.php','dat
 discovery_check(discovery_image_attributes('https://cdn.example.invalid/photo.webp')===['src'=>'https://cdn.example.invalid/photo.webp'],'Remote HTTPS originals are preserved without fabricated srcset/network calls.');
 $CONFIG['app_env']='production';discovery_rejects(fn()=>discovery_gsc_refresh(28,1,fn()=>[]),'Production cannot accept a report fixture.');
 echo 'Discovery pure checks passed: '.$checks." assertions.\n";
+
+discovery_check(discovery_gsc_row_limit('country')===300&&discovery_gsc_row_limit('query')===100&&discovery_gsc_row_limit(null)===1,'Worldwide country reports are not truncated at 100 rows; other report limits remain bounded.');
+$countryRows=[];for($i=0;$i<150;$i++)$countryRows[]=['keys'=>['fixture-'.$i]]+$metric;
+discovery_check(count(discovery_gsc_rows(['rows'=>$countryRows],'country',discovery_gsc_row_limit('country')))===150,'Country reports retain valid rows beyond the previous shortlist-sized cap.');
+
+$pageSeo=['canonical'=>'https://www.waithakandegwa.com/about','title'=>'About','description'=>'Public profile'];
+$globalSchema=global_webpage_schema($pageSeo);
+discovery_check($globalSchema['inLanguage']==='en'&&$globalSchema['isPartOf']['@id']==='https://www.waithakandegwa.com/#website','Public English pages share the canonical website identity worldwide.');
+discovery_check(global_webpage_schema($pageSeo,true)===[]&&global_webpage_schema($pageSeo+['robots'=>'noindex,nofollow'])===[],'Private and noindex pages do not gain public page structured data.');
+discovery_check(global_webpage_schema(array_replace($pageSeo,['canonical'=>'https://other.invalid/about']))===[]&&global_webpage_schema(array_replace($pageSeo,['canonical'=>'https://www.waithakandegwa.com/about?token=secret']))===[],'External and capability/query addresses are never advertised as public canonical page identities.');

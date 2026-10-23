@@ -313,6 +313,8 @@ function discovery_gsc_fingerprint(array $connection): string {
 }
 
 /** Missing dimension rows are unknown, not fabricated zeroes. Totals use a separate undimensioned API request. */
+function discovery_gsc_row_limit(?string $dimension): int { return $dimension===null?1:($dimension==='country'?300:100); }
+
 function discovery_gsc_rows(array $response,?string $dimension,int $limit): array {
     if(isset($response['error']) || (isset($response['rows']) && (!is_array($response['rows']) || !array_is_list($response['rows']))))throw new RuntimeException('Search Console returned an invalid report.');
     $rows=$response['rows']??[];if(count($rows)>$limit)throw new RuntimeException('Search Console returned more rows than requested.');
@@ -352,16 +354,16 @@ function discovery_gsc_refresh(int $days,int $actor,?callable $testRequest=null)
         db()->prepare("INSERT INTO discovery_gsc_reports(connection_id,connection_fingerprint,property_url,days,period_start,period_end,previous_start,previous_end,status,requested_by,created_at) VALUES(?,?,?,?,?,?,?,?,'running',?,UTC_TIMESTAMP())")
             ->execute([$connection['id'],$fingerprint,$connection['selected_resource'],$days,$periods['start'],$periods['end'],$periods['previous_start'],$periods['previous_end'],$actor]);$id=(int)db()->lastInsertId();
         $endpoint='https://www.googleapis.com/webmasters/v3/sites/'.rawurlencode($connection['selected_resource']).'/searchAnalytics/query';
-        $payload=['periods'=>$periods,'type'=>'web','data_state'=>'final','row_limit'=>100,'totals'=>[],'dimensions'=>[]];
+        $payload=['periods'=>$periods,'type'=>'web','data_state'=>'final','row_limit'=>100,'row_limits'=>['query'=>100,'country'=>300,'device'=>100],'totals'=>[],'dimensions'=>[]];
         $headers=$testing?[]:publishing_bearer(publishing_access_token($connection));
         foreach(['totals'=>null,'query'=>'query','country'=>'country','device'=>'device']as$name=>$dimension) {
             $pairs=[];
             foreach(['current','previous']as$period) {
                 $body=['startDate'=>$period==='current'?$periods['start']:$periods['previous_start'],'endDate'=>$period==='current'?$periods['end']:$periods['previous_end'],
-                    'dimensions'=>$dimension===null?[]:[$dimension],'type'=>'web','dataState'=>'final','aggregationType'=>'byProperty','rowLimit'=>$dimension===null?1:100,'startRow'=>0];
+                    'dimensions'=>$dimension===null?[]:[$dimension],'type'=>'web','dataState'=>'final','aggregationType'=>'byProperty','rowLimit'=>discovery_gsc_row_limit($dimension),'startRow'=>0];
                 $response=$testRequest!==null?$testRequest($endpoint,$body):publishing_http('POST',$endpoint,$headers,$body)['data'];
                 if(!is_array($response))throw new RuntimeException('Search Console returned an invalid report.');
-                $pairs[$period]=discovery_gsc_rows($response,$dimension,$dimension===null?1:100);
+                $pairs[$period]=discovery_gsc_rows($response,$dimension,discovery_gsc_row_limit($dimension));
             }
             if($dimension===null)$payload['totals']=['current'=>$pairs['current'][0]??null,'previous'=>$pairs['previous'][0]??null];
             else $payload['dimensions'][$name]=discovery_gsc_comparison($pairs['current'],$pairs['previous']);

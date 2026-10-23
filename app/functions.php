@@ -504,6 +504,14 @@ function render_write(string $view, array $data=[]): void {
     extract($data, EXTR_SKIP); $viewFile=__DIR__.'/../views/write/'.$view.'.php'; ob_start();require $viewFile;$content=ob_get_clean();require __DIR__.'/../views/write/layout.php';
 }
 
+/** Language describes actual content; country tags are not fabricated for one English URL. */
+function global_webpage_schema(array $seo, bool $private=false): array {
+    if($private||str_contains(strtolower((string)($seo['robots']??'')),'noindex'))return [];
+    $canonical=(string)($seo['canonical']??'');$parts=parse_url($canonical);$origin=parse_url(base_url());
+    if(!$parts||($parts['scheme']??'')!==($origin['scheme']??'')||($parts['host']??'')!==($origin['host']??'')||isset($parts['query'])||isset($parts['fragment'])||isset($parts['user']))return [];
+    return ['@context'=>'https://schema.org','@type'=>'WebPage','@id'=>$canonical.'#webpage','url'=>$canonical,'name'=>(string)($seo['title']??''),'description'=>(string)($seo['description']??''),'inLanguage'=>'en','isPartOf'=>['@type'=>'WebSite','@id'=>url('/#website'),'url'=>url('/'),'name'=>'Waithaka Ndegwa','inLanguage'=>'en'],'about'=>['@type'=>'Person','@id'=>url('/about#person'),'name'=>'Waithaka Ndegwa','url'=>url('/about')]];
+}
+
 function seo_defaults(): array {
     return [
         'title'=>'Waithaka Ndegwa',

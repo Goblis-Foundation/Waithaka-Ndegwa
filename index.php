@@ -23,7 +23,7 @@ function not_found(): never {
 
 function person_schema(): array {
     return [
-        '@context'=>'https://schema.org','@type'=>'Person','name'=>'Waithaka Ndegwa','url'=>url('/about'),
+        '@context'=>'https://schema.org','@type'=>'Person','@id'=>url('/about#person'),'name'=>'Waithaka Ndegwa','url'=>url('/about'),
         'image'=>asset('images/journey/conversation.webp'),'birthPlace'=>['@type'=>'Place','name'=>'Nyeri, Kenya'],
         'description'=>'On the frontlines of social change in Africa, building practical solutions to some of the world’s most pressing social, economic, and environmental challenges.',
         'jobTitle'=>['Social entrepreneur','Innovation strategist','Ecosystem builder'],
@@ -38,14 +38,12 @@ if ($path === '/') {
     $sql = 'SELECT c.*, SUM(CASE WHEN '.published_where().' THEN 1 ELSE 0 END) post_count FROM categories c LEFT JOIN posts p ON p.category_id=c.id GROUP BY c.id ORDER BY c.sort_order,c.name';
     $topicStats = db()->query($sql)->fetchAll();
     $schema = [person_schema(),[
-        '@context'=>'https://schema.org','@type'=>'WebSite','name'=>'Waithaka Ndegwa','url'=>url('/'),
+        '@context'=>'https://schema.org','@type'=>'WebSite','@id'=>url('/#website'),'name'=>'Waithaka Ndegwa','url'=>url('/'),
         'description'=>seo_defaults()['description'],
         'publisher'=>['@type'=>'Person','name'=>'Waithaka Ndegwa','url'=>url('/about')],
         'potentialAction'=>['@type'=>'SearchAction','target'=>url('/search?q={search_term_string}'),'query-input'=>'required name=search_term_string'],
-        'inLanguage'=>'en','spatialCoverage'=>[
-            ['@type'=>'Country','name'=>'Kenya'],['@type'=>'Country','name'=>'Tanzania'],['@type'=>'AdministrativeArea','name'=>'Zanzibar'],['@type'=>'Country','name'=>'Uganda'],['@type'=>'Country','name'=>'Rwanda'],['@type'=>'Country','name'=>'Burundi'],['@type'=>'Continent','name'=>'Europe'],['@type'=>'Country','name'=>'United Kingdom'],['@type'=>'Country','name'=>'United States'],['@type'=>'Country','name'=>'Canada']
-        ],
-        'audience'=>['@type'=>'Audience','audienceType'=>'Readers interested in African development, social entrepreneurship, agribusiness, infrastructure, innovation and travel']
+        'inLanguage'=>'en',
+        'audience'=>['@type'=>'Audience','audienceType'=>'Readers worldwide interested in African development, social entrepreneurship, agribusiness, infrastructure, innovation and travel']
     ]];
     render('home',['page'=>'home','latest'=>$latest,'selected'=>$selected,'topicStats'=>$topicStats,'schema'=>$schema,'seo'=>['title'=>'Waithaka Ndegwa · Social Entrepreneur, Innovation Strategist & Ecosystem Builder','description'=>'Social entrepreneur, innovation strategist and ecosystem builder advancing sustainable enterprises, inclusive growth and practical solutions across Africa.','canonical'=>url('/')]]);
     exit;

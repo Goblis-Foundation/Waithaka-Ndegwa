@@ -1,6 +1,7 @@
 <?php
 $seo = array_merge(seo_defaults(), $seo ?? []);
 $schema = $schema ?? [];
+$globalPage=global_webpage_schema($seo,!empty($privatePage));if($globalPage)$schema[]=$globalPage;
 $ga4 = analytics_measurement_id($seo, !empty($suppressAnalytics) || !empty($privatePage));
 $verification = (string)setting('google.search_verification','');
 $recaptchaSite = (string)setting('recaptcha.site_key','');
