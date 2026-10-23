@@ -51,16 +51,18 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import subprocess,json,time,urllib.request,zipfile,io,re
+          import subprocess,json,time,urllib.request,zipfile,io,re,datetime
           def aws(*a):
               r=subprocess.run(['aws',*a,'--region','af-south-1','--output','json'],capture_output=True,text=True)
               if r.returncode: raise RuntimeError(r.stderr)
               return json.loads(r.stdout or '{}')
           name='waithaka-ndegwa-production'
+          requested=time.time()
           aws('elasticbeanstalk','request-environment-info','--environment-name',name,'--info-type','tail')
           for attempt in range(12):
               time.sleep(10)
               entries=aws('elasticbeanstalk','retrieve-environment-info','--environment-name',name,'--info-type','tail').get('EnvironmentInfo',[])
+              entries=[e for e in entries if datetime.datetime.fromisoformat(e.get('SampleTimestamp','1970-01-01T00:00:00+00:00').replace('Z','+00:00')).timestamp() >= requested-5]
               if entries: break
           if not entries: raise RuntimeError('Beanstalk did not return tail logs.')
           blocked=re.compile(r'password|secret|credential|token|APP_KEY|DB_PASS|Authorization|PRIVATE KEY',re.I)
