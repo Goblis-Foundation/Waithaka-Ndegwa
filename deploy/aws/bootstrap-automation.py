@@ -40,7 +40,9 @@ def bootstrap():
     environment = aws('elasticbeanstalk','describe-environment-resources','--environment-name','waithaka-ndegwa-production','--region',REGION)['EnvironmentResources']
     elb_resources = []
     for item in environment.get('LoadBalancers', []):
-        for balancer in aws('elbv2','describe-load-balancers','--names',item['Name'],'--region',REGION)['LoadBalancers']:
+        identifier = item['Name']
+        selector = '--load-balancer-arns' if identifier.startswith('arn:') else '--names'
+        for balancer in aws('elbv2','describe-load-balancers',selector,identifier,'--region',REGION)['LoadBalancers']:
             arn = balancer['LoadBalancerArn']
             elb_resources += [arn, arn.replace(':loadbalancer/', ':listener/')+'/*', arn.replace(':loadbalancer/', ':listener-rule/')+'/*/*']
             elb_resources += [g['TargetGroupArn'] for g in aws('elbv2','describe-target-groups','--load-balancer-arn',arn,'--region',REGION)['TargetGroups']]
