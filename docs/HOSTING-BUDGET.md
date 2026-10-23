@@ -1,5 +1,11 @@
 # Hosting budget
 
+## Current owner decision
+
+23 October 2026: the owner accepted keeping the current architecture at the verified USD 113.22/month fixed-component baseline and instructed deployment to proceed. This supersedes the earlier USD 75/month target below. Storage, IPv4, traffic, NAT processing, ALB LCUs, CDN, DNS, secrets, logs, backups and applicable taxes are additional. USD 113.22 is not an all-inclusive invoice or hard spending cap. Retain the current one-server architecture; do not initiate a cost-reduction migration based on the superseded target.
+
+## Superseded target and audit history
+
 Owner instruction, 23 October 2026: keep total monthly hosting expenditure within USD 75.
 
 This applies to the Waithaka Ndegwa workload in AWS account 466401734428, including compute, database, networking, CDN, storage, backups, DNS, monitoring and traffic. Existing AWS credits must not be used to hide the recurring cost after credits expire.
