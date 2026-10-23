@@ -1,0 +1,28 @@
+name: AWS production preflight
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/aws-preflight.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::466401734428:role/WaithakaGitHubDeployRole
+          aws-region: af-south-1
+          allowed-account-ids: '466401734428'
+          retry-max-attempts: 2
+          role-session-name: waithaka-production-preflight
+      - name: Verify workload account and inspect existing environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(aws sts get-caller-identity --query Account --output text)" = 466401734428
+          aws elasticbeanstalk describe-environments --environment-names waithaka-ndegwa-production --region af-south-1
+          aws elasticbeanstalk describe-events --environment-name waithaka-ndegwa-production --region af-south-1 --max-records 25
