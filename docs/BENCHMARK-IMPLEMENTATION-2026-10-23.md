@@ -21,7 +21,7 @@ This release does not claim every benchmark recommendation is operational:
 
 - First venture introduction, original thought, founder story and selected articles need real owner evidence; no fictional content is seeded.
 - Impact source endpoints, approved reports and indirect-beneficiary counts require the source organisations. Existing definitions remain proposals to reconcile with their reporting rules.
-- Workspace SMTP relay is an unsaved draft. Saving new IP-based mail-send access requires action-time confirmation; inbox acceptance remains outstanding.
+- Workspace SMTP relay was confirmed and saved; application transport is configured and Google accepted one owner test. Inbox receipt/rendering and background-worker acceptance remain outstanding.
 - Native Google reporting, remaining social accounts and production AI assistance require correct provider credentials/permissions and acceptance. No connected status is fabricated.
 - Full phone/tablet/keyboard/screen-reader usability acceptance and field Core Web Vitals require device/reader testing and live reporting. CSS breakpoints are implementation, not certification.
 - Translation expansion requires substantive original content and human language review; no empty country pages or automatic translations are generated.

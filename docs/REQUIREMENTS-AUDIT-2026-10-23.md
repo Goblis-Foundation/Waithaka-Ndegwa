@@ -93,3 +93,13 @@ Operations now labels the encryption key without assuming old-data recovery, exp
 ## Subscription and email follow-up
 
 New instruction: modern first-name/last-name/email subscription, appreciative welcome, designed unsubscribe receipt, and a shared header, personalised salutation and six-profile footer for all email including contact acknowledgements. Implementation and research are recorded in [Email design](EMAIL-DESIGN-2026-10-23.md). Mail transport remains paused; deployment does not establish inbox delivery.
+
+## Confirmed mail activation and Google continuation
+
+The owner explicitly confirmed the prepared SMTP relay on 23 October 2026. Google Admin now shows the Waithaka website rule enabled, restricted to fixed egress IP 15.240.2.118, registered Workspace senders and mandatory TLS. Existing Foundation and Group rules were preserved.
+
+Application release `83cbfceac1f5180678fe2971dfb0982f41790c69` adds an idempotent, account/IP-guarded mail configuration step and an authenticated, CSRF-protected owner-only inbox test. Transport configured status was observed in production and Google accepted one test addressed to the signed-in owner, isaac@waithakandegwa.com. This is provider acceptance, not verified inbox placement. The connected Gmail account is a different mailbox, so receipt/rendering have not been claimed. No subscriber campaign, social post or outbox batch was released; global worker remains paused.
+
+The remaining Google Cloud task is now explicitly to create a dedicated personal-site project and sign in. The console root and credentials page both return Site Unavailable in this browser. Proposed project ID is `waithaka-ndegwa-web-2026`, subject to Google availability; no project or OAuth client is claimed as created. [Exact project/API/callback setup](GOOGLE-CLOUD-PERSONAL-SETUP-2026-10-23.md).
+
+Live Connections still shows the four Instagram grants connected to @iwaithakaw. Google reporting/YouTube, personal Facebook, LinkedIn, X and TikTok credentials remain incomplete as listed above. Google console availability, proper provider apps/consent, actual source feeds, owner content, approved postal details, inbox acceptance and physical-device/field testing remain genuine dependencies.
