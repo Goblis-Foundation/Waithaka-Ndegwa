@@ -297,6 +297,8 @@ try {
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',
+                  'app_security_unit.php'=>'Passkey origin, challenge and assertion verification',
+                  'communication_unit.php'=>'Availability, DST and notification boundaries',
                   'meetings_unit.php'=>'Meeting account, read permissions and join-link boundaries',
                   'studio_unit.php' => 'Private capture and explicit AI drafting boundaries',
                   'meta_mcp_unit.php' => 'Local aggregate Meta MCP lifecycle and privacy',
@@ -347,6 +349,7 @@ try {
                 'discovery' => 'discovery_database_test.php',
                 'campaign' => 'campaign_database_test.php',
                 'google' => 'google_workspace_database.php',
+                'communication' => 'communication_database.php',
                 'http' => '010_security_http.php',
             ];
             foreach ($suites as $suite => $file) {

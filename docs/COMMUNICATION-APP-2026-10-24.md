@@ -1,0 +1,33 @@
+# Communication Centre and installable app — 24 October 2026
+
+## Implemented
+
+- Communication Centre: Today, website enquiry inbox/search, people and enquiry history, booking requests, availability rules and truthful booking-state counts; existing social, newsletter, founder, calendar and publishing workspaces remain accessible.
+- Native public `/book` page: meeting types, host-date picker, editable visitor timezone, live selected-calendar checks, booking details and consent, instant confirmation or approval requests, private management links, cancellation and rescheduling.
+- Separate optional `google_booking` OAuth grant. Requires an owned destination calendar confirmed by the owner. Google Calendar must allow its exact callback `/write/connections/callback/google_booking`. Existing eight read connections are not overwritten. Optional personal Outlook conflicts use calendarView, not unsupported personal-account getSchedule.
+- Weekly working hours, date exclusions/travel blocks, notice, horizon, preparation buffers, daily limits and editable durations. Concurrent website reservations serialize under a database advisory lock and recheck remote availability. Pending requests and uncertain provider mutations block availability.
+- Calendar event creation uses deterministic IDs, Google Meet conference requests and explicit invitations. Ambiguous mutations remain `review`; they are not blindly retried. Provider acknowledgements are distinct from email inbox delivery.
+- Booking mail has personalised branded chrome and social/contact/preference footer. Dedicated encrypted jobs process only this booking service; legacy newsletter/social/payment queues remain paused. Worker opt-in is separate and defaults off. Uses the existing minute timer and instance identity, without new paid infrastructure.
+- PWA manifest, install instructions, shortcuts, mobile navigation, offline fallback and update prompt. Service worker never caches authenticated HTML/API data or queues offline external actions. Explicit device draft copies can be saved/restored/cleared; these are opt-in browser-local text, not encrypted server drafts.
+- Standard Web Push subscription and VAPID signing using empty payloads. Only fixed official FCM/Mozilla/Apple HTTPS endpoints accepted; redirects off. Generic privacy-preserving notifications route to bookings/inbox after a same-origin authenticated check. Quiet hours, categories, device removal and expired-endpoint status. Browser permission is always user initiated.
+- AI reply, meeting-agenda and action-extraction modes in Studio use only explicitly supplied text. No automatic private inbox/calendar transmission to AI.
+
+## Activation and acceptance still required
+
+Booking remains closed until owner selects hours/types/conflict calendars, grants the separate Google write permission, confirms an owned destination, and enables booking service notifications. These choices are not inferred from existing read grants. Current user can configure them in Communication Centre > Availability.
+
+Push delivery requires browser support, an installed Home Screen app on relevant iOS versions, explicit browser permission and owner notification preferences. Device delivery, physical phone/tablet layouts and inbox placement require real-device acceptance; automated tests cannot establish them.
+
+The combined centre does not silently import external Gmail inboxes or unsupported social DMs. Instagram private reads remain explicit in the existing engagement workspaces. Facebook remains a personal professional profile. Zoom/Teams/Webex creation remains native-provider work; this release automatically creates Google Meet only.
+
+Passkey enrollment and discoverable sign-in use the locked lbuchs/webauthn library, required user verification, exact origin validation and expiring one-use session challenges. Existing-password verification is required to add/remove keys. Biometrics/device PIN are handled by the authenticator; the website never receives biometric data. Session inventory covers sessions observed after this release, supports revocation, and offers an optional inactivity lock (off by default). Actual passkey enrollment/device acceptance remains owner-controlled and unverified until exercised.
+
+## Storage and operational boundaries
+
+Single-owner records use distinct encrypted rows in the existing `settings` table, avoiding a production schema/privilege expansion. Prefix reads are capped: 2,000 bookings, 200 devices and 10,000 booking mail records. Exceeding caps fails closed and requires archival/migration. Advisory locks, per-record state and deterministic provider IDs prevent duplicate website reservations; Google calendars do not provide atomic reservations against independent external edits.
+
+No live test booking, meeting invitation, social post, newsletter batch or push permission is created merely by deployment. Notification keys are generated privately on first App settings use. Secrets and private calendar/event bodies are absent from this document.
+
+## Research references
+
+Calendly scheduling/help, Cal.com API v2, Front shared inbox, Brevo Conversations, HubSpot Conversations, Buffer Community, Google Calendar events/freeBusy, Microsoft Graph calendarView/getSchedule, WCAG 2.2, Apple Web Push/WebKit Home Screen requirements. Current-source research completed in the conversation on 24 October 2026.

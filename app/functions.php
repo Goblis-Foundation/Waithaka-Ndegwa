@@ -126,6 +126,7 @@ function current_user(): ?array {
     if(!$row)return null;
     $epoch=(string)setting('auth.password_epoch.'.$row['id'],'');
     if($epoch!==''&&!hash_equals($epoch,(string)($_SESSION['auth_epoch']??''))){unset($_SESSION['user_id'],$_SESSION['auth_epoch']);return null;}
+    if(function_exists('app_device_check')&&!app_device_check($row)){unset($_SESSION['user_id'],$_SESSION['auth_epoch']);return null;}
     return $user=$row;
 }
 function require_auth(): void { if (!current_user()) redirect(url('/write/login')); }
@@ -151,7 +152,7 @@ function attempt_login(string $email, string $password): bool {
     db()->prepare('INSERT INTO login_attempts(email,ip_hash,success) VALUES(?,?,?)')->execute([$email,ip_hash(),$ok?1:0]);
     if ($ok) {
         session_regenerate_id(true); $_SESSION['user_id'] = $user['id']; $_SESSION['csrf'] = bin2hex(random_bytes(32));
-        $_SESSION['auth_epoch']=(string)setting('auth.password_epoch.'.$user['id'],'');
+        $_SESSION['auth_epoch']=(string)setting('auth.password_epoch.'.$user['id'],'');$_SESSION['interactive_at']=time();
         db()->prepare('UPDATE users SET last_login_at=NOW() WHERE id=?')->execute([$user['id']]);
         return true;
     }

@@ -1,0 +1,43 @@
+<?php
+declare(strict_types=1);
+function comm_preferences(array $input): array {
+    $z=comm_zone($input['timezone']??'Africa/Nairobi');$p=['timezone'=>$z->getName(),'enabled'=>!empty($input['enabled']),'categories'=>[],'quiet_start'=>$input['quiet_start']??'21:00','quiet_end'=>$input['quiet_end']??'07:00'];
+    $idle=filter_var($input['idle_minutes']??0,FILTER_VALIDATE_INT);if(!in_array($idle,[0,15,30,60],true))throw new InvalidArgumentException('Choose a supported lock interval.');$p['idle_minutes']=$idle;
+    foreach(['quiet_start','quiet_end']as$k)if(!is_string($p[$k])||!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$p[$k]))throw new InvalidArgumentException('Choose valid quiet hours.');
+    foreach((array)($input['categories']??['bookings','enquiries','connections'])as$c)if(in_array($c,['bookings','enquiries','connections'],true))$p['categories'][]=$c;return $p;
+}
+function comm_quiet(array $p,?int $now=null): bool {$t=(new DateTimeImmutable('@'.($now??time())))->setTimezone(comm_zone($p['timezone']))->format('H:i');$a=$p['quiet_start'];$b=$p['quiet_end'];return $a===$b?false:($a<$b?($t>=$a&&$t<$b):($t>=$a||$t<$b));}
+function comm_b64(string $s): string {return rtrim(strtr(base64_encode($s),'+/','-_'),'=');}
+function comm_vapid(): array {return comm_lock('vapid',function(){$r=comm_get('vapid');if($r)return $r;$key=openssl_pkey_new(['private_key_type'=>OPENSSL_KEYTYPE_EC,'curve_name'=>'prime256v1']);if(!$key||!openssl_pkey_export($key,$pem))throw new RuntimeException('Notification keys could not be created.');$d=openssl_pkey_get_details($key);$r=['private'=>$pem,'public'=>comm_b64("\x04".str_pad($d['ec']['x'],32,"\0",STR_PAD_LEFT).str_pad($d['ec']['y'],32,"\0",STR_PAD_LEFT))];comm_put('vapid',$r);return $r;});}
+function comm_push_endpoint(string $url): bool {$p=parse_url($url);if(($p['scheme']??'')!=='https'||isset($p['user'])||isset($p['pass'])||isset($p['port'])||isset($p['fragment'])||strlen($url)>3000)return false;$h=strtolower($p['host']??'');return in_array($h,['fcm.googleapis.com','updates.push.services.mozilla.com'],true)||preg_match('/^(?:[a-z0-9-]+\.)?push\.apple\.com$/D',$h)===1;}
+function comm_save_subscription(int $uid,mixed $raw): void {
+    if(!is_string($raw)||strlen($raw)>8000)throw new InvalidArgumentException('Invalid device subscription.');$s=json_decode($raw,true,8,JSON_THROW_ON_ERROR);$endpoint=$s['endpoint']??'';if(!is_string($endpoint)||!comm_push_endpoint($endpoint))throw new InvalidArgumentException('This push provider is not supported.');$id=hash('sha256',$endpoint);
+    if(count(comm_user_devices($uid))>=20&&!comm_get('device.'.$id))throw new RuntimeException('Remove an older device first.');comm_put('device.'.$id,['id'=>$id,'user'=>$uid,'endpoint'=>$endpoint,'enabled'=>true,'created'=>time(),'last_signal'=>'','last_status'=>'Ready']);
+}
+function comm_user_devices(int $uid): array {return array_values(array_filter(comm_records('device',200),static fn($d)=>(int)$d['user']===$uid));}
+function comm_remove_subscription(int $uid,string $id): void {if(!preg_match('/^[a-f0-9]{64}$/D',$id))throw new InvalidArgumentException('Choose a device.');$d=comm_get('device.'.$id);if(($d['user']??0)!==$uid)throw new InvalidArgumentException('Choose your own device.');db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['communication.device.'.$id]);}
+/** VAPID ES256 signature: OpenSSL DER -> JWT fixed-width R || S. Empty payload keeps private data off push services. */
+function comm_es256_raw(string $der): string {if(strlen($der)<8||ord($der[0])!==48)throw new RuntimeException('Invalid signature.');$i=2;if(ord($der[$i++])!==2)throw new RuntimeException('Invalid signature.');$n=ord($der[$i++]);$r=substr($der,$i,$n);$i+=$n;if(ord($der[$i++])!==2)throw new RuntimeException('Invalid signature.');$n=ord($der[$i++]);$s=substr($der,$i,$n);return str_pad(ltrim($r,"\0"),32,"\0",STR_PAD_LEFT).str_pad(ltrim($s,"\0"),32,"\0",STR_PAD_LEFT);}
+function comm_push_send(array $device): int {
+    if(!comm_push_endpoint($device['endpoint']))throw new RuntimeException('Unsupported notification destination.');$v=comm_vapid();$p=parse_url($device['endpoint']);$jwt=comm_b64('{"typ":"JWT","alg":"ES256"}').'.'.comm_b64(json_encode(['aud'=>'https://'.$p['host'],'exp'=>time()+3600,'sub'=>url('/contact')],JSON_THROW_ON_ERROR));if(!openssl_sign($jwt,$der,$v['private'],OPENSSL_ALGO_SHA256))throw new RuntimeException('Notification signing failed.');$jwt.='.'.comm_b64(comm_es256_raw($der));
+    $ch=curl_init($device['endpoint']);curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>'',CURLOPT_HTTPHEADER=>['Authorization: vapid t='.$jwt.', k='.$v['public'],'TTL: 300','Content-Length: 0'],CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>10,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS]);curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);curl_close($ch);return $code;
+}
+function comm_push_user(int $uid,string $category): void {$p=comm_get('preferences.'.$uid,comm_preferences([]));if(empty($p['enabled'])||comm_quiet($p)||($category!=='test'&&!in_array($category,$p['categories'],true)))return;foreach(comm_user_devices($uid)as$d)if($d['enabled']){$code=comm_push_send($d);$d['last_status']=$code>=200&&$code<300?'Provider accepted':($code===410||$code===404?'Expired; reconnect':'Delivery unconfirmed');if($code===410||$code===404)$d['enabled']=false;comm_put('device.'.$d['id'],$d);}}
+function comm_mail_job(array $job,array $cfg): void {
+    if($job['status']!=='pending')return;$b=comm_get('booking.'.$job['booking']);if(!$b||$b['version']!==$job['version']){$job['status']='superseded';comm_put('mail.'.$job['id'],$job);return;}
+    if(email_address_suppressed($b['email'])){$job['status']='suppressed';comm_put('mail.'.$job['id'],$job);return;}
+    $job['status']='sending';comm_put('mail.'.$job['id'],$job);
+    try{$when=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($b['timezone']))->format('l, j F Y · H:i T');$title=match($job['event']){'requested'=>'Meeting request received','confirmed'=>'Your meeting is confirmed','rescheduled'=>'Your meeting time has changed','reminder'=>'Your meeting is coming up','declined'=>'An update on your meeting request',default=>'Your meeting has been cancelled'};
+        $body='<p>'.e($cfg['types'][$b['type']]['name']).'</p><p><strong>'.e($when).'</strong></p><p>Status: '.e(ucfirst($b['status'])).'.</p>';if($b['status']==='requested')$body.='<p>Please wait for confirmation before making plans.</p>';if($b['status']==='confirmed'&&$b['join']!=='')$body.=email_design_button('Join meeting',$b['join']);$body.=email_design_button('Manage this booking',comm_manage_url($b));$html=email_design($title,$body,['name'=>$b['first']]);
+        $provider=email_deliver(['to'=>$b['email'],'subject'=>$title.' · Waithaka Ndegwa','html'=>$html,'headers'=>[]],hash('sha256','communication:'.$job['id']));$job['status']='accepted';$job['provider_acknowledged']=time();
+    }catch(Throwable $e){$job['status']='review';}comm_put('mail.'.$job['id'],$job);
+}
+function communication_work(): array {
+    $cfg=comm_config();if(empty($cfg['worker']))return ['enabled'=>false];
+    return comm_lock('worker',function()use($cfg){$count=0;$now=time();foreach(comm_records('booking')as$b){if($b['status']==='confirmed'&&$b['start']>$now&&$b['start']<=$now+86400){$key=$b['id'].'.'.$b['version'].'.reminder';if(!comm_get('mail.'.$key))comm_queue_mail($b,'reminder');}}
+        foreach(comm_records('mail',10000)as$j){if($count>=10)break;if($j['status']==='pending'){comm_mail_job($j,$cfg);$count++;}}
+        $signal=comm_get('signal');$summary=reader_operations_summary();$signature=hash('sha256',json_encode([$signal['id']??'', $summary['enquiries_open'],$summary['enquiries_overdue']]));$prior=comm_get('worker');
+        if(($prior['signature']??'')!==$signature){$category=($prior['enquiries']??null)!==$summary['enquiries_open']?'enquiries':($signal['category']??'enquiries');$p=comm_get('preferences.'.$cfg['owner'],comm_preferences([]));if(!comm_quiet($p)){comm_push_user((int)$cfg['owner'],$category);$prior['signature']=$signature;}}
+        $prior['enquiries']=$summary['enquiries_open'];$prior['heartbeat']=$now;comm_put('worker',$prior);return ['enabled'=>true,'mail_processed'=>$count];
+    });
+}

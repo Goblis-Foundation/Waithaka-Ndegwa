@@ -1,0 +1,18 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__).'/app/communication.php';require dirname(__DIR__).'/app/communication_notifications.php';
+function cc(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);}
+function reject(callable $f):void{try{$f();}catch(InvalidArgumentException){return;}throw new RuntimeException('Expected validation rejection.');}
+foreach(['2026-02-29','2026-13-01','yesterday',[],"2026-01-01\n"]as$d)reject(fn()=>comm_date($d));cc(comm_date('2028-02-29')==='2028-02-29','Leap date');reject(fn()=>comm_zone('Bogus/Zone'));
+$cfg=['timezone'=>'Africa/Nairobi','days'=>[1,2,3,4,5],'start'=>'09:00','end'=>'12:00','notice'=>1,'horizon'=>30,'buffer'=>15,'daily_limit'=>3,'excluded_dates'=>[]];$type=['minutes'=>30];$now=strtotime('2026-10-25T00:00:00Z');$date='2026-10-26';$base=strtotime('2026-10-26T06:00:00Z');
+$s=comm_slot_candidates($cfg,$type,$date,[],[],$now);cc($s[0]===$base&&end($s)===$base+9000,'Host working hours and duration');
+$s=comm_slot_candidates($cfg,$type,$date,[[$base+3600,$base+5400]],[],$now);foreach($s as$t)cc(!comm_overlap($t-900,$t+2700,$base+3600,$base+5400),'Preparation buffers block conflicts');
+foreach(['requested','creating','confirmed','review','rescheduling','cancelling']as$status){$b=['id'=>'one','start'=>$base,'end'=>$base+1800,'status'=>$status];$s=comm_slot_candidates($cfg,$type,$date,[],[$b],$now);cc(!in_array($base,$s,true),'All unresolved reservations block');}
+$s=comm_slot_candidates($cfg,$type,$date,[],[['start'=>$base,'end'=>$base+1800,'status'=>'cancelled']],$now);cc(in_array($base,$s,true),'Cancelled releases slot');
+$cfg['excluded_dates']=[$date];cc(comm_slot_candidates($cfg,$type,$date,[],[],$now)===[],'Travel/holiday override');$cfg['excluded_dates']=[];$cfg['daily_limit']=1;cc(comm_slot_candidates($cfg,$type,$date,[],[['start'=>$base,'end'=>$base+1800,'status'=>'requested']],$now)===[],'Daily meeting limit');cc(comm_slot_candidates($cfg,$type,'2026-10-24',[],[],$now)===[],'Past dates');
+$cfg['timezone']='America/New_York';$cfg['days']=[7];$cfg['start']='00:00';$cfg['end']='04:00';$cfg['daily_limit']=4;$s=comm_slot_candidates($cfg,['minutes'=>30],'2026-11-01',[],[],strtotime('2026-10-31T00:00:00Z'));cc(count($s)===19,'DST fall-back preserves distinct UTC slots');
+$p=comm_preferences(['timezone'=>'Africa/Nairobi','enabled'=>1]);cc(comm_quiet($p,strtotime('2026-10-26T19:00:00Z')),'Nairobi quiet hours');cc(!comm_quiet($p,strtotime('2026-10-26T09:00:00Z')),'Daytime alert');
+foreach(['http://fcm.googleapis.com/x','https://fcm.googleapis.com.evil.test/x','https://user@fcm.googleapis.com/x','https://127.0.0.1/x','https://fcm.googleapis.com:443/x','https://fcm.googleapis.com/x#token']as$u)cc(!comm_push_endpoint($u),'Reject unsafe push endpoint');foreach(['https://fcm.googleapis.com/fcm/send/a','https://updates.push.services.mozilla.com/wpush/v2/a','https://web.push.apple.com/a']as$u)cc(comm_push_endpoint($u),'Allow official push services');
+$key=openssl_pkey_new(['private_key_type'=>OPENSSL_KEYTYPE_EC,'curve_name'=>'prime256v1']);openssl_sign('fixture',$der,$key,OPENSSL_ALGO_SHA256);cc(strlen(comm_es256_raw($der))===64,'VAPID signature width');
+$sw=file_get_contents(dirname(__DIR__).'/sw.js');cc(!str_contains($sw,"caches.put")&&!str_contains($sw,'e.data.json'),'No private response cache or push payload');
+echo "PASS: availability, DST, reservation states, buffers, quiet hours and notification boundaries.\n";

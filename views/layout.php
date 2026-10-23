@@ -63,5 +63,5 @@ $isArticle = ($seo['type'] ?? '') === 'article';
 </footer>
 <div class="cookie" role="dialog" aria-label="Cookie preferences"><p>This site uses necessary cookies and, with your permission, analytics to understand how content is discovered and read. <a href="<?=url('/cookies')?>">Cookies Policy</a></p><div><button data-consent="necessary">Necessary only</button><button class="primary-cookie" data-consent="analytics">Allow analytics</button></div></div>
 <script src="<?=asset('js/site.js')?>" defer></script>
-</body>
+<script src="<?=asset('js/app.js')?>" defer></script></body>
 </html>

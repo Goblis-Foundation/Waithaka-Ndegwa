@@ -32,7 +32,7 @@ def runtime_file(path: str) -> bool:
     top = path.split("/", 1)[0]
     if top in {"app", "assets", "views", ".ebextensions", ".platform"}:
         return True
-    if path in {"index.php", ".htaccess", "composer.json", "composer.lock", "manifest.webmanifest", ".env.example"} or path in STORAGE_MARKERS:
+    if path in {"index.php", ".htaccess", "composer.json", "composer.lock", "manifest.webmanifest", "sw.js", "offline.html", ".env.example"} or path in STORAGE_MARKERS:
         return True
     if path in {"bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
         return True
