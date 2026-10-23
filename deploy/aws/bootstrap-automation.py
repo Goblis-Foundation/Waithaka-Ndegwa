@@ -37,6 +37,15 @@ def bootstrap():
         if len(matches) != 1:
             raise RuntimeError(f'Expected one existing public zone for {domain}; found {len(matches)}. No zones created.')
         zone_arns.append('arn:aws:route53:::hostedzone/' + matches[0]['Id'].split('/')[-1])
+    environment = aws('elasticbeanstalk','describe-environment-resources','--environment-name','waithaka-ndegwa-production','--region',REGION)['EnvironmentResources']
+    elb_resources = []
+    for item in environment.get('LoadBalancers', []):
+        for balancer in aws('elbv2','describe-load-balancers','--names',item['Name'],'--region',REGION)['LoadBalancers']:
+            arn = balancer['LoadBalancerArn']
+            elb_resources += [arn, arn.replace(':loadbalancer/', ':listener/')+'/*', arn.replace(':loadbalancer/', ':listener-rule/')+'/*/*']
+            elb_resources += [g['TargetGroupArn'] for g in aws('elbv2','describe-target-groups','--load-balancer-arn',arn,'--region',REGION)['TargetGroups']]
+    if not elb_resources:
+        raise RuntimeError('The existing application load balancer was not found. No replacement was created.')
     providers = aws('iam', 'list-open-id-connect-providers')['OpenIDConnectProviderList']
     if PROVIDER not in [x['Arn'] for x in providers]:
         aws('iam', 'create-open-id-connect-provider', '--url', 'https://token.actions.githubusercontent.com', '--client-id-list', 'sts.amazonaws.com', '--tags', 'Key=Project,Value=Waithaka-Ndegwa')
@@ -56,9 +65,15 @@ def bootstrap():
         statement('ReadDeploymentMetadata', ['autoscaling:Describe*','ec2:Describe*','elasticloadbalancing:Describe*','elasticbeanstalk:Describe*','elasticbeanstalk:List*','cloudformation:Describe*','cloudformation:List*','cloudformation:GetTemplate','cloudformation:GetTemplateSummary','acm:ListCertificates','acm:DescribeCertificate','route53:ListHostedZones','route53:GetHostedZone','route53:ListResourceRecordSets','route53:ListReusableDelegationSets','route53:GetReusableDelegationSet','route53:GetChange'], '*'),
         statement('ExistingBeanstalkApplication', ['elasticbeanstalk:UpdateEnvironment','elasticbeanstalk:CreateApplicationVersion','elasticbeanstalk:RequestEnvironmentInfo','elasticbeanstalk:RetrieveEnvironmentInfo','elasticbeanstalk:RestartAppServer','elasticbeanstalk:AbortEnvironmentUpdate'], [f'arn:aws:elasticbeanstalk:{REGION}:{ACCOUNT}:application/waithaka-ndegwa',f'arn:aws:elasticbeanstalk:{REGION}:{ACCOUNT}:applicationversion/waithaka-ndegwa/*',f'arn:aws:elasticbeanstalk:{REGION}:{ACCOUNT}:environment/waithaka-ndegwa/waithaka-ndegwa-production'], regional),
         statement('OwnedStackUpdates', ['cloudformation:CreateStack','cloudformation:UpdateStack','cloudformation:CreateChangeSet','cloudformation:ExecuteChangeSet','cloudformation:DeleteChangeSet'], [f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/waithaka-edge/*', data['StackId'], f'arn:aws:cloudformation:*:{ACCOUNT}:changeSet/awscli-cloudformation-package-deploy-*/*']),
+        statement('ExistingEnvironmentStack', ['cloudformation:UpdateStack','cloudformation:CancelUpdateStack','cloudformation:ContinueUpdateRollback','cloudformation:TagResource','cloudformation:UntagResource','cloudformation:SignalResource'], f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/awseb-e-8sjvpauytq-stack/*', regional),
+        statement('EnvironmentScalingUpdates', ['autoscaling:UpdateAutoScalingGroup','autoscaling:CreateLaunchConfiguration','autoscaling:DeleteLaunchConfiguration','autoscaling:ResumeProcesses','autoscaling:SuspendProcesses','autoscaling:SetDesiredCapacity','autoscaling:PutScalingPolicy','autoscaling:CreateOrUpdateTags','autoscaling:DeleteTags'], [f'arn:aws:autoscaling:{REGION}:{ACCOUNT}:autoScalingGroup:*:autoScalingGroupName/awseb-e-8sjvpauytq-stack-*',f'arn:aws:autoscaling:{REGION}:{ACCOUNT}:launchConfiguration:*:launchConfigurationName/awseb-e-8sjvpauytq-stack-*'], regional),
+        statement('DeploymentLaunchTemplates', ['ec2:CreateLaunchTemplate','ec2:CreateLaunchTemplateVersion','ec2:ModifyLaunchTemplate','ec2:DeleteLaunchTemplateVersions','ec2:CreateTags'], f'arn:aws:ec2:{REGION}:{ACCOUNT}:launch-template/*', regional),
+        statement('EnvironmentInstanceReplacement', ['ec2:TerminateInstances'], f'arn:aws:ec2:{REGION}:{ACCOUNT}:instance/*', {'StringEquals':{'aws:RequestedRegion':REGION},'ArnLike':{'ec2:ResourceTag/aws:cloudformation:stack-id':f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/awseb-e-8sjvpauytq-stack/*'}}),
+        statement('ExistingEnvironmentLoadBalancer', ['elasticloadbalancing:CreateListener','elasticloadbalancing:ModifyListener','elasticloadbalancing:DeleteListener','elasticloadbalancing:ModifyLoadBalancerAttributes','elasticloadbalancing:ModifyTargetGroup','elasticloadbalancing:ModifyTargetGroupAttributes','elasticloadbalancing:RegisterTargets','elasticloadbalancing:DeregisterTargets','elasticloadbalancing:AddTags','elasticloadbalancing:RemoveTags','elasticloadbalancing:CreateRule','elasticloadbalancing:ModifyRule','elasticloadbalancing:DeleteRule','elasticloadbalancing:SetRulePriorities'], elb_resources, regional),
+        statement('EnvironmentAlarms', ['cloudwatch:PutMetricAlarm','cloudwatch:DeleteAlarms'], f'arn:aws:cloudwatch:{REGION}:{ACCOUNT}:alarm:awseb-e-8sjvpauytq-stack-*', regional),
         statement('ReleaseAndBeanstalkBundles', ['s3:GetObject','s3:GetObjectVersion','s3:GetObjectAcl','s3:PutObject','s3:PutObjectAcl'], [f'arn:aws:s3:::{outputs["ReleaseArtifacts"]}/*',f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}/*']),
         statement('BeanstalkSystemBucket', ['s3:CreateBucket','s3:ListBucket','s3:GetBucketLocation','s3:GetBucketPolicy','s3:GetBucketAcl','s3:PutBucketPolicy','s3:PutBucketAcl'], f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}'),
-        statement('BeanstalkTemporaryRuntimeObjects', ['s3:DeleteObject'], f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}/resources/environments/e-8sjvpauytq/_runtime/*'),
+        statement('BeanstalkTemporaryRuntimeObjects', ['s3:DeleteObject'], [f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}/resources/environments/e-8sjvpauytq/_runtime/*',f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}/resources/environments/logs/tail/e-8sjvpauytq/*']),
         statement('BeanstalkLogInventory', ['logs:DescribeLogGroups','logs:DescribeLogStreams'], '*', regional),
         statement('BeanstalkEnvironmentLogs', ['logs:CreateLogGroup','logs:CreateLogStream','logs:PutLogEvents','logs:PutRetentionPolicy','logs:TagResource','logs:ListTagsForResource','logs:GetLogEvents','logs:FilterLogEvents'], f'arn:aws:logs:{REGION}:{ACCOUNT}:log-group:/aws/elasticbeanstalk/waithaka-ndegwa-production/*', regional),
         statement('ExistingInstanceProfile', ['iam:GetInstanceProfile'], f'arn:aws:iam::{ACCOUNT}:instance-profile/waithaka-eb-instance-profile'),
@@ -82,6 +97,20 @@ def bootstrap():
         else:
             aws('iam','update-assume-role-policy','--role-name',ROLE,'--policy-document','file://'+str(t))
         aws('iam','put-role-policy','--role-name',ROLE,'--policy-name','WaithakaScopedAutomation','--policy-document','file://'+str(p))
+        checks = [
+            ('cloudformation:UpdateStack', f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/awseb-e-8sjvpauytq-stack/fixture'),
+            ('logs:CreateLogGroup', f'arn:aws:logs:{REGION}:{ACCOUNT}:log-group:/aws/elasticbeanstalk/waithaka-ndegwa-production/var/log/nginx/access.log'),
+            ('s3:CreateBucket', f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}'),
+            ('s3:ListBucket', f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}'),
+            ('s3:DeleteObject', f'arn:aws:s3:::elasticbeanstalk-{REGION}-{ACCOUNT}/resources/environments/e-8sjvpauytq/_runtime/_versions/fixture'),
+            ('elasticbeanstalk:UpdateEnvironment', f'arn:aws:elasticbeanstalk:{REGION}:{ACCOUNT}:environment/waithaka-ndegwa/waithaka-ndegwa-production'),
+        ]
+        for action, resource in checks:
+            result = aws('iam','simulate-custom-policy','--policy-input-list','file://'+str(p),'--action-names',action,'--resource-arns',resource,'--context-entries',f'ContextKeyName=aws:RequestedRegion,ContextKeyValues={REGION},ContextKeyType=string')
+            if any(x['EvalDecision'] != 'allowed' for x in result['EvaluationResults']):
+                raise RuntimeError('Permission verification failed for '+action)
+            print('Verified: '+action)
+
     print('SUCCESS: GitHub OIDC and scoped repository automation are ready in account '+ACCOUNT+'.')
     print('No AWS access keys were created. Existing infrastructure and registrar delegation were retained.')
 
