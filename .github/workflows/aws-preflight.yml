@@ -51,6 +51,10 @@ jobs:
         shell: bash
         run: |
           aws cloudformation describe-stack-events --stack-name waithaka-edge --region af-south-1 --query 'StackEvents[0:20].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' --output table
+      - name: Inspect retained data stack update events
+        shell: bash
+        run: |
+          aws cloudformation describe-stack-events --stack-name waithaka-ndegwa-production-466401734428-data --region af-south-1 --query 'StackEvents[0:20].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' --output table
       - name: Inspect startup logs without publishing credentials
         shell: bash
         run: |
