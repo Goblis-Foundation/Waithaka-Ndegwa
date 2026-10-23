@@ -1,0 +1,7 @@
+Waithaka Ndegwa AWS r20 — 2026-10-22
+
+- Makes fresh Elastic Beanstalk deployment restart-safe after CloudShell/browser interruption.
+- Uses the valid AWS CLI --no-include-deleted boolean switch when detecting an existing environment.
+- Adopts an already-created waithaka-ndegwa-production environment rather than recreating it.
+- Waits for in-progress Elastic Beanstalk operations to settle before applying the reviewed version/options.
+- Preserves r19 propagation-tolerant DNS status handling.

@@ -1,0 +1,242 @@
+[
+  {
+    "Namespace": "aws:elasticbeanstalk:environment:proxy",
+    "OptionName": "ProxyServer",
+    "Value": "apache"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:environment",
+    "OptionName": "EnvironmentType",
+    "Value": "LoadBalanced"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:environment",
+    "OptionName": "LoadBalancerType",
+    "Value": "application"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:environment",
+    "OptionName": "ServiceRole",
+    "Value": "REPLACE_EB_SERVICE_ROLE"
+  },
+  {
+    "Namespace": "aws:autoscaling:launchconfiguration",
+    "OptionName": "IamInstanceProfile",
+    "Value": "REPLACE_INSTANCE_PROFILE"
+  },
+  {
+    "Namespace": "aws:autoscaling:launchconfiguration",
+    "OptionName": "SecurityGroups",
+    "Value": "REPLACE_APP_SECURITY_GROUP"
+  },
+  {
+    "Namespace": "aws:autoscaling:launchconfiguration",
+    "OptionName": "DisableIMDSv1",
+    "Value": "true"
+  },
+  {
+    "Namespace": "aws:ec2:vpc",
+    "OptionName": "VpcId",
+    "Value": "REPLACE_VPC"
+  },
+  {
+    "Namespace": "aws:ec2:vpc",
+    "OptionName": "Subnets",
+    "Value": "REPLACE_APPLICATION_SUBNETS"
+  },
+  {
+    "Namespace": "aws:ec2:vpc",
+    "OptionName": "ELBSubnets",
+    "Value": "REPLACE_ALB_SUBNETS"
+  },
+  {
+    "Namespace": "aws:ec2:vpc",
+    "OptionName": "AssociatePublicIpAddress",
+    "Value": "true"
+  },
+  {
+    "Namespace": "aws:autoscaling:asg",
+    "OptionName": "MinSize",
+    "Value": "1"
+  },
+  {
+    "Namespace": "aws:autoscaling:asg",
+    "OptionName": "MaxSize",
+    "Value": "2"
+  },
+  {
+    "Namespace": "aws:elbv2:listener:default",
+    "OptionName": "ListenerEnabled",
+    "Value": "false"
+  },
+  {
+    "Namespace": "aws:elbv2:listener:443",
+    "OptionName": "ListenerEnabled",
+    "Value": "true"
+  },
+  {
+    "Namespace": "aws:elbv2:listener:443",
+    "OptionName": "Protocol",
+    "Value": "HTTPS"
+  },
+  {
+    "Namespace": "aws:elbv2:listener:443",
+    "OptionName": "SSLCertificateArns",
+    "Value": "REPLACE_REGIONAL_CERTIFICATE_ARN"
+  },
+  {
+    "Namespace": "aws:elbv2:listener:443",
+    "OptionName": "SSLPolicy",
+    "Value": "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:environment:process:default",
+    "OptionName": "HealthCheckPath",
+    "Value": "/healthz"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:environment:process:default",
+    "OptionName": "MatcherHTTPCode",
+    "Value": "200"
+  },
+  {
+    "Namespace": "aws:elbv2:loadbalancer",
+    "OptionName": "IdleTimeout",
+    "Value": "120"
+  },
+  {
+    "Namespace": "aws:elbv2:loadbalancer",
+    "OptionName": "SecurityGroups",
+    "Value": "REPLACE_ALB_SECURITY_GROUP"
+  },
+  {
+    "Namespace": "aws:elbv2:loadbalancer",
+    "OptionName": "ManagedSecurityGroup",
+    "Value": "REPLACE_ALB_SECURITY_GROUP"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "APP_ENV",
+    "Value": "production"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "APP_READY",
+    "Value": "0"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "WORKER_ENABLED",
+    "Value": "0"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "APP_URL",
+    "Value": "https://preview.waithakandegwa.com"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "APP_ALLOWED_HOSTS",
+    "Value": "preview.waithakandegwa.com"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "APP_FORCE_CANONICAL",
+    "Value": "true"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "DB_HOST",
+    "Value": "REPLACE_RDS_HOST"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "DB_DATABASE",
+    "Value": "waithaka"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "DB_SSL_CA",
+    "Value": "/var/app/current/deploy/aws/global-bundle.pem"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "SESSION_DRIVER",
+    "Value": "database"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "TRUSTED_PROXY_CIDRS",
+    "Value": "REPLACE_ACTUAL_PROXY_CIDRS"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "MEDIA_DRIVER",
+    "Value": "s3"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "MEDIA_BUCKET",
+    "Value": "REPLACE_PUBLIC_MEDIA_BUCKET"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "MEDIA_PRIVATE_BUCKET",
+    "Value": "REPLACE_PRIVATE_MEDIA_BUCKET"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "MEDIA_PUBLIC_URL",
+    "Value": "https://preview.waithakandegwa.com"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "AWS_REGION",
+    "Value": "REPLACE_REGION"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "MAIL_TRANSPORT",
+    "Value": "disabled"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environmentsecrets",
+    "OptionName": "APP_KEY",
+    "Value": "REPLACE_APP_SECRET_ARN:APP_KEY"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environmentsecrets",
+    "OptionName": "DB_USERNAME",
+    "Value": "REPLACE_APP_SECRET_ARN:DB_USERNAME"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environmentsecrets",
+    "OptionName": "DB_PASSWORD",
+    "Value": "REPLACE_APP_SECRET_ARN:DB_PASSWORD"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:cloudwatch:logs",
+    "OptionName": "StreamLogs",
+    "Value": "true"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:cloudwatch:logs",
+    "OptionName": "RetentionInDays",
+    "Value": "30"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:cloudwatch:logs",
+    "OptionName": "DeleteOnTerminate",
+    "Value": "false"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "WORKER_APP_SECRET_ARN",
+    "Value": "REPLACE_APP_SECRET_ARN"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:application:environment",
+    "OptionName": "INDEXNOW_ENABLED",
+    "Value": "0"
+  }
+]

@@ -1,0 +1,12 @@
+<section class="journey-hero"><div class="container journey-hero-grid">
+  <div><span class="eyebrow">Founder Stories</span><h1>In the words<br>of the builders.</h1><p class="journey-lead">Experiences of starting and running a venture: the decisions, constraints and lessons that deserve a closer look.</p><div class="journey-actions"><a class="button" href="<?=e(url('/founders/submit'))?>" data-analytics-event="founder_submission_open" data-content-id="founder-stories">Share a founder story →</a><a class="text-link" href="<?=e(url('/startup-journeys'))?>">Explore Startup Journeys →</a></div></div>
+  <aside class="journey-principles"><span class="eyebrow">An editorial conversation</span><h2>Context matters.</h2><p>Stories are selected, reviewed and edited with the founder’s permission. Where a claim rests on an estimate or a personal account, its basis should be clear.</p><p>You can submit your own story or nominate a founder whose work deserves consideration.</p></aside>
+</div></section>
+<section class="section"><div class="container"><div class="journey-section-head"><div><span class="eyebrow">Selected accounts</span><h2>The stories.</h2></div></div>
+  <?php if(!$stories):?><div class="journey-empty"><h3>A collection built through conversation.</h3><p>The first reviewed stories will appear here. If you have an experience to share, send a private submission for consideration.</p><a class="text-link" href="<?=e(url('/founders/submit'))?>" data-analytics-event="founder_submission_open" data-content-id="founder-stories">Share a story or nomination →</a></div><?php endif;?>
+  <div class="journey-story-grid"><?php foreach($stories as $story):?><article class="journey-story-card">
+    <?php if($story['featured_image']):?><a class="journey-story-image" href="<?=e(url('/my-thoughts/'.$story['slug']))?>"><img src="<?=e(featured_image_url($story['featured_image']))?>" alt="<?=e($story['featured_image_alt']?:$story['title'])?>" loading="lazy" decoding="async"></a><?php endif;?>
+    <div><time class="journey-meta" datetime="<?=e(date('Y-m-d',strtotime($story['published_at'])))?>"><?=e(format_date($story['published_at']))?></time><h3><a href="<?=e(url('/my-thoughts/'.$story['slug']))?>"><?=e($story['title'])?></a></h3><?php if($story['standfirst']):?><p><?=e($story['standfirst'])?></p><?php endif;?><a class="text-link" href="<?=e(url('/my-thoughts/'.$story['slug']))?>">Read the story →</a></div>
+  </article><?php endforeach;?></div>
+  <?php include __DIR__.'/../partials_archive_pagination.php';?>
+</div></section>

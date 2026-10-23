@@ -1,0 +1,1 @@
+<section class="simple-hero"><div class="container reading-width" data-reveal><span class="eyebrow">Policy</span><h1><?=e($policy['title'])?></h1><p><?=e($policy['intro'])?></p></div></section><section class="section surface"><div class="container reading-width prose policy-content"><?=$policy['html']?></div></section>

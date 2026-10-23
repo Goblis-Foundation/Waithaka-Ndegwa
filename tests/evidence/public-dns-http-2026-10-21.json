@@ -1,0 +1,2268 @@
+{
+  "completed_nairobi": "2026-10-21T22:01:10.400611+03:00",
+  "completed_utc": "2026-10-21T19:01:10.400611+00:00",
+  "conclusions": {
+    "co_ke_http": "503 was the network proxy upstream-connection failure, not a proven origin-application HTTP response.",
+    "co_ke_public_dns": "Both resolvers return NXDOMAIN for apex NS/DS and www A. The negative authority is ke. This observes public DNS absence, not registration or ownership status.",
+    "com_apex_A": "66.116.209.139",
+    "com_dnssec": "Both resolvers returned NOERROR with no DS answer and parent com SOA/NSEC3 evidence; no published DS observed. DNSKEY query also returned no answer. No independent cryptographic validation performed.",
+    "com_recursive_NS": [
+      "sns00005.webhostbox.net.",
+      "sns00006.webhostbox.net."
+    ],
+    "com_www_CNAME": "waithakandegwa.com.",
+    "registered_glue": "Not established. Direct parent queries on UDP/TCP53 failed from this environment and registry RDAP returned503. Recursive NXDOMAIN does not prove absence of registrar host objects.",
+    "tag": "G-WCKVHN823V appears in both the public loader URL and gtag config of the successful .com homepage. No GTM-/UA-/AW- IDs were found in that fetched HTML. JavaScript was not executed and tag collection/account access was not verified.",
+    "vanity_ns_public_dns": "ns1, ns2, ns3, ns4.waithakandegwa.com all NXDOMAIN; not the returned authoritative NS names."
+  },
+  "direct_authority_attempts": [
+    {
+      "attempts": [
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "udp"
+        },
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "tcp"
+        }
+      ],
+      "dnssec_ok": true,
+      "name": "waithakandegwa.com",
+      "rd": false,
+      "server": "192.5.6.30",
+      "started_utc": "2026-10-21T18:59:38.163830+00:00",
+      "type": "NS"
+    },
+    {
+      "attempts": [
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "udp"
+        },
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "tcp"
+        }
+      ],
+      "dnssec_ok": true,
+      "name": "waithakandegwa.com",
+      "rd": false,
+      "server": "192.5.6.30",
+      "started_utc": "2026-10-21T18:59:38.164914+00:00",
+      "type": "DS"
+    },
+    {
+      "attempts": [
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "udp"
+        },
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "tcp"
+        }
+      ],
+      "dnssec_ok": true,
+      "name": "ns1.waithakandegwa.com",
+      "rd": false,
+      "server": "192.5.6.30",
+      "started_utc": "2026-10-21T18:59:38.165583+00:00",
+      "type": "A"
+    },
+    {
+      "attempts": [
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "udp"
+        },
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "tcp"
+        }
+      ],
+      "dnssec_ok": true,
+      "name": "waithakandegwa.com",
+      "rd": false,
+      "server": "66.116.209.11",
+      "started_utc": "2026-10-21T18:59:38.166382+00:00",
+      "type": "SOA"
+    },
+    {
+      "attempts": [
+        {
+          "error": "TimeoutError: timed out",
+          "protocol": "udp"
+        },
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "tcp"
+        }
+      ],
+      "dnssec_ok": true,
+      "name": "waithakandegwa.com",
+      "rd": false,
+      "server": "66.116.209.61",
+      "started_utc": "2026-10-21T18:59:38.167898+00:00",
+      "type": "SOA"
+    },
+    {
+      "attempts": [
+        {
+          "error": "TimeoutError: timed out",
+          "protocol": "udp"
+        },
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "tcp"
+        }
+      ],
+      "dnssec_ok": true,
+      "name": "waithakandegwa.co.ke",
+      "rd": false,
+      "server": "185.38.108.108",
+      "started_utc": "2026-10-21T18:59:38.168071+00:00",
+      "type": "NS"
+    },
+    {
+      "attempts": [
+        {
+          "error": "TimeoutError: timed out",
+          "protocol": "udp"
+        },
+        {
+          "error": "TimeoutError: timed out",
+          "protocol": "tcp"
+        }
+      ],
+      "dnssec_ok": true,
+      "name": "waithakandegwa.co.ke",
+      "rd": false,
+      "server": "185.38.108.108",
+      "started_utc": "2026-10-21T18:59:38.169791+00:00",
+      "type": "DS"
+    },
+    {
+      "attempts": [
+        {
+          "error": "TimeoutError: timed out",
+          "protocol": "udp"
+        },
+        {
+          "error": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "protocol": "tcp"
+        }
+      ],
+      "dnssec_ok": true,
+      "name": "waithakandegwa.co.ke",
+      "rd": false,
+      "server": "204.61.216.7",
+      "started_utc": "2026-10-21T18:59:38.170773+00:00",
+      "type": "NS"
+    }
+  ],
+  "dns_cloudflare": [
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 86400,
+            "data": "sns00005.webhostbox.net.",
+            "name": "waithakandegwa.com",
+            "type": 2
+          },
+          {
+            "TTL": 86400,
+            "data": "sns00006.webhostbox.net.",
+            "name": "waithakandegwa.com",
+            "type": 2
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Question": [
+          {
+            "name": "waithakandegwa.com",
+            "type": 2
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "type": "NS",
+      "url": "https://cloudflare-dns.com/dns-query?name=waithakandegwa.com&type=NS&do=true",
+      "utc": "2026-10-21T18:59:35.709832+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 900,
+            "data": "a.gtld-servers.net. nstld.verisign-grs.com. 1792609146 1800 900 604800 900",
+            "name": "com",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Question": [
+          {
+            "name": "waithakandegwa.com",
+            "type": 43
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "type": "DS",
+      "url": "https://cloudflare-dns.com/dns-query?name=waithakandegwa.com&type=DS&do=true",
+      "utc": "2026-10-21T18:59:35.710494+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 86400,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke",
+            "type": 2
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "type": "NS",
+      "url": "https://cloudflare-dns.com/dns-query?name=waithakandegwa.co.ke&type=NS&do=true",
+      "utc": "2026-10-21T18:59:35.711122+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 86400,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke",
+            "type": 43
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "type": "DS",
+      "url": "https://cloudflare-dns.com/dns-query?name=waithakandegwa.co.ke&type=DS&do=true",
+      "utc": "2026-10-21T18:59:35.715404+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 86400,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Question": [
+          {
+            "name": "www.waithakandegwa.co.ke",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "www.waithakandegwa.co.ke",
+      "type": "A",
+      "url": "https://cloudflare-dns.com/dns-query?name=www.waithakandegwa.co.ke&type=A&do=true",
+      "utc": "2026-10-21T18:59:35.719784+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 86400,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Question": [
+          {
+            "name": "ns1.waithakandegwa.com",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns1.waithakandegwa.com",
+      "type": "A",
+      "url": "https://cloudflare-dns.com/dns-query?name=ns1.waithakandegwa.com&type=A&do=true",
+      "utc": "2026-10-21T18:59:35.720286+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 86400,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Question": [
+          {
+            "name": "ns2.waithakandegwa.com",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns2.waithakandegwa.com",
+      "type": "A",
+      "url": "https://cloudflare-dns.com/dns-query?name=ns2.waithakandegwa.com&type=A&do=true",
+      "utc": "2026-10-21T18:59:35.765216+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 86400,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Question": [
+          {
+            "name": "ns3.waithakandegwa.com",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns3.waithakandegwa.com",
+      "type": "A",
+      "url": "https://cloudflare-dns.com/dns-query?name=ns3.waithakandegwa.com&type=A&do=true",
+      "utc": "2026-10-21T18:59:35.768800+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 86400,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Question": [
+          {
+            "name": "ns4.waithakandegwa.com",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns4.waithakandegwa.com",
+      "type": "A",
+      "url": "https://cloudflare-dns.com/dns-query?name=ns4.waithakandegwa.com&type=A&do=true",
+      "utc": "2026-10-21T18:59:35.782617+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 300,
+            "data": "66.116.209.11",
+            "name": "sns00005.webhostbox.net",
+            "type": 1
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Question": [
+          {
+            "name": "sns00005.webhostbox.net",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "sns00005.webhostbox.net",
+      "type": "A",
+      "url": "https://cloudflare-dns.com/dns-query?name=sns00005.webhostbox.net&type=A&do=true",
+      "utc": "2026-10-21T18:59:35.783500+00:00"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 300,
+            "data": "66.116.209.61",
+            "name": "sns00006.webhostbox.net",
+            "type": 1
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Question": [
+          {
+            "name": "sns00006.webhostbox.net",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "sns00006.webhostbox.net",
+      "type": "A",
+      "url": "https://cloudflare-dns.com/dns-query?name=sns00006.webhostbox.net&type=A&do=true",
+      "utc": "2026-10-21T18:59:35.799371+00:00"
+    }
+  ],
+  "dns_google": [
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 3600,
+            "data": "66.116.209.139",
+            "name": "waithakandegwa.com.",
+            "type": 1
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Comment": "Response from 66.116.209.11.",
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.544051+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from 66.116.209.11.",
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 28
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.545078+00:00",
+      "type": "AAAA",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=AAAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 21565,
+            "data": "sns00006.webhostbox.net.",
+            "name": "waithakandegwa.com.",
+            "type": 2
+          },
+          {
+            "TTL": 21565,
+            "data": "sns00005.webhostbox.net.",
+            "name": "waithakandegwa.com.",
+            "type": 2
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 2
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.546016+00:00",
+      "type": "NS",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=NS&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 21600,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Comment": "Response from 66.116.209.11.",
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.546633+00:00",
+      "type": "SOA",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=SOA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 3600,
+            "data": "1 smtp.google.com.",
+            "name": "waithakandegwa.com.",
+            "type": 15
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Comment": "Response from 66.116.209.61.",
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 15
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.547662+00:00",
+      "type": "MX",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=MX&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 3600,
+            "data": "google-site-verification=T5627Akq_dHNyEtrY16mV6beRmPd3_Q5R7n0pbz0KzM",
+            "name": "waithakandegwa.com.",
+            "type": 16
+          },
+          {
+            "TTL": 3600,
+            "data": "google-site-verification=pkZaXW3KxqXphHOf8gBFUpgWN25C_T8iSEyJMHdZECo",
+            "name": "waithakandegwa.com.",
+            "type": 16
+          },
+          {
+            "TTL": 3600,
+            "data": "v=spf1 a mx include:websitewelcome.com ~all",
+            "name": "waithakandegwa.com.",
+            "type": 16
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Comment": "Response from 66.116.209.11.",
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 16
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.548159+00:00",
+      "type": "TXT",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=TXT&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 900,
+            "data": "a.gtld-servers.net. nstld.verisign-grs.com. 1792609056 1800 900 604800 900",
+            "name": "com.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          50,
+          46,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 2001:501:b1f9::30.",
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 43
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.580875+00:00",
+      "type": "DS",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=DS&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from 66.116.209.61.",
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 257
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.620366+00:00",
+      "type": "CAA",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=CAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from 66.116.209.11.",
+        "Question": [
+          {
+            "name": "waithakandegwa.com.",
+            "type": 48
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.620972+00:00",
+      "type": "DNSKEY",
+      "url": "https://dns.google/resolve?name=waithakandegwa.com&type=DNSKEY&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 2001:500:14:6007:ad::1.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.662599+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 204.61.216.7.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 28
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.665235+00:00",
+      "type": "AAAA",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=AAAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 2001:500:14:6007:ad::1.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 2
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.667118+00:00",
+      "type": "NS",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=NS&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 0,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 204.61.216.7.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 6
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.692908+00:00",
+      "type": "SOA",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=SOA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 2001:500:14:6007:ad::1.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 15
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.695720+00:00",
+      "type": "MX",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=MX&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 204.61.216.7.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 16
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.710369+00:00",
+      "type": "TXT",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=TXT&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 2001:500:14:6007:ad::1.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 43
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.741955+00:00",
+      "type": "DS",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=DS&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          50,
+          46,
+          50,
+          46,
+          50,
+          46,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 185.38.108.108.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 257
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.765614+00:00",
+      "type": "CAA",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=CAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 204.61.216.7.",
+        "Question": [
+          {
+            "name": "waithakandegwa.co.ke.",
+            "type": 48
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.771046+00:00",
+      "type": "DNSKEY",
+      "url": "https://dns.google/resolve?name=waithakandegwa.co.ke&type=DNSKEY&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 3600,
+            "data": "waithakandegwa.com.",
+            "name": "www.waithakandegwa.com.",
+            "type": 5
+          },
+          {
+            "TTL": 3600,
+            "data": "66.116.209.139",
+            "name": "waithakandegwa.com.",
+            "type": 1
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "www.waithakandegwa.com.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "www.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.805226+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=www.waithakandegwa.com&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 3600,
+            "data": "waithakandegwa.com.",
+            "name": "www.waithakandegwa.com.",
+            "type": 5
+          }
+        ],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "www.waithakandegwa.com.",
+            "type": 28
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "www.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.821312+00:00",
+      "type": "AAAA",
+      "url": "https://dns.google/resolve?name=www.waithakandegwa.com&type=AAAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 3600,
+            "data": "waithakandegwa.com.",
+            "name": "www.waithakandegwa.com.",
+            "type": 5
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Question": [
+          {
+            "name": "www.waithakandegwa.com.",
+            "type": 5
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "www.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:01.953276+00:00",
+      "type": "CNAME",
+      "url": "https://dns.google/resolve?name=www.waithakandegwa.com&type=CNAME&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 204.61.216.7.",
+        "Question": [
+          {
+            "name": "www.waithakandegwa.co.ke.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "www.waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:01.956471+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=www.waithakandegwa.co.ke&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 2001:500:14:6007:ad::1.",
+        "Question": [
+          {
+            "name": "www.waithakandegwa.co.ke.",
+            "type": 28
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "www.waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:02.015882+00:00",
+      "type": "AAAA",
+      "url": "https://dns.google/resolve?name=www.waithakandegwa.co.ke&type=AAAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 204.61.216.7.",
+        "Question": [
+          {
+            "name": "www.waithakandegwa.co.ke.",
+            "type": 5
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "www.waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:02.018715+00:00",
+      "type": "CNAME",
+      "url": "https://dns.google/resolve?name=www.waithakandegwa.co.ke&type=CNAME&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns1.waithakandegwa.com.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns1.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.019399+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=ns1.waithakandegwa.com&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00006.webhostbox.net.(66.116.209.11).",
+        "Question": [
+          {
+            "name": "ns1.waithakandegwa.com.",
+            "type": 28
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns1.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.073431+00:00",
+      "type": "AAAA",
+      "url": "https://dns.google/resolve?name=ns1.waithakandegwa.com&type=AAAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns1.waithakandegwa.com.",
+            "type": 5
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns1.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.077602+00:00",
+      "type": "CNAME",
+      "url": "https://dns.google/resolve?name=ns1.waithakandegwa.com&type=CNAME&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns2.waithakandegwa.com.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns2.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.123970+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=ns2.waithakandegwa.com&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns2.waithakandegwa.com.",
+            "type": 28
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns2.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.163135+00:00",
+      "type": "AAAA",
+      "url": "https://dns.google/resolve?name=ns2.waithakandegwa.com&type=AAAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns2.waithakandegwa.com.",
+            "type": 5
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns2.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.175629+00:00",
+      "type": "CNAME",
+      "url": "https://dns.google/resolve?name=ns2.waithakandegwa.com&type=CNAME&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns3.waithakandegwa.com.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns3.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.199413+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=ns3.waithakandegwa.com&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns3.waithakandegwa.com.",
+            "type": 28
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns3.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.199780+00:00",
+      "type": "AAAA",
+      "url": "https://dns.google/resolve?name=ns3.waithakandegwa.com&type=AAAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from 66.116.209.11.",
+        "Question": [
+          {
+            "name": "ns3.waithakandegwa.com.",
+            "type": 5
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns3.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.217885+00:00",
+      "type": "CNAME",
+      "url": "https://dns.google/resolve?name=ns3.waithakandegwa.com&type=CNAME&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns4.waithakandegwa.com.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns4.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.256605+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=ns4.waithakandegwa.com&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns4.waithakandegwa.com.",
+            "type": 28
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns4.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.264910+00:00",
+      "type": "AAAA",
+      "url": "https://dns.google/resolve?name=ns4.waithakandegwa.com&type=AAAA&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00005.webhostbox.net.(66.116.209.61).",
+        "Question": [
+          {
+            "name": "ns4.waithakandegwa.com.",
+            "type": 5
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ns4.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.284292+00:00",
+      "type": "CNAME",
+      "url": "https://dns.google/resolve?name=ns4.waithakandegwa.com&type=CNAME&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "sns00005.webhostbox.net. root.sh00003.webhostbox.net. 2026083004 86400 7200 3600000 86400",
+            "name": "waithakandegwa.com.",
+            "type": 6
+          }
+        ],
+        "CD": false,
+        "Comment": "Response from sns00006.webhostbox.net.(66.116.209.11).",
+        "Question": [
+          {
+            "name": "_dmarc.waithakandegwa.com.",
+            "type": 16
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "_dmarc.waithakandegwa.com",
+      "started_utc": "2026-10-21T18:58:02.341952+00:00",
+      "type": "TXT",
+      "url": "https://dns.google/resolve?name=_dmarc.waithakandegwa.com&type=TXT&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [],
+        "Authority": [
+          {
+            "TTL": 1800,
+            "data": "mzizi.kenic.or.ke. hostmaster.kenic.or.ke. 2026102117 21600 3600 604800 86400",
+            "name": "ke.",
+            "type": 6
+          }
+        ],
+        "Authority_dnssec_types_omitted": [
+          46,
+          50,
+          46,
+          50,
+          46,
+          50,
+          46
+        ],
+        "CD": false,
+        "Comment": "Response from 2001:500:14:6007:ad::1.",
+        "Question": [
+          {
+            "name": "_dmarc.waithakandegwa.co.ke.",
+            "type": 16
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 3,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "_dmarc.waithakandegwa.co.ke",
+      "started_utc": "2026-10-21T18:58:02.347617+00:00",
+      "type": "TXT",
+      "url": "https://dns.google/resolve?name=_dmarc.waithakandegwa.co.ke&type=TXT&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 13102,
+            "data": "192.5.6.30",
+            "name": "a.gtld-servers.net.",
+            "type": 1
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Question": [
+          {
+            "name": "a.gtld-servers.net.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "a.gtld-servers.net",
+      "started_utc": "2026-10-21T18:58:02.357239+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=a.gtld-servers.net&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": true,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 21147,
+            "data": "kenic.anycastdns.cz.",
+            "name": "ke.",
+            "type": 2
+          },
+          {
+            "TTL": 21147,
+            "data": "ns.anycast.kenic.or.ke.",
+            "name": "ke.",
+            "type": 2
+          },
+          {
+            "TTL": 21147,
+            "data": "ns-ke.afrinic.net.",
+            "name": "ke.",
+            "type": 2
+          },
+          {
+            "TTL": 21147,
+            "data": "mzizi.kenic.or.ke.",
+            "name": "ke.",
+            "type": 2
+          }
+        ],
+        "Answer_dnssec_types_omitted": [
+          46
+        ],
+        "Authority": [],
+        "CD": false,
+        "Question": [
+          {
+            "name": "ke.",
+            "type": 2
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "ke",
+      "started_utc": "2026-10-21T18:58:02.385020+00:00",
+      "type": "NS",
+      "url": "https://dns.google/resolve?name=ke&type=NS&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 300,
+            "data": "66.116.209.11",
+            "name": "sns00005.webhostbox.net.",
+            "type": 1
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Comment": "Response from 172.64.32.108.",
+        "Question": [
+          {
+            "name": "sns00005.webhostbox.net.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "sns00005.webhostbox.net",
+      "started_utc": "2026-10-21T18:58:02.388932+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=sns00005.webhostbox.net&type=A&do=true"
+    },
+    {
+      "dns": {
+        "AD": false,
+        "Additional": [],
+        "Answer": [
+          {
+            "TTL": 300,
+            "data": "66.116.209.61",
+            "name": "sns00006.webhostbox.net.",
+            "type": 1
+          }
+        ],
+        "Authority": [],
+        "CD": false,
+        "Comment": "Response from 172.64.32.108.",
+        "Question": [
+          {
+            "name": "sns00006.webhostbox.net.",
+            "type": 1
+          }
+        ],
+        "RA": true,
+        "RD": true,
+        "Status": 0,
+        "TC": false
+      },
+      "http_status": 200,
+      "name": "sns00006.webhostbox.net",
+      "started_utc": "2026-10-21T18:58:02.402652+00:00",
+      "type": "A",
+      "url": "https://dns.google/resolve?name=sns00006.webhostbox.net&type=A&do=true"
+    }
+  ],
+  "http": [
+    {
+      "bytes_read": 21424,
+      "final_url": "https://www.waithakandegwa.com/",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Date": "Wed, 21 Oct 2026 18:58:46 GMT",
+        "Server": "envoy"
+      },
+      "page": {
+        "canonical": [
+          "https://www.waithakandegwa.com/"
+        ],
+        "description": [
+          "Personal experience and views from Africa on social entrepreneurship, agribusiness, infrastructure, innovation and travel \u2014 rooted in Kenya and connected to a global audience."
+        ],
+        "html_lang": "en",
+        "meta_verification": [],
+        "robots": [
+          "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+        ],
+        "script_src": [
+          "https://www.googletagmanager.com/gtag/js?id=G-WCKVHN823V",
+          "https://www.waithakandegwa.com/assets/js/site.js"
+        ],
+        "title": "Waithaka Ndegwa \u00b7 Social Entrepreneurship, Agribusiness, Infrastructure & Innovation"
+      },
+      "redirects": [],
+      "sha256": "90c5210a7304dc5d7d8f8e2afd224462469f1cdc5f0a105ecbab802f33c93e8e",
+      "started_utc": "2026-10-21T18:58:45.929676+00:00",
+      "status": 200,
+      "tag_contexts": [
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n<script>\nwindow.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}(()=>{let c=null;try{c=localStorage.getItem('wk_consent')}catch(e){}gtag('consent','default',{analytics_storage:c==='analytics'?'gr",
+        "ag(){dataLayer.push(arguments);}(()=>{let c=null;try{c=localStorage.getItem('wk_consent')}catch(e){}gtag('consent','default',{analytics_storage:c==='analytics'?'granted':'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:",
+        "d',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});})();gtag('js',new Date());gtag('config','G-WCKVHN823V');\n</script>\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-WCKVHN823V\"></script>\n<meta charset=\"",
+        ",ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});})();gtag('js',new Date());gtag('config','G-WCKVHN823V');\n</script>\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-WCKVHN823V\"></script>\n<meta charset=\"utf-8\">\n<meta name=\"vi",
+        ";})();gtag('js',new Date());gtag('config','G-WCKVHN823V');\n</script>\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-WCKVHN823V\"></script>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n<title>Waithak"
+      ],
+      "tag_ids": [
+        "G-WCKVHN823V"
+      ],
+      "tag_signals": {
+        "analytics.js": false,
+        "clarity.ms": false,
+        "connect.facebook.net": false,
+        "dataLayer": true,
+        "google-analytics.com": false,
+        "googletagmanager.com": true,
+        "gtag(": true
+      },
+      "truncated": false,
+      "url": "https://www.waithakandegwa.com/"
+    },
+    {
+      "bytes_read": 21424,
+      "final_url": "https://www.waithakandegwa.com/",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Date": "Wed, 21 Oct 2026 18:58:46 GMT",
+        "Server": "envoy"
+      },
+      "page": {
+        "canonical": [
+          "https://www.waithakandegwa.com/"
+        ],
+        "description": [
+          "Personal experience and views from Africa on social entrepreneurship, agribusiness, infrastructure, innovation and travel \u2014 rooted in Kenya and connected to a global audience."
+        ],
+        "html_lang": "en",
+        "meta_verification": [],
+        "robots": [
+          "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+        ],
+        "script_src": [
+          "https://www.googletagmanager.com/gtag/js?id=G-WCKVHN823V",
+          "https://www.waithakandegwa.com/assets/js/site.js"
+        ],
+        "title": "Waithaka Ndegwa \u00b7 Social Entrepreneurship, Agribusiness, Infrastructure & Innovation"
+      },
+      "redirects": [
+        {
+          "from": "https://waithakandegwa.com/",
+          "status": 301,
+          "to": "https://www.waithakandegwa.com/"
+        }
+      ],
+      "sha256": "90c5210a7304dc5d7d8f8e2afd224462469f1cdc5f0a105ecbab802f33c93e8e",
+      "started_utc": "2026-10-21T18:58:45.931997+00:00",
+      "status": 200,
+      "tag_contexts": [
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n<script>\nwindow.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}(()=>{let c=null;try{c=localStorage.getItem('wk_consent')}catch(e){}gtag('consent','default',{analytics_storage:c==='analytics'?'gr",
+        "ag(){dataLayer.push(arguments);}(()=>{let c=null;try{c=localStorage.getItem('wk_consent')}catch(e){}gtag('consent','default',{analytics_storage:c==='analytics'?'granted':'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:",
+        "d',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});})();gtag('js',new Date());gtag('config','G-WCKVHN823V');\n</script>\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-WCKVHN823V\"></script>\n<meta charset=\"",
+        ",ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});})();gtag('js',new Date());gtag('config','G-WCKVHN823V');\n</script>\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-WCKVHN823V\"></script>\n<meta charset=\"utf-8\">\n<meta name=\"vi",
+        ";})();gtag('js',new Date());gtag('config','G-WCKVHN823V');\n</script>\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-WCKVHN823V\"></script>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n<title>Waithak"
+      ],
+      "tag_ids": [
+        "G-WCKVHN823V"
+      ],
+      "tag_signals": {
+        "analytics.js": false,
+        "clarity.ms": false,
+        "connect.facebook.net": false,
+        "dataLayer": true,
+        "google-analytics.com": false,
+        "googletagmanager.com": true,
+        "gtag(": true
+      },
+      "truncated": false,
+      "url": "https://waithakandegwa.com/"
+    },
+    {
+      "bytes_read": 98,
+      "error_body_excerpt": "upstream connect error or disconnect/reset before headers. reset reason: remote connection failure",
+      "final_url": "https://www.waithakandegwa.co.ke/",
+      "headers": {
+        "Content-Type": "text/plain",
+        "Date": "Wed, 21 Oct 2026 18:58:45 GMT",
+        "Server": "envoy"
+      },
+      "page": {
+        "canonical": [],
+        "description": [],
+        "html_lang": null,
+        "meta_verification": [],
+        "robots": [],
+        "script_src": [],
+        "title": ""
+      },
+      "redirects": [],
+      "sha256": "33fbc61ad080ef68dd7a6479f8c53f1bf864dba2930567dbbc4ceb47490a1909",
+      "started_utc": "2026-10-21T18:58:45.932674+00:00",
+      "status": 503,
+      "tag_contexts": [],
+      "tag_ids": [],
+      "tag_signals": {
+        "analytics.js": false,
+        "clarity.ms": false,
+        "connect.facebook.net": false,
+        "dataLayer": false,
+        "google-analytics.com": false,
+        "googletagmanager.com": false,
+        "gtag(": false
+      },
+      "truncated": false,
+      "url": "https://www.waithakandegwa.co.ke/"
+    },
+    {
+      "bytes_read": 98,
+      "error_body_excerpt": "upstream connect error or disconnect/reset before headers. reset reason: remote connection failure",
+      "final_url": "https://waithakandegwa.co.ke/",
+      "headers": {
+        "Content-Type": "text/plain",
+        "Date": "Wed, 21 Oct 2026 18:58:45 GMT",
+        "Server": "envoy"
+      },
+      "page": {
+        "canonical": [],
+        "description": [],
+        "html_lang": null,
+        "meta_verification": [],
+        "robots": [],
+        "script_src": [],
+        "title": ""
+      },
+      "redirects": [],
+      "sha256": "33fbc61ad080ef68dd7a6479f8c53f1bf864dba2930567dbbc4ceb47490a1909",
+      "started_utc": "2026-10-21T18:58:45.933631+00:00",
+      "status": 503,
+      "tag_contexts": [],
+      "tag_ids": [],
+      "tag_signals": {
+        "analytics.js": false,
+        "clarity.ms": false,
+        "connect.facebook.net": false,
+        "dataLayer": false,
+        "google-analytics.com": false,
+        "googletagmanager.com": false,
+        "gtag(": false
+      },
+      "truncated": false,
+      "url": "https://waithakandegwa.co.ke/"
+    }
+  ],
+  "limitations": [
+    "Public DNS results are resolver observations with TTLs and caches; direct authoritative/parent response content could not be obtained.",
+    "Do not infer AWS resources, account ownership, registrar access or domain registration availability from returned IP addresses or NXDOMAIN.",
+    "This is a bounded record inventory, not a zone export. Unknown DKIM selectors, custom verification labels, subdomains and mail services may exist.",
+    "No browser, login, JavaScript execution, analytics beacon or real provider account was used.",
+    "HTTP response Server:envoy and .co.ke503 can reflect the audit network proxy; they do not identify the origin hosting platform."
+  ],
+  "observation_window_utc": "2026-10-21T18:57:26Z through 2026-10-21T18:59:44Z",
+  "read_only": true,
+  "registry_rdap_attempt": [
+    {
+      "error": "HTTPError: HTTP Error 503: Service Unavailable",
+      "label": "com_rdap",
+      "url": "https://rdap.verisign.com/com/v1/domain/waithakandegwa.com"
+    }
+  ],
+  "title": "Waithaka Ndegwa public DNS and HTTP inventory"
+}

@@ -1,0 +1,37 @@
+name: Restore recovered Git history
+on:
+  push:
+    branches: [main]
+    paths: ['history/r22-complete.bundle', '.github/workflows/restore-history.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: history-recovery
+  cancel-in-progress: false
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify and attach original history while retaining reviewed release tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git bundle verify history/r22-complete.bundle
+          git fetch history/r22-complete.bundle main:refs/remotes/recovered/main
+          test "$(git rev-parse refs/remotes/recovered/main)" = "0e51b3e2916c6275433b100b311a25193b83c9ba"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git checkout -B main origin/main
+          if git merge-base --is-ancestor refs/remotes/recovered/main HEAD; then
+            echo 'Recovered history already attached.'
+            exit 0
+          fi
+          BEFORE=$(git rev-parse HEAD^{tree})
+          git merge --allow-unrelated-histories --strategy=ours --no-edit refs/remotes/recovered/main -m 'Preserve recovered implementation history under canonical repository'
+          test "$(git rev-parse HEAD^{tree})" = "$BEFORE"
+          git push origin HEAD:main

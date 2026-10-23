@@ -1,0 +1,112 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Elastic Beanstalk IAM baseline for the Waithaka Ndegwa website workload account 466401734428.",
+  "Parameters": {
+    "ProjectName": {
+      "Type": "String",
+      "Default": "waithaka-ndegwa"
+    }
+  },
+  "Resources": {
+    "ElasticBeanstalkServiceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "waithaka-eb-service-role",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "elasticbeanstalk.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "sts:ExternalId": "elasticbeanstalk"
+                }
+              }
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth",
+          "arn:aws:iam::aws:policy/AWSElasticBeanstalkManagedUpdatesCustomerRolePolicy"
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": {
+              "Ref": "ProjectName"
+            }
+          },
+          {
+            "Key": "Purpose",
+            "Value": "elastic-beanstalk-service"
+          }
+        ]
+      }
+    },
+    "ElasticBeanstalkInstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "waithaka-eb-instance-role",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": {
+              "Ref": "ProjectName"
+            }
+          },
+          {
+            "Key": "Purpose",
+            "Value": "elastic-beanstalk-runtime"
+          }
+        ]
+      }
+    },
+    "ElasticBeanstalkInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "waithaka-eb-instance-profile",
+        "Roles": [
+          {
+            "Ref": "ElasticBeanstalkInstanceRole"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "ServiceRoleName": {
+      "Value": {
+        "Ref": "ElasticBeanstalkServiceRole"
+      }
+    },
+    "InstanceRoleName": {
+      "Value": {
+        "Ref": "ElasticBeanstalkInstanceRole"
+      }
+    },
+    "InstanceProfileName": {
+      "Value": {
+        "Ref": "ElasticBeanstalkInstanceProfile"
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+R12 — 2026-10-22
+
+- Fix CloudFront origin-facing managed prefix-list parameter validation.
+- CloudFormation parameter is now a constrained String because AWS::EC2::PrefixList::Id is not a supported CloudFormation AWS-specific parameter type.
+- Verify the resolved prefix-list ID maps to com.amazonaws.global.cloudfront.origin-facing immediately before deployment.
+- Automatically remove only the failed waithaka-network stack when it is in ROLLBACK_COMPLETE, then recreate it on the next reviewed --apply run.

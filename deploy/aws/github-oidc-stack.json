@@ -1,0 +1,166 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "GitHub Actions OIDC deployment role for the Waithaka Ndegwa repository.",
+  "Parameters": {
+    "RepositoryId": {
+      "Type": "String",
+      "AllowedPattern": "^[0-9]+$"
+    },
+    "DeployBranch": {
+      "Type": "String",
+      "Default": "main"
+    },
+    "ExistingProviderArn": {
+      "Type": "String",
+      "Default": ""
+    },
+    "RepositoryFullName": {
+      "Type": "String",
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "RepositoryOwnerId": {
+      "Type": "String",
+      "AllowedPattern": "^[0-9]+$"
+    }
+  },
+  "Conditions": {
+    "CreateProvider": {
+      "Fn::Equals": [
+        {
+          "Ref": "ExistingProviderArn"
+        },
+        ""
+      ]
+    }
+  },
+  "Resources": {
+    "GitHubOidcProvider": {
+      "Type": "AWS::IAM::OIDCProvider",
+      "Condition": "CreateProvider",
+      "Properties": {
+        "Url": "https://token.actions.githubusercontent.com",
+        "ClientIdList": [
+          "sts.amazonaws.com"
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "Waithaka-Ndegwa"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "GitHub-OIDC"
+          }
+        ]
+      }
+    },
+    "GitHubDeployRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "WaithakaGitHubDeployRole",
+        "Description": "OIDC production deployment role for the Waithaka Ndegwa website",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "GitHubMainBranchOnly",
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Fn::If": [
+                    "CreateProvider",
+                    {
+                      "Ref": "GitHubOidcProvider"
+                    },
+                    {
+                      "Ref": "ExistingProviderArn"
+                    }
+                  ]
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:repository_id": {
+                    "Ref": "RepositoryId"
+                  },
+                  "token.actions.githubusercontent.com:ref": {
+                    "Fn::Sub": "refs/heads/${DeployBranch}"
+                  },
+                  "token.actions.githubusercontent.com:repository_owner_id": {
+                    "Ref": "RepositoryOwnerId"
+                  },
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:Goblis-Foundation@${RepositoryOwnerId}/Waithaka-Ndegwa@${RepositoryId}:ref:refs/heads/${DeployBranch}"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/PowerUserAccess"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "WaithakaGitHubDeploymentIamBridge",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "PassBeanstalkRoles",
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:GetRole",
+                    "iam:PassRole"
+                  ],
+                  "Resource": [
+                    "arn:aws:iam::466401734428:role/waithaka-eb-service-role",
+                    "arn:aws:iam::466401734428:role/waithaka-eb-instance-role"
+                  ]
+                },
+                {
+                  "Sid": "ManageWaithakaRuntimeRolePolicy",
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:GetRole",
+                    "iam:GetRolePolicy",
+                    "iam:PutRolePolicy",
+                    "iam:DeleteRolePolicy",
+                    "iam:ListRolePolicies",
+                    "iam:ListAttachedRolePolicies",
+                    "iam:AttachRolePolicy",
+                    "iam:DetachRolePolicy"
+                  ],
+                  "Resource": "arn:aws:iam::466401734428:role/waithaka-eb-instance-role"
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "Waithaka-Ndegwa"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "GitHub-Production-Deployment"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "DeployRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GitHubDeployRole",
+          "Arn"
+        ]
+      }
+    }
+  }
+}

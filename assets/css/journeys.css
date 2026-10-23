@@ -1,0 +1,136 @@
+/* Startup Journeys, founder stories and private editorial workflows. */
+.journey-hero{padding:70px 0 64px;border-bottom:1px solid var(--line)}
+.journey-hero-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.7fr);gap:80px;align-items:center}
+.journey-hero h1{font:500 clamp(3.1rem,6.4vw,6.4rem)/.98 var(--serif);letter-spacing:-.055em;margin:18px 0 24px;max-width:940px}
+.journey-lead{max-width:720px;font-size:1.16rem;line-height:1.7;color:var(--ink-soft)}
+.journey-hero p{color:var(--ink-soft)}
+.journey-actions{display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin-top:28px}
+.journey-principles{border:1px solid var(--line-dark);background:rgba(255,255,255,.6);border-radius:18px;padding:28px}
+.journey-principles h2{font:500 2rem/1.1 var(--serif);margin:14px 0}
+.journey-principles p{font-size:.88rem;line-height:1.7}
+.journey-principles ol{list-style:none;counter-reset:journey-principle;margin:18px 0 0;padding:0;display:grid;gap:22px}
+.journey-principles li{counter-increment:journey-principle;padding-left:36px;position:relative}
+.journey-principles li:before{content:counter(journey-principle,decimal-leading-zero);position:absolute;left:0;top:2px;font-size:.72rem;color:var(--green);font-weight:800}
+.journey-principles strong,.journey-principles li span{display:block}
+.journey-principles strong{font-size:.88rem;margin-bottom:4px}
+.journey-principles li span{color:var(--muted);font-size:.8rem;line-height:1.6}
+.journey-section-head{display:flex;align-items:end;justify-content:space-between;gap:28px;margin-bottom:28px}
+.journey-section-head h2,.journey-related h2{font:500 clamp(2rem,3.4vw,3.3rem)/1.08 var(--serif);letter-spacing:-.035em;margin:8px 0}
+.journey-section-head>p{max-width:420px;color:var(--muted);margin:0}
+.journey-season-list{display:grid;border-top:1px solid var(--line-dark)}
+.journey-season-card{display:grid;grid-template-columns:130px minmax(0,1fr);gap:44px;padding:36px 0;border-bottom:1px solid var(--line-dark)}
+.journey-season-number{font:500 4.4rem/1 var(--serif);color:var(--green-dark);padding-top:14px}
+.journey-season-number span{display:block;font:600 .69rem var(--sans);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-top:8px}
+.journey-season-card h3{font:500 clamp(1.8rem,3vw,2.8rem)/1.12 var(--serif);letter-spacing:-.025em;margin:16px 0 12px}
+.journey-season-card h3 a,.journey-chapter h3 a,.journey-story-card h3 a,.journey-writer-list h3 a{text-decoration:none}
+.journey-season-card h3 a:hover,.journey-chapter h3 a:hover,.journey-story-card h3 a:hover{text-decoration:underline;text-underline-offset:5px}
+.journey-season-card p{max-width:850px;color:var(--muted);margin:0 0 18px;white-space:pre-line}
+.journey-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;font-size:.76rem;color:var(--muted)}
+.journey-badge{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#e9efe7;color:var(--green-dark);font-size:.69rem;font-weight:750}
+.journey-empty{padding:45px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.65);margin-bottom:20px}
+.journey-empty h3{font:500 2rem/1.15 var(--serif);margin:0 0 14px;letter-spacing:-.025em}
+.journey-empty p{max-width:650px;color:var(--muted);margin:0 0 20px}
+.journey-empty-small{padding:24px;margin-top:16px}
+.journey-empty-small h3{font-size:1.5rem}
+.journey-related{display:flex;align-items:center;justify-content:space-between;gap:40px;margin-top:65px;padding-top:40px;border-top:1px solid var(--line)}
+.journey-related h2{font-size:2.5rem;max-width:600px}
+.journey-related p{color:var(--muted)}
+.journey-related .button{flex-shrink:0}
+.journey-back{display:block;color:var(--green-dark);font-size:.8rem;font-weight:700;text-decoration:none;margin-bottom:26px}
+.journey-back:hover{text-decoration:underline}
+.journey-detail-hero h1{max-width:1020px}
+.journey-detail-grid{display:grid;grid-template-columns:minmax(240px,.7fr) minmax(0,1.3fr);gap:75px;align-items:start}
+.journey-baseline{background:#eaf0e7;border:1px solid #d1dbcd;border-radius:18px;padding:28px}
+.journey-baseline h2,.journey-outcomes h2{font:500 2.2rem/1.1 var(--serif);letter-spacing:-.025em;margin:13px 0 20px}
+.journey-baseline p{font-size:.91rem;line-height:1.75;overflow-wrap:anywhere}
+.journey-baseline small{display:block;color:var(--muted);font-size:.72rem;margin-top:25px}
+.journey-question{border-top:1px solid #c9d4c4;margin-top:24px;padding-top:20px}
+.journey-question h3{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;margin:0}
+.journey-chapters{list-style:none;margin:0;padding:0}
+.journey-chapter{display:grid;grid-template-columns:46px minmax(0,1fr);gap:22px;padding:29px 0;border-top:1px solid var(--line)}
+.journey-chapter-number{font:500 2rem var(--serif);color:var(--green);padding-top:4px}
+.journey-chapter h3{font:500 1.8rem/1.16 var(--serif);letter-spacing:-.02em;margin:12px 0}
+.journey-chapter p{font-size:.93rem;color:var(--muted);line-height:1.7;overflow-wrap:anywhere}
+.journey-evidence{font-size:.73rem;line-height:1.6;color:var(--green-dark);padding:11px 14px;background:#edf1e9;border-radius:9px;margin:18px 0}
+.journey-evidence>span{font-weight:750}
+.journey-evidence p{font-size:.77rem;margin:6px 0 0;color:var(--ink-soft)}
+.journey-outcomes{border-top:1px solid var(--line-dark);margin-top:28px;padding-top:32px}
+.journey-outcomes p{line-height:1.8;overflow-wrap:anywhere}
+.journey-form-layout{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:70px;align-items:start}
+.journey-form-layout h1{font-size:clamp(3rem,5.4vw,5.4rem)}
+.journey-form-layout>.journey-panel{padding:32px}
+.journey-panel{padding:28px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 32px rgba(20,35,27,.025);min-width:0}
+.journey-panel h2{font:500 1.9rem/1.15 var(--serif);letter-spacing:-.025em;margin:0 0 14px}
+.journey-form .field{display:flex;flex-direction:column;gap:7px;margin:17px 0;min-width:0}
+.journey-form .field label{font-size:.8rem;font-weight:750;color:var(--ink-soft)}
+.journey-form input:not([type=checkbox]),.journey-form textarea,.journey-form select{width:100%;min-width:0;border:1px solid var(--line-dark);background:#fff;border-radius:9px;padding:12px;color:var(--ink);font:inherit}
+.journey-form input:read-only{background:#f3f5f1;color:var(--muted)}
+.journey-form textarea{resize:vertical;line-height:1.6}
+.journey-form input:focus-visible,.journey-form select:focus-visible,.journey-form textarea:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.journey-form .optional{font-weight:400;color:var(--muted)}
+.journey-form .button{margin-top:10px}
+.journey-fields-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.journey-fields-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.journey-check{display:flex;align-items:flex-start;gap:12px;font-size:.8rem;line-height:1.65;color:var(--ink-soft);margin:20px 0;cursor:pointer}
+.journey-check input{margin:4px 0 0;width:18px;height:18px;flex-shrink:0;accent-color:var(--green-dark)}
+.journey-check a{text-decoration:underline;text-underline-offset:3px}
+.journey-check-emphasis{padding:16px;background:#edf4eb;border:1px solid #cbdcc6;border-radius:12px}
+.journey-help{font-size:.75rem;line-height:1.6;color:var(--muted)}
+.journey-form p.journey-help{margin:15px 0 0}
+.journey-honey{position:absolute!important;left:-10000px!important;width:1px;height:1px;overflow:hidden}
+.journey-notice{border:1px solid #c6ddc7;background:#f0f8ed;color:#255831;border-radius:10px;padding:14px 16px;margin:16px 0;font-size:.88rem;overflow-wrap:anywhere}
+.journey-notice-error{background:#fff2ed;color:#8a3428;border-color:#efcbc2}
+.journey-rss{margin-top:36px;padding-top:28px;border-top:1px solid var(--line-dark)}
+.journey-rss p{font-size:.86rem}
+.journey-action-wrap{max-width:680px}
+.journey-action-wrap h1{font:500 2.8rem/1.05 var(--serif);letter-spacing:-.03em}
+.journey-story-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.journey-story-card{border:1px solid var(--line);border-radius:16px;background:#fff;overflow:hidden}
+.journey-story-card>div{padding:24px}
+.journey-story-card h3{font:500 1.8rem/1.15 var(--serif);margin:14px 0;letter-spacing:-.025em}
+.journey-story-card p{font-size:.87rem;color:var(--muted);line-height:1.7}
+.journey-story-image{display:block;aspect-ratio:16/10;overflow:hidden}
+.journey-story-image img{width:100%;height:100%;object-fit:cover}
+.journey-article-nav{padding:25px;border:1px solid var(--line);border-radius:15px;background:#f0f4ed;margin:28px 0}
+.journey-article-nav h2{font:500 1.7rem/1.15 var(--serif);margin:10px 0 20px}
+.journey-article-nav h2 a{text-decoration:none}
+.journey-article-nav>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:25px}
+.journey-article-nav>div a{text-decoration:none}
+.journey-article-nav small,.journey-article-nav strong{display:block}
+.journey-article-nav small{font-size:.73rem;color:var(--muted);margin-bottom:5px}
+.journey-article-nav strong{font-size:.9rem;line-height:1.4}
+.journey-writer>.journey-panel{margin:24px 0}
+.journey-writer h1{overflow-wrap:anywhere}
+.journey-writer .journey-back{margin-bottom:14px}
+.journey-writer .journey-section-head h2{font-size:1.8rem}
+.journey-writer .journey-section-head p{max-width:760px;margin:8px 0 0}
+.journey-writer-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-bottom:28px}
+.journey-writer-tools>a,.journey-writer-tools>div{padding:20px 24px;border:1px solid var(--line);border-radius:14px;background:#f9fbf7;text-decoration:none}
+.journey-writer-tools strong,.journey-writer-tools span{display:block}
+.journey-writer-tools span{font-size:.77rem;color:var(--muted);margin-top:6px}
+.journey-writer-list>article{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:23px 0;border-top:1px solid var(--line)}
+.journey-writer-list h3{font:600 1.5rem/1.2 var(--serif);margin:10px 0}
+.journey-writer-list p{font-size:.78rem;color:var(--muted);margin:0}
+.journey-writer-list>article>.writer-actions{flex-shrink:0}
+.journey-private{border:1px solid var(--line);padding:15px 18px;border-radius:12px;margin-top:23px;background:#f9faf7}
+.journey-private summary,.journey-delete>summary{cursor:pointer;font-weight:750;font-size:.83rem}
+.journey-form-actions{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-top:24px}
+.journey-episode-editor{border:1px solid var(--line);border-radius:12px;margin:16px 0;background:#fafbf8;overflow:hidden}
+.journey-episode-editor>summary{cursor:pointer;padding:18px;font-weight:700}
+.journey-episode-editor>summary small{display:block;font-size:.72rem;font-weight:500;color:var(--muted);margin-top:5px;margin-left:16px}
+.journey-episode-form{padding:6px 20px 24px;border-top:1px solid var(--line);background:#fff}
+.journey-remove-form{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 20px;border-top:1px solid var(--line)}
+.journey-text-button{background:none;border:0;font:inherit;font-size:.78rem;font-weight:750;color:#8a3428;text-decoration:underline;cursor:pointer;padding:8px 0}
+.journey-delete{color:#754238}
+.journey-delete>p{font-size:.85rem;color:var(--muted)}
+.journey-filter{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:26px}
+.journey-filter label{font-weight:750;font-size:.8rem}
+.journey-filter select{font:inherit;padding:10px 12px;border:1px solid var(--line-dark);border-radius:9px;background:#fff}
+.journey-review-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.journey-record{margin:22px 0 0}
+.journey-record>div{border-top:1px solid var(--line);padding:18px 0}
+.journey-record dt{font-size:.7rem;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;font-weight:750;margin-bottom:8px}
+.journey-record dd{margin:0;font-size:.87rem;line-height:1.8;overflow-wrap:anywhere}
+@media(max-width:1000px){.journey-hero-grid,.journey-form-layout{gap:35px}.journey-detail-grid{gap:35px;grid-template-columns:minmax(230px,.75fr) minmax(0,1.25fr)}.journey-story-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.journey-form-layout .journey-fields-two{grid-template-columns:1fr;gap:0}}
+@media(max-width:780px){.journey-hero{padding:45px 0}.journey-hero-grid,.journey-detail-grid,.journey-form-layout,.journey-review-grid{grid-template-columns:1fr;gap:30px}.journey-hero h1{font-size:clamp(3rem,9vw,4.8rem)}.journey-baseline{max-width:none}.journey-principles{padding:24px}.journey-section-head,.journey-related{align-items:flex-start;flex-direction:column;gap:15px}.journey-related{margin-top:40px}.journey-section-head>p{max-width:none}.journey-season-card{grid-template-columns:65px minmax(0,1fr);gap:22px}.journey-season-number{font-size:3rem}.journey-season-number span{font-size:.6rem}.journey-writer-tools{grid-template-columns:1fr;gap:12px}.journey-writer .writer-head{align-items:flex-start;flex-direction:column}.journey-writer .journey-fields-three{grid-template-columns:1fr;gap:0}.journey-form-layout .journey-fields-two{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}}
+@media(max-width:520px){.journey-hero h1{font-size:3.4rem}.journey-lead{font-size:1.02rem}.journey-panel,.journey-form-layout>.journey-panel{padding:21px}.journey-empty{padding:24px}.journey-season-card{grid-template-columns:1fr;gap:14px;padding:28px 0}.journey-season-number{font-size:2.2rem;display:flex;align-items:center;gap:10px;padding:0}.journey-season-number span{margin:0}.journey-season-card h3{font-size:1.85rem}.journey-chapter{grid-template-columns:30px minmax(0,1fr);gap:14px}.journey-chapter h3{font-size:1.5rem}.journey-chapter-number{font-size:1.4rem}.journey-story-grid{grid-template-columns:1fr}.journey-fields-two,.journey-form-layout .journey-fields-two,.journey-article-nav>div{grid-template-columns:1fr;gap:0}.journey-article-nav>div{gap:18px}.journey-writer-list>article{align-items:flex-start;flex-direction:column;gap:16px}.journey-episode-form{padding:4px 14px 20px}.journey-form-actions{align-items:flex-start;flex-direction:column}.journey-meta{gap:8px;font-size:.7rem}.journey-review-grid{gap:18px}.journey-hero .journey-actions{align-items:flex-start;flex-direction:column}}

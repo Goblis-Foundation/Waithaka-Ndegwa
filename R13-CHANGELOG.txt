@@ -1,0 +1,10 @@
+R13 — 2026-10-22
+
+- Adds a guarded post-foundation AWS stage for account 466401734428.
+- Reads and verifies the deployed IAM/network foundation before doing any work.
+- Resolves the current ready Elastic Beanstalk PHP 8.4 platform ARN and latest visible MySQL 8.4 minor.
+- Verifies the reviewed db.t4g.small class is orderable before data deployment.
+- Can request/reuse DNS-validated ACM certificates for CloudFront in us-east-1 and the regional origin in af-south-1 without changing DNS.
+- Writes the exact ACM validation CNAME records to private CloudShell evidence for later DNS work.
+- Can create/reuse the persistent data stack using the existing reviewed data-stack.json: RDS MySQL 8.4 with encryption, backups, deletion protection and managed master secret; versioned retained public/private/release S3 buckets.
+- Does not restore the database, create the application APP_KEY secret, deploy Elastic Beanstalk, change DNS, route traffic, enable SES, or enable workers.

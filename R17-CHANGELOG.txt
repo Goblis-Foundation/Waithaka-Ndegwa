@@ -1,0 +1,9 @@
+R17 — 2026-10-22
+
+- Switched the selected production path to a clean AWS installation in account 466401734428; no former-host database, uploads or app key are required.
+- Added fresh Route 53 preparation with one reusable delegation set, white-label ns1-ns4.waithakandegwa.com, ACM validation records, core live-DNS continuity and a registrar glue handoff.
+- Added one-command after-registrar automation for fresh database/Writer bootstrap, Elastic Beanstalk PHP 8.4 deployment, origin DNS, bootstrap-secret revocation, CloudFront edge and public alias cutover.
+- Added a clean database initializer that runs the schema and every migration, creates a least-privilege runtime DB user and seeds the owner/GA4 settings.
+- Selected Google Workspace SMTP relay as the primary application mail route; added SMTP HELO support and a fixed-NAT-IP Google Admin handoff. SES is no longer the selected production mail transport.
+- Preserved workers and application mail as separately gated activation steps. Newsletter approval remains blocked until a real postal address is configured.
+- Updated release packaging so the fresh bootstrap hook (ordered before the worker timer) is included in the Beanstalk application bundle.

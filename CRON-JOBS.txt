@@ -1,0 +1,27 @@
+WAITHAKA NDEGWA WEBSITE — WORKER
+
+This release requires a worker for publishing delivery, assisted reminders,
+payment reconciliation and encrypted email outbox delivery.
+
+AWS Elastic Beanstalk / Amazon Linux 2023:
+The postdeploy hook installs waithaka-worker.service and waithaka-worker.timer.
+The native systemd timer runs about one minute after the previous run finishes.
+Cron is not assumed to be installed. Any older project-owned cron file is removed.
+
+APP_READY=1 and WORKER_ENABLED=1 are both required to process external work.
+Keep WORKER_ENABLED=0 on staging, including after APP_READY is enabled for review.
+The launcher reads environment settings and explicitly fetches the configured
+Secrets Manager JSON using the instance role. Invalid required fields stop it.
+
+For another host, securely configure the process environment and invoke:
+php /absolute/path/to/project/bin/worker.php 10
+
+Do not put secrets in a public crontab, command-line arguments or web endpoint.
+Use the shared database for sessions and work claims across instances.
+Inspect failed/reconnect/ambiguous tasks; never blindly replay an unconfirmed
+external operation. Provider email acceptance is not proof of inbox receipt,
+and an assisted reminder is not a published social post.
+
+Scheduled website articles become public when their publication time is due.
+The worker handles external delivery and operational work.
+See docs/AWS-MIGRATION.md for monitoring, enablement and cutover details.

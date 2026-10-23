@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "deployment_id": "waithaka-personal-dns-466401734428",
+  "account_id": "466401734428",
+  "region": "af-south-1",
+  "profile": "waithaka-ndegwa-prod",
+  "state_dir": "/private/waithaka/dns-state",
+  "delegation_set": {
+    "id": "",
+    "adopt_zone_id": ""
+  },
+  "zones": {
+    "waithakandegwa.com": {
+      "hosted_zone_id": "",
+      "source_export": "/private/waithaka/dns/com-complete-export.json"
+    },
+    "waithakandegwa.co.ke": {
+      "hosted_zone_id": "",
+      "source_export": "/private/waithaka/dns/co-ke-complete-export.json"
+    }
+  }
+}

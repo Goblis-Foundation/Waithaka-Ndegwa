@@ -1,0 +1,16 @@
+/app/config.php
+/.env
+/.env.*
+!/.env.example
+/vendor/
+/storage/*
+!/storage/.gitkeep
+/assets/uploads/*
+!/assets/uploads/.gitkeep
+*.log
+*.zip
+/coverage/
+/.aws/
+/.phpunit.cache/
+__pycache__/
+*.pyc

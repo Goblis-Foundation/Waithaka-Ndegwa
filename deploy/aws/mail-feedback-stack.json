@@ -1,0 +1,163 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Waithaka Ndegwa SES delivery feedback. Deploy in the SES region; configure the returned exact topic ARN before adding the HTTPS subscription. Mail remains separately disabled until verified.",
+  "Parameters": {
+    "ConfigurationSetName": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9_-]{1,64}",
+      "Description": "New, website-specific SES configuration-set name"
+    },
+    "FeedbackEndpoint": {
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "^$|https://[a-z0-9.-]+/webhooks/ses",
+      "Description": "Optional canonical HTTPS /webhooks/ses URL. Leave empty until the application is configured with this stack's topic ARN."
+    }
+  },
+  "Conditions": {
+    "HasFeedbackEndpoint": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "FeedbackEndpoint"
+            },
+            ""
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "ConfigurationSet": {
+      "Type": "AWS::SES::ConfigurationSet",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Name": {
+          "Ref": "ConfigurationSetName"
+        },
+        "SendingOptions": {
+          "SendingEnabled": true
+        },
+        "ReputationOptions": {
+          "ReputationMetricsEnabled": true
+        },
+        "SuppressionOptions": {
+          "SuppressedReasons": [
+            "BOUNCE",
+            "COMPLAINT"
+          ]
+        }
+      }
+    },
+    "FeedbackTopic": {
+      "Type": "AWS::SNS::Topic",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "DisplayName": "Waithaka Ndegwa mail delivery feedback",
+        "SignatureVersion": "2",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "WaithakaNdegwa"
+          }
+        ]
+      }
+    },
+    "FeedbackTopicPolicy": {
+      "Type": "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "Topics": [
+          {
+            "Ref": "FeedbackTopic"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "WebsiteSesConfigurationOnly",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ses.amazonaws.com"
+              },
+              "Action": "sns:Publish",
+              "Resource": {
+                "Ref": "FeedbackTopic"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "AWS:SourceAccount": {
+                    "Ref": "AWS::AccountId"
+                  },
+                  "AWS:SourceArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/${ConfigurationSetName}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "SesEventDestination": {
+      "Type": "AWS::SES::ConfigurationSetEventDestination",
+      "DependsOn": "FeedbackTopicPolicy",
+      "Properties": {
+        "ConfigurationSetName": {
+          "Ref": "ConfigurationSet"
+        },
+        "EventDestination": {
+          "Name": "WebsiteDeliveryFeedback",
+          "Enabled": true,
+          "MatchingEventTypes": [
+            "delivery",
+            "bounce",
+            "complaint"
+          ],
+          "SnsDestination": {
+            "TopicARN": {
+              "Ref": "FeedbackTopic"
+            }
+          }
+        }
+      }
+    },
+    "FeedbackSubscription": {
+      "Type": "AWS::SNS::Subscription",
+      "Condition": "HasFeedbackEndpoint",
+      "Properties": {
+        "Protocol": "https",
+        "Endpoint": {
+          "Ref": "FeedbackEndpoint"
+        },
+        "TopicArn": {
+          "Ref": "FeedbackTopic"
+        },
+        "RawMessageDelivery": false
+      }
+    }
+  },
+  "Outputs": {
+    "ConfigurationSet": {
+      "Value": {
+        "Ref": "ConfigurationSet"
+      }
+    },
+    "FeedbackTopicArn": {
+      "Value": {
+        "Ref": "FeedbackTopic"
+      }
+    },
+    "FeedbackRegion": {
+      "Value": {
+        "Ref": "AWS::Region"
+      }
+    },
+    "SubscriptionReview": {
+      "Value": "After a signed confirmation arrives, open Writer → Operations → Mail delivery feedback and confirm the configured SNS subscription."
+    }
+  }
+}

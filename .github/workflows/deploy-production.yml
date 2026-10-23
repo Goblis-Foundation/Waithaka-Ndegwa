@@ -1,0 +1,133 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: waithaka-production
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate application
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: wk-ci-fixture-only
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pwk-ci-fixture-only --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      WK_TEST_ALLOW_WRITES: '1'
+      WK_TEST_DB_HOST: 127.0.0.1
+      WK_TEST_DB_USER: root
+      WK_TEST_DB_PASS: wk-ci-fixture-only
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, curl, dom, mbstring, fileinfo, openssl, gd, zip
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: composer validate --strict
+      - run: composer install --no-interaction --prefer-dist --no-progress --no-scripts --no-plugins
+      - run: composer check-platform-reqs
+      - run: composer audit --locked --no-interaction
+      - run: php tests/run.php --lint
+      - name: Run isolated application suites
+        env:
+          WK_TEST_DB_PORT: ${{ job.services.mysql.ports[3306] }}
+        run: composer test
+
+  deploy:
+    name: Deploy to AWS account 466401734428
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, curl, dom, mbstring, fileinfo, openssl, gd, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Install production dependencies
+        run: composer install --no-dev --classmap-authoritative --no-interaction --prefer-dist --no-progress --no-scripts --no-plugins
+
+      - name: Configure AWS through GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::466401734428:role/WaithakaGitHubDeployRole
+          aws-region: af-south-1
+          allowed-account-ids: '466401734428'
+          unset-current-credentials: true
+          role-session-name: waithaka-github-production
+
+      - name: Verify AWS target
+        run: |
+          set -euo pipefail
+          test "$(aws sts get-caller-identity --query Account --output text --no-cli-pager)" = "466401734428"
+          aws sts get-caller-identity --no-cli-pager
+
+      - name: Reconstruct Route 53 deployment state
+        run: python3 deploy/aws/fresh_dns.py prepare
+
+      - name: Build immutable Beanstalk application bundle
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/waithaka-release" "../deployment"
+          LABEL="gha-${GITHUB_SHA:0:12}"
+          python3 bin/build-release.py --output-dir "$RUNNER_TEMP/waithaka-release" --label "$LABEL"
+          OUTER="$(find "$RUNNER_TEMP/waithaka-release" -maxdepth 1 -name 'Waithaka-Ndegwa-AWS-Implementation-*.zip' -print -quit)"
+          test -n "$OUTER"
+          unzip -p "$OUTER" deployment/application.zip > ../deployment/application.zip
+          unzip -t ../deployment/application.zip >/dev/null
+
+      - name: Continue production deployment
+        run: bash deploy/aws/fresh_hosting.sh --after-registrar
+
+      - name: Deployment diagnostics on failure
+        if: failure()
+        run: |
+          echo '=== Elastic Beanstalk environment ==='
+          aws elasticbeanstalk describe-environments --environment-names waithaka-ndegwa-production --region af-south-1 --no-cli-pager || true
+          echo '=== Recent Elastic Beanstalk events ==='
+          aws elasticbeanstalk describe-events --environment-name waithaka-ndegwa-production --region af-south-1 --max-records 40 --no-cli-pager || true
+          echo '=== Edge stack ==='
+          aws cloudformation describe-stacks --stack-name waithaka-edge --region us-east-1 --no-cli-pager || true
+
+      - name: Production smoke test
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 30 https://www.waithakandegwa.com/ >/dev/null
+          HTML="$(curl --fail --silent --show-error --location --max-time 30 https://www.waithakandegwa.com/)"
+          COUNT="$(printf '%s' "$HTML" | grep -o 'G-RN0YXC2WCH' | wc -l | tr -d ' ')"
+          test "$COUNT" -ge 1
+          echo "Production homepage is reachable and the configured GA4 ID is present."
