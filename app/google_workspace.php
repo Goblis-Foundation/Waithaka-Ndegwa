@@ -200,13 +200,17 @@ function google_workspace_postmaster(): array {
     foreach($r['trafficStats']??[]as$d)$rows[]=[basename($d['name']??''),$d['domainReputation']??'Not returned',$d['userReportedSpamRatio']??'Not returned',$d['spfSuccessRatio']??'Not returned',$d['dkimSuccessRatio']??'Not returned',$d['dmarcSuccessRatio']??'Not returned'];
     return ['title'=>'Gmail sender reputation','columns'=>['Date','Domain reputation','Spam ratio','SPF ratio','DKIM ratio','DMARC ratio'],'rows'=>$rows,'note'=>'Postmaster may suppress low-volume data. This is aggregate Gmail reputation, not confirmation of delivery to an individual inbox. Use Workspace Email Log Search for individual delivery investigations.'];
 }
+function google_gemini_generation_config(string $model): array {
+    $config=['maxOutputTokens'=>2400];if($model==='gemini-3.8-flash')$config['thinkingConfig']=['thinkingLevel'=>'low'];return $config;
+}
 function google_workspace_gemini(string $input,string $mode,bool $grounded): array {
     $input=studio_input($input);$key=trim((string)setting('google.gemini_key',''));if($key==='')throw new RuntimeException('Save a Gemini API key and choose its billing/data tier first.');
     $model=(string)setting('google.gemini_model','gemini-3.8-flash');if(!preg_match('/^gemini-[a-z0-9.-]{1,80}$/D',$model))throw new RuntimeException('Choose a valid Gemini model identifier.');
     $instructions=studio_instructions($mode);if($grounded)$instructions=str_replace('Do not claim to have searched or verified anything.','Use grounding results and cite sources; do not call unsupported claims verified.',$instructions);
-    $body=['systemInstruction'=>['parts'=>[['text'=>$instructions.($grounded?' Use search sources to investigate claims and distinguish verified sources from suggestions.':'')]]],'contents'=>[['role'=>'user','parts'=>[['text'=>$input]]]],'generationConfig'=>['maxOutputTokens'=>2400]];
+    $body=['systemInstruction'=>['parts'=>[['text'=>$instructions.($grounded?' Use search sources to investigate claims and distinguish verified sources from suggestions.':'')]]],'contents'=>[['role'=>'user','parts'=>[['text'=>$input]]]],'generationConfig'=>google_gemini_generation_config($model)];
     if($grounded)$body['tools']=[['google_search'=>new stdClass()]];
     $r=publishing_http('POST','https://generativelanguage.googleapis.com/v1beta/models/'.$model.':generateContent',['x-goog-api-key: '.$key],$body)['data'];$candidate=$r['candidates'][0]??[];$text='';
+    if(($candidate['finishReason']??'')==='MAX_TOKENS')throw new RuntimeException('Gemini reached its response limit. No complete suggestion was returned. Shorten the requested task or continue manually.');
     foreach($candidate['content']['parts']??[]as$part)if(empty($part['thought']))$text.=(string)($part['text']??'');
     if($text==='')throw new RuntimeException('No draft was returned. Your input remains available.');$sources=[];
     foreach($candidate['groundingMetadata']['groundingChunks']??[]as$chunk){$web=$chunk['web']??[];$link=(string)($web['uri']??'');$p=parse_url($link);if(($p['scheme']??'')==='https'&&!isset($p['user']))$sources[]=['title'=>(string)($web['title']??'Source'),'url'=>$link];}

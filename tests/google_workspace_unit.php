@@ -41,3 +41,7 @@ foreach(['SERVICE_DISABLED'=>'API is disabled','ACCESS_TOKEN_SCOPE_INSUFFICIENT'
 gw_check(str_contains(publishing_google_denial_message('not json'),'provider denied'),'Malformed body safe fallback');
 gw_check(str_contains(publishing_google_denial_message('{"error":{"errors":[{"reason":"insufficientPermissions"}]}}'),'missing a required permission'),'Legacy Google reason mapped');
 gw_check(!str_contains(publishing_google_denial_message('{"error":{"message":"fixture-private-token","details":[{"reason":"fixture-private-token"}]}}'),'fixture-private-token'),'Unknown codes never echoed');
+
+gw_check(google_gemini_generation_config('gemini-3.8-flash')['thinkingConfig']['thinkingLevel']==='low','Interactive 3.8 Flash uses supported low-latency thinking level');
+gw_check(!isset(google_gemini_generation_config('gemini-2.5-flash')['thinkingConfig']),'Do not send unsupported thinkingLevel to older models');
+gw_check(google_gemini_generation_config('gemini-3.8-flash')['maxOutputTokens']===2400,'Bounded Gemini generation output');

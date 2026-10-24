@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+function studio_ai_provider(mixed $value): string {
+    if(!is_string($value)||!in_array($value,['openai','gemini'],true))throw new InvalidArgumentException('Choose OpenAI or Google Gemini.');return $value;
+}
 function studio_modes(): array {
     return ['reply'=>'Draft a reply','agenda'=>'Prepare a meeting agenda','actions'=>'Extract follow-up tasks','outline'=>'Shape an outline','questions'=>'Find questions to investigate','clarity'=>'Improve clarity','social'=>'Draft social variations'];
 }
@@ -57,6 +60,8 @@ function studio_dispatch(string $path): bool {
     if(!in_array($path,['/write/studio','/write/capture','/write/assist'],true))return false;
     require_auth();private_response_headers();journeys_method($path==='/write/assist'?['POST']:['GET','HEAD','POST']);
     $idea='';$ideaTitle='';$input='';$suggestion='';$error='';$mode='outline';
+    $providers=['gemini'=>['name'=>'Google Gemini','ready'=>trim((string)setting('google.gemini_key',''))!==''],'openai'=>['name'=>'OpenAI','ready'=>trim((string)setting('openai.api_key',''))!=='']];
+    $provider=$providers['gemini']['ready']&&!$providers['openai']['ready']?'gemini':'openai';
     if(is_post()){
         verify_csrf();
         try{
@@ -68,12 +73,13 @@ function studio_dispatch(string $path): bool {
             }
             if($path!=='/write/assist')throw new InvalidArgumentException('Choose Capture idea or Draft with AI.');
             $input=studio_input($_POST['selected_text']??null);$mode=is_string($_POST['mode']??null)?$_POST['mode']:'';$instructions=studio_instructions($mode);
-            if(($_POST['ai_consent']??'')!=='1')throw new InvalidArgumentException('Confirm that this selected text may be sent to OpenAI.');
-            if(trim((string)setting('openai.api_key',''))==='')throw new InvalidArgumentException('AI is not configured. Add your API key in Settings, or use the planning prompt below.');
+            $provider=studio_ai_provider($_POST['provider']??'openai');
+            if(($_POST['ai_consent']??'')!=='1')throw new InvalidArgumentException('Confirm that this selected text may be sent to the selected AI provider.');
+            if(!$providers[$provider]['ready'])throw new InvalidArgumentException($providers[$provider]['name'].' is not configured. Use its settings link below, or continue manually.');
             if(!journeys_rate_limit('studio-ai',(string)current_user()['id'],8,3600))throw new InvalidArgumentException('The hourly drafting limit has been reached. Continue manually and try later.');
-            $suggestion=openai_text($instructions,$input,1400)??'';
+            $suggestion=$provider==='gemini'?google_workspace_gemini($input,$mode,false)['text']:(openai_text($instructions,$input,1400)??'');
             if($suggestion==='')throw new InvalidArgumentException('No suggestion was returned. Your text remains below; retry or continue manually.');
-        }catch(InvalidArgumentException $e){$error=$e->getMessage();}catch(Throwable $e){$error='The request could not be completed. Your text remains below. Please try again.';}
+        }catch(InvalidArgumentException $e){$error=$e->getMessage();}catch(Throwable $e){$error=$e instanceof PublishingRemoteException?$e->getMessage().' Your text remains below.':'The request could not be completed. Your text remains below. Continue manually or check the provider settings.';}
     }
-    render_write('studio',compact('idea','ideaTitle','input','suggestion','error','mode')+['writeTitle'=>'Studio','aiReady'=>trim((string)setting('openai.api_key',''))!=='']);return true;
+    render_write('studio',compact('idea','ideaTitle','input','suggestion','error','mode','providers','provider')+['writeTitle'=>'Studio','aiReady'=>$providers['openai']['ready']||$providers['gemini']['ready']]);return true;
 }

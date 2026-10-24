@@ -11,3 +11,6 @@ studio_check(!isset($fields['source_notes'])&&!isset($fields['api_key']),'Captur
 foreach(array_keys(studio_modes())as$mode){$instruction=studio_instructions($mode);studio_check(str_contains($instruction,'[VERIFY]')&&str_contains($instruction,'untrusted source material')&&str_contains($instruction,'human review'),'All AI modes retain evidence, injection and review boundaries.');}
 $rejected=false;try{studio_instructions('publish');}catch(InvalidArgumentException){$rejected=true;}studio_check($rejected,'No AI publication mode exists.');
 echo "PASS: capture escaping, input bounds, evidence and AI task boundaries.\n";
+
+studio_check(studio_ai_provider('gemini')==='gemini'&&studio_ai_provider('openai')==='openai','Explicit supported AI destinations');
+foreach(['other','https://example.invalid',[],null]as$bad){$rejected=false;try{studio_ai_provider($bad);}catch(InvalidArgumentException){$rejected=true;}studio_check($rejected,'Unknown or malformed AI providers reject');}
