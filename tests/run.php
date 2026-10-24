@@ -318,6 +318,9 @@ try {
             else $failed[] = $label;
         }
         $suiteCount++;
+        if(wk_test_process(['node',__DIR__.'/document_qr_test.js'],$environment,'Document QR privacy and print boundaries'))$passedCount++;
+        else $failed[]='Document QR privacy and print boundaries';
+        $suiteCount++;
         if(wk_test_process(['node',__DIR__.'/app_browser_test.js'],$environment,'App installation and unsaved update lifecycle'))$passedCount++;
         else $failed[]='App installation and unsaved update lifecycle';
         $suiteCount++;

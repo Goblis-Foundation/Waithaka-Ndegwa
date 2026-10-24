@@ -37,4 +37,5 @@ header('X-Robots-Tag: noindex, nofollow, noarchive', true);
 <div class="actions"><button class="button" type="submit">Record my consent</button></div>
 </form><?php endif;?>
 <div class="privacy"><span>🔒</span><div><b>Kept deliberately minimal.</b> This private link is excluded from search indexing. Consent records are kept to document permission and respond to any later request. Any separate appreciation/payment record is kept privately and is not shown on this page.</div></div>
+<?php $documentQrPath='/write/releases/'.(int)$release['id'];$documentQrPrivate=true;$documentQrLabel='Protected consent record';$documentQrReference='Consent '.(int)$release['id'];include __DIR__.'/document_record.php';?>
 </div></section></main><script>const cap=document.querySelector('#signer_capacity'),part=document.querySelector('[data-participant]'),pi=document.querySelector('#participant_name');function sync(){if(!cap||!part)return;const on=cap.value==='parent_guardian';part.hidden=!on;if(pi)pi.required=on}cap?.addEventListener('change',sync);sync();</script></body></html>
