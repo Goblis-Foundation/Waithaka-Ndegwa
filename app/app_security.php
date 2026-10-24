@@ -2,7 +2,7 @@
 declare(strict_types=1);
 function app_device_id(): string {if(!empty($_SESSION['trusted_id']))return (string)$_SESSION['trusted_id'];return hash_hmac('sha256',session_id(),(string)app_config('app_key'));}
 function app_device_check(array $user): bool {
-    if(PHP_SAPI==='cli'||session_id()==='')return true;$id=app_device_id();$d=comm_get('session.'.$id);if(function_exists('app_trust_renew'))app_trust_renew();if(!empty($d['revoked']))return false;
+    if(PHP_SAPI==='cli'||session_id()==='')return true;$id=app_device_id();$d=comm_get('session.'.$id);if(!empty($_SESSION['trusted_id'])){$trust=comm_get('trusted.'.$id);if(!$trust||!empty($trust['revoked'])||(int)$trust['user']!==(int)$user['id']||($trust['expires']??0)<time())return false;}if(function_exists('app_trust_renew'))app_trust_renew();if(!empty($d['revoked']))return false;
     $prefs=comm_get('preferences.'.$user['id']);$idle=(int)($prefs['idle_minutes']??0);if($idle>0&&isset($_SESSION['interactive_at'])&&$_SESSION['interactive_at']<time()-$idle*60){if(function_exists('app_trust_forget'))app_trust_forget();return false;}$_SESSION['interactive_at']??=time();
     if(!$d||($d['seen']??0)<time()-600){comm_put('session.'.$id,['id'=>$id,'user'=>(int)$user['id'],'label'=>mb_substr((string)($_SERVER['HTTP_USER_AGENT']??'Browser'),0,180),'created'=>$d['created']??time(),'seen'=>time(),'revoked'=>false]);}
     return true;
