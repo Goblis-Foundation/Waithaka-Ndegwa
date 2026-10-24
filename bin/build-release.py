@@ -34,7 +34,7 @@ def runtime_file(path: str) -> bool:
         return True
     if path in {"index.php", ".htaccess", "composer.json", "composer.lock", "manifest.webmanifest", "sw.js", "offline.html", ".env.example"} or path in STORAGE_MARKERS:
         return True
-    if path in {"bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
+    if path in {"bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/founder-story-migrate.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
         return True
     return path in {"deploy/aws/worker-launcher.php", "deploy/aws/run-worker.sh", "deploy/aws/global-bundle.pem", "deploy/aws/media-limits.ini"}
 
@@ -94,7 +94,7 @@ def main() -> None:
         with zipfile.ZipFile(application) as app:
             if app.testzip() is not None:
                 raise RuntimeError("Application ZIP integrity failed.")
-            required = {"index.php", ".htaccess", "vendor/autoload.php", ".platform/hooks/postdeploy/30_worker.sh",
+            required = {"bin/founder-story-migrate.php", "app/founder_story_migration.php", "app/migrations/170_founder_story_approval.sql", ".platform/hooks/postdeploy/28_founder_story.sh", "assets/js/document-qr.js", "assets/js/vendor/qrcode.js", "assets/js/vendor/QRCODE-LICENSE.txt", "views/document_record.php", "assets/css/document.css", "index.php", ".htaccess", "vendor/autoload.php", ".platform/hooks/postdeploy/30_worker.sh",
                         ".platform/hooks/predeploy/25_media_limits.sh", "deploy/aws/global-bundle.pem",
                         "deploy/aws/media-limits.ini", "app/newsletter.php", "app/media_library.php",
                         "app/mail_feedback.php", "app/providers/youtube.php", "app/providers/tiktok.php",
