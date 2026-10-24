@@ -4,7 +4,6 @@ function base_url():string{return 'https://www.waithakandegwa.com';}
 function url(string $p=''):string{return base_url().'/'.ltrim($p,'/');}
 function publishing_connection(string $service):array{return ['status'=>'connected','selected_resource'=>$service==='google_analytics'?'properties/123':($service==='google_search_console'?'sc-domain:waithakandegwa.com':'channel-fixture')];}
 function publishing_access_token(array $c):string{return 'fixture';}
-function publishing_bearer(string $s):array{return ['Authorization: Bearer '.$s];}
 require dirname(__DIR__).'/app/providers/http.php';require dirname(__DIR__).'/app/google_workspace.php';require dirname(__DIR__).'/app/google_mcp.php';
 $checks=0;function gw_check(bool $ok,string $label):void{if(!$ok)throw new RuntimeException($label);$GLOBALS['checks']++;}
 function gw_reject(callable $f,string $label):void{try{$f();}catch(InvalidArgumentException){gw_check(true,$label);return;}throw new RuntimeException($label);}
