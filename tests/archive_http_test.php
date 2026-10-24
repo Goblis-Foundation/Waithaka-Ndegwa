@@ -14,6 +14,8 @@ $CONFIG=['app_env'=>'testing','app_key'=>'local-test-key-not-for-production-use'
 $APP_INSTALLED=true;date_default_timezone_set('Africa/Nairobi');
 require __DIR__.'/../app/functions.php';
 require __DIR__.'/../app/journeys.php';
+require __DIR__.'/../app/reader.php';
+require __DIR__.'/../app/founder_stories.php';
 $checks=0;$actor=0;$categoryIds=[];$postIds=[];$submissionIds=[];
 $prefix='archive-'.bin2hex(random_bytes(5));$email=$prefix.'@example.invalid';$password=bin2hex(random_bytes(20));
 $cookie=tempnam(sys_get_temp_dir(),'wk-archive-cookie-');if($cookie===false)throw new RuntimeException('Could not create the test cookie jar.');
@@ -85,6 +87,17 @@ try {
         $submissionInsert->execute(['ARCH-'.$prefix.'-'.$i,'founder','PRIVATE_FOUNDER_MARKER',$email,'Founder '.$i,'Venture '.$i,'Kenya','PRIVATE_FOUNDER_MARKER','not_applicable','PRIVATE_FOUNDER_MARKER','test','2000-01-02 00:00:00',hash('sha256',$prefix),$status,$consent,$permission,$claims,$post,$public,'2000-01-02 00:00:00','2000-01-02 00:00:00']);
         $submissionIds[]=(int)db()->lastInsertId();if($status==='reviewing')$reviewingIds[]=end($submissionIds);
     }
+    // Final-copy grants are separate from the collection's older editorial/permission gates.
+    // One designated founder workflow owns each article; duplicate nominations do not grant authority.
+    $seenStoryPosts=[];
+    foreach($submissionIds as$fid){
+        $q=db()->prepare('SELECT associated_post_id FROM founder_submissions WHERE id=?');$q->execute([$fid]);$pid=(int)$q->fetchColumn();
+        if(!$pid||isset($seenStoryPosts[$pid]))continue;$seenStoryPosts[$pid]=true;
+        $rid=founder_story_request($fid,['founder_email'=>$email,'founder_whatsapp'=>'+254700000003','contact_evidence'=>'Synthetic archive approval fixture','contact_confirmed'=>1,'whatsapp_optin'=>1,'send_review_ack'=>1,'response_days'=>14],$actor);
+        $q=db()->prepare("SELECT payload_encrypted FROM founder_story_deliveries WHERE review_id=? AND channel='whatsapp'");$q->execute([$rid]);$payload=json_decode(decrypt_secret((string)$q->fetchColumn()),true,32,JSON_THROW_ON_ERROR);parse_str((string)parse_url($payload['url'],PHP_URL_QUERY),$values);
+        founder_story_respond($values['token'],['decision'=>'approve','approval_ack'=>1]);
+        $w=founder_story_workflow($fid);db()->prepare('UPDATE posts SET founder_approval_hash=? WHERE id=?')->execute([$w['approved_hash'],$pid]);
+    }
     $articleQuery='//article[@data-thought-item]//*[self::h2 or self::h3]/a';
     $urls=static fn(array $slugs):array=>array_map(static fn(string $slug):string=>$base.'/my-thoughts/'.$slug,array_reverse($slugs));
     $global=db()->query('SELECT p.slug FROM posts p WHERE '.published_where().' ORDER BY p.published_at DESC,p.id DESC')->fetchAll(PDO::FETCH_COLUMN);
@@ -132,10 +145,17 @@ try {
     }
     echo 'PASS: '.$checks." archive discovery, canonical URL and editorial privacy assertions\n";
 }finally{
-    if($submissionIds){$delete=db()->prepare('DELETE FROM founder_submissions WHERE id=?');foreach($submissionIds as $id)$delete->execute([$id]);}
+    if($submissionIds){foreach($submissionIds as$id){
+        db()->prepare('DELETE d FROM founder_story_deliveries d JOIN founder_story_reviews r ON r.id=d.review_id WHERE r.founder_id=?')->execute([$id]);
+        db()->prepare('DELETE FROM founder_story_reviews WHERE founder_id=?')->execute([$id]);
+        db()->prepare('DELETE FROM founder_story_workflows WHERE founder_id=?')->execute([$id]);
+        db()->prepare("DELETE FROM journey_audit_events WHERE entity_type='founder' AND entity_id=?")->execute([$id]);
+        db()->prepare('DELETE FROM founder_submissions WHERE id=?')->execute([$id]);
+    }}
     if($postIds){$delete=db()->prepare('DELETE FROM posts WHERE id=? AND user_id=?');foreach($postIds as $id)$delete->execute([$id,$actor]);}
     if($categoryIds){$delete=db()->prepare('DELETE FROM categories WHERE id=?');foreach($categoryIds as $id)$delete->execute([$id]);}
     db()->prepare('DELETE FROM login_attempts WHERE email=?')->execute([$email]);
     if($actor)db()->prepare('DELETE FROM users WHERE id=?')->execute([$actor]);
     if(is_file($cookie))unlink($cookie);
 }
+

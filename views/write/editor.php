@@ -1,5 +1,6 @@
 <main class="write-main writer-editor-page">
-<form data-editor-form data-post-id="<?=intval($post['id']??0)?>" method="post" enctype="multipart/form-data" action="<?=url('/write/save')?>"><?=csrf_field()?><input type="hidden" name="id" value="<?=intval($post['id']??0)?>"><input type="hidden" name="draft_version" value="<?=intval($post['_draft_version']??0)?>"><input type="hidden" name="content_html" value="<?=e($post['content_html']??'')?>">
+<?php if(!empty($post['_founder_submission_id'])):?><p class="muted">This is a linked Founder Story. Save a private draft, then request final-copy approval from the founder review screen before publishing.</p><?php endif;?>
+<form data-editor-form data-post-id="<?=intval($post['id']??0)?>" method="post" enctype="multipart/form-data" action="<?=url('/write/save')?>"><?=csrf_field()?><input type="hidden" name="founder_submission_id" value="<?=intval($post['_founder_submission_id']??0)?>"><input type="hidden" name="id"  value="<?=intval($post['id']??0)?>"><input type="hidden" name="draft_version" value="<?=intval($post['_draft_version']??0)?>"><input type="hidden" name="content_html" value="<?=e($post['content_html']??'')?>">
   <div class="writer-head editor-page-head">
     <div><span class="writer-kicker"><?=empty($post['id'])?'New thought':'Editing'?></span><h1><?=empty($post['id'])?'Start with the idea':'Refine the thought'?></h1><div class="editor-health"><span class="save-state"><?=empty($post['id'])?'Save a draft once to enable autosave.':'Ready'?></span><span data-word-count>0 words</span><span data-read-time>0 min read</span></div></div>
     <div class="writer-actions"><a class="wbtn" href="<?=url('/write/studio#ai')?>" target="_blank" rel="noopener">Drafting help ↗</a><button class="wbtn" type="button" data-download-draft>Download copy</button><a class="wbtn mobile-settings" href="#post-settings">Post settings</a><?php if(!empty($post['id'])):?><a class="wbtn" href="<?=url('/write/preview/'.$post['id'])?>" target="_blank" rel="noopener noreferrer">Saved preview ↗</a><?php endif;?><button class="wbtn" type="submit" name="action" value="draft">Save draft</button><button class="wbtn primary" type="submit" name="action" value="publish"><?=!empty($post['_is_public'])?'Publish changes':'Publish'?></button></div>
@@ -59,3 +60,4 @@
   </div>
 </form>
 </main>
+

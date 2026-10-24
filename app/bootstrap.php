@@ -34,7 +34,7 @@ require_once __DIR__.'/media_storage.php';
 require_once __DIR__.'/media_library.php';
 require_once __DIR__.'/mail_feedback.php';
 require_once __DIR__.'/integrations.php';
-foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','discovery','discovery_routes','campaigns','campaign_routes','google_workspace','meetings','communication','communication_notifications','app_security','communication_mail'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
+foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','founder_stories','founder_story_routes','discovery','discovery_routes','campaigns','campaign_routes','google_workspace','meetings','communication','communication_notifications','app_security','communication_mail'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
 
 if (PHP_SAPI !== 'cli') {
     header('X-Content-Type-Options: nosniff'); header('Referrer-Policy: strict-origin-when-cross-origin'); header('X-Frame-Options: SAMEORIGIN');
@@ -69,3 +69,4 @@ if (PHP_SAPI !== 'cli') {
     session_set_cookie_params(['httponly'=>true,'secure'=>wk_request_is_https()||str_starts_with(base_url(),'https://'),'samesite'=>'Lax','path'=>'/']);
     session_start();
 }
+

@@ -7,7 +7,7 @@ function analytics_measurement_id(array $seo = [], bool $private = false, ?strin
     if ($private || str_contains((string)($seo['robots'] ?? ''), 'noindex')
         || preg_match('~^/(?:write|install|app|storage|consent|payments|webhooks|contact|contribute|search|newsletter)(?:/|$)~', $path)
         || preg_match('~^/newsletter/(?:confirm|unsubscribe|one-click|preferences)(?:/|$)~', $path)
-        || preg_match('~^/founders/(?:submit|follow-up)(?:/|$)~', $path)
+        || preg_match('~^/founders/(?:submit|follow-up|story-review)(?:/|$)~', $path)
         || isset($_GET['preview']) || (string)setting('google.analytics_enabled', '1') !== '1') return '';
     $id = trim((string)setting('google.ga4', 'G-RN0YXC2WCH'));
     // A deliberately blank setting stays off. Never revive a previous property.
@@ -62,3 +62,4 @@ function analytics_known_content_ids(): array {
     }
     return $ids;
 }
+

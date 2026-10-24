@@ -238,7 +238,7 @@ function founders_submit(array $values): string {
 }
 function founders_public_where(): string {
     return "f.review_status='approved' AND f.is_public=1 AND f.permission_confirmed=1 AND f.claims_reviewed=1 AND f.consent_reference IS NOT NULL AND f.consent_reference<>''
-        AND p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=?";
+        AND p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=?".(function_exists('founder_story_public_sql')?' AND '.founder_story_public_sql():'');
 }
 function founders_public_story_count(): int {
     $s=db()->prepare('SELECT COUNT(DISTINCT p.id) FROM founder_submissions f JOIN posts p ON p.id=f.associated_post_id WHERE '.founders_public_where());
@@ -261,10 +261,16 @@ function founders_review_values(array $input,?array $post=null): array {
 }
 function founders_save_review(int $id,array $input,int $actor): void {
     $postId=journeys_id($input['associated_post_id']??null,'associated post',true);$post=null;
+    if(function_exists('founder_story_workflow')){$binding=db()->prepare('SELECT associated_post_id FROM founder_submissions WHERE id=?');$binding->execute([$id]);$bound=(int)$binding->fetchColumn();if($bound&&$bound!==$postId)throw new JourneyValidationException('A linked Founder Story cannot be detached or moved to bypass its final-copy approval.');}
+    if(function_exists('founder_story_workflow')){$workflow=founder_story_workflow($id);if($workflow&&($workflow['state']==='discarded'||(int)$workflow['post_id']!==$postId))throw new JourneyValidationException('A discarded story cannot be resubmitted, and its approval workflow cannot be moved to another post.');}
     if($postId){$s=db()->prepare('SELECT id,status,published_at FROM posts WHERE id=?');$s->execute([$postId]);$post=$s->fetch()?:null;if(!$post)throw new JourneyValidationException('The associated post does not exist.');}
     $v=founders_review_values($input,$post);$version=journeys_id($input['row_version']??null,'version');$pdo=db();$pdo->beginTransaction();
-    try{$s=$pdo->prepare('UPDATE founder_submissions SET review_status=?,review_notes=?,consent_reference=?,permission_confirmed=?,claims_reviewed=?,associated_post_id=?,is_public=?,reviewed_by=?,reviewed_at=?,updated_at=?,row_version=row_version+1 WHERE id=? AND row_version=?');
-        $s->execute([...array_values($v),$actor,journeys_now(),journeys_now(),$id,$version]);if($s->rowCount()!==1)throw new JourneyConflictException('This submission changed in another window. Reopen it before saving.');journeys_audit('founder',$id,'review_saved',$actor);if(function_exists('reader_founder_reviewed'))reader_founder_reviewed($id,$actor);$pdo->commit();
+    try{
+        if($v['is_public']&&function_exists('founder_story_workflow')){$story=founder_story_lock_post((int)$postId);$workflow=founder_story_workflow($id,true);if(!$workflow||$workflow['state']!=='approved'||!hash_equals((string)$workflow['approved_hash'],founder_story_hash($story)))throw new JourneyValidationException('The founder must approve the exact final story through their private review link first.');}
+        if($postId&&function_exists('founder_story_workflow')){$check=$pdo->prepare('SELECT id FROM founder_submissions WHERE associated_post_id=? AND id<>? LIMIT 1');$check->execute([$postId,$id]);if($check->fetchColumn())throw new JourneyValidationException('This article is already linked to another founder.');}
+        if($postId&&function_exists('founder_story_workflow')){$story=founder_story_lock_post((int)$postId);$workflow=founder_story_workflow($id,true);if(!$workflow||!is_string($workflow['approved_hash'])||!hash_equals($workflow['approved_hash'],founder_story_hash($story)))$pdo->prepare("UPDATE posts SET status='draft',founder_approval_hash=NULL WHERE id=?")->execute([$postId]);}
+        $s=$pdo->prepare('UPDATE founder_submissions SET review_status=?,review_notes=?,consent_reference=?,permission_confirmed=?,claims_reviewed=?,associated_post_id=?,is_public=?,reviewed_by=?,reviewed_at=?,updated_at=?,row_version=row_version+1 WHERE id=? AND row_version=?');
+        $s->execute([...array_values($v),$actor,journeys_now(),journeys_now(),$id,$version]);if($s->rowCount()!==1)throw new JourneyConflictException('This submission changed in another window. Reopen it before saving.');if(function_exists('founder_story_workflow')&&in_array($v['review_status'],['declined','withdrawn'],true)){$closedWorkflow=founder_story_workflow($id,true);if($closedWorkflow)founder_story_discard($closedWorkflow,'editorial_'.$v['review_status'],$actor);}journeys_audit('founder',$id,'review_saved',$actor);if(function_exists('reader_founder_reviewed'))reader_founder_reviewed($id,$actor);$pdo->commit();
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 
@@ -377,3 +383,4 @@ function journeys_rss_xml(array $posts,?string $now=null): string {
     foreach($posts as $p){if(!journeys_post_is_public($p,$now))continue;$link=url('/my-thoughts/'.$p['slug']);$summary=(string)($p['standfirst']?:excerpt((string)$p['content_html'],300));$xml.='<item><title>'.$esc((string)$p['title']).'</title><link>'.$esc($link).'</link><guid isPermaLink="true">'.$esc($link).'</guid><pubDate>'.$esc(date(DATE_RSS,strtotime((string)$p['published_at']))).'</pubDate><description>'.$esc($summary).'</description></item>';}
     return $xml.'</channel></rss>';
 }
+

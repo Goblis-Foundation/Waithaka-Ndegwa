@@ -1,7 +1,8 @@
 <main class="write-main journey-writer">
-  <div class="writer-head"><div><a class="journey-back" href="<?=e(url('/write/journeys/founders'))?>">← Founder submissions</a><span class="writer-kicker"><?=e($submission['reference'])?></span><h1><?=e($submission['venture_name'])?></h1><p class="muted"><?=e($submission['founder_name'])?> · <?=e($submission['country'])?></p></div><a class="wbtn" href="<?=e(url('/write/new'))?>">Draft a story</a></div>
+  <div class="writer-head"><div><a class="journey-back" href="<?=e(url('/write/journeys/founders'))?>">← Founder submissions</a><span class="writer-kicker"><?=e($submission['reference'])?></span><h1><?=e($submission['venture_name'])?></h1><p class="muted"><?=e($submission['founder_name'])?> · <?=e($submission['country'])?></p></div><a class="wbtn" href="<?=e(url($submission['associated_post_id']?'/write/edit/'.$submission['associated_post_id']:'/write/new?founder='.$submission['id']))?>">Draft a story</a></div>
   <?php require __DIR__.'/../journeys/notices.php';?>
   <p><a class="wbtn" href="<?=e(url('/write/readers/founders/'.$submission['id']))?>">Questions, permission responses and receipt links</a></p>
+  <?php require __DIR__.'/founder_story_panel.php';?>
   <div class="journey-review-grid">
     <div class="journey-panel"><span class="writer-kicker">Original private submission</span><h2><?=$submission['submission_type']==='nomination'?'A nomination':'A founder’s account'?></h2>
       <dl class="journey-record"><div><dt>Submitted by</dt><dd><?=e($submission['submitter_name'])?><br><?=e($submission['submitter_email'])?></dd></div><div><dt>Received</dt><dd><?=e(format_date($submission['created_at']))?></dd></div><div><dt>Story</dt><dd><?=nl2br(e($submission['story_summary']))?></dd></div><div><dt>Progress and metrics</dt><dd><?=nl2br(e($submission['claimed_metrics']?:'No numerical claims provided.'))?></dd></div><div><dt>Claim basis supplied</dt><dd><?=e(founders_metric_bases()[$submission['metric_basis']]??$submission['metric_basis'])?></dd></div><div><dt>Private evidence notes</dt><dd><?=nl2br(e($submission['private_evidence_notes']?:'No evidence notes supplied.'))?></dd></div><div><dt>Initial publication preference</dt><dd><?=$submission['submission_type']==='nomination'?'A nomination cannot grant the founder’s permission.':($submission['founder_publication_permission']?'The founder expressed willingness to discuss publication. Confirm its scope before approving.':'The founder has not indicated publication permission. Obtain permission before approving.')?></dd></div><div><dt>Private review agreement</dt><dd>Accepted <?=e(format_date($submission['privacy_accepted_at']))?> · <?=e($submission['privacy_version'])?></dd></div></dl>
@@ -20,3 +21,4 @@
     </form>
   </div>
 </main>
+

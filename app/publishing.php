@@ -29,7 +29,7 @@ function publishing_public_url(string $url): bool {
     if ($host==='' || !str_contains($host,'.') || preg_match('/(^|\.)(localhost|local|internal|test|invalid)$/',$host)) return false;
     if (filter_var(trim($host,'[]'),FILTER_VALIDATE_IP) && !filter_var(trim($host,'[]'),FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE)) return false;
     $path=$p['path']??'/';for($i=0;$i<3;$i++)$path=rawurldecode($path);
-    if (preg_match('~/(write|consent|install|payments)(/|$)|/newsletter/(confirm|unsubscribe|one-click|preferences)(/|$)|/founders/follow-up(/|$)|/storage/(release-proofs|logs|private)(/|$)~i',$path)) return false;
+    if (preg_match('~/(write|consent|install|payments)(/|$)|/newsletter/(confirm|unsubscribe|one-click|preferences)(/|$)|/founders/(follow-up|story-review)(/|$)|/storage/(release-proofs|logs|private)(/|$)~i',$path)) return false;
     // Source and media URLs are distributed publicly. Do not forward private preview links,
     // subscription capabilities, OAuth tokens or signed object-storage credentials.
     foreach(preg_split('/[&;]/',(string)($p['query']??'')) as $part) {
@@ -315,7 +315,7 @@ function publishing_work(int $limit=10): array {
                 if (!hash_equals($job['content_hash'],hash('sha256',$job['snapshot_json']))) throw new RuntimeException('The approved revision integrity check failed.');
                 $snapshot=publishing_decode($job['snapshot_json']);
                 if (!empty($snapshot['source_post_id'])) {
-                    $st=db()->prepare("SELECT id FROM posts WHERE id=? AND status IN ('published','scheduled') AND published_at IS NOT NULL AND published_at<=NOW()");$st->execute([$snapshot['source_post_id']]);
+                    $st=db()->prepare('SELECT p.id FROM posts p WHERE p.id=? AND '.published_where());$st->execute([$snapshot['source_post_id']]);
                     if (!$st->fetchColumn()) throw new RuntimeException('The linked article is not public yet. Publish it before retrying distribution.');
                 }
                 if ($job['method']==='manual') {
@@ -366,3 +366,4 @@ function publishing_work(int $limit=10): array {
         return $result;
     } finally { db()->query("SELECT RELEASE_LOCK('waithaka_publishing_worker')"); }
 }
+
