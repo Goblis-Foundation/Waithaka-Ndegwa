@@ -34,15 +34,14 @@ function founder_story_attach(int $founder,int $post): void {
 function founder_story_guard_publish(int $id,array $fields): ?string {
     $q=db()->prepare('SELECT id FROM founder_submissions WHERE associated_post_id=? ORDER BY id FOR UPDATE');$q->execute([$id]);$ids=$q->fetchAll(PDO::FETCH_COLUMN);if(!$ids)return null;
     $hash=founder_story_hash($fields,$id);
-    foreach($ids as$founder){$w=founder_story_workflow((int)$founder,true);
-        if(!$w||$w['state']!=='approved'||!is_string($w['approved_hash'])||!hash_equals($w['approved_hash'],$hash))throw new JourneyValidationException('Founder approval of this exact story version is required before publication. Send the final draft from Founder Stories.');
-        $q=db()->prepare("SELECT content_hash,state FROM founder_story_reviews WHERE id=? AND founder_id=?");$q->execute([$w['current_review_id'],$founder]);$review=$q->fetch();
-        if(!$review||$review['state']!=='approved'||!hash_equals($review['content_hash'],$hash))throw new JourneyValidationException('The founder has not approved this final version.');
-    }return $hash;
+    $q=db()->prepare("SELECT w.* FROM founder_story_workflows w JOIN founder_submissions f ON f.id=w.founder_id WHERE w.post_id=? AND f.associated_post_id=w.post_id AND f.review_status NOT IN ('declined','withdrawn') FOR UPDATE");$q->execute([$id]);$w=$q->fetch();
+    if(!$w||$w['state']!=='approved'||!is_string($w['approved_hash'])||!hash_equals($w['approved_hash'],$hash))throw new JourneyValidationException('Founder approval of this exact story version is required before publication. Send the final draft from Founder Stories.');
+    $q=db()->prepare('SELECT content_hash,state FROM founder_story_reviews WHERE id=? AND founder_id=?');$q->execute([$w['current_review_id'],$w['founder_id']]);$review=$q->fetch();
+    if(!$review||$review['state']!=='approved'||!hash_equals($review['content_hash'],$hash))throw new JourneyValidationException('The founder has not approved this final version.');return $hash;
 }
 function founder_story_public_sql(string $alias='p'): string {
     if(!preg_match('/^[a-z]+$/D',$alias))throw new InvalidArgumentException('Invalid story query alias.');
-    return "NOT EXISTS (SELECT 1 FROM founder_submissions fs WHERE fs.associated_post_id=$alias.id AND NOT EXISTS (SELECT 1 FROM founder_story_workflows fw WHERE fw.founder_id=fs.id AND fw.post_id=$alias.id AND fw.state<>'discarded' AND fw.approved_hash=$alias.founder_approval_hash))";
+    return "(NOT EXISTS (SELECT 1 FROM founder_submissions fs WHERE fs.associated_post_id=$alias.id) OR EXISTS (SELECT 1 FROM founder_story_workflows fw JOIN founder_submissions owner ON owner.id=fw.founder_id WHERE fw.post_id=$alias.id AND owner.associated_post_id=$alias.id AND owner.review_status NOT IN ('declined','withdrawn') AND fw.state<>'discarded' AND fw.approved_hash=$alias.founder_approval_hash))";
 }
 function founder_story_discard(array $w,string $reason,?int $actor=null): void {
     db()->prepare("UPDATE founder_story_workflows SET state='discarded',approved_hash=NULL,updated_at=UTC_TIMESTAMP() WHERE founder_id=?")->execute([$w['founder_id']]);
@@ -63,6 +62,7 @@ function founder_story_request(int $id,array $input,int $actor): int {
         $post=founder_story_lock_post($postId);$q=$pdo->prepare('SELECT * FROM founder_submissions WHERE id=? FOR UPDATE');$q->execute([$id]);$founder=$q->fetch();
         if(!$founder||(int)$founder['associated_post_id']!==$postId||in_array($founder['review_status'],['declined','withdrawn'],true))throw new JourneyValidationException('This submission is no longer open.');
         $w=founder_story_workflow($id,true);
+        $q=$pdo->prepare('SELECT founder_id FROM founder_story_workflows WHERE post_id=? FOR UPDATE');$q->execute([$postId]);$owner=$q->fetchColumn();if($owner&&(int)$owner!==$id)throw new JourneyValidationException('This article already has a designated founder approval workflow. Continue from that original submission.');
         if($w&&($w['state']==='discarded'||(int)$w['rounds_used']>=3))throw new JourneyValidationException('This story has exhausted its three reviews or was discarded.');
         if($w&&($w['email']!==$email||$w['whatsapp']!==$phone))throw new JourneyValidationException('Recorded founder contacts cannot change during this workflow. Resolve identity/contact corrections privately before continuing.');
         $post=writer_post_by_id($postId);$snapshot=founder_story_snapshot($post);if(trim($snapshot['title'])===''||plain_text($snapshot['content_html'])==='')throw new JourneyValidationException('Save the complete story draft first.');
