@@ -328,7 +328,8 @@ try {
         else $failed[]='Offline AWS recovery and cutover plans';
         foreach (['branded_dns_test.py'=>'Offline branded DNS preparation and recovery',
                   'dns_probe_test.py'=>'Offline authoritative, parent and recursive DNS checks',
-                  'google_migration_deployment_test.py'=>'Temporary migration access cleanup boundaries'] as $file => $label) {
+                  'google_migration_deployment_test.py'=>'Temporary migration access cleanup boundaries',
+                  'founder_migration_backup_test.py'=>'Founder migration recovery-point boundaries'] as $file => $label) {
             $suiteCount++;
             if (wk_test_process(['python3','-B',__DIR__.'/'.$file], $environment, $label)) $passedCount++;
             else $failed[]=$label;
@@ -352,6 +353,7 @@ try {
                 'editorial' => 'editorial_database.php',
                 'reader' => 'reader_database_test.php',
                 'founder_story' => 'founder_story_database.php',
+                'founder_migration' => 'founder_migration_database.php',
                 'discovery' => 'discovery_database_test.php',
                 'campaign' => 'campaign_database_test.php',
                 'google' => 'google_workspace_database.php',
