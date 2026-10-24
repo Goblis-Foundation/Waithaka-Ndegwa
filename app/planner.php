@@ -188,9 +188,9 @@ function planner_import_commit(int $uid,string $id,array $selected,array $change
   $stage=['id'=>$id,'consumed'=>true,'expires'=>time(),'digest'=>$stage['digest']];comm_put('planner.import.'.$uid.'.'.$id,$stage);return $count;
  });
 }
-function planner_work(): void {
+function planner_work(?int $at=null,?callable $push=null): void {
  $cfg=comm_config();if(empty($cfg['worker']))return;
- comm_lock('planner.worker',function()use($cfg){$now=time();$uid=(int)$cfg['owner'];if(!$uid)return;
+ $at??=time();$push??='comm_push_send';comm_lock('planner.worker',function()use($cfg,$at,$push){$now=$at;$uid=(int)$cfg['owner'];if(!$uid)return;
   $prefs=comm_get('planner.preferences.'.$uid,['timezone'=>'Africa/Nairobi']);$snapshot=comm_get('planner.calendar.'.$uid);foreach(comm_records('planner.import.'.$uid,1000)as$preview)if(($preview['expires']??0)<$now-3600&&preg_match('/^[a-f0-9]{32}$/D',(string)($preview['id']??'')))db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['communication.planner.import.'.$uid.'.'.$preview['id']]);
   if(!empty($prefs['sync'])&&($snapshot['attempted']??0)<$now-900){try{planner_sync($uid);}catch(Throwable){}}
   $rows=planner_rows($uid);$bookingEvents=[];foreach(comm_records('booking')as$b)if($b['status']==='confirmed'&&!empty($b['event_id']))$bookingEvents[($b['calendar']??'').'|'.$b['event_id']]=true;foreach(comm_get('planner.calendar.'.$uid)['events']??[]as$r)if(($snapshot['observed']??0)>=$now-900&&empty($r['stale'])&&!isset($bookingEvents[($r['calendar_id']??'').'|'.($r['event_id']??'')])){$r['version']=hash('sha256',$r['start'].'|'.$r['end']);$rows[]=$r;}
@@ -198,11 +198,11 @@ function planner_work(): void {
   $p=comm_get('preferences.'.$uid,comm_preferences([]));$attempts=0;
   foreach($rows as$r){if(!in_array($r['status'],['planned','confirmed'],true)||empty($r['reminder'])||$r['start']<=$now)continue;$due=(int)($r['snooze_until']??($r['start']-$r['reminder']*60));if($due>$now)continue;
    $key=hash('sha256',$uid.'|'.$r['id'].'|'.$r['version'].'|'.$due);if(comm_get('planner.alert.'.$key))continue;
-   $state=$now-$due>300?'missed':((empty($p['enabled'])||!in_array('planner',$p['categories'],true))?'disabled':(comm_quiet($p)?'quiet_hours':'attempting'));
+   $state=$now-$due>300?'missed':((empty($p['enabled'])||!in_array('planner',$p['categories'],true))?'disabled':(comm_quiet($p,$now)?'quiet_hours':'attempting'));
    $notice=['state'=>$state,'at'=>$now,'item'=>$r['id']];comm_put('planner.alert.'.$key,$notice);
    if($state!=='attempting')continue;
    comm_put('planner.notification.'.$uid,['item'=>$r['id'],'at'=>$now]);comm_event('planner',$r['id']);
-   foreach(comm_user_devices($uid)as$d)if($d['enabled']&&$attempts<30){$attempts++;try{$status=comm_push_send($d);$d['last_status']=$status>=200&&$status<300?'Reminder accepted':'Reminder unconfirmed';if(in_array($status,[404,410],true))$d['enabled']=false;}catch(Throwable){$d['last_status']='Reminder unconfirmed';}comm_put('device.'.$d['id'],$d);}
+   foreach(comm_user_devices($uid)as$d)if($d['enabled']&&$attempts<30){$attempts++;try{$status=$push($d);$d['last_status']=$status>=200&&$status<300?'Reminder accepted':'Reminder unconfirmed';if(in_array($status,[404,410],true))$d['enabled']=false;}catch(Throwable){$d['last_status']='Reminder unconfirmed';}comm_put('device.'.$d['id'],$d);}
    $notice['state']='attempted';comm_put('planner.alert.'.$key,$notice);
   }
   $sent=0;foreach(comm_records('planner.mail',5000)as$j){if($j['state']==='sending'&&($j['created']??$now)<$now-900){$j['state']='unconfirmed';comm_put('planner.mail.'.$j['id'],$j);}if($j['state']!=='pending'||$sent>=10)continue;if(!email_transport_ready())continue;$j['state']='sending';comm_put('planner.mail.'.$j['id'],$j);$sent++;

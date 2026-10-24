@@ -4,7 +4,7 @@ if(PHP_SAPI!=='cli'||getenv('APP_ENV')!=='testing')exit(2);
 require __DIR__.'/prepare.php';$settings=wk_test_database_settings();$database=(string)(getenv('DB_DATABASE')?:getenv('WK_TEST_DB_NAME'));wk_test_assert_database_name($database);
 $CONFIG=['app_env'=>'testing','base_url'=>'https://www.waithakandegwa.com','app_key'=>'local-planner-fixture-not-production','db'=>$settings+['name'=>$database]];
 $APP_INSTALLED=true;
-foreach(['functions','reader','communication','communication_notifications','app_security','trusted_devices','planner']as$m)require dirname(__DIR__).'/app/'.$m.'.php';
+foreach(['functions','reader','operations','communication','communication_notifications','app_security','trusted_devices','planner']as$m)require dirname(__DIR__).'/app/'.$m.'.php';
 function pd(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);}
 function px(callable $fn):void{try{$fn();}catch(InvalidArgumentException|RuntimeException){return;}throw new LogicException('Expected rejected operation.');}
 db()->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['Program fixture','program@example.invalid',password_hash(bin2hex(random_bytes(20)),PASSWORD_DEFAULT)]);$uid=(int)db()->lastInsertId();
@@ -25,4 +25,15 @@ pd(planner_import_commit($uid,$stage,[1],[1=>['title'=>'Reviewed title']])===1,'
 pd(count(planner_rows($uid))===2&&planner_rows($uid+1)===[],'Owner namespace isolation');
 $raw=db()->query("SELECT setting_value FROM settings WHERE setting_key LIKE 'communication.planner.item.%'")->fetchAll(PDO::FETCH_COLUMN);pd(!str_contains(implode('',$raw),'Private detail'),'Programs encrypted at rest');
 planner_work();pd((int)db()->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn()===0,'No legacy mail queue activity or delivery without worker opt-in');
+$at=(new DateTimeImmutable('2026-11-02T09:50:00+03:00'))->getTimestamp();
+comm_put('config',array_replace(comm_config(),['owner'=>$uid,'worker'=>true]));
+comm_put('preferences.'.$uid,['timezone'=>'Africa/Nairobi','enabled'=>true,'categories'=>['planner'],'quiet_start'=>'00:00','quiet_end'=>'00:00']);
+comm_save_subscription($uid,json_encode(['endpoint'=>'https://fcm.googleapis.com/fcm/send/planner-fixture']));
+planner_save($uid,['title'=>'Due reminder','start'=>'2026-11-02T10:05','end'=>'2026-11-02T10:30','request_id'=>str_repeat('d',32),'reminder'=>15]);
+$pushes=0;$fake=function(array $device)use(&$pushes):int{$pushes++;return 201;};planner_work($at,$fake);planner_work($at+30,$fake);pd($pushes===1,'Due reminder sent once across worker passes');
+comm_put('preferences.'.$uid,['timezone'=>'Africa/Nairobi','enabled'=>true,'categories'=>['planner'],'quiet_start'=>'00:00','quiet_end'=>'23:59']);
+planner_save($uid,['title'=>'Quiet reminder','start'=>'2026-11-02T10:05','end'=>'2026-11-02T10:30','request_id'=>str_repeat('e',32),'reminder'=>15]);
+planner_work($at,$fake);pd($pushes===1,'Quiet hours prevent device push');
+planner_save($uid,['title'=>'Missed reminder','start'=>'2026-11-02T09:51','end'=>'2026-11-02T10:30','request_id'=>str_repeat('f',32),'reminder'=>15]);
+planner_work($at,$fake);pd($pushes===1,'Late worker does not flood missed reminders');
 echo "PASS: persistent trust, revocation, password changes, encrypted planning, ownership, optimistic updates, review/import and explicit scoped notices.\n";
