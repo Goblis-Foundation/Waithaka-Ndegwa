@@ -37,10 +37,11 @@ function publishing_http(string $method, string $url, array $headers = [], ?arra
     curl_setopt_array($ch, $options);
     $raw = curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    $failed = $raw === false || curl_errno($ch) !== 0;
+    $curlCode = curl_errno($ch);
+    $failed = $raw === false || $curlCode !== 0;
     curl_close($ch);
     // Do not expose provider bodies: they can echo tokens, media URLs or private account data.
-    if ($failed) throw new PublishingRemoteException('The provider did not return a complete response. Check the remote account before another attempt.', 0, $publishingMutation);
+    if ($failed) throw new PublishingRemoteException($curlCode === CURLE_OPERATION_TIMEDOUT ? 'The provider request timed out. No complete response was received. Check the remote account before another attempt.' : 'The provider did not return a complete response. Check the remote account before another attempt.', 0, $publishingMutation);
     if ($code >= 300) {
         $message = match (true) {
             $code === 401 => 'The provider requires reconnection.',
@@ -49,6 +50,7 @@ function publishing_http(string $method, string $url, array $headers = [], ?arra
             $code >= 500 => 'The provider returned a server error. Check its publication history before retrying.',
             default => 'The provider rejected the request (HTTP '.$code.'). Check the format, account and application settings.'
         };
+        if ($code === 403 && in_array(strtolower($parts['host'] ?? ''), ['www.googleapis.com','calendar.googleapis.com','generativelanguage.googleapis.com'], true)) $message = publishing_google_denial_message((string)$raw);
         throw new PublishingRemoteException($message, $code, $publishingMutation && $code >= 500);
     }
     $data = json_decode((string)$raw, true);
@@ -84,4 +86,19 @@ function publishing_json(array $data): string {
 function publishing_decode(?string $value): array {
     $decoded = json_decode((string)$value, true);
     return is_array($decoded) ? $decoded : [];
+}
+
+/** Map only documented machine codes to fixed text; never echo remote bodies or messages. */
+function publishing_google_denial_message(string $raw): string {
+    $fallback='The provider denied this action. Check the granted permissions and account eligibility.';
+    $data=json_decode($raw,true);if(!is_array($data))return $fallback;
+    $reasons=[];foreach(($data['error']['errors']??[])as$item)if(is_array($item)&&is_string($item['reason']??null))$reasons[]=$item['reason'];
+    foreach(($data['error']['details']??[])as$item)if(is_array($item)&&is_string($item['reason']??null))$reasons[]=$item['reason'];
+    foreach($reasons as$reason){$message=match($reason){
+        'accessNotConfigured','SERVICE_DISABLED','API_DISABLED'=>'Google denied access because the requested API is disabled or has not been enabled in this app’s Google Cloud project.',
+        'insufficientPermissions','ACCESS_TOKEN_SCOPE_INSUFFICIENT'=>'Google denied access because this connection is missing a required permission. Reconnect and approve the requested calendar permissions.',
+        'domainPolicy','ORG_RESTRICTION_VIOLATION'=>'Google denied access because an organization policy restricts this app or service. Ask the account’s Workspace administrator to review the restriction.',
+        'dailyLimitExceeded','quotaExceeded','rateLimitExceeded','userRateLimitExceeded','RATE_LIMIT_EXCEEDED'=>'Google denied access because a quota or rate limit was reached. Review the project’s API quota before retrying.',
+        default=>null};if($message!==null)return $message;
+    }return $fallback;
 }

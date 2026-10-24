@@ -5,7 +5,7 @@ function url(string $p=''):string{return base_url().'/'.ltrim($p,'/');}
 function publishing_connection(string $service):array{return ['status'=>'connected','selected_resource'=>$service==='google_analytics'?'properties/123':($service==='google_search_console'?'sc-domain:waithakandegwa.com':'channel-fixture')];}
 function publishing_access_token(array $c):string{return 'fixture';}
 function publishing_bearer(string $s):array{return ['Authorization: Bearer '.$s];}
-require dirname(__DIR__).'/app/google_workspace.php';require dirname(__DIR__).'/app/google_mcp.php';
+require dirname(__DIR__).'/app/providers/http.php';require dirname(__DIR__).'/app/google_workspace.php';require dirname(__DIR__).'/app/google_mcp.php';
 $checks=0;function gw_check(bool $ok,string $label):void{if(!$ok)throw new RuntimeException($label);$GLOBALS['checks']++;}
 function gw_reject(callable $f,string $label):void{try{$f();}catch(InvalidArgumentException){gw_check(true,$label);return;}throw new RuntimeException($label);}
 gw_check(google_workspace_date('2028-02-29','')==='2028-02-29','Leap dates valid');
@@ -33,3 +33,12 @@ foreach(['Africa/Nairobi','America/New_York','UTC']as$zone){
  gw_check(google_workspace_previous_period('2028-03-01','2028-03-01')===['start'=>'2028-02-29','end'=>'2028-02-29'],'Leap-day comparison remains one day.');
 }
 date_default_timezone_set($priorZone);
+
+// Remote diagnostics must use fixed, allowlisted text, never provider messages or metadata.
+foreach(['SERVICE_DISABLED'=>'API is disabled','ACCESS_TOKEN_SCOPE_INSUFFICIENT'=>'missing a required permission','ORG_RESTRICTION_VIOLATION'=>'organization policy','RATE_LIMIT_EXCEEDED'=>'quota or rate limit']as$reason=>$expected){
+    $raw=json_encode(['error'=>['message'=>'fixture-private-token','details'=>[['reason'=>$reason,'metadata'=>['secret'=>'fixture-private-token']]]]]);
+    $message=publishing_google_denial_message($raw);gw_check(str_contains($message,$expected),'Safe diagnostic for '.$reason);gw_check(!str_contains($message,'fixture-private-token'),'Never echo remote secrets');
+}
+gw_check(str_contains(publishing_google_denial_message('not json'),'provider denied'),'Malformed body safe fallback');
+gw_check(str_contains(publishing_google_denial_message('{"error":{"errors":[{"reason":"insufficientPermissions"}]}}'),'missing a required permission'),'Legacy Google reason mapped');
+gw_check(!str_contains(publishing_google_denial_message('{"error":{"message":"fixture-private-token","details":[{"reason":"fixture-private-token"}]}}'),'fixture-private-token'),'Unknown codes never echoed');
