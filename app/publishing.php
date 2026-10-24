@@ -315,7 +315,7 @@ function publishing_work(int $limit=10): array {
                 if (!hash_equals($job['content_hash'],hash('sha256',$job['snapshot_json']))) throw new RuntimeException('The approved revision integrity check failed.');
                 $snapshot=publishing_decode($job['snapshot_json']);
                 if (!empty($snapshot['source_post_id'])) {
-undefined
+                    $st=db()->prepare('SELECT p.id FROM posts p WHERE p.id=? AND '.published_where());$st->execute([$snapshot['source_post_id']]);
                     if (!$st->fetchColumn()) throw new RuntimeException('The linked article is not public yet. Publish it before retrying distribution.');
                 }
                 if ($job['method']==='manual') {
