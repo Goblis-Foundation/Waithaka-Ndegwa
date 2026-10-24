@@ -117,6 +117,19 @@ if ($path === '/contact') {
             'email'=>trim((string)($_POST['email']??'')),'phone_code'=>trim((string)($_POST['phone_code']??'+254')),'phone'=>trim((string)($_POST['phone']??'')),
             'country'=>trim((string)($_POST['country']??'Kenya')),'city'=>trim((string)($_POST['city']??'')),'message'=>trim((string)($_POST['message']??'')),
         ];
+        if(($_POST['booking_request']??'')==='1'){
+            try{
+                if(($_POST['booking_consent']??'')!=='1')throw new InvalidArgumentException('Confirm use of your details for this meeting request.');
+                $meetingCfg=comm_config();$meetingType=reader_text($_POST['booking_type']??'','Conversation',40,true);
+                if(!isset($meetingCfg['types'][$meetingType]))throw new InvalidArgumentException('Choose a conversation.');
+                $preferredDate=comm_date($_POST['preferred_date']??'');$preferredTime=reader_text($_POST['preferred_time']??'','Preferred time',5,true);$preferredZone=comm_zone($_POST['booking_timezone']??'');
+                if(!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$preferredTime))throw new InvalidArgumentException('Choose a valid preferred time.');
+                $preferred=new DateTimeImmutable($preferredDate.' '.$preferredTime,$preferredZone);
+                if($preferred->getTimestamp()<time()||$preferred->getTimestamp()>time()+366*86400)throw new InvalidArgumentException('Choose a preferred time in the next year.');
+                if($m['last_name']==='')throw new InvalidArgumentException('Add your last name for the meeting request.');
+                $m['message']="MEETING REQUEST — NOT CONFIRMED\nConversation: ".$meetingCfg['types'][$meetingType]['name']."\nPreferred: ".$preferredDate.' '.$preferredTime.' '.$preferredZone->getName()."\n\n".$m['message'];
+            }catch(InvalidArgumentException $error){flash('error',$error->getMessage());redirect(url('/book'));}
+        }
         if($m['first_name']===''||!filter_var($m['email'],FILTER_VALIDATE_EMAIL)||$m['message']===''){
             flash('error','Please complete all required fields with a valid email address.');redirect(url('/contact'));
         }
