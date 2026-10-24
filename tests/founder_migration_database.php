@@ -14,6 +14,8 @@ require __DIR__.'/../app/founder_story_migration.php';
 function fm_check(bool $ok,string $why): void {if(!$ok)throw new RuntimeException($why);}
 foreach(['founder_story_deliveries','founder_story_reviews','founder_story_workflows']as$table){fm_check((int)$pdo->query('SELECT COUNT(*) FROM '.$table)->fetchColumn()===0,'Use empty founder fixture tables.');$pdo->exec('DROP TABLE '.$table);}
 $pdo->exec('ALTER TABLE posts DROP COLUMN founder_approval_hash');
+// InnoDB may have selected this composite index to support the existing FK.
+$pdo->exec('ALTER TABLE founder_submissions ADD INDEX idx_founder_migration_fixture_fk (associated_post_id)');
 $pdo->exec('ALTER TABLE founder_submissions DROP INDEX idx_founder_story_post');
 $pdo->prepare('DELETE FROM schema_migrations WHERE name=?')->execute(['170_founder_story_approval.sql']);
 $before=(int)$pdo->query('SELECT COUNT(*) FROM posts')->fetchColumn();
