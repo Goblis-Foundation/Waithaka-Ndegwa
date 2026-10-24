@@ -29,7 +29,7 @@ class HookPackagingTests(unittest.TestCase):
   required=next(ast.literal_eval(node.value) for node in ast.walk(tree) if isinstance(node,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='required' for t in node.targets))
   found=[]
   for hook in (ROOT/'.platform/hooks/postdeploy').glob('*.sh'):
-   for command in re.findall(r'php\\s+(bin/[A-Za-z0-9_-]+\\.php)',hook.read_text()):
+   for command in re.findall(r'php\s+(bin/[A-Za-z0-9_-]+\.php)',hook.read_text()):
     found.append(command)
     self.assertTrue((ROOT/command).is_file(),command)
     self.assertTrue(builder.runtime_file(command),command)
