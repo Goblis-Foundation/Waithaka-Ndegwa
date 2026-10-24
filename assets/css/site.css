@@ -76,3 +76,6 @@
 
 /* Keep the copyright intact; allow footer controls to flow on smaller screens. */
 .footer-copyright{flex-shrink:0;white-space:nowrap}.footer-bottom nav{flex-wrap:wrap}.footer-bottom>a{white-space:nowrap}@media(min-width:1001px){.footer-bottom nav{margin-left:auto}}
+
+/* A single, optional invitation at the end of every article. */
+.article-support{margin:30px 0;padding:30px;border:1px solid #cddbc6;border-radius:18px;background:#eef3e8;color:#173d2d}.article-support .eyebrow{color:#416c44}.article-support h2{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.15rem);line-height:1.2;margin:12px 0 16px;letter-spacing:-.025em}.article-support p{font-size:1rem;line-height:1.8;color:#354d3e;margin:0 0 22px}.article-support .button{min-height:46px}.article-support small{display:block;max-width:58ch;font-family:var(--sans);font-size:.78rem;line-height:1.7;color:#526653;margin-top:16px}.article-support a:focus-visible{outline:3px solid #a87923;outline-offset:4px}@media(max-width:560px){.article-support{padding:22px;margin:24px 0}.article-support .button{width:100%;text-align:center}.article-support p{font-size:.95rem}}@media print{.article-support{break-inside:avoid;background:transparent}}
