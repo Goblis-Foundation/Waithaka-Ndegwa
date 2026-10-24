@@ -150,9 +150,9 @@ function communication_dispatch(string $path): bool {
             if($action==='config'){comm_lock('reservations',function()use($uid){comm_put('config',comm_config_input($_POST,$uid));});flash('success','Booking preferences saved.');redirect(url('/write/communication?tab=availability'));}
             if(in_array($action,['approve','decline','cancel','late'],true)){comm_change_booking(reader_text($_POST['id']??'','Booking',32,true),$action,null,reader_text($_POST['reason']??'','Reason',1000),(int)($_POST['late_minutes']??0),'owner');flash('success','Booking updated.');redirect(url('/write/communication?tab=bookings'));}
             if($action==='preferences'){comm_put('preferences.'.$uid,comm_preferences($_POST));flash('success','Notification preferences saved.');redirect(url('/write/app'));}
-            if($action==='subscribe'){comm_save_subscription($uid,$_POST['subscription']??'');comm_json(['ok'=>true]);}
+            if($action==='subscribe'){comm_save_subscription($uid,$_POST['subscription']??'',reader_text($_POST['device_label']??'This device','Device name',80,true));comm_json(['ok'=>true]);}
             if($action==='unsubscribe'){comm_remove_subscription($uid,(string)($_POST['device']??''));comm_json(['ok'=>true]);}
-            if($action==='push_test'){comm_push_user($uid,'test');flash('success','A private test alert was requested for your subscribed devices.');redirect(url('/write/app'));}
+            if($action==='push_test'){if(!array_filter(comm_user_devices($uid),static fn($d)=>!empty($d['enabled'])))throw new RuntimeException('Connect a phone or computer before requesting a test alert.');comm_push_user($uid,'test');flash('success','A private test alert was requested for your subscribed devices.');redirect(url('/write/app'));}
         }catch(Throwable $e){$error=$e instanceof InvalidArgumentException||get_class($e)===RuntimeException::class?$e->getMessage():'The update could not be completed.';}}
         if($path==='/write/app'){comm_vapid();render_write('app',['writeTitle'=>'App & notifications','error'=>$error,'prefs'=>comm_get('preferences.'.$uid,comm_preferences([])),'devices'=>comm_user_devices($uid),'publicKey'=>comm_get('vapid')['public']??'']);return true;}
         if(($_GET['tab']??'')==='program')redirect(url('/write/program'));
