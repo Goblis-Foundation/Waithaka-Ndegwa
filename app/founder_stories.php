@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+/** A feature-specific migration may still be pending on an existing production database. */
+function founder_story_schema_ready(): bool {
+    static $ready=null;if($ready!==null)return $ready;
+    try{$q=db()->prepare('SELECT sha256 FROM schema_migrations WHERE name=?');$q->execute(['170_founder_story_approval.sql']);$hash=$q->fetchColumn();$file=__DIR__.'/migrations/170_founder_story_approval.sql';return $ready=is_string($hash)&&is_file($file)&&hash_equals($hash,hash_file('sha256',$file));}
+    catch(Throwable){return $ready=false;}
+}
+
+
 /** General permission never substitutes for a founder's approval of the final copy. */
 function founder_story_snapshot(array $post): array {
     $keys=['title','standfirst','content_html','featured_image','featured_image_alt','featured_image_caption','video_url','series_name','travel_country','travel_city'];
@@ -16,12 +24,14 @@ function founder_story_public_evidence(int $post): array {
 }
 function founder_story_hash(array $post,?int $id=null): string { if($id!==null)$post['id']=$id;return hash('sha256',reader_json(founder_story_snapshot($post))); }
 function founder_story_workflow(int $id,bool $lock=false): ?array {
+    if(!founder_story_schema_ready())return null;
     $q=db()->prepare('SELECT * FROM founder_story_workflows WHERE founder_id=?'.($lock?' FOR UPDATE':''));$q->execute([$id]);return $q->fetch()?:null;
 }
 function founder_story_lock_post(int $id): array {
     $q=db()->prepare('SELECT * FROM posts WHERE id=? FOR UPDATE');$q->execute([$id]);$post=$q->fetch();if(!$post)throw new JourneyValidationException('Story draft not found.');return $post;
 }
 function founder_story_attach(int $founder,int $post): void {
+    if(!founder_story_schema_ready())throw new JourneyValidationException('Final-copy approval setup is still being upgraded. Save this story after the upgrade completes.');
     $q=db()->prepare('SELECT * FROM founder_submissions WHERE id=? FOR UPDATE');$q->execute([$founder]);$f=$q->fetch();
     if(!$f||in_array($f['review_status'],['declined','withdrawn'],true))throw new JourneyValidationException('This submission is not open for a story.');
     if($f['associated_post_id']&&(int)$f['associated_post_id']!==$post)throw new JourneyValidationException('This founder already has a linked story.');
@@ -41,6 +51,7 @@ function founder_story_guard_publish(int $id,array $fields): ?string {
 }
 function founder_story_public_sql(string $alias='p'): string {
     if(!preg_match('/^[a-z]+$/D',$alias))throw new InvalidArgumentException('Invalid story query alias.');
+    if(!founder_story_schema_ready())return "NOT EXISTS (SELECT 1 FROM founder_submissions fs WHERE fs.associated_post_id=$alias.id)";
     return "(NOT EXISTS (SELECT 1 FROM founder_submissions fs WHERE fs.associated_post_id=$alias.id) OR EXISTS (SELECT 1 FROM founder_story_workflows fw JOIN founder_submissions owner ON owner.id=fw.founder_id WHERE fw.post_id=$alias.id AND owner.associated_post_id=$alias.id AND owner.review_status NOT IN ('declined','withdrawn') AND fw.state<>'discarded' AND fw.approved_hash=$alias.founder_approval_hash))";
 }
 function founder_story_discard(array $w,string $reason,?int $actor=null): void {
@@ -52,6 +63,7 @@ function founder_story_discard(array $w,string $reason,?int $actor=null): void {
     journeys_audit('founder',(int)$w['founder_id'],'story_discarded:'.$reason,$actor);
 }
 function founder_story_request(int $id,array $input,int $actor): int {
+    if(!founder_story_schema_ready())throw new JourneyValidationException('Final-copy approval setup is still being upgraded. No review notification was queued.');
     $q=db()->prepare('SELECT associated_post_id FROM founder_submissions WHERE id=?');$q->execute([$id]);$postId=(int)$q->fetchColumn();if(!$postId)throw new JourneyValidationException('Link a private story draft first.');
     $days=filter_var($input['response_days']??14,FILTER_VALIDATE_INT);if($days===false||$days<1||$days>30)throw new JourneyValidationException('Choose a response window of 1–30 days.');
     $email=journeys_email($input['founder_email']??'');$phone=reader_text($input['founder_whatsapp']??'','Founder WhatsApp number',20,true);
@@ -86,6 +98,7 @@ function founder_story_request(int $id,array $input,int $actor): int {
     }catch(Throwable $error){if($pdo->inTransaction())$pdo->rollBack();throw $error;}
 }
 function founder_story_token(string $token,bool $lock=false): ?array {
+    if(!founder_story_schema_ready())return null;
     if(!preg_match('/^[a-f0-9]{64}$/D',$token))return null;
     $q=db()->prepare('SELECT * FROM founder_story_reviews WHERE token_hash=?');$q->execute([hash('sha256',$token)]);$review=$q->fetch();if(!$review)return null;
     $w=founder_story_workflow((int)$review['founder_id']);
@@ -151,6 +164,7 @@ function founder_story_reconcile_deadlines(): void {
 }
 /** Dedicated opt-in editorial delivery; never drains newsletter/social/payment queues. */
 function founder_story_work(int $limit=5,?callable $testTransport=null): array {
+    if(!founder_story_schema_ready())return ['accepted'=>0,'blocked'=>0,'ambiguous'=>0,'discarded'=>0,'setup_pending'=>true];
     if($testTransport&&app_config('app_env')!=='testing')throw new RuntimeException('Test transport unavailable.');
     $result=['accepted'=>0,'blocked'=>0,'ambiguous'=>0,'discarded'=>0];
     founder_story_reconcile_deadlines();

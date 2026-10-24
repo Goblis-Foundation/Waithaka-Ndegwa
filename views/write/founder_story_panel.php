@@ -1,4 +1,5 @@
 <?php
+if(!founder_story_schema_ready()){echo '<section class="journey-panel"><h2>Final-copy approval setup is being upgraded</h2><p>Founder stories remain private until the migration and approval workflow are ready. No review notification is sent during setup.</p></section>';return;}
 $storyWorkflow=founder_story_workflow((int)$submission['id']);$storyReviews=[];$storyDeliveries=[];
 if($storyWorkflow){$query=db()->prepare('SELECT * FROM founder_story_reviews WHERE founder_id=? ORDER BY round_no DESC');$query->execute([$submission['id']]);$storyReviews=$query->fetchAll();$query=db()->prepare('SELECT channel,state,error_code,accepted_at FROM founder_story_deliveries WHERE review_id=?');$query->execute([$storyWorkflow['current_review_id']]);$storyDeliveries=$query->fetchAll();}
 ?>

@@ -449,7 +449,7 @@ function writer_save_post(array $input, int $userId, bool $publish, ?string $ima
             $status = strtotime($fields['published_at']) > time() ? 'scheduled' : 'published';
             $assignments = implode(',', array_map(static fn($key)=>$key.'=?', array_keys($fields)));
             $pdo->prepare('UPDATE posts SET '.$assignments.',status=?,updated_at=NOW() WHERE id=?')->execute(array_merge(array_values($fields),[$status,$id]));
-            if (function_exists('founder_story_guard_publish')) $pdo->prepare('UPDATE posts SET founder_approval_hash=? WHERE id=?')->execute([$founderApprovalHash,$id]);
+            if (function_exists('founder_story_guard_publish') && founder_story_schema_ready()) $pdo->prepare('UPDATE posts SET founder_approval_hash=? WHERE id=?')->execute([$founderApprovalHash,$id]);
             assign_tags($id,$tags);
             if (function_exists('writer_after_publish')) writer_after_publish($id,$fields);
         }

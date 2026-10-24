@@ -261,6 +261,7 @@ function founders_review_values(array $input,?array $post=null): array {
 }
 function founders_save_review(int $id,array $input,int $actor): void {
     $postId=journeys_id($input['associated_post_id']??null,'associated post',true);$post=null;
+    if($postId&&function_exists('founder_story_schema_ready')&&!founder_story_schema_ready())throw new JourneyValidationException('Final-copy approval setup is still being upgraded. Linked story moderation will resume after the upgrade.');
     if(function_exists('founder_story_workflow')){$binding=db()->prepare('SELECT associated_post_id FROM founder_submissions WHERE id=?');$binding->execute([$id]);$bound=(int)$binding->fetchColumn();if($bound&&$bound!==$postId)throw new JourneyValidationException('A linked Founder Story cannot be detached or moved to bypass its final-copy approval.');}
     if(function_exists('founder_story_workflow')){$workflow=founder_story_workflow($id);if($workflow&&($workflow['state']==='discarded'||(int)$workflow['post_id']!==$postId))throw new JourneyValidationException('A discarded story cannot be resubmitted, and its approval workflow cannot be moved to another post.');}
     if($postId){$s=db()->prepare('SELECT id,status,published_at FROM posts WHERE id=?');$s->execute([$postId]);$post=$s->fetch()?:null;if(!$post)throw new JourneyValidationException('The associated post does not exist.');}
