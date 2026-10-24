@@ -18,7 +18,15 @@ $file=dirname(__DIR__).'/app/migrations/170_founder_story_approval.sql';$hash=ha
 founder_story_migration_statements($file);
 if(!$apply){fwrite(STDOUT,"PLAN: Add the founder approval column, lookup index and three review tables; record migration 170. Existing application rows remain unchanged.\n");exit;}
 $client=new \Aws\SecretsManager\SecretsManagerClient(['version'=>'2017-10-17','region'=>$region,'retries'=>2,'http'=>['connect_timeout'=>5,'timeout'=>20]]);
-$secret=json_decode((string)$client->getSecretValue(['SecretId'=>$arn])['SecretString'],true,16,JSON_THROW_ON_ERROR);
+try {
+ $response=$client->getSecretValue(['SecretId'=>$arn]);
+} catch (\Aws\Exception\AwsException $error) {
+ $code=(string)($error->getAwsErrorCode()??'Unknown');
+ if(!preg_match('/^[A-Za-z0-9_.-]{1,100}$/D',$code))$code='Unknown';
+ fwrite(STDERR,'Founder migration AWS read failed: '.$code.'; HTTP '.(int)$error->getStatusCode().".\n");
+ exit(1);
+}
+$secret=json_decode((string)$response['SecretString'],true,16,JSON_THROW_ON_ERROR);unset($response);
 if(!is_string($secret['username']??null)||!is_string($secret['password']??null))throw new RuntimeException('Migration identity is incomplete.');
 $db=(array)app_config('db');$host=(string)($db['host']??'');$name=(string)($db['name']??'');$ca=(string)($db['ssl_ca']??'');$port=(int)($db['port']??3306);
 if(!preg_match('/^[A-Za-z][A-Za-z0-9_]{0,62}$/D',$name)||$host===''||!is_readable($ca)||$port<1||$port>65535)throw new RuntimeException('Production database TLS configuration is incomplete.');

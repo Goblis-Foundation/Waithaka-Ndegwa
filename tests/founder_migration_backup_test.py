@@ -37,4 +37,10 @@ class HookPackagingTests(unittest.TestCase):
   self.assertIn('bin/founder-story-migrate.php',found)
   for private in ['.env','storage/private.json','bin/adhoc-admin.php']:
    self.assertFalse(builder.runtime_file(private),private)
+class DiagnosticPrivacyTests(unittest.TestCase):
+ def test_diagnostic_output_excludes_raw_private_logs(self):
+  spec=importlib.util.spec_from_file_location('migration_diagnostics',ROOT/'deploy/aws/migration_log_diagnostics.py')
+  diagnostic=importlib.util.module_from_spec(spec);spec.loader.exec_module(diagnostic)
+  sample='password=private-fixture\\nAuthorization: private-fixture\\nFounder migration AWS read failed: AccessDeniedException; HTTP 400.\\nraw SQL and contact private-fixture'
+  self.assertEqual(diagnostic.safe_lines(sample),['Founder migration AWS read failed: AccessDeniedException; HTTP 400.'])
 if __name__=='__main__':unittest.main()
