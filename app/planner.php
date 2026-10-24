@@ -140,7 +140,8 @@ function planner_parse(string $text,string $format,string $zone): array {
   while(($line=fgetcsv($f,0,',','"',''))!==false){if(count($rows)>=200)throw new InvalidArgumentException('Import up to 200 entries at once.');if($line===[null])continue;if(count($line)!==count($header))throw new InvalidArgumentException('A CSV row has a different number of columns.');$rows[]=array_combine($header,$line);}fclose($f);
  }elseif($format==='ics'){
   $text=preg_replace("/\n[ \t]/",'',$text);$current=null;
-  foreach(explode("\n",$text)as$line){$line=trim($line);if($line==='BEGIN:VEVENT'){$current=[];continue;}if($line==='END:VEVENT'){if($current!==null)$rows[]=$current;$current=null;continue;}if($current===null||!str_contains($line,':'))continue;[$key,$value]=explode(':',$line,2);$name=explode(';',$key)[0];
+  foreach(explode("\n",$text)as$line){$line=trim($line);if($line==='BEGIN:VEVENT'){$current=[];continue;}if($line==='END:VEVENT'){if($current!==null){if(empty($current['_cancelled']))$rows[]=$current;else $warnings[]='A cancelled calendar entry was omitted.';}$current=null;continue;}if($current===null||!str_contains($line,':'))continue;[$key,$value]=explode(':',$line,2);$name=explode(';',$key)[0];
+   if($name==='STATUS'&&$value==='CANCELLED')$current['_cancelled']=true;
    if(in_array($name,['RRULE','RDATE','EXDATE','RECURRENCE-ID'],true))throw new InvalidArgumentException('Expand recurring calendar events into dated CSV rows before importing.');
    if(in_array($name,['DTSTART','DTEND'],true)){$tz=$zone;if(preg_match('/TZID=([^;:]+)/',$key,$m))$tz=trim($m[1],'"');comm_zone($tz);$utc=str_ends_with($value,'Z');$fmt=strlen(rtrim($value,'Z'))===8?'!Ymd':'!Ymd\THis';$d=DateTimeImmutable::createFromFormat($fmt,rtrim($value,'Z'),comm_zone($utc?'UTC':$tz));if(!$d||$d->format($fmt==='!Ymd'?'Ymd':'Ymd\THis')!==rtrim($value,'Z'))throw new InvalidArgumentException('Invalid calendar date.');$current[$name==='DTSTART'?'start':'end']=$d->format('Y-m-d\TH:i:sP');$current['timezone']=$tz;}
    if(in_array($name,['SUMMARY','LOCATION','DESCRIPTION'],true))$current[match($name){'SUMMARY'=>'title','LOCATION'=>'location',default=>'notes'}]=str_replace(['\\n','\\,','\\;'],["\n",',',';'],$value);
@@ -149,6 +150,7 @@ function planner_parse(string $text,string $format,string $zone): array {
  }else{
   foreach(explode("\n",$text)as$line){if(trim($line)==='')continue;$parts=array_map('trim',explode('|',$line));if(count($parts)<4)throw new InvalidArgumentException('Use: date | start time | end time | title | location.');$rows[]=['start'=>$parts[0].'T'.$parts[1],'end'=>$parts[0].'T'.$parts[2],'title'=>$parts[3],'location'=>$parts[4]??''];if(count($rows)>200)throw new InvalidArgumentException('Import up to 200 entries at once.');}
  }
+ if(count($rows)>200)throw new InvalidArgumentException('Import up to 200 entries at once.');
  $out=[];foreach($rows as$i=>$r){try{$out[]=planner_fields(array_replace($r,['recipients'=>'']),$zone);}catch(InvalidArgumentException $e){$warnings[]='Row '.($i+1).': '.$e->getMessage();}}
  if(!$out)throw new InvalidArgumentException('No dated entries were found. '.implode(' ',$warnings));return ['rows'=>$out,'warnings'=>$warnings];
 }
@@ -169,7 +171,7 @@ function planner_upload(array $file,string $zone,bool $ai): array {
  $bytes=file_get_contents($file['tmp_name']);$ext=strtolower(pathinfo((string)$file['name'],PATHINFO_EXTENSION));
  if(in_array($ext,['pdf','png','jpg','jpeg'],true)){if(!$ai)throw new InvalidArgumentException('Allow this file to be sent to Gemini for interpretation, or use CSV/ICS/text.');$mime=(new finfo(FILEINFO_MIME_TYPE))->buffer($bytes);if(!in_array($mime,['application/pdf','image/png','image/jpeg'],true))throw new InvalidArgumentException('The file content does not match a supported document.');return planner_ai_document($bytes,$mime,$zone)+['digest'=>hash('sha256',$bytes),'ai'=>true];}
  if($ext==='docx'){
-  $zip=new ZipArchive();if($zip->open($file['tmp_name'])!==true)throw new InvalidArgumentException('Unable to read this Word document.');$stat=$zip->statName('word/document.xml');if(!$stat||$stat['size']>2*1024*1024){$zip->close();throw new InvalidArgumentException('Word text is missing or too large.');}$xml=$zip->getFromName('word/document.xml');$zip->close();if(preg_match('/<!DOCTYPE|<!ENTITY/i',$xml))throw new InvalidArgumentException('Unsupported Word document.');
+  $zip=new ZipArchive();if($zip->open($file['tmp_name'])!==true)throw new InvalidArgumentException('Unable to read this Word document.');$stat=$zip->statName('word/document.xml');if(!$stat||$stat['size']>2*1024*1024){$zip->close();throw new InvalidArgumentException('Word text is missing or too large.');}$xml=$zip->getFromName('word/document.xml',2*1024*1024+1);$zip->close();if(preg_match('/<!DOCTYPE|<!ENTITY/i',$xml))throw new InvalidArgumentException('Unsupported Word document.');
   $d=new DOMDocument();if(!@$d->loadXML($xml,LIBXML_NONET))throw new InvalidArgumentException('Unable to read Word text.');$lines=[];foreach($d->getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','p')as$p)$lines[]=$p->textContent;$text=implode("\n",$lines);
   if($ai)return planner_ai_document($text,'text/plain',$zone)+['digest'=>hash('sha256',$bytes),'ai'=>true];
   return planner_parse($text,'text',$zone)+['digest'=>hash('sha256',$bytes),'ai'=>false];
@@ -211,7 +213,7 @@ function planner_work(): void {
  });
 }
 function planner_dispatch(string $path): bool {
- if($path!=='/write/program')return false;require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$error='';$prefs=comm_get('planner.preferences.'.$uid,['timezone'=>'Africa/Nairobi','sync'=>false,'booking_reminder'=>15]);$stage=null;$edit=null;
+ if(preg_match('~^/write/program/(\d{4}-\d{2}-\d{2})$~D',$path,$matched))$_GET['date']=$matched[1];elseif($path!=='/write/program')return false;require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$error='';$prefs=comm_get('planner.preferences.'.$uid,['timezone'=>'Africa/Nairobi','sync'=>false,'booking_reminder'=>15]);$stage=null;$edit=null;
  try{$date=comm_date($_GET['date']??(new DateTimeImmutable('now',comm_zone($prefs['timezone'])))->format('Y-m-d'));}catch(Throwable){$date=(new DateTimeImmutable('now',comm_zone($prefs['timezone'])))->format('Y-m-d');}
  if(is_post()){verify_csrf();try{
   $action=$_POST['action']??'';

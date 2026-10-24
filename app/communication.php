@@ -106,6 +106,7 @@ function comm_change_booking(string $id,string $action,?int $newStart=null,strin
             $reason=reader_text($reason,'Reason',1000,true);$b['change_reason']=$reason;$b['change_actor']=$actor;
         }
         if($action==='late'){
+            if((int)($b['late_notices'][$actor]??0)>time()-300)throw new RuntimeException('A late notice was just recorded. Wait five minutes before another update.');$b['late_notices'][$actor]=time();
             if(!in_array($b['status'],['requested','confirmed'],true)||$b['end']<time()||$late<1||$late>240)throw new InvalidArgumentException('Choose a current booking and delay of 1–240 minutes.');
             $b['late_minutes']=$late;$b['version']++;comm_put('booking.'.$id,$b);comm_queue_mail($b,'late');comm_event('bookings',$id);return $b;
         }
