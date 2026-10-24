@@ -275,6 +275,7 @@ function editorial_save_post_meta(int $postId,array $input,int $actor,string $ac
         $q=$pdo->prepare('SELECT row_version,public_json FROM editorial_post_meta WHERE post_id=? FOR UPDATE');$q->execute([$postId]);$old=$q->fetch();if((int)($old['row_version']??0)!==$expected)throw new EditorialConflictException('These notes changed in another window. Reload the saved version.');
         $public=$old['public_json']??null;
         if($action==='publish'){
+            if(function_exists('founder_story_workflow')){$founderCheck=$pdo->prepare('SELECT id FROM founder_submissions WHERE associated_post_id=? LIMIT 1');$founderCheck->execute([$postId]);if($founderCheck->fetchColumn())throw new EditorialValidationException('Founder Story evidence and correction changes must be included in the article draft and sent through final-copy founder approval. Separate evidence-card publishing is locked for these stories.');}
             if(!journeys_post_is_public($post))throw new EditorialValidationException('Publish the article first. Public evidence and correction notes can be released once the article is publicly available.');
             $next=editorial_json(['evidence'=>$draft['evidence']]);
             if($public!==null&&$public!==$next&&$draft['update_note']==='')throw new EditorialValidationException('Explain the meaningful change when replacing already-public evidence cards.');
@@ -296,3 +297,4 @@ function editorial_article_modified(array $post): ?string {
     if(empty($post['id'])||!journeys_post_is_public($post))return null;
     $q=db()->prepare("SELECT MAX(u.published_at) FROM editorial_post_updates u JOIN posts p ON p.id=u.post_id WHERE p.id=? AND p.status IN ('published','scheduled') AND p.published_at<=? AND u.published_at<=?");$q->execute([(int)$post['id'],editorial_now(),editorial_now()]);$time=$q->fetchColumn();return is_string($time)&&$time!==''?$time:null;
 }
+

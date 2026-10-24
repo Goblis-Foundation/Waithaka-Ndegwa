@@ -350,7 +350,8 @@ function reader_founder_respond(string $token, array $input): ?string {
     $version = reader_id($input['followup_version'] ?? null); $id = (int)$initial['founder_id'];
     db()->beginTransaction();
     try {
-        // Match the Writer lock order: submission, follow-up, then capability.
+        if(function_exists('founder_story_lock_post')&&!empty($initial['subject']['associated_post_id']))founder_story_lock_post((int)$initial['subject']['associated_post_id']);
+        // Story-aware callers lock the post before the submission and follow-up.
         $query = db()->prepare('SELECT * FROM founder_submissions WHERE id=? FOR UPDATE'); $query->execute([$id]); $submission = $query->fetch();
         $query = db()->prepare('SELECT * FROM reader_founder_followups WHERE founder_id=? FOR UPDATE'); $query->execute([$id]); $followup = $query->fetch();
         $link = reader_link_record($token, 'founder', true);
@@ -371,6 +372,7 @@ function reader_founder_respond(string $token, array $input): ?string {
             $record = 'Publication scope shown: '.$followup['permission_request']."\n\n".'Submitter response: '.$status.'.'.($body !== '' ? "\n\n".$body : '');
             reader_founder_message($id, 'permission_'.$status, $record);
             if ($action !== 'grant') db()->prepare('UPDATE founder_submissions SET founder_publication_permission=0,permission_confirmed=0,is_public=0,row_version=row_version+1,updated_at=NOW() WHERE id=?')->execute([$id]);
+            if($action!=='grant'&&function_exists('founder_story_workflow')){$storyWorkflow=founder_story_workflow($id,true);if($storyWorkflow)founder_story_discard($storyWorkflow,'permission_'.$status);}
             // A grant is evidence for the editor, never automatic moderation/publication.
         }
         db()->prepare('UPDATE reader_founder_followups SET last_reply_at=UTC_TIMESTAMP(),row_version=row_version+1,updated_at=UTC_TIMESTAMP() WHERE founder_id=?')->execute([$id]);
@@ -384,3 +386,4 @@ function reader_operations_summary(): array {
     $founders = db()->query("SELECT SUM(clarification_status='requested' OR permission_status='requested') founder_waiting,SUM(clarification_status='replied' OR permission_status='granted') founder_replies_pending FROM reader_founder_followups r JOIN founder_submissions f ON f.id=r.founder_id WHERE f.review_status NOT IN ('approved','declined','withdrawn')")->fetch();
     return array_map('intval', array_merge($row ?: [], $founders ?: []));
 }
+

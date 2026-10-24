@@ -12,4 +12,6 @@
       <?php if($pagination['next']!==null):?><a class="wbtn" rel="next" href="<?=e(url($pagination['next']))?>">Next →</a><?php endif;?>
     </nav><?php endif;?>
   </section>
+<?php require __DIR__.'/founder_story_whatsapp.php';?>
 </main>
+

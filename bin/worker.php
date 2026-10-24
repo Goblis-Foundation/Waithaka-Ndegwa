@@ -11,6 +11,9 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
     try { communication_work(); } catch(Throwable $e) { error_log('Communication worker needs review.'); }
 }
 // Staging can serve restored content without draining live external delivery work.
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { founder_story_work(); } catch(Throwable $e) { error_log('Founder story delivery or expiry needs review.'); }
+}
 $enabled=$APP_INSTALLED && (bool)app_config('worker_enabled',false);
 $run=$APP_INSTALLED && function_exists('readiness_worker_begin')?readiness_worker_begin($enabled):null;
 if (!$enabled) { echo "{\"enabled\":false}\n"; exit; }
@@ -26,3 +29,4 @@ try {
 } finally {
     if(function_exists('readiness_worker_finish'))readiness_worker_finish($run,$success,$stats,$success?null:'stage_failed');
 }
+

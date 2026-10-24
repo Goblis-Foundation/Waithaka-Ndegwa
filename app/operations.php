@@ -211,7 +211,7 @@ function publishing_send_reminder(array $job,array $snapshot): bool {
     return in_array($q->fetchColumn(),['pending','sending'],true);
 }
 function app_extension_route(string $path): bool {
-    foreach(['reader_dispatch','editorial_dispatch','discovery_dispatch','campaign_dispatch','newsletter_dispatch','media_library_dispatch','readiness_dispatch','mail_feedback_dispatch'] as $handler)if(function_exists($handler)&&$handler($path))return true;
+    foreach(['founder_story_dispatch','reader_dispatch','editorial_dispatch','discovery_dispatch','campaign_dispatch','newsletter_dispatch','media_library_dispatch','readiness_dispatch','mail_feedback_dispatch'] as $handler)if(function_exists($handler)&&$handler($path))return true;
     if (function_exists('journeys_dispatch') && journeys_dispatch($path)) return true;
     return function_exists('publishing_dispatch') && publishing_dispatch($path);
 }
@@ -220,3 +220,4 @@ function app_sitemap_entries(): array {
     foreach(['journeys_sitemap_entries','editorial_sitemap_entries']as$handler)if(function_exists($handler))$entries=array_merge($entries,$handler());
     return $entries;
 }
+

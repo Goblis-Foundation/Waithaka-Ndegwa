@@ -246,6 +246,7 @@ function wk_test_http(array $environment, string $temporaryDirectory): array
                   'archive_http_test.php' => 'HTTP archive discovery and editorial privacy',
                   'editorial_http.php' => 'HTTP editorial publishing and evidence',
                   'reader_http_test.php' => 'HTTP reader preferences and follow-up',
+                  'founder_story_http_test.php' => 'HTTP founder final-copy approval',
                   'discovery_http_test.php' => 'HTTP search and discovery controls',
                   'growth_http_test.php' => 'HTTP Google tag coverage and campaigns'] as $file => $label) {
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $results['passed']++;
@@ -350,6 +351,7 @@ try {
                 'tiktok_business' => 'tiktok_business_database_test.php',
                 'editorial' => 'editorial_database.php',
                 'reader' => 'reader_database_test.php',
+                'founder_story' => 'founder_story_database.php',
                 'discovery' => 'discovery_database_test.php',
                 'campaign' => 'campaign_database_test.php',
                 'google' => 'google_workspace_database.php',
@@ -357,7 +359,7 @@ try {
                 'http' => '010_security_http.php',
             ];
             foreach ($suites as $suite => $file) {
-                $suiteCount += $suite === 'http' ? 9 : 1;
+                $suiteCount += $suite === 'http' ? 10 : 1;
                 $name = 'waithaka_test_'.$runId.'_'.$suite.'_test';
                 $suiteEnvironment = wk_test_suite_environment($environment, $settings, $name);
                 $prepare = [PHP_BINARY, __DIR__.'/prepare.php', '--database='.$name];
@@ -392,3 +394,4 @@ try {
     if ($temporaryDirectory !== null && is_dir($temporaryDirectory)) rmdir($temporaryDirectory);
 }
 exit($exitCode);
+

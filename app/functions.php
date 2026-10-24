@@ -268,7 +268,7 @@ function format_date(?string $date): string { return $date ? date('j F Y', strto
 
 function categories(): array { return db()->query('SELECT * FROM categories ORDER BY sort_order,name')->fetchAll(); }
 function category_by_slug(string $slug): ?array { $st=db()->prepare('SELECT * FROM categories WHERE slug=?');$st->execute([$slug]);return $st->fetch()?:null; }
-function published_where(): string { return "p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=NOW()"; }
+function published_where(): string { return "p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=NOW()".(function_exists('founder_story_public_sql')?' AND '.founder_story_public_sql():''); }
 /** Strict page parsing prevents arrays, overflow and malformed URLs becoming page one. */
 function archive_page_number(mixed $value=null): ?int {
     if ($value===null) return 1;
@@ -431,6 +431,8 @@ function writer_save_post(array $input, int $userId, bool $publish, ?string $ima
             $id = (int)$pdo->lastInsertId();
         }
         $status = $existing['status'];
+        if (function_exists('founder_story_attach') && !empty($input['founder_submission_id'])) founder_story_attach(reader_id($input['founder_submission_id']), $id);
+        $founderApprovalHash = null;
         if ($publish) {
             // Optional configured assistance is prepared before this transaction.
             // Local fallback remains available without external dependencies.
@@ -442,10 +444,12 @@ function writer_save_post(array $input, int $userId, bool $publish, ?string $ima
             }
             if ($fields['seo_title'] === '') $fields['seo_title'] = is_string($preparedMetadata['seo_title']??null) && trim($preparedMetadata['seo_title'])!=='' ? mb_substr(trim($preparedMetadata['seo_title']),0,255) : $fields['title'];
             if ($fields['seo_description'] === '') $fields['seo_description'] = is_string($preparedMetadata['seo_description']??null) && trim($preparedMetadata['seo_description'])!=='' ? mb_substr(trim($preparedMetadata['seo_description']),0,320) : excerpt($fields['standfirst'] ?: $fields['content_html'], 155);
+            if (function_exists('founder_story_guard_publish')) $founderApprovalHash = founder_story_guard_publish($id, $fields);
             if (!empty($existing['id'])) $pdo->prepare('INSERT INTO post_revisions(post_id,title,standfirst,content_html) VALUES(?,?,?,?)')->execute([$id,$existing['title'],$existing['standfirst'],$existing['content_html']]);
             $status = strtotime($fields['published_at']) > time() ? 'scheduled' : 'published';
             $assignments = implode(',', array_map(static fn($key)=>$key.'=?', array_keys($fields)));
             $pdo->prepare('UPDATE posts SET '.$assignments.',status=?,updated_at=NOW() WHERE id=?')->execute(array_merge(array_values($fields),[$status,$id]));
+            if (function_exists('founder_story_guard_publish')) $pdo->prepare('UPDATE posts SET founder_approval_hash=? WHERE id=?')->execute([$founderApprovalHash,$id]);
             assign_tags($id,$tags);
             if (function_exists('writer_after_publish')) writer_after_publish($id,$fields);
         }
@@ -712,3 +716,4 @@ function notify_writer(string $subject,string $body): bool {
     $headers=['From: Waithaka Ndegwa Website <'.$from.'>','Content-Type: text/plain; charset=UTF-8'];
     return @mail($to,$subject,$body,implode("\r\n",$headers));
 }
+
