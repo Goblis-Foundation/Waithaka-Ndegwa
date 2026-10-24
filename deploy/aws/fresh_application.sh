@@ -102,7 +102,10 @@ fi
 if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 ]]; then
   backup_metadata="$(mktemp)"
   FOUNDER_BACKUP_PROOF="$(mktemp)"
-  aws rds describe-db-instances --region "$REGION" --query 'DBInstances[].{arn:DBInstanceArn,host:Endpoint.Address,state:DBInstanceStatus,encrypted:StorageEncrypted,retention:BackupRetentionPeriod,latest:LatestRestorableTime}' --output json --no-cli-pager > "$backup_metadata"
+  # Resolve the one database from the owned stack; never enumerate account databases.
+  FOUNDER_DB_ID="$(aws cloudformation describe-stack-resource --stack-name "$DATA_STACK" --logical-resource-id Database --query StackResourceDetail.PhysicalResourceId --output text --region "$REGION" --no-cli-pager)"
+  [[ "$FOUNDER_DB_ID" =~ ^[a-zA-Z][a-zA-Z0-9-]{0,62}$ ]] || { echo "Invalid database identity from the owned data stack." >&2; exit 1; }
+  aws rds describe-db-instances --db-instance-identifier "$FOUNDER_DB_ID" --region "$REGION" --query 'DBInstances[].{arn:DBInstanceArn,host:Endpoint.Address,state:DBInstanceStatus,encrypted:StorageEncrypted,retention:BackupRetentionPeriod,latest:LatestRestorableTime}' --output json --no-cli-pager > "$backup_metadata"
   python3 "$SOURCE_DIR/deploy/aws/validate_migration_backup.py" "$backup_metadata" "$DB_HOST" > "$FOUNDER_BACKUP_PROOF"
   rm -f "$backup_metadata"
   echo "Existing encrypted RDS recovery window verified before founder schema migration."
