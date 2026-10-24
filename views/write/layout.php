@@ -5,7 +5,7 @@
 <?php if($wu):?><span class="workspace-location"><?=e($title)?></span><div class="workspace-top-actions"><a class="wbtn" href="<?=url('/write/capture')?>">Capture idea</a><a class="wbtn primary" href="<?=url('/write/new')?>">New thought</a><button class="wbtn writer-menu-toggle" type="button" data-writer-menu aria-expanded="false" aria-controls="writer-navigation" hidden>Menu</button></div><?php endif;?></header>
 <?php if($wu):
 $navigation=[
-'Workspace'=>['/write/communication'=>'Communication Centre','/write'=>'Overview','/write/app'=>'App & notifications','/write/security'=>'Devices & passkeys','/write/studio'=>'Studio & AI','/write/google'=>'Google workspace','/write/meetings'=>'Meetings & booking','/write/capture'=>'Capture idea'],
+'Workspace'=>['/write/program'=>'Daily program','/write/communication'=>'Communication Centre','/write'=>'Overview','/write/app'=>'App & notifications','/write/security'=>'Devices & passkeys','/write/studio'=>'Studio & AI','/write/google'=>'Google workspace','/write/meetings'=>'Meetings & booking','/write/capture'=>'Capture idea'],
 'Writing'=>['/write#library'=>'Article library','/write/new'=>'New thought','/write/journeys'=>'Startup Journeys','/write/journeys/founders'=>'Founder reviews','/write/editorial'=>'Resources & evidence'],
 'Media & social'=>['/write/media-centre'=>'Media centre','/write/publishing'=>'Posting & calendar','/write/media'=>'Images & videos','/write/connections'=>'Social connections','/write/releases'=>'Consent records'],
 'Audience'=>['/write/newsletter'=>'Newsletter','/write/readers'=>'Reader desk','/write/campaigns'=>'Campaigns','/write/discovery'=>'Search performance'],

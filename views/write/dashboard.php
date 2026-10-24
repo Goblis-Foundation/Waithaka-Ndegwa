@@ -2,6 +2,7 @@
   <div class="writer-head writer-head-rich"><div><span class="writer-kicker">Your publishing workspace</span><h1>Make your next idea count.</h1><p class="muted">Writing, conversations and progress—organised in one place.</p></div><div class="writer-actions"><a class="wbtn" href="<?=url('/write/capture')?>">Capture an idea</a><a class="wbtn primary" href="<?=url('/write/publishing/new')?>">Create social post</a></div></div>
   <?php foreach(flashes() as $f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
 
+  <?php include __DIR__.'/program_home.php'; ?>
   <section class="dashboard-grid writer-stats" aria-label="Publishing overview">
     <button class="stat" type="button" data-writer-filter="draft"><strong><?=intval($counts['draft']??0)?></strong><span>Drafts</span><small>Still taking shape</small></button>
     <button class="stat" type="button" data-writer-filter="scheduled"><strong><?=intval($counts['scheduled']??0)?></strong><span>Scheduled</span><small>Ready for later</small></button>

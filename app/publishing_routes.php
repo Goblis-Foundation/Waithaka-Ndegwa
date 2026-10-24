@@ -37,7 +37,7 @@ function publishing_dispatch(string $path): bool {
             publishing_buffer_connect((string)($_POST['api_key']??''),$userId);
             flash('success','Buffer returned your account and channels. Confirm the organization below before selecting delivery destinations.');redirect(url('/write/connections#buffer'));
         }
-        if (preg_match('~^/write/connections/([a-z_]+)/start$~',$path,$m)&&is_post()) redirect(publishing_oauth_start($m[1],$userId));
+        if (preg_match('~^/write/connections/([a-z_]+)/start$~',$path,$m)&&is_post()) redirect(publishing_oauth_start($m[1],$userId,$m[1]==='google_calendar'&&($_POST['calendar_edit']??'')==='1'));
         if (preg_match('~^/write/connections/callback/([a-z_]+)$~',$path,$m)&&!is_post()) {
             $service=$m[1];
             if(!isset(publishing_services()[$service]))throw new RuntimeException('Unknown provider callback.');

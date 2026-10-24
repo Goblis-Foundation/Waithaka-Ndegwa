@@ -247,6 +247,7 @@ function wk_test_http(array $environment, string $temporaryDirectory): array
                   'editorial_http.php' => 'HTTP editorial publishing and evidence',
                   'reader_http_test.php' => 'HTTP reader preferences and follow-up',
                   'founder_story_http_test.php' => 'HTTP founder final-copy approval',
+                  'planner_http_test.php' => 'HTTP daily program and remembered-device restoration',
                   'discovery_http_test.php' => 'HTTP search and discovery controls',
                   'growth_http_test.php' => 'HTTP Google tag coverage and campaigns'] as $file => $label) {
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $results['passed']++;
@@ -301,6 +302,7 @@ try {
                   'communication_mail_unit.php'=>'Mailbox privacy and draft header boundaries',
                   'app_security_unit.php'=>'Passkey origin, challenge and assertion verification',
                   'communication_unit.php'=>'Availability, DST and notification boundaries',
+                  'planner_unit.php'=>'Daily program parsing, timezone, maps and trust boundaries',
                   'meetings_unit.php'=>'Meeting account, read permissions and join-link boundaries',
                   'studio_unit.php' => 'Private capture and explicit AI drafting boundaries',
                   'meta_mcp_unit.php' => 'Local aggregate Meta MCP lifecycle and privacy',
@@ -361,10 +363,11 @@ try {
                 'campaign' => 'campaign_database_test.php',
                 'google' => 'google_workspace_database.php',
                 'communication' => 'communication_database.php',
+                'planner' => 'planner_database.php',
                 'http' => '010_security_http.php',
             ];
             foreach ($suites as $suite => $file) {
-                $suiteCount += $suite === 'http' ? 10 : 1;
+                $suiteCount += $suite === 'http' ? 11 : 1;
                 $name = 'waithaka_test_'.$runId.'_'.$suite.'_test';
                 $suiteEnvironment = wk_test_suite_environment($environment, $settings, $name);
                 $prepare = [PHP_BINARY, __DIR__.'/prepare.php', '--database='.$name];

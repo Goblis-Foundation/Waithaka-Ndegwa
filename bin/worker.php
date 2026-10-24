@@ -10,6 +10,9 @@ if ($APP_INSTALLED && app_config('app_env')==='production') {
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { communication_work(); } catch(Throwable $e) { error_log('Communication worker needs review.'); }
 }
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { planner_work(); } catch(Throwable $e) { error_log('Daily program worker needs review.'); }
+}
 // Staging can serve restored content without draining live external delivery work.
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { founder_story_work(); } catch(Throwable $e) { error_log('Founder story delivery or expiry needs review.'); }

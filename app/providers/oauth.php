@@ -86,9 +86,10 @@ function publishing_meta_version(): string {
     return $v;
 }
 
-function publishing_oauth_start(string $service, int $userId): string {
+function publishing_oauth_start(string $service, int $userId,bool $calendarEdit=false): string {
     $definition = publishing_services()[$service] ?? null;
     if (!$definition || $service === 'buffer') throw new RuntimeException('This connection does not use this OAuth flow.');
+    if($service==='google_calendar'&&$calendarEdit)$definition['scopes'][]='https://www.googleapis.com/auth/calendar.events.owned';
     $provider = $definition['provider'];
     $client = publishing_service_client($service);
     if ($client['client_id'] === '' || $client['client_secret'] === '') throw new RuntimeException('Save this provider’s client ID and client secret first.');

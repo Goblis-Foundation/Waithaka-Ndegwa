@@ -85,7 +85,7 @@ function google_calendar_agenda(int $userId,string $start,string $end): array {
     foreach(google_calendar_accounts($userId)as$a){
         if($a['status']!=='connected')continue;$selected=publishing_decode($a['selected_json']);if(!$selected)continue;
         try{$headers=publishing_bearer(google_calendar_token($a));}catch(Throwable){$errors[]=$a['display_name'].': reconnect or review access.';continue;}
-        $names=array_column(publishing_decode($a['calendars_json']),'name','id');
+        $names=array_column(publishing_decode($a['calendars_json']),'name','id');$zones=array_column(publishing_decode($a['calendars_json']),'timezone','id');
         foreach($selected as$id){
             // The same subscribed calendar can be present in several accounts. Read once.
             if(isset($seen[$id]))continue;
@@ -94,7 +94,7 @@ function google_calendar_agenda(int $userId,string $start,string $end): array {
                 for($n=0;$n<4;$n++){
                     $params=['timeMin'=>$start.'T00:00:00Z','timeMax'=>google_workspace_shift_date($end,1).'T00:00:00Z','singleEvents'=>'true','orderBy'=>'startTime','maxResults'=>250];if($page!=='')$params['pageToken']=$page;
                     $r=publishing_http('GET','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($id).'/events?'.http_build_query($params,'','&',PHP_QUERY_RFC3986),$headers)['data'];
-                    foreach($r['items']??[]as$e){if(($e['status']??'')==='cancelled')continue;$calendarItems[]=['calendar'=>$names[$id]??'Selected calendar','account'=>$a['display_name'],'title'=>$e['summary']??'Busy','start'=>$e['start']['dateTime']??$e['start']['date']??'','end'=>$e['end']['dateTime']??$e['end']['date']??'','all_day'=>isset($e['start']['date']),'join'=>meetings_event_join($e),'url'=>google_workspace_link($e['htmlLink']??'',['calendar.google.com','www.google.com'])];}
+                    foreach($r['items']??[]as$e){if(($e['status']??'')==='cancelled')continue;$calendarItems[]=['account_id'=>(int)$a['id'],'calendar_id'=>$id,'event_id'=>(string)($e['id']??''),'etag'=>(string)($e['etag']??''),'organizer_self'=>!empty($e['organizer']['self']),'event_timezone'=>(string)($e['start']['timeZone']??$zones[$id]??'UTC'),'location'=>(string)($e['location']??''),'calendar'=>$names[$id]??'Selected calendar','account'=>$a['display_name'],'title'=>$e['summary']??'Busy','start'=>$e['start']['dateTime']??$e['start']['date']??'','end'=>$e['end']['dateTime']??$e['end']['date']??'','all_day'=>isset($e['start']['date']),'join'=>meetings_event_join($e),'url'=>google_workspace_link($e['htmlLink']??'',['calendar.google.com','www.google.com'])];}
                     $page=(string)($r['nextPageToken']??'');if($page==='')break;
                 }
                 if($page!=='')$truncated=true;$seen[$id]=true;$out=array_merge($out,$calendarItems);
