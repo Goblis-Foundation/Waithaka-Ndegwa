@@ -13,7 +13,11 @@ $r=['status'=>'completed','steps'=>[['type'=>'thought','content'=>[['type'=>'tex
 gc_check(google_gemini_interaction_text($r)==='Reviewed output','Only model text enters the result');
 gc_reject(fn()=>google_gemini_interaction_text(['status'=>'in_progress','steps'=>$r['steps']]));
 $e=google_gemini_error(new PublishingRemoteException('secret-provider-body',503));
+gc_check($e instanceof GeminiRequestException,'Only safe Gemini errors are classified for display');
 gc_check(str_contains($e->getMessage(),'HTTP 503')&&!str_contains($e->getMessage(),'secret-provider-body')&&!str_contains($e->getMessage(),'publication history'),'AI-specific non-secret diagnostics');
 $models=google_gemini_catalog_rows([['name'=>'models/gemini-3.8-flash','supportedGenerationMethods'=>['generateContent']],['name'=>'models/unsafe/model','supportedGenerationMethods'=>['generateContent']],['name'=>'models/gemini-embedding-001','supportedGenerationMethods'=>['embedContent']]]);
 gc_check(count($models)===1&&$models[0]['id']==='gemini-3.8-flash','Catalog excludes invalid and non-generation models');
 echo "PASS: stateless Gemini requests, bounded structured documents, completed-output parsing and secret-free diagnostics.\n";
+
+foreach([0,401,403,404,429,500,503]as$status){$safe=google_gemini_error(new PublishingRemoteException('PRIVATE-KEY-AND-BODY',$status));gc_check($safe instanceof GeminiRequestException&&!str_contains($safe->getMessage(),'PRIVATE-KEY-AND-BODY'),'Provider secrets must never enter visible diagnostics');}
+try{google_gemini_interaction_text(['status'=>'in_progress']);throw new LogicException('Expected safe error');}catch(GeminiRequestException $safe){gc_check(!str_contains($safe->getMessage(),'in_progress'),'Untrusted provider values are not reflected');}
