@@ -88,6 +88,25 @@ if [[ -f "$SOURCE_DIR/bin/google-workspace-migrate.php" && -f "$GOOGLE_MIGRATION
   GOOGLE_MIGRATION_RECEIPT="schema-migrations/160-$GOOGLE_MIGRATION_HASH.json"
   if ! aws s3api head-object --bucket "$RELEASE_BUCKET" --key "$GOOGLE_MIGRATION_RECEIPT" --region "$REGION" --no-cli-pager >/dev/null 2>&1; then GOOGLE_MIGRATION_REQUIRED=1; fi
 fi
+# Founder final-copy approval uses the same temporary, checksum-receipted DDL path.
+FOUNDER_MIGRATION_REQUIRED=0
+FOUNDER_MIGRATION_FILE="$SOURCE_DIR/app/migrations/170_founder_story_approval.sql"
+if [[ -f "$SOURCE_DIR/bin/founder-story-migrate.php" && -f "$FOUNDER_MIGRATION_FILE" ]]; then
+  FOUNDER_MIGRATION_HASH="$(sha256sum "$FOUNDER_MIGRATION_FILE" | awk '{print $1}')"
+  FOUNDER_MIGRATION_RECEIPT="schema-migrations/170-$FOUNDER_MIGRATION_HASH.json"
+  if ! aws s3api head-object --bucket "$RELEASE_BUCKET" --key "$FOUNDER_MIGRATION_RECEIPT" --region "$REGION" --no-cli-pager >/dev/null 2>&1; then
+    FOUNDER_MIGRATION_REQUIRED=1
+    GOOGLE_MIGRATION_REQUIRED=1
+  fi
+fi
+if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 ]]; then
+  backup_metadata="$(mktemp)"
+  FOUNDER_BACKUP_PROOF="$(mktemp)"
+  aws rds describe-db-instances --region "$REGION" --query 'DBInstances[].{arn:DBInstanceArn,host:Endpoint.Address,state:DBInstanceStatus,encrypted:StorageEncrypted,retention:BackupRetentionPeriod,latest:LatestRestorableTime}' --output json --no-cli-pager > "$backup_metadata"
+  python3 "$SOURCE_DIR/deploy/aws/validate_migration_backup.py" "$backup_metadata" "$DB_HOST" > "$FOUNDER_BACKUP_PROOF"
+  rm -f "$backup_metadata"
+  echo "Existing encrypted RDS recovery window verified before founder schema migration."
+fi
 # Incremental DDL temporarily uses the same exact administrator secret as bootstrap.
 # An EXIT trap removes that access on either deployment success or failure.
 cleanup_google_migration_access(){
@@ -237,6 +256,15 @@ json.dump({'account_id':'466401734428','migration':'160_google_workspace.sql','s
 PYRECEIPT
   aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$GOOGLE_MIGRATION_RECEIPT" --body "$migration_receipt" --region "$REGION" --no-cli-pager >/dev/null
   rm -f "$migration_receipt"
+  if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 ]]; then
+    founder_receipt="$(mktemp)"
+    python3 - "$founder_receipt" "$FOUNDER_MIGRATION_HASH" "$VERSION" "$FOUNDER_BACKUP_PROOF" <<'PYFOUNDER'
+import json,sys,datetime
+json.dump({'account_id':'466401734428','migration':'170_founder_story_approval.sql','sha256':sys.argv[2],'release':sys.argv[3],'verified_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'recovery':json.load(open(sys.argv[4]))},open(sys.argv[1],'w'))
+PYFOUNDER
+    aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$FOUNDER_MIGRATION_RECEIPT" --body "$founder_receipt" --region "$REGION" --no-cli-pager >/dev/null
+    rm -f "$founder_receipt" "$FOUNDER_BACKUP_PROOF"
+  fi
   cleanup_google_migration_access
 fi
 
