@@ -1,32 +1,57 @@
-<main class="write-main writer-dashboard">
-  <div class="writer-head writer-head-rich"><div><span class="writer-kicker">Your publishing workspace</span><h1>Make your next idea count.</h1><p class="muted">Writing, conversations and progress—organised in one place.</p></div><div class="writer-actions"><a class="wbtn" href="<?=url('/write/capture')?>">Capture an idea</a><a class="wbtn primary" href="<?=url('/write/publishing/new')?>">Create social post</a></div></div>
+<?php
+$dashUser=current_user();$dashUid=(int)$dashUser['id'];$dashCfg=comm_config();
+$dashCanCommunicate=empty($dashCfg['owner'])||(int)$dashCfg['owner']===$dashUid;
+$dashReader=$dashCanCommunicate?reader_operations_summary():[];
+$dashDevices=count(array_filter(comm_user_devices($dashUid),static fn($d)=>!empty($d['enabled'])));
+$recentDraft=null;foreach($posts as$working)if($working['status']==='draft'){$recentDraft=$working;break;}
+$dashAttention=(int)($workspace['attention']??0);$dashOpen=(int)($dashReader['enquiries_open']??0);$dashOverdue=(int)($dashReader['enquiries_overdue']??0);
+?>
+<main class="write-main writer-dashboard dashboard-home">
+  <div class="writer-head dashboard-heading"><div><span class="writer-kicker">Your private workspace</span><h1>Your day, in one place.</h1><p class="muted">Plan your time, keep conversations moving and bring your ideas to life.</p></div><a class="wbtn primary" href="<?=url('/write/capture')?>">＋ Capture an idea</a></div>
   <?php foreach(flashes() as $f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
+  <nav class="dashboard-jump" aria-label="Dashboard sections"><a href="#day">Today</a><a href="#attention">Needs attention</a><a href="#create">Create & publish</a><a href="#library">Article library</a></nav>
 
-  <?php include __DIR__.'/program_home.php'; ?>
-  <section class="dashboard-grid writer-stats" aria-label="Publishing overview">
-    <button class="stat" type="button" data-writer-filter="draft"><strong><?=intval($counts['draft']??0)?></strong><span>Drafts</span><small>Still taking shape</small></button>
-    <button class="stat" type="button" data-writer-filter="scheduled"><strong><?=intval($counts['scheduled']??0)?></strong><span>Scheduled</span><small>Ready for later</small></button>
-    <button class="stat" type="button" data-writer-filter="published"><strong><?=intval($counts['published']??0)?></strong><span>Published</span><small>Live in the archive</small></button>
-    <button class="stat" type="button" data-writer-filter="selected"><strong><?=intval($counts['selected']??0)?></strong><span>Selected</span><small>Highlighted publicly</small></button>
+  <div class="dashboard-day-grid" id="day">
+    <div><?php include __DIR__.'/program_home.php'; ?></div>
+    <aside class="dashboard-attention" id="attention" aria-labelledby="attention-title">
+      <span class="writer-kicker">Keep things moving</span><h2 id="attention-title">Needs attention</h2>
+      <a class="dashboard-task" href="<?=url('/write/publishing')?>"><span><strong>Social deliveries</strong><small><?=$dashAttention?'Review assisted posts, failures or account issues.':'No social deliveries flagged for review.'?></small></span><b><?=$dashAttention?></b></a>
+      <?php if($dashCanCommunicate):?><a class="dashboard-task" href="<?=url('/write/communication?tab=inbox')?>"><span><strong>Open conversations</strong><small><?=$dashOverdue?intval($dashOverdue).' overdue follow-ups':'Review messages and next steps.'?></small></span><b><?=intval($dashOpen)?></b></a><?php endif;?>
+      <a class="dashboard-task" href="<?=url('/write/app')?>"><span><strong>Device notifications</strong><small><?=$dashDevices?'Review your devices and reminder preferences.':'Connect your phone or computer to receive reminders.'?></small></span><span class="dashboard-chip"><?=$dashDevices?intval($dashDevices).' connected':'Set up'?></span></a>
+      <a class="dashboard-task" href="<?=url('/write/journeys/founders')?>"><span><strong>Founder reviews</strong><small>Track approval rounds and returned stories.</small></span><span aria-hidden="true">→</span></a>
+      <p class="dashboard-footnote">Counts reflect saved workspace records. Open a workspace for current provider status.</p>
+    </aside>
+  </div>
+
+  <section class="dashboard-create" id="create" aria-labelledby="create-title">
+    <div class="dashboard-section-heading"><div><span class="writer-kicker">From idea to audience</span><h2 id="create-title">Create & publish</h2></div><a href="<?=url('/write/media-centre')?>">Open media centre →</a></div>
+    <div class="dashboard-action-grid">
+    <?php foreach([
+      ['/write/studio','✦','Studio & AI','Capture notes, develop ideas and draft with AI.'],
+      ['/write/new','✎','Write a thought','Open the editor and start an article.'],
+      ['/write/publishing/new','＋','Create a social post','Prepare content for your professional accounts.'],
+      ['/write/newsletter','↗','Send a newsletter','Prepare an email for your subscribers.']
+    ]as$tool):?><a class="dashboard-action" href="<?=url($tool[0])?>"><span aria-hidden="true"><?=e($tool[1])?></span><strong><?=e($tool[2])?></strong><small><?=e($tool[3])?></small></a><?php endforeach;?>
+    </div>
   </section>
 
-  <?php $recentDraft=null;foreach($posts as$working)if($working['status']==='draft'){$recentDraft=$working;break;}?>
-  <div class="workspace-overview-grid">
-    <section class="workspace-feature"><span class="writer-kicker"><?= $recentDraft?'Continue where you left off':'Start with a thought'?></span><h2><?=e($recentDraft['title']??'An observation can become a useful story.')?></h2><p><?=e($recentDraft?($recentDraft['standfirst']?:'Your private draft is ready to continue.'):'Capture a question, dictate an idea on your phone, or open the editor and begin.')?></p><a class="wbtn primary" href="<?=url($recentDraft?'/write/edit/'.$recentDraft['id']:'/write/capture')?>"><?=$recentDraft?'Continue draft':'Capture an idea'?> →</a></section>
-    <section class="workspace-status"><h2>Social workspace</h2><div class="workspace-status-number"><?=intval($workspace['connected'])?><small>of 6 platforms with confirmed account access</small></div><p><?=intval($workspace['attention'])?> posting tasks need attention · <?=intval($workspace['scheduled'])?> scheduled social deliveries</p><div class="writer-actions"><a class="wbtn" href="<?=url('/write/media-centre#connect')?>">Connect accounts</a><a href="<?=url('/write/publishing')?>">Review deliveries →</a></div></section>
+  <div class="dashboard-progress-grid">
+    <section class="dashboard-continue"><span class="writer-kicker"><?=$recentDraft?'Continue writing':'Make room for a new idea'?></span><h2><?=e($recentDraft['title']??'What is on your mind?')?></h2><p><?=e($recentDraft?($recentDraft['standfirst']?:'Your private draft is ready to continue.'):'Capture a question, an observation or a voice-dictated note.')?></p><a class="wbtn" href="<?=url($recentDraft?'/write/edit/'.$recentDraft['id']:'/write/capture')?>"><?=$recentDraft?'Continue draft':'Capture an idea'?> →</a></section>
+    <section class="dashboard-pipeline" aria-labelledby="pipeline-title"><h2 id="pipeline-title">Publishing overview</h2><div class="dashboard-grid writer-stats">
+      <?php foreach(['draft'=>['Drafts','Private articles'],'scheduled'=>['Scheduled','Articles queued'],'published'=>['Published','Live articles'],'selected'=>['Selected','Featured articles']]as$key=>$labels):?><button class="stat" type="button" data-writer-filter="<?=e($key)?>"><strong><?=intval($counts[$key]??0)?></strong><span><?=e($labels[0])?></span><small><?=e($labels[1])?></small></button><?php endforeach;?>
+      </div><p><?=intval($workspace['scheduled']??0)?> scheduled social deliveries · <?=intval($workspace['connected']??0)?> of 6 platforms with saved account access</p><a href="<?=url('/write/media-centre#connect')?>">Manage social connections →</a></section>
   </div>
-  <section class="workspace-quick-section" aria-labelledby="workspace-tools"><div class="workspace-section-head"><h2 id="workspace-tools">What would you like to do?</h2><span class="muted">Choose a workspace to continue.</span></div><div class="workspace-quick-grid">
-    <?php foreach([
-['/write/studio','01','Shape an idea','Capture notes, develop an outline and request AI drafting help.'],
-['/write/media-centre','02','Publish & connect','Create social posts, connect accounts and review account analytics.'],
-['/write/media','03','Manage media','Upload and find the images and videos for your next story.'],
-['/write/newsletter','04','Reach your audience','Prepare newsletters and review subscriber workflows.'],
-['/write/journeys','05','Document the journey','Keep venture experiments, founder stories and evidence together.'],
-['/write/impact','06','Track 2030 goals','Review source reporting and the evidence behind your commitments.']
-]as$tool):?><a class="workspace-quick-card" href="<?=url($tool[0])?>"><span><?=e($tool[1])?></span><h3><?=e($tool[2])?> ↗</h3><p><?=e($tool[3])?></p></a><?php endforeach;?></div></section>
 
+  <section class="dashboard-destinations" aria-labelledby="more-title"><div class="dashboard-section-heading"><h2 id="more-title">Explore your workspace</h2></div><div class="dashboard-destination-grid">
+    <?php foreach([
+      ['/write/communication','Communication Centre','Inbox, people, meetings and follow-ups'],
+      ['/write/media','Media library','Images, videos and assets'],
+      ['/write/impact','2030 goals & evidence','Approved reporting and source records'],
+      ['/write/discovery','Search performance','Audience discovery and site health']
+    ]as$tool):?><a href="<?=url($tool[0])?>"><strong><?=e($tool[1])?> →</strong><small><?=e($tool[2])?></small></a><?php endforeach;?>
+  </div></section>
   <section class="writer-library" id="library">
-    <div class="writer-library-head"><div><span class="writer-kicker">Library</span><h2>Find the thought you want to work on.</h2></div><div class="writer-library-tools"><label class="writer-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search title, topic or summary" data-writer-search autocomplete="off"></label><select data-writer-status aria-label="Filter posts by status"><option value="all">All statuses</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option><option value="published">Published</option><option value="selected">Selected</option></select></div></div>
+    <div class="writer-library-head"><div><span class="writer-kicker">Library</span><h2>Your article library.</h2></div><div class="writer-library-tools"><label class="writer-search"><span aria-hidden="true">⌕</span><input type="search" aria-label="Search articles" placeholder="Search title, topic or summary" data-writer-search autocomplete="off"></label><select data-writer-status aria-label="Filter posts by status"><option value="all">All statuses</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option><option value="published">Published</option><option value="selected">Selected</option></select></div></div>
 
     <div class="writer-post-list" data-writer-list>
       <?php if(!$posts):?><div class="writer-empty"><strong>Your first thought starts here.</strong><p>Create a draft, add a topic and publish only when it is ready.</p><a class="wbtn primary" href="<?=url('/write/new')?>">Start a thought</a></div><?php endif;?>
