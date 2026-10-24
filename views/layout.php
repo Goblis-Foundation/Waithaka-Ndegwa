@@ -29,7 +29,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
 <link rel="stylesheet" href="<?=asset('css/site.css')?>"><link rel="stylesheet" href="<?=asset('css/experience.css')?>"><link rel="stylesheet" href="<?=asset('css/impact.css')?>"><link rel="stylesheet" href="<?=asset('css/journeys.css')?>">
 <?php foreach(['editorial','reader','discovery']as$style)if(is_file(__DIR__.'/../assets/css/'.$style.'.css')):?><link rel="stylesheet" href="<?=asset('css/'.$style.'.css')?>"><?php endif;?>
 <?php foreach((array)$schema as $s):?><script type="application/ld+json"><?=json_encode($s,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?></script><?php endforeach;?>
-<?php if($recaptchaSite && $page==='contact'):?><script src="https://www.google.com/recaptcha/api.js" async defer></script><?php endif;?>
+<?php if($recaptchaSite && in_array($page,['contact','booking'],true)):?><script src="https://www.google.com/recaptcha/api.js" async defer></script><?php endif;?>
 </head>
 <body data-ga4="<?=e($ga4)?>" class="page-<?=e($page)?>">
 <a class="skip-link" href="#main">Skip to content</a>
