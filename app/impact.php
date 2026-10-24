@@ -29,18 +29,58 @@ function impact_indirect_groups(): array {
         'goblis_foundation'=>['label'=>'Goblis Foundation · AfriTrace Link','copy'=>'Household members of participating producers and enterprise workers, and people benefiting from improved local supplier, logistics and market networks. A listed enterprise, buyer introduction or sale alone does not establish a beneficiary count.']
     ];
 }
+/** Explicit timestamps are distinct from measurement periods and local fetch checks. */
+function impact_stamp(mixed $value,int $now): int {
+    if(!is_string($value)||!preg_match('/\\A\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:Z|[+-]\\d{2}:\\d{2})\\z/',$value))throw new InvalidArgumentException('An explicit reporting timestamp is required.');
+    if(preg_match('/([+-])(\\d{2}):(\\d{2})\\z/',$value,$offset)&&((int)$offset[2]>14||(int)$offset[3]>59||((int)$offset[2]===14&&(int)$offset[3]!==0)))throw new InvalidArgumentException('Invalid reporting timezone offset.');
+    $d=DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:sP',str_ends_with($value,'Z')?substr($value,0,-1).'+00:00':$value);$errors=DateTimeImmutable::getLastErrors();
+    if(!$d||($errors!==false&&($errors['warning_count']||$errors['error_count']))||$d->getTimestamp()<strtotime('2026-07-01T00:00:00+03:00')||$d->getTimestamp()>$now+300)throw new InvalidArgumentException('Invalid reporting timestamp.');return $d->getTimestamp();
+}
+function impact_report_dates(array $data,int $now): array {
+    if($data['schema_version']===1){$stamp=impact_stamp($data['as_of']??null,$now);return ['schema_version'=>1,'approved_for_publication'=>true,'reporting_frequency'=>'legacy','as_of'=>gmdate('c',$stamp),'published_at'=>null,'approved_at'=>null];}
+    $allowed=['schema_version','source','period_start','period_end','definition_version','approved_for_publication','publication_status','report_id','revision','reporting_frequency','measurement_period_start','measurement_period_end','measurement_timezone','approved_at','published_at','metrics','beneficiary_basis','beneficiary_deduplicated'];
+    if(array_diff(array_keys($data),$allowed))throw new InvalidArgumentException('Only the approved aggregate report contract is accepted.');
+    $approved=($data['approved_for_publication']??null)===true;
+    if(!in_array($data['approved_for_publication']??null,[true,false],true)||($data['publication_status']??null)!==($approved?'approved':'withdrawn')||($data['reporting_frequency']??null)!=='monthly')throw new InvalidArgumentException('Explicit monthly publication approval is required.');
+    $id=$data['report_id']??null;$rev=$data['revision']??null;
+    if(!is_string($id)||!preg_match('/\\A[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}\\z/D',$id)||!is_int($rev)||$rev<1||$rev>1000000)throw new InvalidArgumentException('A report ID and positive revision are required.');
+    $zone=$data['measurement_timezone']??null;if(!is_string($zone)||!in_array($zone,DateTimeZone::listIdentifiers(),true))throw new InvalidArgumentException('A valid measurement timezone is required.');$z=new DateTimeZone($zone);
+    $start=$data['measurement_period_start']??null;$end=$data['measurement_period_end']??null;
+    if(!is_string($start)||!is_string($end)||!preg_match('/\\A\\d{4}-\\d{2}-01\\z/D',$start))throw new InvalidArgumentException('A closed monthly measurement period is required.');
+    $month=DateTimeImmutable::createFromFormat('!Y-m-d',$start,$z);$errors=DateTimeImmutable::getLastErrors();
+    if(!$month||($errors!==false&&($errors['warning_count']||$errors['error_count']))||$month->format('Y-m-d')!==$start||$end!==$month->format('Y-m-t')||$start<'2026-07-01'||$end>'2030-06-30')throw new InvalidArgumentException('Invalid monthly measurement period.');
+    $closed=$month->modify('first day of next month')->getTimestamp();$published=impact_stamp($data['published_at']??null,$now);
+    $approval=$approved?impact_stamp($data['approved_at']??null,$now):null;
+    if($closed>$now||$published<$closed||($approved&&($approval<$closed||$approval>$published)))throw new InvalidArgumentException('Measurement must close before approval and publication.');
+    if(!$approved&&array_intersect(['metrics','beneficiary_basis','beneficiary_deduplicated'],array_keys($data)))throw new InvalidArgumentException('Withdrawals must not transmit unapproved metrics.');
+    $due=$end==='2030-06-30'?null:$month->modify('first day of +2 months')->modify('+14 days')->setTime(23,59,59)->format('c');
+    return ['schema_version'=>2,'approved_for_publication'=>$approved,'publication_status'=>$approved?'approved':'withdrawn','report_id'=>$id,'revision'=>$rev,'reporting_frequency'=>'monthly','measurement_period_start'=>$start,'measurement_period_end'=>$end,'measurement_timezone'=>$zone,'as_of'=>gmdate('c',$closed-1),'approved_at'=>$approval===null?null:gmdate('c',$approval),'published_at'=>gmdate('c',$published),'next_report_due_at'=>$due];
+}
+/** Repeated checks cannot change measurement age, publication time or an accepted revision. */
+function impact_accept_report(array $old,array $fresh,?int $now=null): array {
+    $now??=time();$prior=$old['data']??$old['withdrawn_report']??null;
+    if(is_array($prior)){
+        if(($prior['schema_version']??1)===2&&($fresh['schema_version']??1)!==2)throw new RuntimeException('A monthly source cannot downgrade to the legacy reporting contract.');
+        $before=($prior['schema_version']??1)===2?$prior['measurement_period_end']:strtotime((string)($prior['as_of']??''));$after=($prior['schema_version']??1)===2?$fresh['measurement_period_end']:strtotime($fresh['as_of']);if($after<$before)throw new RuntimeException('An older measurement cannot replace a newer report.');
+        if(($prior['schema_version']??1)===2&&$after===$before){
+            if($fresh['report_id']!==$prior['report_id']||$fresh['revision']<$prior['revision']||strtotime($fresh['published_at'])<strtotime($prior['published_at']))throw new RuntimeException('The report identity or revision regressed.');
+            if($fresh['revision']===$prior['revision']){foreach(['metrics','approved_for_publication','approved_at','published_at','beneficiary_basis','measurement_period_start','measurement_period_end','measurement_timezone']as$key)if(($fresh[$key]??null)!==($prior[$key]??null))throw new RuntimeException('A changed report requires a new revision.');}
+        }
+    }
+    return ['status'=>$fresh['approved_for_publication']?'available':'withheld','attempted_at'=>gmdate('c',$now),'last_success_at'=>gmdate('c',$now),'data'=>$fresh['approved_for_publication']?$fresh:null,'withdrawn_report'=>$fresh['approved_for_publication']?null:$fresh];
+}
 function impact_validate(array $data,string $source,?int $now=null): array {
     $now??=time();
-    if(!isset(impact_sources()[$source]) || ($data['schema_version']??null)!==1 || ($data['source']??null)!==$source
+    if(!isset(impact_sources()[$source]) || !in_array($data['schema_version']??null,[1,2],true) || ($data['source']??null)!==$source
         || ($data['period_start']??null)!=='2026-07-01' || ($data['period_end']??null)!=='2030-06-30'
-        || ($data['definition_version']??null)!=='2030-v1' || ($data['approved_for_publication']??null)!==true) throw new InvalidArgumentException('Reporting contract does not match.');
-    $asOf=$data['as_of']??null;
-    if(!is_string($asOf) || !preg_match('/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})\z/',$asOf))throw new InvalidArgumentException('An explicit reporting timestamp is required.');
-    $stamp=strtotime($asOf);
-    if($stamp===false || $stamp<strtotime('2026-07-01T00:00:00+03:00') || $stamp>$now+300)throw new InvalidArgumentException('Invalid reporting timestamp.');
+        || ($data['definition_version']??null)!=='2030-v1' || (($data['schema_version']??null)===1&&($data['approved_for_publication']??null)!==true)) throw new InvalidArgumentException('Reporting contract does not match.');
+    $meta=impact_report_dates($data,$now);
+    if(!$meta['approved_for_publication'])return ['source'=>$source]+$meta+['metrics'=>[],'received_at'=>gmdate('c',$now),'beneficiary_basis'=>null];
     $values=$data['metrics']??null;if(!is_array($values))throw new InvalidArgumentException('Missing aggregate metrics.');
     $keys=$source==='goblis_foundation'?['market_access']:array_keys(array_filter(impact_metrics(),fn($m)=>$m['source']===$source));
+    if(($data['schema_version']??1)===2&&array_diff(array_keys($values),array_merge($keys,['indirect_beneficiaries'])))throw new InvalidArgumentException('Only approved aggregate metric keys are accepted.');
     $metrics=[];foreach($keys as$key){if(!array_key_exists($key,$values)&&!empty(impact_metrics()[$key]['optional']))continue;$value=$values[$key]??null;if(!is_int($value)||$value<0||$value>1000000000)throw new InvalidArgumentException('Invalid aggregate count.');$metrics[$key]=$value;}
+    if(($data['schema_version']??1)===2&&!array_key_exists('indirect_beneficiaries',$values)&&array_intersect(['beneficiary_basis','beneficiary_deduplicated'],array_keys($data)))throw new InvalidArgumentException('Beneficiary methodology requires a beneficiary aggregate.');
     $basis=null;
     if(array_key_exists('indirect_beneficiaries',$values)){
         $value=$values['indirect_beneficiaries'];$basis=$data['beneficiary_basis']??null;
@@ -48,7 +88,7 @@ function impact_validate(array $data,string $source,?int $now=null): array {
         $metrics['indirect_beneficiaries']=$value;$basis=trim(strip_tags($basis));
     }
     // Deliberately discard every unrecognised field, including names, contacts and raw records.
-    return ['source'=>$source,'as_of'=>gmdate('c',$stamp),'metrics'=>$metrics,'received_at'=>gmdate('c',$now),'beneficiary_basis'=>$basis];
+    return ['source'=>$source]+$meta+['metrics'=>$metrics,'received_at'=>gmdate('c',$now),'beneficiary_basis'=>$basis];
 }
 function impact_endpoint(string $url): array {
     $p=parse_url($url);
@@ -83,18 +123,18 @@ function impact_sync(bool $force=false): array {
         if(!$force&&time()-$attempt<900)continue;
         try{
             $fresh=impact_validate(impact_fetch($url,(string)setting('impact.token.'.$source,'')),$source);
-            if(isset($old['data']['as_of'])&&strtotime($fresh['as_of'])<strtotime($old['data']['as_of']))throw new RuntimeException('An older snapshot cannot replace a newer report.');
-            $saved=['status'=>'available','attempted_at'=>gmdate('c'),'data'=>$fresh];$results[$source]='updated';
-        }catch(Throwable $e){$saved=['status'=>'unavailable','attempted_at'=>gmdate('c'),'data'=>$old['data']??null];$results[$source]='unavailable';}
+            $saved=impact_accept_report($old,$fresh);$results[$source]=$fresh['approved_for_publication']?'updated':'withheld';
+        }catch(Throwable $e){$saved=['status'=>'unavailable','attempted_at'=>gmdate('c'),'last_success_at'=>$old['last_success_at']??null,'withdrawn_report'=>$old['withdrawn_report']??null,'data'=>$old['data']??null];$results[$source]='unavailable';}
         set_setting('impact.snapshot.'.$source,json_encode($saved,JSON_THROW_ON_ERROR));
     }}finally{$pdo->query("SELECT RELEASE_LOCK('waithaka-impact-sync')");}
     return $results;
 }
 function impact_display(array $snapshot,string $key,?int $now=null): array {
-    $data=$snapshot['data']??null;$value=is_array($data)?($data['metrics'][$key]??null):null;
-    if(!is_int($value))return ['value'=>null,'status'=>'Awaiting source data','as_of'=>null];
-    $stamp=strtotime((string)($data['as_of']??''))?:0;$stale=($snapshot['status']??'')!=='available'||($now??time())-$stamp>172800;
-    return ['value'=>$value,'status'=>$stale?'Last reported · update pending':'Source-reported progress','as_of'=>$data['as_of']];
+    $now??=time();$data=$snapshot['data']??null;$base=['value'=>null,'status'=>'Awaiting source data','as_of'=>null,'published_at'=>null,'measurement_period_start'=>null,'measurement_period_end'=>null,'measurement_timezone'=>null,'next_report_due_at'=>null,'connection_status'=>($snapshot['status']??'')==='available'?'Source reachable':'Source check pending','checked_at'=>$snapshot['attempted_at']??null];
+    if(!is_array($data)||($data['approved_for_publication']??null)!==true||!is_int($data['metrics'][$key]??null))return $base;
+    $monthly=($data['schema_version']??1)===2&&($data['reporting_frequency']??'')==='monthly';
+    $stale=$monthly?(!empty($data['next_report_due_at'])&&$now>(strtotime($data['next_report_due_at'])?:0)):($now-(strtotime((string)($data['as_of']??''))?:0)>172800);
+    return array_replace($base,['value'=>$data['metrics'][$key],'status'=>$stale?($monthly?'Last reported · monthly update overdue':'Last reported · update pending'):'Source-reported progress','as_of'=>$data['as_of'],'published_at'=>$data['published_at']??null,'measurement_period_start'=>$data['measurement_period_start']??null,'measurement_period_end'=>$data['measurement_period_end']??null,'measurement_timezone'=>$data['measurement_timezone']??null,'next_report_due_at'=>$data['next_report_due_at']??null]);
 }
 function impact_writer_route(string $path): bool {
     if($path!=='/write/impact')return false;
