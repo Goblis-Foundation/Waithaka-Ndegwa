@@ -47,7 +47,7 @@ jobs:
           test "$(aws sts get-caller-identity --query Account --output text)" = 466401734428
           aws elasticbeanstalk describe-environments --environment-names waithaka-ndegwa-production --region af-south-1
           aws elasticbeanstalk describe-events --environment-name waithaka-ndegwa-production --region af-south-1 --max-records 25
-      - name: Inventory fixed-cost resources for USD 75 monthly budget
+      - name: Inventory fixed-cost resources against accepted USD 113.22 monthly baseline
         shell: bash
         run: |
           set -euo pipefail
