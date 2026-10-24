@@ -4,10 +4,15 @@ if(PHP_SAPI!=='cli'||getenv('APP_ENV')!=='testing')exit(2);
 require __DIR__.'/prepare.php';$settings=wk_test_database_settings();$database=(string)(getenv('DB_DATABASE')?:getenv('WK_TEST_DB_NAME'));wk_test_assert_database_name($database);
 $CONFIG=['app_env'=>'testing','base_url'=>'https://www.waithakandegwa.com','app_key'=>'local-planner-fixture-not-production','db'=>$settings+['name'=>$database]];
 $APP_INSTALLED=true;
-foreach(['functions','reader','operations','communication','communication_notifications','app_security','trusted_devices','planner']as$m)require dirname(__DIR__).'/app/'.$m.'.php';
+foreach(['functions','reader','operations','publishing','communication','communication_notifications','app_security','trusted_devices','planner']as$m)require dirname(__DIR__).'/app/'.$m.'.php';
 function pd(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);}
 function px(callable $fn):void{try{$fn();}catch(InvalidArgumentException|RuntimeException){return;}throw new LogicException('Expected rejected operation.');}
 db()->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['Program fixture','program@example.invalid',password_hash(bin2hex(random_bytes(20)),PASSWORD_DEFAULT)]);$uid=(int)db()->lastInsertId();
+set_setting('publishing.google.client_id','fixture-client');set_setting('publishing.google.client_secret','fixture-secret',true);
+parse_str((string)parse_url(publishing_oauth_start('google_calendar',$uid),PHP_URL_QUERY),$readGrant);
+parse_str((string)parse_url(publishing_oauth_start('google_calendar',$uid,true),PHP_URL_QUERY),$editGrant);
+pd(!str_contains($readGrant['scope'],'calendar.events.owned')&&str_contains($editGrant['scope'],'calendar.events.owned'),'Calendar edit permission is requested only by explicit opt-in');
+pd($readGrant['redirect_uri']===$editGrant['redirect_uri'],'Calendar editing reuses registered callback');
 $_SESSION=['user_id'=>$uid];app_trust_issue($uid);$cookie=$_COOKIE[app_trust_cookie_name()];$trusted=$_SESSION['trusted_id'];$raw=db()->prepare('SELECT setting_value FROM settings WHERE setting_key=?');$raw->execute(['communication.trusted.'.$trusted]);$encoded=$raw->fetchColumn();pd(!str_contains($encoded,explode('.',$cookie)[1]),'Bearer token not stored in clear text');
 $_SESSION=[];pd(app_trust_restore()&&$_SESSION['user_id']===$uid,'Expired ordinary session restored from valid remembered device');
 $_SESSION=[];comm_put('session.'.$trusted,['revoked'=>true]);pd(!app_trust_restore(),'Device session revocation prevents restoration');
