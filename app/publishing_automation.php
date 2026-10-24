@@ -95,5 +95,5 @@ function publishing_prepare_channels(array $input): array {
  $body=is_string($ai[$slug]??null)&&trim($ai[$slug])!==''?trim($ai[$slug]):$message;
  $v['text']=publishing_channel_copy($slug,$draft['title'],$body,$draft['source_url']);
  if(!$v['media_asset_id']&&$v['media_url']===''){$pick=publishing_pick_media($slug,$draft['title'].' '.$message,$featured,$assets,$channels[$slug]??[]);if($pick){$v['media_asset_id']=(int)$pick['id'];$v['media_type']=$pick['kind'];/* Alt text needs an accurate human description, not a guessed filename. */}}
- }unset($v);return $draft;
+ }unset($v);$draft['_core_message']=$message;$draft['_preparation_note']=($input['prepare_ai_consent']??'')==='1'?($ai?'OpenAI-assisted suggestions are ready for your review. Any unavailable channel version used local formatting.':'OpenAI returned no usable channel drafts; local formatting was used. Check the API balance or connection before retrying.'):'Local platform formatting is ready for review. No text was sent to an AI provider.';return $draft;
 }
