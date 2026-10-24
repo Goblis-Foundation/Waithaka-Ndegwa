@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/gemini.php';
 
 /** Personal Google workspace. All remote reads are explicit; no background calendar replication. */
 function google_workspace_identity(string $service,array $who,array $headers): array {
@@ -207,6 +208,7 @@ function google_workspace_gemini(string $input,string $mode,bool $grounded): arr
     $input=studio_input($input);$key=trim((string)setting('google.gemini_key',''));if($key==='')throw new RuntimeException('Save a Gemini API key and choose its billing/data tier first.');
     $model=(string)setting('google.gemini_model','gemini-3.8-flash');if(!preg_match('/^gemini-[a-z0-9.-]{1,80}$/D',$model))throw new RuntimeException('Choose a valid Gemini model identifier.');
     $instructions=studio_instructions($mode);if($grounded)$instructions=str_replace('Do not claim to have searched or verified anything.','Use grounding results and cite sources; do not call unsupported claims verified.',$instructions);
+    if(!$grounded){$text=google_gemini_generate($instructions,$input,2400);return ['text'=>$text,'sources'=>[],'grounded'=>false,'note'=>'Unverified suggestion for author review. No content or calendar action was performed.'];}
     $body=['systemInstruction'=>['parts'=>[['text'=>$instructions.($grounded?' Use search sources to investigate claims and distinguish verified sources from suggestions.':'')]]],'contents'=>[['role'=>'user','parts'=>[['text'=>$input]]]],'generationConfig'=>google_gemini_generation_config($model)];
     if($grounded)$body['tools']=[['google_search'=>new stdClass()]];
     $r=publishing_http('POST','https://generativelanguage.googleapis.com/v1beta/models/'.$model.':generateContent',['x-goog-api-key: '.$key],$body)['data'];$candidate=$r['candidates'][0]??[];$text='';
@@ -242,7 +244,8 @@ function google_workspace_dispatch(string $path): bool {
         }
         if(is_post()){
             verify_csrf();$action=$_POST['action']??'';if(!is_string($action))throw new InvalidArgumentException('Choose an action.');
-            if($action==='settings'){
+            if($action==='gemini-models'){if(!journeys_rate_limit('gemini-model-catalog',(string)$uid,12,3600))throw new RuntimeException('Please wait before checking available models again.');google_gemini_catalog();flash('success','Available Gemini models refreshed. This check did not generate content.');redirect(url('/write/google#settings'));}
+            elseif($action==='settings'){
                 foreach(['pagespeed_key','crux_key','picker_key','gemini_key']as$key){$v=$_POST[$key]??'';if(!is_string($v)||strlen($v)>1000||preg_match('/[\x00-\x20\x7f]/',$v))throw new InvalidArgumentException('A key has invalid characters.');if($v!=='')set_setting('google.'.$key,$v,true);}
                 $model=$_POST['gemini_model']??'';if(!is_string($model)||!preg_match('/^gemini-[a-z0-9.-]{1,80}$/D',$model))throw new InvalidArgumentException('Enter a Gemini model identifier.');set_setting('google.gemini_model',$model);
                 $booking=$_POST['booking_url']??'';if(!is_string($booking))throw new InvalidArgumentException('Enter a Google booking link.');set_setting('google.booking_url',google_workspace_link(trim($booking),['calendar.google.com','calendar.app.google']));

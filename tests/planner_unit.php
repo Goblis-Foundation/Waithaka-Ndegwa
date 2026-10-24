@@ -16,6 +16,7 @@ pr(fn()=>planner_fields($input+['recipients'=>"bad\r\nBcc:someone@example.invali
 pr(fn()=>planner_fields(array_replace($input,['end'=>'2026-11-02T08:00']),'Africa/Nairobi'));
 pr(fn()=>planner_fields(array_replace($input,['latitude'=>'91']),'Africa/Nairobi'));
 $parsed=planner_parse("title,start,end,recipients\nReview,2026-11-02T09:00,2026-11-02T10:00,unreviewed@example.invalid\n",'csv','Africa/Nairobi');pc(count($parsed['rows'])===1&&$parsed['rows'][0]['recipients']===[],'Import cannot smuggle notice recipients');
+$many="title,start,end\n".str_repeat("Review,2026-11-02T09:00,2026-11-02T10:00\n",101);pr(fn()=>planner_parse($many,'csv','Africa/Nairobi'));
 $ics="BEGIN:VCALENDAR\nBEGIN:VEVENT\nDTSTART;VALUE=DATE:20261102\nDTEND;VALUE=DATE:20261103\nSUMMARY:Planning day\nEND:VEVENT\nEND:VCALENDAR";
 pc(planner_parse($ics,'ics','Africa/Nairobi')['rows'][0]['end']-planner_parse($ics,'ics','Africa/Nairobi')['rows'][0]['start']===86400,'All-day exclusive end');
 pr(fn()=>planner_parse(str_replace('SUMMARY:','RRULE:FREQ=DAILY'."\nSUMMARY:",$ics),'ics','UTC'));

@@ -30,6 +30,15 @@ try{
  $page=ph_request('/write/program?date=2026-11-02');ph_check($page['status']===200&&str_contains($page['body'],'Daily program'),'Daily program renders');ph_check(str_contains($page['headers']['cache-control']??'','no-store'),'Private program not cacheable');
  $save=ph_form($page['body'],'save');$save=array_replace($save,['title'=>'REVIEWED PRIVATE PROGRAM','start'=>'2026-11-02T09:00','end'=>'2026-11-02T09:30','timezone'=>'Africa/Nairobi','kind'=>'project','location'=>'Nairobi','reminder'=>'15']);
  ph_check(ph_request('/write/program?date=2026-11-02',$save)['status']===302,'Actual program form saves');$page=ph_request('/write/program/2026-11-02');ph_check($page['status']===200&&str_contains($page['body'],'REVIEWED PRIVATE PROGRAM'),'Dated program shows saved item');ph_check(str_contains($page['body'],'/write/program/2026-11-02'),'Printed reference keeps day');
+ $programLines=[];$edited=[];for($i=1;$i<=100;$i++){$programLines[]='2026-11-02 | 10:00 | 10:30 | IMPORT FIXTURE '.$i.' | Fixture location';$edited[$i]=['title'=>'REVIEWED IMPORT '.$i,'start'=>'2026-11-02T10:00','end'=>'2026-11-02T10:30','location'=>'Fixture location','project'=>'Synthetic','notes'=>'Acceptance fixture only'];}
+ $importFields=ph_form($page['body'],'save');$importFields['action']='import';$importFields['program_text']=implode("\n",$programLines);$import=ph_request('/write/program?date=2026-11-02',$importFields);
+ ph_check($import['status']===200&&str_contains($import['body'],'Review before adding'),'Full bounded program preview renders');
+ $confirm=ph_form($import['body'],'import_confirm');unset($confirm['program_complete']);$confirm['selected']=range(1,100);$confirm['rows']=$edited;
+ $truncated=ph_request('/write/program?date=2026-11-02',$confirm);ph_check($truncated['status']===200&&str_contains($truncated['body'],'preview was truncated'),'Truncated submission is rejected');
+ ph_check(count(comm_records('planner.item.'.$actor,5000))===1,'Truncated form creates no program items');
+ $confirm['program_complete']='1';ph_check(ph_request('/write/program?date=2026-11-02',$confirm)['status']===302,'One hundred edited rows fit the real form parser');
+ ph_check(count(comm_records('planner.item.'.$actor,5000))===101,'Every selected reviewed entry is saved');
+ $page=ph_request('/write/program?date=2026-11-02');
  $jarText=file_get_contents($jar);ph_check(str_contains($jarText,'wn_trust'),'Persistent trust cookie issued');
  $trustCookie=null;foreach(explode("\n",$jarText)as$line){$parts=explode("\t",$line);if(count($parts)===7&&$parts[5]==='wn_trust')$trustCookie=$parts;}ph_check($trustCookie!==null&&$trustCookie[1]==='FALSE'&&(int)$trustCookie[4]>time()+170*86400,'Trust cookie has host-only persistent expiry');
  $before=ph_form($page['body'],'save');ph_expire_sessions();$restored=ph_request('/write/program?date=2026-11-02');ph_check($restored['status']===200&&str_contains($restored['body'],'REVIEWED PRIVATE PROGRAM'),'Ordinary session expiry does not require another login');$after=ph_form($restored['body'],'save');ph_check($before['csrf']===$after['csrf'],'Restoration preserves valid device CSRF forms');
