@@ -67,6 +67,12 @@ db()->prepare("INSERT INTO contact_messages(reference,first_name,last_name,email
 $contactId=(int)db()->lastInsertId();$contactMail=enqueue_email($email,'Contact fixture','<p>Fixture</p>','contact:'.$contactRef);$extraOutbox[]=$contactMail;
 db()->prepare("UPDATE email_outbox SET status='sent',provider_id='synthetic-already-accepted',sent_at=NOW() WHERE id=?")->execute([$contactMail]);email_work();
 verify((int)db()->query('SELECT email_sent FROM contact_messages WHERE id='.$contactId)->fetchColumn()===1,'Acknowledged contact mail repairs its dependent record without network delivery.');
+$scopedMail=enqueue_email($email,'Scoped weekly reminder fixture','<p>Synthetic</p>',$prefix.'-scoped');$extraOutbox[]=$scopedMail;
+$legacyMail=enqueue_email($email,'Unrelated paused mail fixture','<p>Synthetic</p>',$prefix.'-unrelated');$extraOutbox[]=$legacyMail;
+$scopedCalls=0;$scopedStats=email_work(100,function()use(&$scopedCalls){$scopedCalls++;return 'synthetic-scoped-ack';},[$scopedMail]);
+verify($scopedCalls===1&&$scopedStats['sent']===1,'Scoped mail worker sends only the selected reminder.');
+verify(db()->query('SELECT status FROM email_outbox WHERE id='.$legacyMail)->fetchColumn()==='pending','Unrelated paused email remains pending.');
+verify(email_work(100,fn()=>'must-not-send',[])['sent']===0,'Empty mail scope cannot drain the queue.');
 $sessions=new WkDatabaseSessions();$sid='test-'.bin2hex(random_bytes(12));
 verify($sessions->read($sid)==='','Missing session is empty.');$sessions->write($sid,'private-session-data');$sessions->close();
 verify($sessions->validateId($sid),'Stored session is valid.');verify($sessions->read($sid)==='private-session-data','Encrypted sessions survive a different instance read.');$sessions->close();$sessions->destroy($sid);verify(!$sessions->validateId($sid),'Destroyed session no longer authenticates.');

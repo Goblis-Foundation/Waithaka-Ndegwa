@@ -69,12 +69,13 @@ function email_deliver(array $payload,string $deliveryKey): string {
     $mail->send();return $mail->getLastMessageID();
 }
 /** Repair dependent records from durable provider acknowledgements without resending. */
-function email_reconcile_delivery_state(): void {
+function email_reconcile_delivery_state(?array $onlyIds=null): void {
+    $scope='';if($onlyIds!==null){$ids=array_values(array_filter(array_map('intval',$onlyIds),static fn($id)=>$id>0));if(!$ids)return;$scope=' AND e.id IN ('.implode(',',$ids).')';}
     // The hash column is ASCII; source identifiers have a different Unicode collation.
-    db()->exec("UPDATE contact_messages c JOIN email_outbox e ON BINARY e.dedupe_key=BINARY SHA2(CONCAT('contact:',c.reference),256) SET c.email_sent=1 WHERE c.email_sent=0 AND e.status='sent'");
-    db()->exec("UPDATE publishing_jobs j JOIN email_outbox e ON BINARY e.dedupe_key=BINARY SHA2(CONCAT('publishing:',j.job_key),256) SET j.status='reminder_sent',j.last_error=NULL WHERE j.status='reminder_queued' AND e.status='sent'");
-    db()->exec("UPDATE publishing_jobs j JOIN email_outbox e ON BINARY e.dedupe_key=BINARY SHA2(CONCAT('publishing:',j.job_key),256) SET j.status='assisted',j.last_error='Reminder delivery is unconfirmed. Complete the task in the platform and record its URL.' WHERE j.status='reminder_queued' AND e.status='ambiguous'");
-    if(function_exists('newsletter_email_reconcile'))newsletter_email_reconcile();
+    db()->exec("UPDATE contact_messages c JOIN email_outbox e ON BINARY e.dedupe_key=BINARY SHA2(CONCAT('contact:',c.reference),256) SET c.email_sent=1 WHERE c.email_sent=0 AND e.status='sent'".$scope);
+    db()->exec("UPDATE publishing_jobs j JOIN email_outbox e ON BINARY e.dedupe_key=BINARY SHA2(CONCAT('publishing:',j.job_key),256) SET j.status='reminder_sent',j.last_error=NULL WHERE j.status='reminder_queued' AND e.status='sent'".$scope);
+    db()->exec("UPDATE publishing_jobs j JOIN email_outbox e ON BINARY e.dedupe_key=BINARY SHA2(CONCAT('publishing:',j.job_key),256) SET j.status='assisted',j.last_error='Reminder delivery is unconfirmed. Complete the task in the platform and record its URL.' WHERE j.status='reminder_queued' AND e.status='ambiguous'".$scope);
+    if($onlyIds===null&&function_exists('newsletter_email_reconcile'))newsletter_email_reconcile();
 }
 function email_acknowledgement_dependents(int $id,string $providerId,array $payload): void {
     if (str_starts_with($payload['dedupe_key'],'contact:')) db()->prepare('UPDATE contact_messages SET email_sent=1 WHERE reference=?')->execute([substr($payload['dedupe_key'],8)]);
@@ -89,18 +90,19 @@ function email_record_acknowledgement(int $id,string $providerId,array $payload)
         db()->commit();
     } catch(Throwable $e) { if(db()->inTransaction())db()->rollBack();throw $e; }
 }
-function email_work(int $limit=10,?callable $testTransport=null): array {
+function email_work(int $limit=10,?callable $testTransport=null,?array $onlyOutboxIds=null): array {
     if ($testTransport && app_config('app_env')!=='testing') throw new RuntimeException('Test transport is disabled.');
+    $scope='';if($onlyOutboxIds!==null){$onlyOutboxIds=array_values(array_unique(array_filter(array_map('intval',$onlyOutboxIds),static fn($id)=>$id>0)));if(!$onlyOutboxIds)return ['enabled'=>false,'sent'=>0,'ambiguous'=>0,'bookkeeping_pending'=>0,'suppressed'=>0,'deferred'=>0];$scope=' AND id IN ('.implode(',',$onlyOutboxIds).')';}
     // A crashed worker may have sent already; never automatically resend uncertain email.
-    db()->exec("UPDATE email_outbox SET status='ambiguous',error_code='worker_interrupted' WHERE status='sending' AND claimed_at<DATE_SUB(NOW(),INTERVAL 15 MINUTE)");
-    email_reconcile_delivery_state();
+    db()->exec("UPDATE email_outbox SET status='ambiguous',error_code='worker_interrupted' WHERE status='sending' AND claimed_at<DATE_SUB(NOW(),INTERVAL 15 MINUTE)".$scope);
+    email_reconcile_delivery_state($onlyOutboxIds);
     $enabled=(bool)$testTransport || email_transport_ready();
     $stats=['enabled'=>$enabled,'sent'=>0,'ambiguous'=>0,'bookkeeping_pending'=>0,'suppressed'=>0,'deferred'=>0];
     if (!$enabled) return $stats;
     for ($i=0;$i<max(1,min(100,$limit));$i++) {
         db()->beginTransaction();
         try {
-            $row=db()->query("SELECT * FROM email_outbox WHERE status='pending' AND available_at<=NOW() ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED")->fetch();
+            $row=db()->query("SELECT * FROM email_outbox WHERE status='pending' AND available_at<=NOW()".$scope." ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED")->fetch();
             if (!$row) { db()->commit();break; }
             db()->prepare("UPDATE email_outbox SET status='sending',claimed_at=NOW(),attempts=attempts+1 WHERE id=?")->execute([$row['id']]);db()->commit();
         } catch(Throwable $e) { if(db()->inTransaction())db()->rollBack();throw $e; }

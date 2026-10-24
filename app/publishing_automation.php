@@ -51,7 +51,7 @@ function publishing_automation_register(array $ids): void {
 }
 function publishing_weekly_work(): void {
  $cfg=publishing_weekly_config();comm_put('publishing.weekly.heartbeat',['at'=>time(),'run'=>$cfg['run']]);
- if(!$cfg['run'])return;$ids=publishing_automation_ids();if($ids){db()->exec("UPDATE publishing_jobs SET status='failed',last_error='This weekly slot was missed by more than 24 hours. Review and explicitly retry or re-queue before sending.' WHERE id IN (".implode(',',$ids).") AND status='scheduled' AND scheduled_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR)");publishing_work(10,$ids);}
+ if(!$cfg['run'])return;$ids=publishing_automation_ids();if($ids){db()->exec("UPDATE publishing_jobs SET status='failed',last_error='This weekly slot was missed by more than 24 hours. Review and explicitly retry or re-queue before sending.' WHERE id IN (".implode(',',$ids).") AND status='scheduled' AND scheduled_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR)");publishing_work(10,$ids);publishing_weekly_reminders($ids);}
 }
 function publishing_copy_limits(): array {return ['linkedin'=>3000,'facebook'=>20000,'instagram'=>2200,'x'=>280,'youtube'=>5000,'tiktok'=>2200];}
 function publishing_fit_text(string $text,int $length): string {
@@ -96,4 +96,12 @@ function publishing_prepare_channels(array $input): array {
  $v['text']=publishing_channel_copy($slug,$draft['title'],$body,$draft['source_url']);
  if(!$v['media_asset_id']&&$v['media_url']===''){$pick=publishing_pick_media($slug,$draft['title'].' '.$message,$featured,$assets,$channels[$slug]??[]);if($pick){$v['media_asset_id']=(int)$pick['id'];$v['media_type']=$pick['kind'];/* Alt text needs an accurate human description, not a guessed filename. */}}
  }unset($v);$draft['_core_message']=$message;$draft['_preparation_note']=($input['prepare_ai_consent']??'')==='1'?($ai?'OpenAI-assisted suggestions are ready for your review. Any unavailable channel version used local formatting.':'OpenAI returned no usable channel drafts; local formatting was used. Check the API balance or connection before retrying.'):'Local platform formatting is ready for review. No text was sent to an AI provider.';return $draft;
+}
+
+function publishing_weekly_reminders(array $jobIds): void {
+ $ids=array_values(array_filter(array_map('intval',$jobIds),static fn($id)=>$id>0));if(!$ids)return;
+ $rows=db()->query("SELECT job_key FROM publishing_jobs WHERE method='manual' AND id IN (".implode(',',$ids).")")->fetchAll(PDO::FETCH_COLUMN);
+ if(!$rows)return;$hashes=array_map(static fn($key)=>hash('sha256','publishing:'.$key),$rows);
+ $q=db()->prepare('SELECT id FROM email_outbox WHERE dedupe_key IN ('.implode(',',array_fill(0,count($hashes),'?')).')');$q->execute($hashes);$outboxIds=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
+ if($outboxIds)email_work(10,null,$outboxIds);
 }
