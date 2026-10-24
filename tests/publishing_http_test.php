@@ -304,6 +304,27 @@ try {
     pub_http_check(pub_http_count('SELECT COUNT(*) FROM email_outbox WHERE dedupe_key=?',[hash('sha256','publishing:'.$job['job_key'])])===0
         &&pub_http_count('SELECT COUNT(*) FROM publishing_oauth_states WHERE user_id=?',[$userId])===0,
         'This workflow must create neither an email request nor an OAuth authorization request.');
+    $weeklyPage=pub_http_request('/write/publishing/automation');
+    pub_http_check($weeklyPage['status']===200&&str_contains($weeklyPage['body'],'Weekly publishing schedule'),'Weekly schedule renders privately.');
+    pub_http_check(pub_http_request('/write/publishing/automation',['csrf'=>'invalid'])['status']===419,'Weekly settings require CSRF.');
+    $beforePackages=pub_http_count('SELECT COUNT(*) FROM publishing_packages WHERE created_by=?',[$userId]);
+    $autoDraft=publishing_default_draft();$autoDraft['title']='Synthetic climate enterprise story';$autoDraft['variants']['facebook']['enabled']=true;$autoDraft['variants']['facebook']['text']='Synthetic approved core message.';
+    $prepared=pub_http_request('/write/publishing/prepare',$autoDraft+['csrf'=>$completion['csrf'],'core_message'=>str_repeat('A supplied climate observation. ',30)]);
+    pub_http_check($prepared['status']===200&&str_contains($prepared['body'],'data-caption-limit="280"'),'Channel preparation renders bounded platform drafts.');
+    pub_http_check(pub_http_count('SELECT COUNT(*) FROM publishing_packages WHERE created_by=?',[$userId])===$beforePackages,'Preparation never saves or approves a package implicitly.');
+    $saved=pub_http_request('/write/publishing/save',$autoDraft+['csrf'=>$completion['csrf']]);$weeklyPath=(string)parse_url($saved['headers']['location']??'',PHP_URL_PATH);
+    pub_http_check(preg_match('~^/write/publishing/[1-9][0-9]*$~D',$weeklyPath)===1,'Synthetic weekly draft saves through the real form.');
+    $weeklyReview=pub_http_request($weeklyPath);$weeklyApproval=pub_http_form($weeklyReview,$weeklyPath.'/approve');
+    pub_http_request($weeklyPath.'/approve',$weeklyApproval+['approve_content'=>'1','media_rights'=>'1']);
+    $weeklyReview=pub_http_request($weeklyPath);$weeklyFields=pub_http_form($weeklyReview,$weeklyPath.'/schedule');
+    $queued=pub_http_request($weeklyPath.'/schedule',$weeklyFields+['schedule_mode'=>'weekly']);
+    pub_http_check(pub_http_redirect($queued,$weeklyPath),'Approved revision queues into weekly slots through HTTP.');
+    $weeklyJob=pub_http_row('SELECT * FROM publishing_jobs WHERE revision_id=?',[(int)$weeklyFields['revision_id']]);
+    pub_http_check($weeklyJob['status']==='scheduled'&&strtotime($weeklyJob['scheduled_at'].' UTC')>time(),'Weekly job has a real future UTC release time.');
+    $registered=pub_http_row("SELECT is_secret FROM settings WHERE setting_key='communication.publishing.weekly.jobs'");
+    pub_http_check((int)($registered['is_secret']??0)===1,'Weekly queue registration is stored privately.');
+    pub_http_request($weeklyPath.'/schedule',$weeklyFields+['schedule_mode'=>'weekly']);
+    pub_http_check(pub_http_count('SELECT COUNT(*) FROM publishing_jobs WHERE revision_id=?',[(int)$weeklyFields['revision_id']])===1,'Repeated weekly scheduling cannot duplicate delivery jobs.');
     $response=pub_http_request('/write/logout',['csrf'=>$completion['csrf']]);
     pub_http_check(pub_http_redirect($response,'/write/login'),'The fixture session must sign out through the CSRF-protected form.');
     $response=pub_http_request($packagePath);

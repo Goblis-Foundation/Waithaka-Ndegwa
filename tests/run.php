@@ -295,7 +295,7 @@ try {
         $failed = [];
         $suiteCount = 0;
         $passedCount = 0;
-        foreach (['010_security_unit.php' => 'Pure security', 'publishing_test.php' => 'Pure publishing',
+        foreach (['010_security_unit.php' => 'Pure security', 'publishing_test.php' => 'Pure publishing', 'publishing_automation_test.php'=>'Weekly publishing slots and media boundaries',
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',

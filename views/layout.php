@@ -29,7 +29,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
 <link rel="stylesheet" href="<?=asset('css/site.css')?>"><link rel="stylesheet" href="<?=asset('css/experience.css')?>"><link rel="stylesheet" href="<?=asset('css/impact.css')?>"><link rel="stylesheet" href="<?=asset('css/journeys.css')?>">
 <?php foreach(['editorial','reader','discovery']as$style)if(is_file(__DIR__.'/../assets/css/'.$style.'.css')):?><link rel="stylesheet" href="<?=asset('css/'.$style.'.css')?>"><?php endif;?>
 <?php foreach((array)$schema as $s):?><script type="application/ld+json"><?=json_encode($s,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?></script><?php endforeach;?>
-<?php if($recaptchaSite && $page==='contact'):?><script src="https://www.google.com/recaptcha/api.js" async defer></script><?php endif;?>
+<?php if($recaptchaSite && in_array($page,['contact','booking'],true)):?><script src="https://www.google.com/recaptcha/api.js" async defer></script><?php endif;?>
 </head>
 <body data-ga4="<?=e($ga4)?>" class="page-<?=e($page)?>">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -42,6 +42,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
       <a href="<?=url('/my-thoughts')?>" <?=$page==='thoughts'||$page==='post'?'aria-current="page"':''?>>My Thoughts</a>
       <a href="<?=url('/start-here')?>" <?=path_only()==='/start-here'?'aria-current="page"':''?>>Start Here</a>
       <a href="<?=url('/about')?>" <?=$page==='about'?'aria-current="page"':''?>>About</a>
+      <a href="<?=url('/book')?>" <?=$page==='booking'?'aria-current="page"':''?>>Book time</a>
       <a href="<?=url('/contact')?>" <?=$page==='contact'?'aria-current="page"':''?>>Contact</a>
     </nav>
     <div class="header-actions">
@@ -61,7 +62,7 @@ if(empty($privatePage) && ($seo['robots']??'')!=='noindex,nofollow') {
 <footer class="site-footer">
   <div class="container footer-main">
     <div class="footer-about"><a class="footer-brand" href="<?=url('/')?>"><img src="<?=asset('images/icon.png')?>" alt="" width="44" height="44"><span>Waithaka Ndegwa</span></a><p>My experience and views on social entrepreneurship, agribusiness, infrastructure, innovation, and the world I encounter along the way.</p></div>
-    <div class="footer-nav"><span>Explore</span><a href="<?=url('/start-here')?>">Start Here</a><a href="<?=url('/resources')?>">Resources</a><a href="<?=url('/watch')?>">Watch</a><a href="<?=url('/professional-information')?>">Professional information</a><a href="<?=url('/my-thoughts')?>">My Thoughts</a><a href="<?=url('/about')?>">About</a><a href="<?=url('/about#goals-2030')?>">2030 goals</a><a href="<?=url('/contact')?>">Contact</a></div><div class="footer-nav"><span>Discover</span><a href="<?=url('/startup-journeys')?>">Startup Journeys</a><a href="<?=url('/founders')?>">Founder Stories</a><a href="<?=url('/newsletter')?>" data-analytics-event="newsletter_signup_open" data-content-id="weekly-updates">Weekly updates</a><a href="<?=url('/feed.xml')?>">RSS feed</a></div>
+    <div class="footer-nav"><span>Explore</span><a href="<?=url('/book')?>">Book time</a><a href="<?=url('/start-here')?>">Start Here</a><a href="<?=url('/resources')?>">Resources</a><a href="<?=url('/watch')?>">Watch</a><a href="<?=url('/professional-information')?>">Professional information</a><a href="<?=url('/my-thoughts')?>">My Thoughts</a><a href="<?=url('/about')?>">About</a><a href="<?=url('/about#goals-2030')?>">2030 goals</a><a href="<?=url('/contact')?>">Contact</a></div><div class="footer-nav"><span>Discover</span><a href="<?=url('/startup-journeys')?>">Startup Journeys</a><a href="<?=url('/founders')?>">Founder Stories</a><a href="<?=url('/newsletter')?>" data-analytics-event="newsletter_signup_open" data-content-id="weekly-updates">Weekly updates</a><a href="<?=url('/feed.xml')?>">RSS feed</a></div>
     <div class="footer-nav"><span>Follow</span><?php foreach(social_links() as $name=>$link):?><a href="<?=e($link)?>" target="_blank" rel="me noopener noreferrer"><?=e($name)?> ↗</a><?php endforeach;?></div>
   </div>
   <div class="container footer-note"><p><strong>Personal views.</strong> Views expressed here are my own unless explicitly stated otherwise.</p><a href="<?=url('/editorial-independence')?>">Editorial independence →</a></div>
