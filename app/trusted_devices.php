@@ -5,6 +5,7 @@ function app_trust_epoch(int $uid): string {
  $q=db()->prepare('SELECT setting_value,is_secret FROM settings WHERE setting_key=?');$q->execute(['auth.password_epoch.'.$uid]);$r=$q->fetch();if(!$r)return '';
  return (int)$r['is_secret']?decrypt_secret((string)$r['setting_value']):(string)$r['setting_value'];
 }
+function app_trust_choice(mixed $value): bool {return $value==='1';}
 function app_trust_cookie_name(): string {return str_starts_with(base_url(),'https://')?'__Host-wn_trust':'wn_trust';}
 function app_trust_cookie(string $value,int $expires): void {
  if(PHP_SAPI!=='cli')setcookie(app_trust_cookie_name(),$value,['expires'=>$expires,'path'=>'/','secure'=>str_starts_with(base_url(),'https://'),'httponly'=>true,'samesite'=>'Lax']);
