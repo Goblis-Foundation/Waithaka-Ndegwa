@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+final class GeminiRequestException extends RuntimeException {}
 /** Stateless Gemini calls. Keys and provider bodies never enter diagnostics. */
 function google_gemini_model_id(string $model): string {
  if(!preg_match('/^gemini-[a-z0-9.-]{1,80}$/D',$model))throw new InvalidArgumentException('Choose a valid Gemini model identifier.');return $model;
@@ -11,7 +12,7 @@ function google_gemini_interaction_body(string $model,string $instructions,strin
  if($schema!==null)$body['response_format']=['type'=>'text','mime_type'=>'application/json','schema'=>$schema];
  return $body;
 }
-function google_gemini_error(PublishingRemoteException $error): RuntimeException {
+function google_gemini_error(PublishingRemoteException $error): GeminiRequestException {
  $code=$error->httpStatus;
  $message=match(true){
   $code===0=>'Gemini did not complete before the connection ended. Try a smaller request or continue manually.',
@@ -21,12 +22,12 @@ function google_gemini_error(PublishingRemoteException $error): RuntimeException
   $code>=500=>'Gemini is temporarily unavailable (HTTP '.$code.'). Retry later or choose another available model.',
   default=>'Gemini rejected the request (HTTP '.$code.'). Review the model and document format.'
  };
- return new RuntimeException($message.' This AI request did not publish content, send messages or change calendar events.');
+ return new GeminiRequestException($message.' This AI request did not publish content, send messages or change calendar events.');
 }
 function google_gemini_interaction_text(array $response): string {
- if(($response['status']??'')!=='completed')throw new RuntimeException('Gemini did not return a completed interpretation. No program items were created.');
+ if(($response['status']??'')!=='completed')throw new GeminiRequestException('Gemini did not return a completed interpretation. No program items were created.');
  $text='';foreach($response['steps']??[]as$step)if(($step['type']??'')==='model_output')foreach($step['content']??[]as$part)if(($part['type']??'')==='text')$text.=(string)($part['text']??'');
- if(trim($text)===''||strlen($text)>1024*1024)throw new RuntimeException('Gemini returned no usable text. Continue manually or try a smaller document.');return $text;
+ if(trim($text)===''||strlen($text)>1024*1024)throw new GeminiRequestException('Gemini returned no usable text. Continue manually or try a smaller document.');return $text;
 }
 function google_gemini_generate(string $instructions,string|array $input,int $limit,?array $schema=null): string {
  $key=trim((string)setting('google.gemini_key',''));if($key==='')throw new InvalidArgumentException('Save a Gemini API key in Google preferences first.');
