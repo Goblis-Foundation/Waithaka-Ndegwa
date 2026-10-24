@@ -50,7 +50,7 @@ function publishing_http(string $method, string $url, array $headers = [], ?arra
             $code >= 500 => 'The provider returned a server error. Check its publication history before retrying.',
             default => 'The provider rejected the request (HTTP '.$code.'). Check the format, account and application settings.'
         };
-        if ($code === 403 && in_array(strtolower($parts['host'] ?? ''), ['www.googleapis.com','calendar.googleapis.com','generativelanguage.googleapis.com'], true)) $message = publishing_google_denial_message((string)$raw);
+        if ($code === 403 && in_array(strtolower($parts['host'] ?? ''), ['www.googleapis.com','calendar.googleapis.com','gmail.googleapis.com','generativelanguage.googleapis.com'], true)) $message = publishing_google_denial_message((string)$raw);
         throw new PublishingRemoteException($message, $code, $publishingMutation && $code >= 500);
     }
     $data = json_decode((string)$raw, true);
@@ -96,7 +96,7 @@ function publishing_google_denial_message(string $raw): string {
     foreach(($data['error']['details']??[])as$item)if(is_array($item)&&is_string($item['reason']??null))$reasons[]=$item['reason'];
     foreach($reasons as$reason){$message=match($reason){
         'accessNotConfigured','SERVICE_DISABLED','API_DISABLED'=>'Google denied access because the requested API is disabled or has not been enabled in this app’s Google Cloud project.',
-        'insufficientPermissions','ACCESS_TOKEN_SCOPE_INSUFFICIENT'=>'Google denied access because this connection is missing a required permission. Reconnect and approve the requested calendar permissions.',
+        'insufficientPermissions','ACCESS_TOKEN_SCOPE_INSUFFICIENT'=>'Google denied access because this connection is missing a required permission. Reconnect and approve this feature’s requested permissions.',
         'domainPolicy','ORG_RESTRICTION_VIOLATION'=>'Google denied access because an organization policy restricts this app or service. Ask the account’s Workspace administrator to review the restriction.',
         'dailyLimitExceeded','quotaExceeded','rateLimitExceeded','userRateLimitExceeded','RATE_LIMIT_EXCEEDED'=>'Google denied access because a quota or rate limit was reached. Review the project’s API quota before retrying.',
         default=>null};if($message!==null)return $message;

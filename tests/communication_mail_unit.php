@@ -9,3 +9,7 @@ mr(fn()=>comm_mail_mime('a@example.invalid',"Subject\r\nBcc: hidden@example.inva
 $mime=comm_mail_mime('a@example.invalid','Subject','Private draft','Amina');mc(str_contains($mime,'multipart/alternative')&&str_contains($mime,'text/html'),'Branded MIME alternatives');mc(!str_contains($mime,'Bcc:'),'No hidden recipient header');
 $calls=[];$http=function($m,$u,$h)use(&$calls){$calls[]=[$m,$u];if(str_contains($u,'?labelIds='))return ['data'=>['messages'=>[['id'=>'abc123']],'nextPageToken'=>'more']];return ['data'=>['id'=>'abc123','payload'=>['headers'=>[['name'=>'Subject','value'=>'Fixture']]]]];};$r=comm_mail_read(1,'',$http);mc(count($r['messages'])===1&&$r['more'],'Bounded inbox and incomplete status');mc(count($calls)===2&&$calls[0][0]==='GET'&&str_starts_with($calls[0][1],'https://gmail.googleapis.com/'),'Fixed read-only provider endpoint');mr(fn()=>comm_mail_read(1,'../../other',$http));
 echo "PASS: bounded private inbox, plain-text only, header isolation and draft MIME safety.\n";
+
+mc(comm_mail_status('google_gmail_read',1)['ready'],'Authorized confirmed mailbox usable by its owner');
+mc(!comm_mail_status('google_gmail_read',2)['ready']&&comm_mail_status('google_gmail_read',2)['account']==='','Do not expose or enable another owner’s mailbox');
+mr(fn()=>comm_mail_status('google_calendar',1));
