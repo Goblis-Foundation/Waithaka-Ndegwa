@@ -1,11 +1,24 @@
-# Document QR and layout requirement — 24 October 2026
+# Document QR and print standard — 24 October 2026
 
-User instruction: all documents must have QR codes and sensible placement.
+## Implemented coverage
+- Public website pages, including articles, professional information and policies, have an online-version reference with locally generated QR and Print / save PDF.
+- Protected consent records, linked founder submission records and saved article editors have a protected workspace reference.
+- Standalone recipient consent forms and final-copy founder review pages point to the protected owner record, never their bearer access token. Their label explicitly requires authorised workspace sign-in.
+- QR generation is local, with pinned MIT-licensed qrcode-generator source, four-module white quiet zone, black modules and 36 mm print size. On small screens it is 30 mm.
+- URL and reference remain readable if JavaScript is unavailable. QR codes require JavaScript; print only after the QR is visible.
+- Print styling removes navigation, action forms and interactive controls, avoids QR block splitting and reserves page margins. A document reference follows the content rather than overlaying page text.
 
-Apply this to every generated user-facing document and print/export template: founder review/approval records, media consent/release records, correspondence and receipts, profile/media documents, and dashboard-generated reports. Inventory every existing generator and add the shared QR/document identity component; this file records the requirement, not completed coverage.
+## Privacy and meaning
+No external QR service, token, email, contact details, query string or fragment enters the QR payload. Links are same-origin. Public links show the current online version; they do not certify immutable copies. Private records still enforce existing workspace access controls. Review references identify the review round; the QR does not approve the story.
 
-Each QR must identify the exact document/version and link to its current source or verification page. Public documents may use a canonical public verification URL. Private documents must retain authentication or an explicitly approved expiring capability; never encode personal details, private evidence, passwords or provider tokens in the QR.
+## Scope boundaries
+Uploaded third-party documents and payment evidence remain byte-for-byte originals. This does not add a QR to original uploads, calendar files, raw data exports or configuration files. There is no separate Word/PDF generation engine in this release; browser Print / save PDF uses the document layout. Future generated document engines must reuse this reference and privacy policy.
 
-Use a labelled verification area with clear space around a high-contrast, scannable QR. Keep headers, body, signatures, references and footers orderly; do not overlap text or force small unreadable codes. Provide the reference and a readable fallback link. Check phone scanning, A4/Letter print, multi-page layout and revision/withdrawal behaviour.
+## Verification
+Offline Node checks cover prohibited secret/external URLs, actual QR encoding, quiet-zone dimensions and print boundaries. PHP syntax and broader application suites run in CI. Real-device scan and final visual print inspection remain acceptance checks.
 
-Document fixtures and production records must remain separate. Do not create a false approval, delivery or verification claim merely by generating a QR.
+## Dependency
+Source: https://github.com/kazuhikoarase/qrcode-generator
+Pinned commit: 83b7e8fe3fddd3b0368dbafd6ce56995bd25e3c8
+File: js/dist/qrcode.js
+Licence preserved at assets/js/vendor/QRCODE-LICENSE.txt.
