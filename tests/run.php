@@ -320,6 +320,9 @@ try {
             else $failed[] = $label;
         }
         $suiteCount++;
+        if(wk_test_process(['node',__DIR__.'/passkey_trust_browser_test.js'],$environment,'Passkey trusted-device choice in the browser'))$passedCount++;
+        else $failed[]='Passkey trusted-device choice in the browser';
+        $suiteCount++;
         if(wk_test_process(['node',__DIR__.'/document_qr_test.js'],$environment,'Document QR privacy and print boundaries'))$passedCount++;
         else $failed[]='Document QR privacy and print boundaries';
         $suiteCount++;

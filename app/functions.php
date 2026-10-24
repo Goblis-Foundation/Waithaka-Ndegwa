@@ -153,7 +153,7 @@ function attempt_login(string $email, string $password): bool {
     if ($ok) {
         session_regenerate_id(true); $_SESSION['user_id'] = $user['id']; $_SESSION['csrf'] = bin2hex(random_bytes(32));
         $_SESSION['auth_epoch']=(string)setting('auth.password_epoch.'.$user['id'],'');$_SESSION['interactive_at']=time();
-        if(function_exists('app_trust_issue')){$_SESSION['trust_opt_out']=empty($_POST['trust_device']);if(!$_SESSION['trust_opt_out'])app_trust_issue((int)$user['id']);}
+        if(function_exists('app_trust_issue')){$_SESSION['trust_opt_out']=!app_trust_choice($_POST['trust_device']??null);if(!$_SESSION['trust_opt_out'])app_trust_issue((int)$user['id']);}
         db()->prepare('UPDATE users SET last_login_at=NOW() WHERE id=?')->execute([$user['id']]);
         return true;
     }
