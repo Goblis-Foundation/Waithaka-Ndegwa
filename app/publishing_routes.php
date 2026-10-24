@@ -115,6 +115,17 @@ function publishing_dispatch(string $path): bool {
             $post=null;if(!empty($_GET['post'])){$st=db()->prepare('SELECT * FROM posts WHERE id=?');$st->execute([(int)$_GET['post']]);$post=$st->fetch()?:null;}
             render_write('publishing_editor',['writeTitle'=>'New publication package','package'=>null,'draft'=>publishing_default_draft($post),'channels'=>publishing_channels(),'jobs'=>[],'revision'=>null,'events'=>[]]);return true;
         }
+        if($path==='/write/publishing/automation'){
+            journeys_method(['GET','HEAD','POST']);
+            if(is_post()){comm_put('publishing.weekly',publishing_weekly_input($_POST));flash('success','Weekly publishing preferences saved. Existing delivery times are unchanged.');redirect(url($path));}
+            render_write('publishing_automation',['writeTitle'=>'Publishing schedule','cfg'=>publishing_weekly_config(),'heartbeat'=>comm_get('publishing.weekly.heartbeat')]);return true;
+        }
+        if($path==='/write/publishing/prepare'&&is_post()){
+            $draft=publishing_prepare_channels($_POST);$package=!empty($_POST['id'])?publishing_package((int)$_POST['id']):null;
+            if($package&&(int)$package['draft_version']!==(int)($_POST['draft_version']??-1))throw new InvalidArgumentException('This draft changed. Reload before preparing new versions.');
+            flash('success','Channel suggestions prepared. Review the copy, selected media and image descriptions, then save and approve. Nothing has been published.');
+            render_write('publishing_editor',['writeTitle'=>'Review channel suggestions','package'=>$package,'draft'=>$draft,'channels'=>publishing_channels(),'jobs'=>[],'revision'=>null,'events'=>[]]);return true;
+        }
         if ($path==='/write/publishing/save'&&is_post()) {
             $id=publishing_save_package($_POST,$userId,(int)($_POST['id']??0),(int)($_POST['draft_version']??0));
             flash('success','Draft saved. Review the saved package before approval.');redirect(url('/write/publishing/'.$id));
@@ -133,7 +144,9 @@ function publishing_dispatch(string $path): bool {
                 $destinationsHash=(string)($_POST['destinations_hash']??'');if(!preg_match('/^[a-f0-9]{64}$/',$destinationsHash))throw new RuntimeException('Reload the saved review before approving.');
                 publishing_approve((int)$m[1],(int)($_POST['draft_version']??0),$userId,$destinationsHash);flash('success','This revision is approved and frozen. Choose its release time.');
             } else {
-                $n=publishing_schedule((int)$m[1],(int)($_POST['revision_id']??0),(string)($_POST['scheduled_at']??''),$userId);
+                if(($_POST['schedule_mode']??'')==='weekly'){
+                    $n=comm_lock('publishing.weekly.schedule',function()use($m,$userId){$q=db()->prepare('SELECT snapshot_json FROM publishing_revisions WHERE id=? AND package_id=?');$q->execute([(int)($_POST['revision_id']??0),(int)$m[1]]);$json=$q->fetchColumn();if(!$json)throw new InvalidArgumentException('Approved revision not found.');$times=publishing_weekly_times(publishing_decode($json));return publishing_schedule((int)$m[1],(int)$_POST['revision_id'],date('Y-m-d\\TH:i',time()+600),$userId,$times,true);});
+                }else $n=publishing_schedule((int)$m[1],(int)($_POST['revision_id']??0),(string)($_POST['scheduled_at']??''),$userId);
                 flash('success',$n?'The approved jobs are scheduled. The worker will process them at release time.':'This revision already has delivery jobs. No duplicate jobs were created.');
             }
             redirect(url($back));
@@ -172,6 +185,10 @@ function publishing_dispatch(string $path): bool {
                     if(!empty($job['provider_state_json']))throw new RuntimeException('This job has a remote processing record. Review it in the platform before creating another revision.');
                     if($job['method']!=='manual')publishing_job_connection($job);
                     publishing_job_update((int)$job['id'],['status'=>'scheduled','last_error'=>null]);
+                }
+                if(in_array((int)$job['id'],publishing_automation_ids(),true)){
+                    $check=db()->prepare('SELECT status FROM publishing_jobs WHERE id=?');$check->execute([$job['id']]);
+                    if($check->fetchColumn()==='scheduled'){$cfg=publishing_weekly_config();$slug=$destination['slug'];$next=publishing_weekly_next($cfg[$slug],$cfg['timezone'],time()+300,publishing_weekly_reserved($slug));publishing_job_update((int)$job['id'],['scheduled_at'=>gmdate('Y-m-d H:i:s',$next)]);}
                 }
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_resumed','Writer reviewed the failed attempt and resumed the existing job.',$userId);
             } else {

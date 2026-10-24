@@ -47,6 +47,17 @@ publishing_work();
 check_db($pdo->query('SELECT status FROM publishing_jobs')->fetchColumn()==='ambiguous','Abandoned in-flight work becomes ambiguous and is never replayed');
 check_db(count($reminders)===1,'Ambiguous work creates no duplicate reminder or delivery');
 
+// Explicit weekly worker scope must not release unrelated legacy jobs.
+$scopedDraft=publishing_default_draft();$scopedDraft['title']='Scoped weekly fixture';$scopedDraft['variants']['facebook']['enabled']=true;$scopedDraft['variants']['facebook']['text']='Synthetic reviewed manual task.';
+$scopedPackage=publishing_save_package($scopedDraft,1);$scopedRevision=publishing_approve($scopedPackage,1,1);publishing_schedule($scopedPackage,$scopedRevision,$local,1);
+$scopedId=(int)$pdo->query('SELECT id FROM publishing_jobs WHERE revision_id='.(int)$scopedRevision)->fetchColumn();
+$pdo->exec("UPDATE publishing_jobs SET status='scheduled',scheduled_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 MINUTE),locked_at=NULL");
+$scopedResult=publishing_work(10,[$scopedId]);
+check_db($scopedResult['processed']===1,'Scoped worker processes only its registered job');
+check_db((int)$pdo->query("SELECT COUNT(*) FROM publishing_jobs WHERE id<>".$scopedId." AND status='scheduled'")->fetchColumn()===1,'Unrelated legacy queue stays paused');
+check_db(publishing_work(10,[])['processed']===0,'Empty scope cannot drain any queue');
+$pdo->exec("UPDATE publishing_jobs SET status='cancelled'");
+
 session_id('publishing-offline-test');
 $state=str_repeat('a',64);$hash=hash('sha256',$state);
 $pdo->prepare('INSERT INTO publishing_oauth_states(state_hash,service,user_id,session_hash,expires_at) VALUES(?,?,?,?,?)')->execute([$hash,'x',1,hash('sha256',session_id()),gmdate('Y-m-d H:i:s',time()+600)]);

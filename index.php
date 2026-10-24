@@ -439,7 +439,7 @@ if (preg_match('~^/write/preview/(\d+)$~',$path,$m)) {
 if ($path === '/write/save' && is_post()) {
     require_auth();verify_csrf();$user=current_user();$id=(int)($_POST['id']??0);$autosave=!empty($_POST['autosave']);
     // An autosave must never publish, even if a stale client includes action=publish.
-    $publish=!$autosave && ($_POST['action']??'draft')==='publish';
+    $weeklyPublish=!$autosave&&($_POST['action']??'draft')==='publish_weekly';$publish=!$autosave && in_array($_POST['action']??'draft',['publish','publish_weekly'],true);
     try {
         $image=null;
         if(!$autosave && !empty($_FILES['featured_image_file']['name']))$image=upload_featured_image($_FILES['featured_image_file']);
@@ -452,7 +452,9 @@ if ($path === '/write/save' && is_post()) {
             $category=db()->prepare('SELECT name FROM categories WHERE id=?');$category->execute([$checked['category_id']]);
             $preparedMetadata=auto_editorial_metadata($checked['title'],$checked['standfirst'],$checked['content_html'],(string)$category->fetchColumn());
         }
-        $saved=writer_save_post($_POST,(int)$user['id'],$publish,$image,$preparedMetadata);
+        if($weeklyPublish){
+            $saved=comm_lock('publishing.weekly.articles',function()use($id,$user,$publish,$image,$preparedMetadata){$current=$id?writer_post_by_id($id):null;if($current&&!empty($current['_is_public']))throw new InvalidArgumentException('An already-public article keeps its original publication date.');$input=$_POST;$input['published_at']=publishing_weekly_article_time($id);return writer_save_post($input,(int)$user['id'],$publish,$image,$preparedMetadata);});
+        }else $saved=writer_save_post($_POST,(int)$user['id'],$publish,$image,$preparedMetadata);
     } catch (WriterConflict $e) {
         if($autosave)json_response(['ok'=>false,'error'=>$e->getMessage(),'conflict'=>true],409);
         http_response_code(409);

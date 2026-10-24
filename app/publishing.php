@@ -262,10 +262,11 @@ function publishing_approve(int $packageId, int $expectedVersion, int $userId, s
     } catch(Throwable $e) { if(db()->inTransaction())db()->rollBack();throw $e; }
 }
 
-function publishing_schedule(int $packageId, int $revisionId, string $localTime, int $userId): int {
+function publishing_schedule(int $packageId, int $revisionId, string $localTime, int $userId, array $channelTimes=[], bool $automatic=false): int {
     $date=DateTimeImmutable::createFromFormat('!Y-m-d\TH:i',$localTime,new DateTimeZone((string)app_config('timezone','Africa/Nairobi')));
     if (!$date||$date->format('Y-m-d\TH:i')!==$localTime||$date->getTimestamp()<time()-60) throw new RuntimeException('Choose a valid future release time.');
     $utc=$date->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    foreach($channelTimes as$slug=>$release){$d=is_string($release)?DateTimeImmutable::createFromFormat('!Y-m-d H:i:s',$release,new DateTimeZone('UTC')):false;if(!isset(publishing_copy_limits()[$slug])||!$d||$d->format('Y-m-d H:i:s')!==$release||$d->getTimestamp()<time()-60)throw new InvalidArgumentException('Invalid weekly channel release time.');}
     db()->beginTransaction();
     try {
         $st=db()->prepare('SELECT r.*,p.approved_revision_id FROM publishing_revisions r JOIN publishing_packages p ON p.id=r.package_id WHERE r.id=? AND r.package_id=? FOR UPDATE');$st->execute([$revisionId,$packageId]);$revision=$st->fetch();
@@ -274,9 +275,10 @@ function publishing_schedule(int $packageId, int $revisionId, string $localTime,
         foreach($snapshot['destinations'] as $slug=>$destination) {
             $channel=publishing_channel($slug);$key=hash('sha256',$revisionId.':'.$channel['id'].':'.$revision['content_hash']);
             $st=db()->prepare("INSERT IGNORE INTO publishing_jobs(revision_id,channel_id,connection_id,connection_external_id,destination_json,job_key,method,status,scheduled_at) VALUES(?,?,?,?,?,?,?,'scheduled',?)");
-            $st->execute([$revisionId,$channel['id'],$destination['connection_id']??null,$destination['connection_external_id']??null,publishing_json($destination),$key,$destination['method'],$utc]);$count+=$st->rowCount();
+            $st->execute([$revisionId,$channel['id'],$destination['connection_id']??null,$destination['connection_external_id']??null,publishing_json($destination),$key,$destination['method'],$channelTimes[$slug]??$utc]);$count+=$st->rowCount();
         }
-        if ($count) publishing_event($packageId,null,'revision_scheduled','Approved revision scheduled for '.publishing_local_time($utc).'.',$userId);
+        if($automatic&&$count){$q=db()->prepare('SELECT id FROM publishing_jobs WHERE revision_id=?');$q->execute([$revisionId]);publishing_automation_register(array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN)));}
+        if ($count) publishing_event($packageId,null,'revision_scheduled',($channelTimes?'Approved revision scheduled in separate weekly channel slots.':'Approved revision scheduled for '.publishing_local_time($utc).'.'),$userId);
         db()->commit();return $count;
     } catch(Throwable $e) { if(db()->inTransaction())db()->rollBack();throw $e; }
 }
@@ -301,12 +303,14 @@ function publishing_job_connection(array $job): array {
  * provider idempotency API is a material limit; local deduplication cannot prove
  * that a timed-out request did not publish remotely.
  */
-function publishing_work(int $limit=10): array {
+function publishing_work(int $limit=10, ?array $onlyJobIds=null): array {
     $limit=max(1,min(50,$limit));$result=['processed'=>0,'published'=>0,'assisted'=>0,'attention'=>0,'checked'=>0];
+    $scope='';$plainScope='';
+    if($onlyJobIds!==null){$ids=array_values(array_unique(array_filter(array_map('intval',$onlyJobIds),static fn($id)=>$id>0)));if(!$ids)return $result;$scope=' AND j.id IN ('.implode(',',$ids).')';$plainScope=' AND id IN ('.implode(',',$ids).')';}
     if ((int)db()->query("SELECT GET_LOCK('waithaka_publishing_worker',0)")->fetchColumn()!==1) return $result+['busy'=>true];
     try {
-        db()->exec("UPDATE publishing_jobs SET status='ambiguous',last_error='A worker stopped before recording a confirmed result. Check the platform before creating another post.',locked_at=NULL WHERE status='processing' AND locked_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)");
-        $jobs=db()->query("SELECT j.*,r.snapshot_json,r.content_hash,r.package_id,p.created_by FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id WHERE j.status='scheduled' AND j.scheduled_at<=UTC_TIMESTAMP() ORDER BY j.scheduled_at,j.id LIMIT ".$limit)->fetchAll();
+        db()->exec("UPDATE publishing_jobs SET status='ambiguous',last_error='A worker stopped before recording a confirmed result. Check the platform before creating another post.',locked_at=NULL WHERE status='processing' AND locked_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)".$plainScope);
+        $jobs=db()->query("SELECT j.*,r.snapshot_json,r.content_hash,r.package_id,p.created_by FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id WHERE j.status='scheduled' AND j.scheduled_at<=UTC_TIMESTAMP()".$scope." ORDER BY j.scheduled_at,j.id LIMIT ".$limit)->fetchAll();
         foreach($jobs as $job) {
             $claim=db()->prepare("UPDATE publishing_jobs SET status='processing',locked_at=UTC_TIMESTAMP(),attempts=attempts+1 WHERE id=? AND status='scheduled'");$claim->execute([$job['id']]);if($claim->rowCount()!==1)continue;
             $result['processed']++;
@@ -341,7 +345,7 @@ function publishing_work(int $limit=10): array {
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_'.$state,mb_substr($e->getMessage(),0,500));$result['attention']++;
             }
         }
-        $polls=db()->query("SELECT j.*,r.package_id,r.snapshot_json,r.content_hash FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id WHERE j.status IN ('delivered','reminder_sent') AND j.method<>'manual' AND (j.next_check_at IS NULL OR j.next_check_at<=UTC_TIMESTAMP()) ORDER BY j.next_check_at,j.id LIMIT ".$limit)->fetchAll();
+        $polls=db()->query("SELECT j.*,r.package_id,r.snapshot_json,r.content_hash FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id WHERE j.status IN ('delivered','reminder_sent') AND j.method<>'manual' AND (j.next_check_at IS NULL OR j.next_check_at<=UTC_TIMESTAMP())".$scope." ORDER BY j.next_check_at,j.id LIMIT ".$limit)->fetchAll();
         foreach($polls as $job) {
             $providerEntered=false;$confirmedFields=null;
             try {

@@ -17,6 +17,10 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { founder_story_work(); } catch(Throwable $e) { error_log('Founder story delivery or expiry needs review.'); }
 }
+// Only explicitly queued weekly revisions; legacy mail/payment/social queues keep their own gate.
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { publishing_weekly_work(); } catch(Throwable $e) { error_log('Weekly publishing queue needs review.'); }
+}
 $enabled=$APP_INSTALLED && (bool)app_config('worker_enabled',false);
 $run=$APP_INSTALLED && function_exists('readiness_worker_begin')?readiness_worker_begin($enabled):null;
 if (!$enabled) { echo "{\"enabled\":false}\n"; exit; }
