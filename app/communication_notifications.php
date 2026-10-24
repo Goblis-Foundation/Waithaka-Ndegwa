@@ -4,7 +4,7 @@ function comm_preferences(array $input): array {
     $z=comm_zone($input['timezone']??'Africa/Nairobi');$p=['timezone'=>$z->getName(),'enabled'=>!empty($input['enabled']),'categories'=>[],'quiet_start'=>$input['quiet_start']??'21:00','quiet_end'=>$input['quiet_end']??'07:00'];
     $idle=filter_var($input['idle_minutes']??0,FILTER_VALIDATE_INT);if(!in_array($idle,[0,15,30,60],true))throw new InvalidArgumentException('Choose a supported lock interval.');$p['idle_minutes']=$idle;
     foreach(['quiet_start','quiet_end']as$k)if(!is_string($p[$k])||!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$p[$k]))throw new InvalidArgumentException('Choose valid quiet hours.');
-    foreach((array)($input['categories']??['bookings','enquiries','connections'])as$c)if(in_array($c,['bookings','enquiries','connections'],true))$p['categories'][]=$c;return $p;
+    foreach((array)($input['categories']??['bookings','enquiries','connections'])as$c)if(in_array($c,['bookings','enquiries','connections','planner'],true))$p['categories'][]=$c;return $p;
 }
 function comm_quiet(array $p,?int $now=null): bool {$t=(new DateTimeImmutable('@'.($now??time())))->setTimezone(comm_zone($p['timezone']))->format('H:i');$a=$p['quiet_start'];$b=$p['quiet_end'];return $a===$b?false:($a<$b?($t>=$a&&$t<$b):($t>=$a||$t<$b));}
 function comm_b64(string $s): string {return rtrim(strtr(base64_encode($s),'+/','-_'),'=');}
@@ -25,11 +25,12 @@ function comm_push_send(array $device): int {
 function comm_push_user(int $uid,string $category): void {$p=comm_get('preferences.'.$uid,comm_preferences([]));if(empty($p['enabled'])||comm_quiet($p)||($category!=='test'&&!in_array($category,$p['categories'],true)))return;foreach(comm_user_devices($uid)as$d)if($d['enabled']){$code=comm_push_send($d);$d['last_status']=$code>=200&&$code<300?'Provider accepted':($code===410||$code===404?'Expired; reconnect':'Delivery unconfirmed');if($code===410||$code===404)$d['enabled']=false;comm_put('device.'.$d['id'],$d);}}
 function comm_mail_job(array $job,array $cfg): void {
     if($job['status']!=='pending')return;$b=comm_get('booking.'.$job['booking']);if(!$b||$b['version']!==$job['version']){$job['status']='superseded';comm_put('mail.'.$job['id'],$job);return;}
-    if(email_address_suppressed($b['email'])){$job['status']='suppressed';comm_put('mail.'.$job['id'],$job);return;}
+    $recipient=$b['email'];$salutation=$b['first'];if(($b['change_actor']??'')==='guest'&&in_array($job['event'],['late','cancelled'],true)){$q=db()->prepare('SELECT name,email FROM users WHERE id=? AND is_active=1');$q->execute([$cfg['owner']]);$owner=$q->fetch();if(!$owner){$job['status']='review';comm_put('mail.'.$job['id'],$job);return;}$recipient=$owner['email'];$salutation=$owner['name'];}
+    if(email_address_suppressed($recipient)){$job['status']='suppressed';comm_put('mail.'.$job['id'],$job);return;}
     $job['status']='sending';$job['started']=time();comm_put('mail.'.$job['id'],$job);
-    try{$when=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($b['timezone']))->format('l, j F Y · H:i T');$title=match($job['event']){'requested'=>'Meeting request received','confirmed'=>'Your meeting is confirmed','rescheduled'=>'Your meeting time has changed','reminder'=>'Your meeting is coming up','declined'=>'An update on your meeting request',default=>'Your meeting has been cancelled'};
-        $body='<p>'.e($cfg['types'][$b['type']]['name']).'</p><p><strong>'.e($when).'</strong></p><p>Status: '.e(ucfirst($b['status'])).'.</p>';if($b['status']==='requested')$body.='<p>Please wait for confirmation before making plans.</p>';if($b['status']==='confirmed'&&$b['join']!=='')$body.=email_design_button('Join meeting',$b['join']);$body.=email_design_button('Manage this booking',comm_manage_url($b));$html=email_design($title,$body,['name'=>$b['first']]);
-        $provider=email_deliver(['to'=>$b['email'],'subject'=>$title.' · Waithaka Ndegwa','html'=>$html,'headers'=>[]],hash('sha256','communication:'.$job['id']));$job['status']='accepted';$job['provider_acknowledged']=time();
+    try{$when=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($b['timezone']))->format('l, j F Y · H:i T');$title=match($job['event']){'requested'=>'Meeting request received','confirmed'=>'Your meeting is confirmed','rescheduled'=>'Your meeting time has changed','reminder'=>'Your meeting is coming up','declined'=>'An update on your meeting request','late'=>'Running late for your meeting',default=>'Your meeting has been cancelled'};
+        $body='<p>'.e($cfg['types'][$b['type']]['name']).'</p><p><strong>'.e($when).'</strong></p><p>Status: '.e(ucfirst($b['status'])).'.</p>';if($b['status']==='requested')$body.='<p>Please wait for confirmation before making plans.</p>';if($b['status']==='confirmed'&&$b['join']!=='')$body.=email_design_button('Join meeting',$b['join']);if(!empty($b['change_reason'])&&in_array($job['event'],['late','cancelled','declined'],true))$body.='<p>Reason: '.e($b['change_reason']).'</p>';if($job['event']==='late')$body.='<p>Expected delay: '.(int)$b['late_minutes'].' minutes. The original meeting time has not changed.</p>';$body.=email_design_button('Manage this booking',comm_manage_url($b));$html=email_design($title,$body,['name'=>$salutation]);
+        $provider=email_deliver(['to'=>$recipient,'subject'=>$title.' · Waithaka Ndegwa','html'=>$html,'headers'=>[]],hash('sha256','communication:'.$job['id']));$job['status']='accepted';$job['provider_acknowledged']=time();
     }catch(Throwable $e){$job['status']='review';}comm_put('mail.'.$job['id'],$job);
 }
 function communication_work(): array {
@@ -41,7 +42,7 @@ function communication_work(): array {
         $q=db()->prepare('SELECT service,status FROM publishing_connections WHERE connected_by=? ORDER BY service');$q->execute([$cfg['owner']]);$connections=hash('sha256',json_encode($q->fetchAll()));
         $categories=[];if(($prior['latest_enquiry']??0)!==$latest||($prior['overdue']??0)!==$summary['enquiries_overdue'])$categories[]='enquiries';
         if(($prior['connections']??$connections)!==$connections)$categories[]='connections';
-        if(($prior['signal']??'')!==($signal['id']??''))$categories[]=$signal['category']??'bookings';
+        if(($prior['signal']??'')!==($signal['id']??'')&&($signal['category']??'')!=='planner')$categories[]=$signal['category']??'bookings';
         $p=comm_get('preferences.'.$cfg['owner'],comm_preferences([]));if(!comm_quiet($p)){foreach(array_unique($categories)as$category)comm_push_user((int)$cfg['owner'],$category);$prior['latest_enquiry']=$latest;$prior['overdue']=$summary['enquiries_overdue'];$prior['connections']=$connections;$prior['signal']=$signal['id']??'';}
         $prior['enquiries']=$summary['enquiries_open'];$prior['heartbeat']=$now;comm_put('worker',$prior);return ['enabled'=>true,'mail_processed'=>$count];
     });

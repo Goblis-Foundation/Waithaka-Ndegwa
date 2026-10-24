@@ -7,7 +7,7 @@ if (!installed()) {
 }
 
 $path = path_only();
-if (communication_mail_dispatch($path) || app_security_dispatch($path) || communication_dispatch($path) || meetings_dispatch($path) || google_workspace_dispatch($path) || impact_writer_route($path) || writer_account_route($path) || studio_dispatch($path) || media_centre_dispatch($path)) exit;
+if (planner_dispatch($path) || communication_mail_dispatch($path) || app_security_dispatch($path) || communication_dispatch($path) || meetings_dispatch($path) || google_workspace_dispatch($path) || impact_writer_route($path) || writer_account_route($path) || studio_dispatch($path) || media_centre_dispatch($path)) exit;
 if (str_starts_with($path,'/write') || str_starts_with($path,'/consent/') || str_starts_with($path,'/payments/')) private_response_headers();
 // Optional modules may handle additional routes without changing legacy URLs.
 if (function_exists('app_extension_route') && app_extension_route($path)) exit;
@@ -423,7 +423,7 @@ if ($path === '/write/logout') {
     if (!is_post()) {
         echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Sign out</title></head><body><form method="post">'.csrf_field().'<button type="submit">Sign out of Writer</button></form></body></html>';exit;
     }
-    verify_csrf();session_unset();session_destroy();redirect(url('/write/login'));
+    verify_csrf();app_trust_forget();session_unset();session_destroy();redirect(url('/write/login'));
 }
 if ($path === '/write') {
     require_auth();$posts=writer_posts();$rows=db()->query("SELECT status,COUNT(*) n FROM posts GROUP BY status")->fetchAll();$counts=['draft'=>0,'scheduled'=>0,'published'=>0,'selected'=>(int)db()->query('SELECT COUNT(*) FROM posts WHERE is_selected=1')->fetchColumn()];foreach($rows as $r)$counts[$r['status']]=(int)$r['n'];render_write('dashboard',['writeTitle'=>'My Thoughts','posts'=>$posts,'counts'=>$counts,'workspace'=>writer_workspace_summary()]);exit;

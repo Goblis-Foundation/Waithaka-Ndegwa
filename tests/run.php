@@ -301,6 +301,7 @@ try {
                   'communication_mail_unit.php'=>'Mailbox privacy and draft header boundaries',
                   'app_security_unit.php'=>'Passkey origin, challenge and assertion verification',
                   'communication_unit.php'=>'Availability, DST and notification boundaries',
+                  'planner_unit.php'=>'Daily program parsing, timezone, maps and trust boundaries',
                   'meetings_unit.php'=>'Meeting account, read permissions and join-link boundaries',
                   'studio_unit.php' => 'Private capture and explicit AI drafting boundaries',
                   'meta_mcp_unit.php' => 'Local aggregate Meta MCP lifecycle and privacy',
@@ -361,6 +362,7 @@ try {
                 'campaign' => 'campaign_database_test.php',
                 'google' => 'google_workspace_database.php',
                 'communication' => 'communication_database.php',
+                'planner' => 'planner_database.php',
                 'http' => '010_security_http.php',
             ];
             foreach ($suites as $suite => $file) {

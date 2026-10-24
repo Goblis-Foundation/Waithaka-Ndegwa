@@ -100,8 +100,15 @@ function comm_make_booking(array $cfg,array $input): array {
         if(empty($cfg['types'][$type]['approval'])){try{return comm_confirm($b,$cfg);}catch(RuntimeException){return comm_get('booking.'.$id);}}comm_queue_mail($b,'requested');return $b;
     });
 }
-function comm_change_booking(string $id,string $action,?int $newStart=null): array {
-    return comm_lock('reservations',function()use($id,$action,$newStart){$b=comm_get('booking.'.$id);$cfg=comm_config();if(!$b)throw new InvalidArgumentException('Booking not found.');
+function comm_change_booking(string $id,string $action,?int $newStart=null,string $reason='',int $late=0,string $actor='owner'): array {
+    return comm_lock('reservations',function()use($id,$action,$newStart,$reason,$late,$actor){$b=comm_get('booking.'.$id);$cfg=comm_config();if(!$b)throw new InvalidArgumentException('Booking not found.');
+        if(in_array($action,['cancel','decline','late'],true)){
+            $reason=reader_text($reason,'Reason',1000,true);$b['change_reason']=$reason;$b['change_actor']=$actor;
+        }
+        if($action==='late'){
+            if(!in_array($b['status'],['requested','confirmed'],true)||$b['end']<time()||$late<1||$late>240)throw new InvalidArgumentException('Choose a current booking and delay of 1–240 minutes.');
+            $b['late_minutes']=$late;$b['version']++;comm_put('booking.'.$id,$b);comm_queue_mail($b,'late');comm_event('bookings',$id);return $b;
+        }
         if(in_array($action,['cancel','decline'],true)){
             if(in_array($b['status'],['cancelled','declined'],true))return $b;
             if(!in_array($b['status'],['requested','confirmed'],true))throw new RuntimeException('This booking needs manual calendar review before cancellation.');
@@ -136,17 +143,18 @@ function communication_dispatch(string $path): bool {
     private_response_headers();journeys_method(['GET','HEAD','POST']);$error='';$cfg=comm_config();
     if(str_starts_with($path,'/write/')){
         require_auth();$uid=(int)current_user()['id'];if(!empty($cfg['owner'])&&(int)$cfg['owner']!==$uid){http_response_code(403);echo 'This communication workspace belongs to another Writer.';return true;}
-        if($path==='/write/communication/notification'){$signal=comm_get('signal');$target=($signal['category']??'')==='bookings'?'/write/communication?tab=bookings':'/write/communication?tab=inbox';comm_json(['url'=>$target]);}
+        if($path==='/write/communication/notification'){$signal=comm_get('signal');if(($signal['category']??'')==='planner')comm_json(['url'=>'/write/communication?tab=program','category'=>'planner']);$target=($signal['category']??'')==='bookings'?'/write/communication?tab=bookings':'/write/communication?tab=inbox';comm_json(['url'=>$target]);}
         if($path==='/write/communication/poll'){$signal=comm_get('signal');$summary=reader_operations_summary();comm_json(['signal'=>$signal['id']??'','category'=>$signal['category']??'bookings','open'=>(int)($summary['enquiries_open']??0),'overdue'=>(int)($summary['enquiries_overdue']??0),'at'=>time()]);}
         if(is_post()){verify_csrf();try{$action=$_POST['action']??'';
             if($action==='config'){comm_lock('reservations',function()use($uid){comm_put('config',comm_config_input($_POST,$uid));});flash('success','Booking preferences saved.');redirect(url('/write/communication?tab=availability'));}
-            if(in_array($action,['approve','decline','cancel'],true)){comm_change_booking(reader_text($_POST['id']??'','Booking',32,true),$action);flash('success','Booking updated.');redirect(url('/write/communication?tab=bookings'));}
+            if(in_array($action,['approve','decline','cancel','late'],true)){comm_change_booking(reader_text($_POST['id']??'','Booking',32,true),$action,null,reader_text($_POST['reason']??'','Reason',1000),(int)($_POST['late_minutes']??0),'owner');flash('success','Booking updated.');redirect(url('/write/communication?tab=bookings'));}
             if($action==='preferences'){comm_put('preferences.'.$uid,comm_preferences($_POST));flash('success','Notification preferences saved.');redirect(url('/write/app'));}
             if($action==='subscribe'){comm_save_subscription($uid,$_POST['subscription']??'');comm_json(['ok'=>true]);}
             if($action==='unsubscribe'){comm_remove_subscription($uid,(string)($_POST['device']??''));comm_json(['ok'=>true]);}
             if($action==='push_test'){comm_push_user($uid,'test');flash('success','A private test alert was requested for your subscribed devices.');redirect(url('/write/app'));}
         }catch(Throwable $e){$error=$e instanceof InvalidArgumentException||get_class($e)===RuntimeException::class?$e->getMessage():'The update could not be completed.';}}
         if($path==='/write/app'){comm_vapid();render_write('app',['writeTitle'=>'App & notifications','error'=>$error,'prefs'=>comm_get('preferences.'.$uid,comm_preferences([])),'devices'=>comm_user_devices($uid),'publicKey'=>comm_get('vapid')['public']??'']);return true;}
+        if(($_GET['tab']??'')==='program')redirect(url('/write/program'));
         $tab=is_string($_GET['tab']??null)?$_GET['tab']:'today';if(!in_array($tab,['today','inbox','bookings','people','availability','insights'],true))$tab='today';
         $bookings=comm_records('booking');usort($bookings,static fn($a,$b)=>$a['start']<=>$b['start']);$summary=reader_operations_summary();
         $search=reader_text($_GET['q']??'','Search',100);$enquiries=[];if(in_array($tab,['today','inbox','people'],true)){$q=db()->prepare('SELECT e.*,c.first_name,c.last_name,c.email,c.message,c.reference FROM reader_enquiries e JOIN contact_messages c ON c.id=e.contact_id WHERE CONCAT(c.first_name," ",c.last_name," ",c.email," ",c.message) LIKE ? ORDER BY e.updated_at DESC LIMIT 60');$q->execute(['%'.$search.'%']);$enquiries=$q->fetchAll();}
@@ -154,7 +162,7 @@ function communication_dispatch(string $path): bool {
     }
     $manage=null;$slots=[];$type=is_string($_GET['type']??null)?$_GET['type']:'intro';$date=is_string($_GET['date']??null)?$_GET['date']:(new DateTimeImmutable('tomorrow',comm_zone($cfg['timezone'])))->format('Y-m-d');$zone=is_string($_GET['timezone']??null)?$_GET['timezone']:$cfg['timezone'];
     try{
-        if(preg_match('~^/book/manage/([a-f0-9]{32})/([a-f0-9]{64})$~D',$path,$m)){$manage=comm_booking_by_cap($m[1],$m[2]);$type=$manage['type'];if(is_post()){verify_csrf();$action=$_POST['action']??'';if(!in_array($action,['cancel','reschedule'],true))throw new InvalidArgumentException('Choose a supported action.');$manage=comm_change_booking($manage['id'],$action,isset($_POST['slot'])?(int)$_POST['slot']:null);flash('success','Booking updated.');redirect(comm_manage_url($manage));}}
+        if(preg_match('~^/book/manage/([a-f0-9]{32})/([a-f0-9]{64})$~D',$path,$m)){$manage=comm_booking_by_cap($m[1],$m[2]);$type=$manage['type'];if(is_post()){verify_csrf();$action=$_POST['action']??'';if(!in_array($action,['cancel','reschedule','late'],true))throw new InvalidArgumentException('Choose a supported action.');$manage=comm_change_booking($manage['id'],$action,isset($_POST['slot'])?(int)$_POST['slot']:null,reader_text($_POST['reason']??'','Reason',1000),(int)($_POST['late_minutes']??0),'guest');flash('success','Booking updated.');redirect(comm_manage_url($manage));}}
         elseif($path!=='/book'){http_response_code(404);return true;}
         elseif(is_post()){verify_csrf();if(!empty($_POST['website']))throw new InvalidArgumentException('Unable to accept this request.');if(!journeys_rate_limit('booking',ip_hash(),5,3600))throw new RuntimeException('Please wait before submitting another booking.');$b=comm_make_booking($cfg,$_POST);redirect(comm_manage_url($b));}
         comm_zone($zone);comm_date($date);if(!empty($cfg['enabled'])&&!journeys_rate_limit('booking-slots',ip_hash(),30,60))throw new RuntimeException('Please wait before checking more dates.');if(!empty($cfg['enabled'])&&isset($cfg['types'][$type])&&(! $manage||in_array($manage['status'],['requested','confirmed'],true)))$slots=comm_slots($cfg,$type,$date,$manage['id']??null);

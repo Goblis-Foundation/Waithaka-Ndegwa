@@ -1,0 +1,6 @@
+<?php
+$programUid=(int)current_user()['id'];$programPrefs=comm_get('planner.preferences.'.$programUid,['timezone'=>'Africa/Nairobi']);$programDate=(new DateTimeImmutable('now',comm_zone($programPrefs['timezone'])))->format('Y-m-d');$programRows=array_values(array_filter(planner_day($programUid,$programDate,$programPrefs['timezone']),static fn($r)=>!in_array($r['status'],['cancelled','completed'],true)&&$r['end']>=time()));
+?>
+<link rel="stylesheet" href="<?=asset('css/program.css')?>">
+<section class="program-card program-home" aria-label="Daily program"><div class="program-head"><div><span class="writer-kicker"><?=e($programDate.' · '.$programPrefs['timezone'])?></span><h2>Your day, planned.</h2><p>Meetings, projects and the work that matters.</p></div><a class="wbtn primary" href="<?=url('/write/program')?>">Open daily program</a></div>
+<?php if(!$programRows):?><p>No remaining program entries for today. Add your plan or refresh connected calendars.</p><?php else:?><div class="program-home-list"><?php foreach(array_slice($programRows,0,6)as$r):?><article class="program-item"><time><?=e((new DateTimeImmutable('@'.$r['start']))->setTimezone(comm_zone($programPrefs['timezone']))->format('H:i'))?></time><h3><?=e($r['title'])?></h3><small><?=e($r['source'].' · '.$r['status'])?></small></article><?php endforeach;?></div><?php endif;?></section>
