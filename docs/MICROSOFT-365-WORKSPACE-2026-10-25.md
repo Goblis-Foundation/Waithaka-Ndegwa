@@ -1,6 +1,6 @@
 # Microsoft 365 workspace
 
-Requested identities: iwaithakaw@gmail.com, isaac@goblisgroup.com, isaac@goblisfoundation.com. Their existence as separate Microsoft accounts, aliases, provisioned Exchange mailboxes and licensed Teams hosts is not assumed.
+Requested identities: iwaithakaw@gmail.com, isaac@goblisgroup.com, isaac@goblisfoundation.com. The owner subsequently confirmed isaac@goblisfoundation.org as correct, isaac@goblisgroup.com as its alias, and the Foundation .com relationship. The Group slot therefore connects the canonical Foundation .org account once and displays both owner-confirmed aliases. Two canonical connections remain: personal and organisation. The actual matched Graph address is retained separately from the canonical label. Alias sending is not enabled by this read grant. Provisioned Exchange mailboxes and licensed Teams hosts are not assumed.
 
 ## Implemented
 - Owner-only /write/microsoft, independent encrypted grants, Graph identity matched against requested mail or UPN, explicit confirmation, session-bound ten-minute one-use state, PKCE, stale-grant checks and advisory locks.
