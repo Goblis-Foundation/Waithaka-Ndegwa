@@ -35,3 +35,17 @@ $html=workspace_rich_text("# Heading\n\n**Important** and *careful*\n\n- First\n
 wc(str_contains($html,'<h2>Heading</h2>')&&str_contains($html,'<strong>Important</strong>')&&str_contains($html,'<ul><li>First</li>')&&str_contains($html,'<ol><li>Next</li>'),'Notes formatting keeps semantic headings emphasis and lists');
 wc(!str_contains($html,'<script>')&&str_contains($html,'&lt;script&gt;'),'Raw note HTML is always escaped');
 echo "PASS: private voice format bounds, inline AI payload, ownership identifiers, versions and escaped formatting.\n";
+
+wc(!str_contains($booking,'document_consent')&&!str_contains($booking,'document_provider')&&!str_contains($booking,'sent to OpenAI'),'Internal AI workflow is absent from public booking form');
+$manual=booking_brief_initial($b+['document'=>['name'=>'fixture.pdf','ai_consent'=>false]]);
+wc($manual['brief_status']==='needs review'&&!booking_report_ready($manual),'Private attachments without AI authorisation require host review and never queue automatically');
+$prior=booking_brief_initial($b+['document'=>['name'=>'fixture.pdf','ai_consent'=>true]]);
+wc($prior['brief_status']==='pending','Existing explicitly consented attachments retain their processing path');
+wc(wise_giving_iban('DE89370400440532013000'),'IBAN checksum valid');
+wc(!wise_giving_iban('DE89370400440532013001'),'IBAN typo rejected');
+wx(fn()=>wise_giving_validate('USD',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','routing'=>'000000000','account'=>'12345678','account_type'=>'checking','bank_address'=>'Fixture address']));
+$gb=wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','sort_code'=>'12-34-56','account'=>'12345678']);
+wc($gb['sort_code']==='123456','UK sort code preserves all digits');
+wx(fn()=>wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','sort_code'=>'123456','account'=>'1234567']));
+wc(!wise_giving_validate('EUR',[])['enabled'],'Unconfigured currencies stay disabled');
+echo "PASS: private briefing controls, attachment review gate and Wise receiving validation.\n";

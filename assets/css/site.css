@@ -79,3 +79,10 @@
 
 /* A single, optional invitation at the end of every article. */
 .article-support{margin:30px 0;padding:30px;border:1px solid #cddbc6;border-radius:18px;background:#eef3e8;color:#173d2d}.article-support .eyebrow{color:#416c44}.article-support h2{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.15rem);line-height:1.2;margin:12px 0 16px;letter-spacing:-.025em}.article-support p{font-size:1rem;line-height:1.8;color:#354d3e;margin:0 0 22px}.article-support .button{min-height:46px}.article-support small{display:block;max-width:58ch;font-family:var(--sans);font-size:.78rem;line-height:1.7;color:#526653;margin-top:16px}.article-support a:focus-visible{outline:3px solid #a87923;outline-offset:4px}@media(max-width:560px){.article-support{padding:22px;margin:24px 0}.article-support .button{width:100%;text-align:center}.article-support p{font-size:.95rem}}@media print{.article-support{break-inside:avoid;background:transparent}}
+
+/* Bank transfer is a fourth independent choice, outside card checkout. */
+.payment-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.payment-tabs .wise-method{border:1px solid var(--line-dark);border-radius:13px;min-height:92px;padding:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--green-dark);text-decoration:none}
+.payment-tabs .wise-method:focus-visible,.payment-tabs input:focus-visible+span{outline:3px solid var(--green);outline-offset:3px}
+.wise-giving{scroll-margin-top:110px}.wise-account{border-top:1px solid var(--line);padding:16px 0}.wise-account summary{cursor:pointer}.wise-account dl{display:grid;grid-template-columns:minmax(90px,1fr) minmax(0,2fr);gap:8px;font-size:.86rem}.wise-account dd{margin:0;overflow-wrap:anywhere;user-select:all}.wise-account dt{color:var(--muted)}
+@media(max-width:600px){.payment-tabs{grid-template-columns:1fr}.payment-tabs .wise-method{min-height:68px}.wise-account dl{grid-template-columns:1fr}}
