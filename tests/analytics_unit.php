@@ -33,9 +33,16 @@ $boundary=new DateTimeImmutable('2026-10-31T22:30:00Z');
 analytics_check(visitor_statistics_month('Africa/Nairobi',$boundary)['month']==='2026-11','Monthly boundary follows property timezone.');
 analytics_check(visitor_statistics_month('America/New_York',$boundary)['month']==='2026-10','Monthly boundary does not follow server timezone.');
 $fixture=['timezone'=>'Africa/Nairobi','month'=>'2026-11','month_at'=>$boundary->getTimestamp(),'monthly_visitors'=>0,'monthly_visits'=>19];
-analytics_check(visitor_statistics_display($fixture,$boundary)===['label'=>'November 2026','visitors'=>0,'visits'=>19],'Verified zero retained and metrics distinct.');
+analytics_check(visitor_statistics_display($fixture,$boundary)===['month_label'=>'November','year_label'=>'2026','month'=>0],'Verified monthly zero retained and visits never relabelled as visitors.');
 $fixture['month']='2026-10';analytics_check(visitor_statistics_display($fixture,$boundary)===[],'Prior month never displayed as current month.');
 $fixture['month']='2026-11';$fixture['month_at']-=86401;analytics_check(visitor_statistics_display($fixture,$boundary)===[],'Stale readings hidden.');
 analytics_check(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>'2'],['value'=>'19']]]]],1)===19,'Read the correct monthly metric.');
 analytics_check(visitor_statistics_number(['metadata'=>['subjectToThresholding'=>true],'rows'=>[['metricValues'=>[['value'=>'19']]]]])===null,'Thresholded counts not published.');
 analytics_check(visitor_statistics_number([])===null,'Missing counts never become fabricated zero.');
+
+$fixture=['timezone'=>'Africa/Nairobi','month'=>'2026-11','month_at'=>$boundary->getTimestamp(),'monthly_visitors'=>19,'year'=>'2026','year_at'=>$boundary->getTimestamp(),'yearly_visitors'=>30,'active'=>4,'active_at'=>$boundary->getTimestamp(),'active_window'=>5];
+analytics_check(visitor_statistics_display($fixture,$boundary)===['month_label'=>'November','year_label'=>'2026','now'=>4,'month'=>19,'year'=>30],'Now, month and year use separate verified visitor readings.');
+$fixture['active_at']-=181;analytics_check(!isset(visitor_statistics_display($fixture,$boundary)['now']),'Stale current activity not published.');
+$fixture['year']='2025';analytics_check(!isset(visitor_statistics_display($fixture,$boundary)['year']),'Prior year not shown as current year.');
+analytics_check(visitor_statistics_realtime_number(['kind'=>'analyticsData#runRealtimeReport','metricHeaders'=>[['name'=>'activeUsers']]])===0,'Successful empty realtime report means no active visitors.');
+analytics_check(visitor_statistics_realtime_number([])===null,'Missing realtime response remains unknown.');
