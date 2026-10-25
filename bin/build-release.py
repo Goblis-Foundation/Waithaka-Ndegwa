@@ -34,7 +34,7 @@ def runtime_file(path: str) -> bool:
         return True
     if path in {"index.php", ".htaccess", "composer.json", "composer.lock", "manifest.webmanifest", "sw.js", "offline.html", ".env.example"} or path in STORAGE_MARKERS:
         return True
-    if path in {"bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/founder-story-migrate.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
+    if path in {"bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/founder-story-migrate.php", "bin/culture-topic.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
         return True
     return path in {"deploy/aws/worker-launcher.php", "deploy/aws/run-worker.sh", "deploy/aws/global-bundle.pem", "deploy/aws/media-limits.ini"}
 
