@@ -91,6 +91,7 @@ function reader_dispatch(string $path): bool {
         if ($filter !== '' && !array_key_exists($filter, $states)) { not_found(); return true; }
         $from = $queue === 'enquiries' ? 'reader_enquiries r JOIN contact_messages c ON c.id=r.contact_id' : 'founder_submissions f JOIN reader_founder_followups r ON r.founder_id=f.id';
         $where = $filter !== '' ? ' WHERE '.($queue === 'enquiries' ? 'r.status' : 'f.review_status').'=?' : ''; $parameters = $filter !== '' ? [$filter] : [];
+        if($queue==='enquiries')$where.=($where===''?' WHERE ':' AND ').'NOT EXISTS(SELECT 1 FROM reader_enquiry_trash t WHERE t.enquiry_id=r.id)';
         $query = db()->prepare('SELECT COUNT(*) FROM '.$from.$where); $query->execute($parameters);
         $pagination = archive_pagination(archive_page_number($_GET['page'] ?? null), (int)$query->fetchColumn(), 30, '/write/readers', ['queue' => $queue] + ($filter !== '' ? ['status' => $filter] : []));
         if ($pagination === null) { not_found(); return true; }
@@ -102,7 +103,7 @@ function reader_dispatch(string $path): bool {
     if (preg_match('~^/write/readers/enquiries/([1-9][0-9]{0,9})$~', $path, $match)) {
         $id = reader_id($match[1]); $enquiry = reader_enquiry($id); if (!$enquiry) { not_found(); return true; }
         if (is_post()) {
-            try { reader_enquiry_update($id, $_POST, $actor); flash('success', 'Enquiry record saved. No email or marketing subscription was created.'); redirect(url($path)); }
+            try { if(in_array($_POST['action']??'',['trash','restore'],true)){reader_enquiry_trash($id,(int)($_POST['row_version']??0),$actor,($_POST['action']??'')==='restore');flash('success',($_POST['action']==='restore'?'Message restored.':'Message moved to Trash. You can restore it.'));redirect(url('/write/communication?tab='.($_POST['action']==='restore'?'inbox':'trash')));}if(!empty($enquiry['is_trashed']))throw new ReaderValidationException('Restore this message before updating its follow-up record.');reader_enquiry_update($id, $_POST, $actor); flash('success', 'Enquiry record saved. No email or marketing subscription was created.'); redirect(url($path)); }
             catch (Throwable $exception) { $error = reader_route_error($exception); }
         }
         $query = db()->prepare('SELECT event_type,note,created_at FROM reader_enquiry_events WHERE enquiry_id=? ORDER BY id DESC LIMIT 100'); $query->execute([$id]);

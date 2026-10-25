@@ -15,7 +15,7 @@ function contact_draft_values(array $in): array {
 }
 function contact_form_nonce(mixed $value): string {return is_string($value)&&preg_match('/^[a-f0-9]{32}$/D',$value)?$value:'';}
 function contact_delivery_ids(int $contactId,string $reference): array {
- $q=db()->prepare('SELECT reference FROM contact_messages WHERE id=?');$q->execute([$contactId]);if($q->fetchColumn()!==$reference)return [];
+ $q=db()->prepare('SELECT reference FROM contact_messages c WHERE id=? AND NOT EXISTS(SELECT 1 FROM reader_enquiries e JOIN reader_enquiry_trash t ON t.enquiry_id=e.id WHERE e.contact_id=c.id)');$q->execute([$contactId]);if($q->fetchColumn()!==$reference)return [];
  $q=db()->prepare('SELECT id FROM email_outbox WHERE dedupe_key IN (?,?) ORDER BY id');$q->execute([hash('sha256','contact:'.$reference),hash('sha256','contact-receipt:'.$reference)]);return array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
 }
 function contact_delivery_register(int $contactId,string $reference): void {$q=db()->prepare('SELECT id FROM reader_enquiries WHERE contact_id=?');$q->execute([$contactId]);$enquiry=(int)$q->fetchColumn();$meta=$enquiry?contact_guard_meta($enquiry):[];if($meta&&!in_array($meta['state'],['approved','released'],true))return;if(!contact_delivery_ids($contactId,$reference))return;comm_put('contact.delivery.'.$contactId,['id'=>$contactId,'reference'=>$reference,'created'=>time()]);}

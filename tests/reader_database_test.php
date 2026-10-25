@@ -200,3 +200,17 @@ rd_check(in_array('Duplicate message',contact_guard_meta($duplicateId)['reasons'
 $limits=contact_guard_config();rd_check(in_array('IP limit: more than five messages per minute',contact_guard_reasons([],true,true,5,0,0,false,$limits),true),'Sixth submission in a minute is held');
 $_SESSION['contact_issued']=[];$nonce=contact_form_issue();rd_check(contact_form_consume($nonce)&&!contact_form_consume($nonce),'Server-issued contact token is consumed exactly once');
 echo "PASS: durable held enquiries, zero pre-review mail, explicit deduplicated release, duplicate detection, IP limit and one-use token.\n";
+
+$trashCfg=comm_get('config');comm_put('config',array_replace($trashCfg,['owner'=>$actor]));
+$trashBefore=reader_enquiry($heldId);$openBefore=reader_operations_summary()['enquiries_open'];
+reader_enquiry_trash($heldId,(int)$trashBefore['row_version'],$actor);
+rd_check((bool)reader_enquiry($heldId)['is_trashed'],'Deleted message is in Trash');
+rd_check(reader_enquiry($heldId)['message']===$trashBefore['message'],'Deletion retains original content for restore');
+rd_check(contact_delivery_ids((int)$trashBefore['contact_id'],$trashBefore['reference'])===[],'Trashed messages do not release scoped notifications');
+rd_reject(fn()=>reader_enquiry_trash($heldId,(int)$trashBefore['row_version'],$actor,true),'Stale message cannot be restored over current state');
+rd_reject(fn()=>reader_enquiry_trash($heldId,(int)reader_enquiry($heldId)['row_version'],$actor+1000,true),'Another account cannot restore owner correspondence');
+reader_enquiry_trash($heldId,(int)reader_enquiry($heldId)['row_version'],$actor,true);
+rd_check(!reader_enquiry($heldId)['is_trashed'],'Restore returns message to inbox');
+rd_check((int)rd_scalar("SELECT COUNT(*) FROM reader_enquiry_events WHERE enquiry_id=? AND event_type IN ('moved_to_trash','restored')",[$heldId])===2,'Delete and restore remain auditable');
+comm_put('config',$trashCfg);
+echo "PASS: owner-only message Trash, original-content retention, notification exclusion, version conflicts and restore.\n";
