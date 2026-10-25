@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/social_options.php';
 
 require_once __DIR__.'/providers/http.php';
 require_once __DIR__.'/providers/oauth.php';
@@ -91,7 +92,7 @@ function publishing_default_draft(?array $post=null): array {
         'media_url'=>'','media_asset_id'=>0,'media_type'=>$slug==='youtube'?'video':'image','alt_text'=>'','title'=>$post['title']??'','format'=>$slug==='youtube'?'video':'post',
         'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false,
         'tiktok_allow_comments'=>false,'tiktok_allow_duet'=>false,'tiktok_allow_stitch'=>false,
-        'tiktok_brand_organic'=>false,'tiktok_branded_content'=>false,'tiktok_settings_confirmed'=>false
+        'platform_options'=>[],'tiktok_brand_organic'=>false,'tiktok_branded_content'=>false,'tiktok_settings_confirmed'=>false
     ];
     return $draft;
 }
@@ -109,7 +110,7 @@ function publishing_normalize_draft(array $input): array {
         $media=$assetId?'':trim((string)($v['media_url']??''));
         if ($media!==''&&!publishing_public_url($media)) throw new RuntimeException('Use a public HTTPS media URL without private or signed-access tokens for '.$slug.'.');
         $draft['variants'][$slug]=[
-            'enabled'=>!empty($v['enabled']),'text'=>trim((string)($v['text']??'')), 'media_url'=>$media,'media_asset_id'=>$assetId,
+            'platform_options'=>social_options_input($slug,$v['platform_options']??[]),'enabled'=>!empty($v['enabled']),'text'=>trim((string)($v['text']??'')), 'media_url'=>$media,'media_asset_id'=>$assetId,
             'media_type'=>in_array($v['media_type']??'', ['image','video'],true)?$v['media_type']:'image',
             'alt_text'=>mb_substr(trim((string)($v['alt_text']??'')),0,1000),'title'=>mb_substr(trim((string)($v['title']??$title)),0,100),
             'format'=>in_array($v['format']??'', ['post','reel','story','short','video'],true)?$v['format']:'post',
@@ -180,6 +181,7 @@ function publishing_destination(array $channel, array $variant=[]): array {
 }
 
 function publishing_validate_variant(string $slug, array $variant, array $destination): void {
+    social_options_validate($slug,$variant,$destination);
     $text=$variant['text'];$media=$variant['media_url'];$method=$destination['method'];
     $ownedMedia=!empty($variant['media_asset']);
     if ($text===''&&$media===''&&!$ownedMedia) throw new RuntimeException('Add content for '.$slug.'.');

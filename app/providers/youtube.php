@@ -60,7 +60,7 @@ function publishing_youtube_validate_variant(array $variant, bool $requireAsset 
 function publishing_youtube_metadata(array $variant): array {
     publishing_youtube_validate_variant($variant);
     return [
-        'snippet'=>['title'=>$variant['title'],'description'=>$variant['text'],'categoryId'=>'27'],
+        'snippet'=>['title'=>$variant['title'],'description'=>$variant['text'],'categoryId'=>'27']+(!empty($variant['platform_options']['tags'])?['tags'=>array_values(array_filter(array_map('trim',explode(',',$variant['platform_options']['tags']))))]:[])+(!empty($variant['platform_options']['language'])?['defaultLanguage'=>$variant['platform_options']['language']]:[]),
         'status'=>[
             // Explicit even when false/private: never rely on account or API defaults.
             'privacyStatus'=>$variant['privacy'],

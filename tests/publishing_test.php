@@ -103,3 +103,11 @@ $GLOBALS['clientFixture']['publishing.facebook_profile.client_id']='personal-app
 $GLOBALS['clientFixture']['publishing.facebook_profile.client_secret']='personal-secret';
 check(publishing_service_client('facebook_profile')['client_id']==='personal-app','Personal Login selects its dedicated app');
 check(publishing_service_client('facebook_pages')['client_id']==='page-app','Personal Login setup does not replace the Page app');
+
+check(social_options_input('instagram',['location_id'=>'123','user_tags'=>'fixture,0.5,0.25'])['location_id']==='123','Instagram location IDs and bounded image tag coordinates normalize');
+$rejected=false;try{social_instagram_tags('fixture,2,0');}catch(InvalidArgumentException){$rejected=true;}check($rejected,'Image tags reject coordinates outside image bounds');
+$rejected=false;try{social_options_validate('facebook',['platform_options'=>['audience'=>'Friends']],['method'=>'direct']);}catch(RuntimeException){$rejected=true;}check($rejected,'Native audience setting cannot silently become a public API post');
+social_options_validate('facebook',['platform_options'=>['audience'=>'Friends','location_label'=>'Nairobi']],['method'=>'manual']);
+$parameters=social_instagram_parameters(['media_url'=>'https://example.com/image.jpg','text'=>'Fixture','alt_text'=>'Fixture','platform_options'=>['location_id'=>'123','user_tags'=>'fixture,0.5,0.5']]);
+check($parameters['location_id']==='123'&&json_decode($parameters['user_tags'],true)[0]['username']==='fixture','Actual direct Instagram payload carries selected approved tags and location');
+echo "PASS: platform-specific options retained, validated and never silently dropped by unsupported delivery routes.\n";
