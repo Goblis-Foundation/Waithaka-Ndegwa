@@ -299,6 +299,7 @@ try {
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',
+                  'openai_unit.php'=>'Stateless OpenAI output and safe failure boundaries',
                   'gemini_unit.php'=>'Stateless Gemini document and model boundaries',
                   'communication_mail_unit.php'=>'Mailbox privacy and draft header boundaries',
                   'app_security_unit.php'=>'Passkey origin, challenge and assertion verification',
