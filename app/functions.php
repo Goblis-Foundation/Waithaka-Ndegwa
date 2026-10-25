@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/location.php';
 require_once __DIR__.'/email_design.php';
 
 function app_config(?string $key = null, mixed $default = null): mixed {

@@ -107,6 +107,11 @@ set_setting('contact.recipient', 'editor@example.invalid');
 $beforeSubscribers = (int)rd_scalar('SELECT COUNT(*) FROM newsletter_subscribers');
 $message = ['reference' => 'WK-READER-000001', 'first_name' => 'Questioner', 'email' => 'questioner@example.invalid', 'message' => 'Please clarify the source.'];
 $enquiry = reader_contact_submit($message, ['enquiry_type' => 'correction']);
+$geo=reader_contact_submit(array_replace($message,['reference'=>'WK-LOCATION-000001']),['enquiry_type'=>'general','country'=>'Kenya','county'=>'Nyeri','sub_county'=>'Kieni West','city'=>'Endarasha'],false);
+rd_check(location_record('enquiry',$geo)['sub_county']==='Kieni West','Enquiry location survives private persistence.');
+$geoRaw=rd_row('SELECT setting_value,is_secret FROM settings WHERE setting_key=?',['private.location.enquiry.'.$geo]);
+rd_check((int)$geoRaw['is_secret']===1&&!str_contains($geoRaw['setting_value'],'Endarasha'),'Location metadata is encrypted at rest.');
+
 rd_check(reader_enquiry($enquiry)['enquiry_type'] === 'correction' && reader_enquiry($enquiry)['notification_state'] === 'queued' && (int)reader_enquiry($enquiry)['email_sent'] === 0, 'Contact and typed enquiry are durable before notification; queueing is not delivery.');
 rd_check((int)rd_scalar('SELECT COUNT(*) FROM newsletter_subscribers') === $beforeSubscribers, 'An enquiry never becomes a marketing subscription.');
 db()->exec("CREATE TRIGGER reader_fixture_outbox_failure BEFORE INSERT ON email_outbox FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Synthetic fixture queue failure'");
@@ -121,7 +126,8 @@ rd_check(reader_enquiry($enquiry)['last_response_at'] !== null && (int)rd_scalar
 rd_reject(fn() => reader_enquiry_update($enquiry, $edit + ['response_sent_ack' => '1'], $actor), 'Concurrent enquiry edits use optimistic version checks.');
 
 $submission = ['privacy_ack' => '1', 'submission_type' => 'founder', 'submitter_name' => 'Founder fixture', 'submitter_email' => 'founder@example.invalid', 'founder_name' => 'Founder fixture', 'venture_name' => 'Synthetic venture', 'country' => 'Kenya', 'story_summary' => 'Original private account.', 'metric_basis' => 'not_applicable', 'private_evidence_notes' => 'PRIVATE EVIDENCE NEVER SHARED'];
-$reference = founders_submit(founders_submission_values($submission)); $founder = (int)rd_scalar('SELECT id FROM founder_submissions WHERE reference=?', [$reference]); $receipt = rd_latest_payload(); $founderToken = rd_payload_token($receipt, '/founders/follow-up');
+$submission+=['county'=>'Nyeri','sub_county'=>'Kieni West','city'=>'Endarasha','phone_code'=>'+254','phone'=>'0712345678'];
+$reference = founders_submit(founders_submission_values($submission)); $founder = (int)rd_scalar('SELECT id FROM founder_submissions WHERE reference=?', [$reference]); rd_check(location_record('founder',$founder)['phone']==='+254712345678'&&location_record('founder',$founder)['county']==='Nyeri','Founder phone and structured location are saved privately.'); $receipt = rd_latest_payload(); $founderToken = rd_payload_token($receipt, '/founders/follow-up');
 rd_check(reader_founder($founder)['receipt_state'] === 'queued' && str_contains($receipt['html'], $reference), 'Founder submission automatically gets a durable reference and queued private receipt.');
 rd_check(!str_contains($receipt['html'], $submission['private_evidence_notes']) && (int)rd_scalar('SELECT COUNT(*) FROM newsletter_subscribers') === $beforeSubscribers, 'Founder receipts disclose no private evidence and never subscribe the sender.');
 $queueBefore = (int)rd_scalar('SELECT COUNT(*) FROM email_outbox'); reader_founder_received($reference);

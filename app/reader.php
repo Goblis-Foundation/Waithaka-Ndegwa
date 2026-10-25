@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/location.php';
 
 /** Private reader choices and editorial correspondence. No provider calls here. */
 final class ReaderValidationException extends InvalidArgumentException {}
@@ -214,13 +215,15 @@ function reader_contact_values(array $message, array $input = []): array {
 }
 /** Save the contact and work item atomically, commit, then attempt notification. */
 function reader_contact_submit(array $message, array $input = [], bool $notify = true): int {
-    $values = reader_contact_values($message, $input); $pdo = db(); $pdo->beginTransaction();
+    $values = reader_contact_values($message, $input);
+    $profile=null;if(array_intersect(['county','sub_county','region','district'],array_keys($input))){try{$profile=location_fields($input+['country'=>$values['country'],'city'=>$values['city']]);}catch(InvalidArgumentException $e){throw new ReaderValidationException($e->getMessage());}$values['country']=$profile['country'];$values['city']=$profile['city'];}
+    $pdo = db(); $pdo->beginTransaction();
     try {
         $query = $pdo->prepare('INSERT INTO contact_messages(reference,first_name,last_name,email,phone_code,phone,country,city,message,ip_hash,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
         $query->execute([$values['reference'], $values['first_name'], $values['last_name'], $values['email'], $values['phone_code'], $values['phone'], $values['country'], $values['city'], $values['message'], ip_hash(), mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 500)]);
         $contactId = (int)$pdo->lastInsertId();
         $pdo->prepare('INSERT INTO reader_enquiries(contact_id,enquiry_type,created_at,updated_at) VALUES(?,?,UTC_TIMESTAMP(),UTC_TIMESTAMP())')->execute([$contactId, $values['enquiry_type']]);
-        $id = (int)$pdo->lastInsertId(); $pdo->commit();
+        $id = (int)$pdo->lastInsertId(); if($profile!==null)location_record_save('enquiry',$id,$profile); $pdo->commit();
     } catch (Throwable $error) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $error; }
     if($notify)reader_contact_notifications($id,$values);
     return $id;

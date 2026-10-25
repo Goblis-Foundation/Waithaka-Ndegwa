@@ -317,7 +317,7 @@ try {
                   'editorial_unit.php'=>'Editorial content and evidence privacy',
                   'reader_unit.php'=>'Reader preferences and private-link policy',
                   'discovery_test.php'=>'Search, report and image contracts',
-                  'readiness_unit.php'=>'Pure operations diagnostics','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
+                  'location_unit.php'=>'Country, location and phone policy','readiness_unit.php'=>'Pure operations diagnostics','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
             $suiteCount++;
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $passedCount++;
             else $failed[] = $label;
@@ -340,6 +340,9 @@ try {
         $suiteCount++;
         if(wk_test_process(['node',__DIR__.'/workspace_navigation_test.js'],$environment,'Workspace tabs, validation and horizontal navigation'))$passedCount++;
         else $failed[]='Workspace tabs, validation and horizontal navigation';
+        $suiteCount++;
+        if(wk_test_process(['node',__DIR__.'/location_browser_test.js'],$environment,'Country-dependent location fields'))$passedCount++;
+        else $failed[]='Country-dependent location fields';
         $suiteCount++;
         if(wk_test_process(['python3','-B',__DIR__.'/readiness_deployment_test.py'],$environment,'Offline AWS recovery and cutover plans'))$passedCount++;
         else $failed[]='Offline AWS recovery and cutover plans';
