@@ -65,7 +65,8 @@ echo "PASS: Wise webhook signatures, profile binding, test isolation and money-m
 
 wc(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>'0']]]]])===0,'An explicitly measured zero remains zero');
 wc(visitor_statistics_number([])===null,'Missing analytics does not fabricate zero');
-wc(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>'7']]]]],'metadata'=>['subjectToThresholding'=>true]])===null,'Thresholded aggregate withheld');
+$thresholded=['rows'=>[['metricValues'=>[['value'=>'7']]]],'metadata'=>['subjectToThresholding'=>true]];
+wc(visitor_statistics_number($thresholded)===null,'Thresholded aggregate withheld');
 $streams=[['name'=>'properties/123/dataStreams/456','webStreamData'=>['measurementId'=>'G-FIXTURE','defaultUri'=>'https://www.example.invalid']]];
 wc(visitor_statistics_binding($streams,'G-FIXTURE','www.example.invalid')['id']==='456','Footer binds to exact deployed tag and host');
 $threw=false;try{visitor_statistics_binding($streams,'G-FIXTURE','different.example.invalid');}catch(RuntimeException){$threw=true;}wc($threw,'Wrong website stream rejected');
