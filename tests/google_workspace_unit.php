@@ -45,3 +45,12 @@ gw_check(!str_contains(publishing_google_denial_message('{"error":{"message":"fi
 gw_check(google_gemini_generation_config('gemini-3.8-flash')['thinkingConfig']['thinkingLevel']==='low','Interactive 3.8 Flash uses supported low-latency thinking level');
 gw_check(!isset(google_gemini_generation_config('gemini-2.5-flash')['thinkingConfig']),'Do not send unsupported thinkingLevel to older models');
 gw_check(google_gemini_generation_config('gemini-3.8-flash')['maxOutputTokens']===2400,'Bounded Gemini generation output');
+
+require dirname(__DIR__).'/app/wise_api.php';
+$wiseProfile=['profile'=>'123','probe'=>['profile'=>'123']];
+$wiseSub=['id'=>'72195556-e5cb-495e-a010-b37a4f2a3043','trigger_on'=>'balances#credit','delivery'=>['version'=>'4.0.0','url'=>url('/webhooks/wise')],'scope'=>['domain'=>'profile','id'=>123]];
+$wiseCalls=[];$wiseSend=function($method,$path,$body=null)use(&$wiseCalls,$wiseSub){$wiseCalls[]=[$method,$path,$body];return $method==='GET'&&str_ends_with($path,'/subscriptions')?[$wiseSub]:$wiseSub;};
+$connected=wise_api_connect_notifications($wiseProfile,$wiseSend);gw_check($connected['webhook_enabled']&&count($wiseCalls)===2&&$wiseCalls[0][0]==='GET'&&$wiseCalls[1][0]==='GET','Existing subscription reused and independently verified without POST.');
+$wiseCalls=[];$wiseCreate=function($method,$path,$body=null)use(&$wiseCalls,$wiseSub){$wiseCalls[]=[$method,$path,$body];return $method==='GET'&&str_ends_with($path,'/subscriptions')?[]:$wiseSub;};
+gw_check(wise_api_connect_notifications($wiseProfile,$wiseCreate)['subscription']===$wiseSub['id']&&count($wiseCalls)===3&&$wiseCalls[1][2]['trigger_on']==='balances#credit','Create only the exact incoming-credit subscription and read it back.');
+foreach(['profile','callback','event','schema']as$bad){$row=$wiseSub;if($bad==='profile')$row['scope']['id']=456;if($bad==='callback')$row['delivery']['url']='https://other.invalid/';if($bad==='event')$row['trigger_on']='transfers#state-change';if($bad==='schema')$row['delivery']['version']='5.0.0';gw_check(!wise_api_subscription_match($row,'123',url('/webhooks/wise')),'Reject mismatched subscription '.$bad);}
