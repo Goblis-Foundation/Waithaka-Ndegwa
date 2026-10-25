@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 /** Per-account delegated grants, never a tenant-wide application permission. */
 final class MicrosoftWorkspaceException extends RuntimeException {}
-function ms_accounts(): array {return ['personal'=>'iwaithakaw@gmail.com','group'=>'isaac@goblisgroup.com','foundation'=>'isaac@goblisfoundation.com'];}
+function ms_accounts(): array {return ['personal'=>'iwaithakaw@gmail.com','group'=>'isaac@goblisfoundation.org','foundation'=>'isaac@goblisfoundation.com'];}
+/** Alias relationship explicitly confirmed by the owner; not a separate mailbox. */
+function ms_aliases(): array {return ['personal'=>[],'group'=>['isaac@goblisgroup.com'],'foundation'=>[]];}
 function ms_features(): array {
  return [
  'calendar'=>['name'=>'Outlook calendar','scope'=>'Calendars.Read','path'=>'/me/calendarView','select'=>'id,subject,start,end,isCancelled','columns'=>['subject'=>'Meeting','start'=>'Starts','end'=>'Ends','isCancelled'=>'Cancelled']],
@@ -26,9 +28,9 @@ function ms_granted(array $token): array {
 function ms_identity(array $who,string $slot): array {
  $expected=ms_accounts()[$slot]??throw new MicrosoftWorkspaceException('Choose one of the requested accounts.');
  $id=$who['id']??'';if(!is_string($id)||$id===''||strlen($id)>255)throw new MicrosoftWorkspaceException('Microsoft did not return an account identity.');
- $matched=false;foreach([$who['mail']??null,$who['userPrincipalName']??null]as$email)if(is_string($email)&&strcasecmp(trim($email),$expected)===0)$matched=true;
- if(!$matched)throw new MicrosoftWorkspaceException('Microsoft returned a different identity. Select '.$expected.'. If this address is an alias, verify its Microsoft identity before connecting it here.');
- return ['id'=>$id,'email'=>$expected,'name'=>mb_substr(is_string($who['displayName']??null)?$who['displayName']:$expected,0,200)];
+ $matched='';foreach(array_merge([$expected],ms_aliases()[$slot]??[])as$allowed){foreach([$who['mail']??null,$who['userPrincipalName']??null]as$email)if(is_string($email)&&strcasecmp(trim($email),$allowed)===0){$matched=$allowed;break 2;}}
+ if($matched==='')throw new MicrosoftWorkspaceException('Microsoft returned a different identity. Select '.$expected.'. If this address is an alias, verify its Microsoft identity before connecting it here.');
+ return ['id'=>$id,'email'=>$matched,'canonical_email'=>$expected,'name'=>mb_substr(is_string($who['displayName']??null)?$who['displayName']:$expected,0,200)];
 }
 function ms_key(string $slot): string {if(!isset(ms_accounts()[$slot]))throw new MicrosoftWorkspaceException('Choose an account shown here.');return 'microsoft.workspace.'.$slot;}
 function ms_record(string $slot,int $uid): array {$r=comm_get(ms_key($slot));return (int)($r['owner']??0)===$uid?$r:[];}
