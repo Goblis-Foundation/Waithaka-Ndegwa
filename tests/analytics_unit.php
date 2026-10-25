@@ -46,3 +46,7 @@ $fixture['active_at']-=181;analytics_check(!isset(visitor_statistics_display($fi
 $fixture['year']='2025';analytics_check(!isset(visitor_statistics_display($fixture,$boundary)['year']),'Prior year not shown as current year.');
 analytics_check(visitor_statistics_realtime_number(['kind'=>'analyticsData#runRealtimeReport','metricHeaders'=>[['name'=>'activeUsers']]])===0,'Successful empty realtime report means no active visitors.');
 analytics_check(visitor_statistics_realtime_number([])===null,'Missing realtime response remains unknown.');
+
+analytics_check(!isset(visitor_statistics_realtime_request('123',true)['dimensionFilter']),'Exactly one verified stream permits exact property-wide realtime.');
+analytics_check(visitor_statistics_realtime_request('123',false)['dimensionFilter']['filter']['stringFilter']['value']==='123','Multiple or unknown streams always retain exact stream filter.');
+analytics_check(visitor_statistics_realtime_request('123',true)['minuteRanges'][0]['startMinutesAgo']===4,'Now is the last five minutes.');

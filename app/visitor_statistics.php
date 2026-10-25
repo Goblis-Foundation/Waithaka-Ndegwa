@@ -24,6 +24,12 @@ function visitor_statistics_display(array $s,?DateTimeImmutable $now=null): arra
  if(($s['year']??'')===$year&&($s['year_at']??0)>=$stamp-86400&&isset($s['yearly_visitors']))$out['year']=$s['yearly_visitors'];
  return isset($out['now'])||isset($out['month'])||isset($out['year'])?$out:[];
 }
+function visitor_statistics_realtime_request(string $stream,bool $singleStream): array {
+ $request=['metrics'=>[['name'=>'activeUsers']],'minuteRanges'=>[['startMinutesAgo'=>4,'endMinutesAgo'=>0]]];
+ // Property-wide realtime is exact only when Admin API verified one stream in total.
+ if(!$singleStream)$request['dimensionFilter']=['filter'=>['fieldName'=>'streamId','stringFilter'=>['matchType'=>'EXACT','value'=>$stream]]];
+ return $request;
+}
 function visitor_statistics_realtime_number(array $report): ?int {
  $value=visitor_statistics_number($report);if($value!==null)return $value;
  if(empty($report['metadata']['subjectToThresholding'])&&empty($report['rows'])&&($report['metricHeaders'][0]['name']??'')==='activeUsers'&&($report['kind']??'')==='analyticsData#runRealtimeReport')return 0;
@@ -35,16 +41,16 @@ function visitor_statistics_refresh(bool $force=false): void {
  try{
  $c=google_workspace_connection('google_analytics');$property=$c['selected_resource'];if(!preg_match('~^properties/[0-9]+$~D',$property))throw new RuntimeException('Invalid Analytics property.');$tag=(string)setting('google.ga4','G-RN0YXC2WCH');$h=publishing_bearer(publishing_access_token($c));$host=strtolower((string)parse_url(base_url(),PHP_URL_HOST));
  $binding=hash('sha256',$property.'|'.$tag.'|'.$host);
- if(($s['binding']??'')!==$binding||($s['binding_at']??0)<time()-3600||empty($s['timezone'])){
+ if(($s['binding']??'')!==$binding||($s['binding_at']??0)<time()-3600||empty($s['timezone'])||!array_key_exists('single_stream',$s)){
   $streams=publishing_http('GET','https://analyticsadmin.googleapis.com/v1beta/'.$property.'/dataStreams?pageSize=200',$h)['data'];if(!empty($streams['nextPageToken']))throw new RuntimeException('Stream selection needs review.');
   $stream=visitor_statistics_binding($streams['dataStreams']??[],$tag,$host);$p=publishing_http('GET','https://analyticsadmin.googleapis.com/v1beta/'.$property,$h)['data'];$zone=new DateTimeZone($p['timeZone']??'UTC');$createdAt=$stream['created']?:($p['createTime']??'');if(!is_string($createdAt)||!preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/',$createdAt))throw new RuntimeException('Analytics history date unavailable.');$created=new DateTimeImmutable($createdAt);$since=$created->setTimezone($zone)->format('Y-m-d');if($since<'2005-01-01'||$since>date('Y-m-d'))throw new RuntimeException('Analytics history date unavailable.');
-  if(($s['binding']??'')!==$binding)$s=['attempted'=>time()];$s+=['stream'=>$stream['id'],'since'=>$since];$s['stream']=$stream['id'];$s['since']=$since;$s['binding']=$binding;$s['binding_at']=time();$s['tag']=$tag;$s['timezone']=$zone->getName();
+  if(($s['binding']??'')!==$binding)$s=['attempted'=>time()];$s+=['stream'=>$stream['id'],'since'=>$since];$s['stream']=$stream['id'];$s['since']=$since;$s['binding']=$binding;$s['binding_at']=time();$s['tag']=$tag;$s['timezone']=$zone->getName();$s['single_stream']=count($streams['dataStreams']??[])===1;
  }
  $filter=['filter'=>['fieldName'=>'streamId','stringFilter'=>['matchType'=>'EXACT','value'=>$s['stream']]]];
  try{
-  $rt=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runRealtimeReport',$h,['metrics'=>[['name'=>'activeUsers']],'dimensionFilter'=>$filter,'minuteRanges'=>[['startMinutesAgo'=>4,'endMinutesAgo'=>0]]])['data'];
+  $rt=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runRealtimeReport',$h,visitor_statistics_realtime_request($s['stream'],!empty($s['single_stream'])))['data'];
   $s['active']=visitor_statistics_realtime_number($rt);$s['active_at']=time();$s['active_window']=5;
- }catch(Throwable){unset($s['active'],$s['active_at']);}
+ }catch(Throwable $realtimeError){unset($s['active'],$s['active_at']);$s['realtime_status']=$realtimeError instanceof PublishingRemoteException?'Provider HTTP '.$realtimeError->httpStatus:'Request unavailable';}
  $period=visitor_statistics_month($s['timezone']);
  if($force||($s['month']??'')!==$period['month']||($s['month_at']??0)<time()-3600){
   $monthly=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runReport',$h,['dateRanges'=>[['startDate'=>$period['start'],'endDate'=>$period['end']]],'metrics'=>[['name'=>'activeUsers'],['name'=>'sessions']],'dimensionFilter'=>$filter])['data'];
