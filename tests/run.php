@@ -303,6 +303,7 @@ try {
                   'communication_mail_unit.php'=>'Mailbox privacy and draft header boundaries',
                   'app_security_unit.php'=>'Passkey origin, challenge and assertion verification',
                   'communication_unit.php'=>'Availability, DST and notification boundaries',
+                  'workspace_reports_unit.php'=>'Private reports, weekly routines and booking review gates',
                   'planner_unit.php'=>'Daily program parsing, timezone, maps and trust boundaries',
                   'meetings_unit.php'=>'Meeting account, read permissions and join-link boundaries',
                   'studio_unit.php' => 'Private capture and explicit AI drafting boundaries',
@@ -406,4 +407,5 @@ try {
     if ($temporaryDirectory !== null && is_dir($temporaryDirectory)) rmdir($temporaryDirectory);
 }
 exit($exitCode);
+
 

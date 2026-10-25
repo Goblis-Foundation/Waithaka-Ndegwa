@@ -27,7 +27,7 @@ try{
  $email='program-http-'.bin2hex(random_bytes(8)).'@example.invalid';$password=bin2hex(random_bytes(20));db()->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['Program HTTP fixture',$email,password_hash($password,PASSWORD_DEFAULT)]);$actor=(int)db()->lastInsertId();
  ph_check(ph_request('/write/program')['status']===302,'Anonymous program is private');
  $login=ph_request('/write/login');ph_check(ph_request('/write/login',ph_form($login['body'],'login')+['email'=>$email,'password'=>$password,'trust_device'=>'1'])['status']===302,'Remembered fixture sign-in');
- $page=ph_request('/write/program?date=2026-11-02');ph_check($page['status']===200&&str_contains($page['body'],'Daily program'),'Daily program renders');ph_check(str_contains($page['headers']['cache-control']??'','no-store'),'Private program not cacheable');
+ $page=ph_request('/write/program?date=2026-11-02');ph_check($page['status']===200&&(str_contains($page['body'],'Daily &amp; weekly program')||str_contains($page['body'],'Daily & weekly program')),'Daily program renders');ph_check(str_contains($page['headers']['cache-control']??'','no-store'),'Private program not cacheable');
  $save=ph_form($page['body'],'save');$save=array_replace($save,['title'=>'REVIEWED PRIVATE PROGRAM','start'=>'2026-11-02T09:00','end'=>'2026-11-02T09:30','timezone'=>'Africa/Nairobi','kind'=>'project','location'=>'Nairobi','reminder'=>'15']);
  ph_check(ph_request('/write/program?date=2026-11-02',$save)['status']===302,'Actual program form saves');$page=ph_request('/write/program/2026-11-02');ph_check($page['status']===200&&str_contains($page['body'],'REVIEWED PRIVATE PROGRAM'),'Dated program shows saved item');ph_check(str_contains($page['body'],'/write/program/2026-11-02'),'Printed reference keeps day');
  $programLines=[];$edited=[];for($i=1;$i<=100;$i++){$programLines[]='2026-11-02 | 10:00 | 10:30 | IMPORT FIXTURE '.$i.' | Fixture location';$edited[$i]=['title'=>'REVIEWED IMPORT '.$i,'start'=>'2026-11-02T10:00','end'=>'2026-11-02T10:30','location'=>'Fixture location','project'=>'Synthetic','notes'=>'Acceptance fixture only'];}
@@ -39,6 +39,15 @@ try{
  $confirm['program_complete']='1';ph_check(ph_request('/write/program?date=2026-11-02',$confirm)['status']===302,'One hundred edited rows fit the real form parser');
  ph_check(count(comm_records('planner.item.'.$actor,5000))===101,'Every selected reviewed entry is saved');
  $page=ph_request('/write/program?date=2026-11-02');
+
+ $notes=ph_request('/write/notes');ph_check($notes['status']===200&&str_contains($notes['body'],'Notes &amp; reports')||($notes['status']===200&&str_contains($notes['body'],'Notes & reports')),'Notes workspace renders');
+ $noteForm=ph_form($notes['body'],'save');ph_check(ph_request('/write/notes',['action'=>'save','title'=>'No CSRF'])['status']===419,'Notes reject missing CSRF');
+ $saved=ph_request('/write/notes',array_replace($noteForm,['title'=>'SYNTHETIC MEETING NOTE','date'=>'2026-11-02','notes'=>'Fixture discussion only','report'=>'Fixture draft report']));ph_check($saved['status']===302,'Private notes form saves');
+ $notePath=parse_url($saved['headers']['location'],PHP_URL_PATH).'?'.parse_url($saved['headers']['location'],PHP_URL_QUERY);$notes=ph_request($notePath);ph_check(str_contains($notes['body'],'SYNTHETIC MEETING NOTE')&&str_contains($notes['body'],'draft'),'Saved notes and unreviewed report render');
+ $generate=ph_form($notes['body'],'generate');$denied=ph_request($notePath,$generate+['provider'=>'openai']);ph_check($denied['status']===200&&str_contains($denied['body'],'Allow the selected notes'),'No AI call without explicit consent');
+ $edit=ph_form($notes['body'],'save');$reviewed=ph_request($notePath,array_replace($edit,['title'=>'SYNTHETIC MEETING NOTE','date'=>'2026-11-02','notes'=>'Fixture discussion only','report'=>'Reviewed fixture report','approve_report'=>'1']));ph_check($reviewed['status']===302,'Report can be reviewed explicitly');
+ parse_str((string)parse_url($notePath,PHP_URL_QUERY),$noteQuery);$report=ph_request('/write/notes/report/'.$noteQuery['id']);ph_check($report['status']===200&&str_contains($report['body'],'Reviewed fixture report')&&str_contains($report['body'],'data-document-qr'),'Report has a protected printed reference');
+ $notes=ph_request($notePath);$mail=ph_form($notes['body'],'email');$denied=ph_request($notePath,$mail+['to'=>'fixture@example.invalid','name'=>'Fixture']);ph_check($denied['status']===200&&str_contains($denied['body'],'Confirm this recipient'),'Report email needs an explicit send action');
  $jarText=file_get_contents($jar);ph_check(str_contains($jarText,'wn_trust'),'Persistent trust cookie issued');
  $trustCookie=null;foreach(explode("\n",$jarText)as$line){$parts=explode("\t",$line);if(count($parts)===7&&$parts[5]==='wn_trust')$trustCookie=$parts;}ph_check($trustCookie!==null&&$trustCookie[1]==='FALSE'&&(int)$trustCookie[4]>time()+170*86400,'Trust cookie has host-only persistent expiry');
  $before=ph_form($page['body'],'save');ph_expire_sessions();$restored=ph_request('/write/program?date=2026-11-02');ph_check($restored['status']===200&&str_contains($restored['body'],'REVIEWED PRIVATE PROGRAM'),'Ordinary session expiry does not require another login');$after=ph_form($restored['body'],'save');ph_check($before['csrf']===$after['csrf'],'Restoration preserves valid device CSRF forms');
@@ -50,6 +59,7 @@ try{
  echo 'Program and trusted-device HTTP checks: '.$checks.' passed.'.PHP_EOL;
 }finally{
  ph_expire_sessions();
- if($actor){foreach(['trusted','session']as$prefix)foreach(comm_records($prefix,2000)as$r)if((int)($r['user']??0)===$actor)db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['communication.'.$prefix.'.'.$r['id']]);db()->prepare('DELETE FROM settings WHERE setting_key LIKE ?')->execute(['communication.planner.item.'.$actor.'.%']);db()->prepare('DELETE FROM users WHERE id=?')->execute([$actor]);}
+ if($actor){foreach(['trusted','session']as$prefix)foreach(comm_records($prefix,2000)as$r)if((int)($r['user']??0)===$actor)db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['communication.'.$prefix.'.'.$r['id']]);db()->prepare('DELETE FROM settings WHERE setting_key LIKE ?')->execute(['communication.planner.item.'.$actor.'.%']);db()->prepare('DELETE FROM settings WHERE setting_key LIKE ?')->execute(['communication.notes.'.$actor.'.%']);db()->prepare('DELETE FROM users WHERE id=?')->execute([$actor]);}
  if(is_file($jar))unlink($jar);
 }
+

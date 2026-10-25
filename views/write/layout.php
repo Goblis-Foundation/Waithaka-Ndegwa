@@ -5,7 +5,7 @@
 <?php if($wu):?><span class="workspace-location"><?=e($title)?></span><div class="workspace-top-actions"><a class="wbtn" href="<?=url('/write/capture')?>">Capture idea</a><a class="wbtn primary" href="<?=url('/write/new')?>">New thought</a><button class="wbtn writer-menu-toggle" type="button" data-writer-menu aria-expanded="false" aria-controls="writer-navigation" hidden>Menu</button></div><?php endif;?></header>
 <?php if($wu):
 $navigation=[
-'Daily work'=>['/write'=>'Today','/write/program'=>'Daily program','/write/communication'=>'Communication Centre','/write/meetings'=>'Meetings & booking'],
+'Daily work'=>['/write'=>'Today','/write/notes'=>'Notes & reports','/write/program'=>'Daily & weekly program','/write/communication'=>'Communication Centre','/write/meetings'=>'Meetings & booking'],
 'Create & publish'=>['/write/studio'=>'Studio & AI','/write/capture'=>'Capture idea','/write/new'=>'New thought','/write#library'=>'Article library','/write/media-centre'=>'Media centre','/write/publishing'=>'Posting & calendar','/write/media'=>'Images & videos','/write/connections'=>'Social connections'],
 'Audience'=>['/write/newsletter'=>'Newsletter','/write/readers'=>'Reader desk','/write/campaigns'=>'Campaigns','/write/discovery'=>'Search performance'],
 'Journeys & impact'=>['/write/journeys'=>'Startup Journeys','/write/journeys/founders'=>'Founder reviews','/write/editorial'=>'Resources & evidence','/write/releases'=>'Consent records','/write/impact'=>'2030 reporting'],
@@ -28,3 +28,4 @@ if($wu && preg_match('~^/write/(?:releases/[1-9][0-9]*|journeys/founders/[1-9][0
  include __DIR__.'/../document_record.php';
 }
 ?></div></div><script src="<?=asset('js/write.js')?>" defer></script><?php if($wu):?><nav class="app-mobile-nav" aria-label="Quick workspace navigation"><a href="/write" <?=$writerPath==='/write'?'aria-current="page"':''?>>Today</a><a href="/write/program" <?=str_starts_with($writerPath,'/write/program')?'aria-current="page"':''?>>Plan</a><a href="/write/communication?tab=inbox">Inbox</a><a href="/write/capture">Create</a></nav><?php endif;?><script src="<?=asset('js/communication.js')?>" defer></script><script src="<?=asset('js/app-security.js')?>" defer></script><script src="<?=asset('js/app.js')?>" defer></script></body></html>
+
