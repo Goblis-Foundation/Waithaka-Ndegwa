@@ -99,7 +99,7 @@ function comm_make_booking(array $cfg,array $input): array {
         if(!in_array($start,comm_slots($cfg,$type,$date),true))throw new RuntimeException('This time is no longer available. Choose another time.');
         $document=booking_document_upload($_FILES['booking_document']??[],false,booking_document_provider($cfg));
         $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>'','document'=>$document,'host_mailbox'=>$host]+$method;$b+=booking_brief_initial($b);comm_put('booking.'.$id,$b);comm_event('bookings',$id);
-        comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);return $b;
+        comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);elseif(($b['brief_status']??'')==='needs review')booking_owner_attention($b);return $b;
     });
 }
 function comm_change_booking(string $id,string $action,?int $newStart=null,string $reason='',int $late=0,string $actor='owner',?int $expectedVersion=null): array {
