@@ -603,7 +603,7 @@ function make_reference(string $prefix): string { return strtoupper($prefix).'-'
 
 function send_contact_email(array $m): bool {
     $to=trim((string)setting('contact.recipient','')); if($to===''||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;
-    $subject='Website message '.$m['reference'].' — '.$m['first_name'].' '.$m['last_name'];
+    $subject=mb_substr('Website message '.$m['reference'].' — '.$m['first_name'].' '.$m['last_name'],0,250);
     $body="New message from waithakandegwa.com\n\nReference: {$m['reference']}\nName: {$m['first_name']} {$m['last_name']}\nEmail: {$m['email']}\nPhone: {$m['phone_code']} {$m['phone']}\nLocation: {$m['city']}, {$m['country']}\n\nMessage:\n{$m['message']}\n";
     $from=trim((string)setting('mail.from','noreply@waithakandegwa.com')); if(!filter_var($from,FILTER_VALIDATE_EMAIL))$from='noreply@waithakandegwa.com';
     $safeReply=str_replace(["\r","\n"],'',$m['email']);
