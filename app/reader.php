@@ -241,7 +241,7 @@ function reader_contact_notifications(int $id,array $values): void {
 }
 
 function reader_enquiry(int $id): ?array {
-    $query = db()->prepare('SELECT r.*,c.reference,c.first_name,c.last_name,c.email,c.phone_code,c.phone,c.country,c.city,c.message,c.email_sent FROM reader_enquiries r JOIN contact_messages c ON c.id=r.contact_id WHERE r.id=?');
+    $query = db()->prepare('SELECT r.*,c.reference,c.first_name,c.last_name,c.email,c.phone_code,c.phone,c.country,c.city,c.message,c.email_sent,EXISTS(SELECT 1 FROM reader_enquiry_trash t WHERE t.enquiry_id=r.id) is_trashed FROM reader_enquiries r JOIN contact_messages c ON c.id=r.contact_id WHERE r.id=?');
     $query->execute([$id]); return $query->fetch() ?: null;
 }
 function reader_enquiry_update(int $id, array $input, int $actor): void {
@@ -387,8 +387,21 @@ function reader_founder_respond(string $token, array $input): ?string {
     } catch (Throwable $error) { if (db()->inTransaction()) db()->rollBack(); throw $error; }
 }
 function reader_operations_summary(): array {
-    $row = db()->query("SELECT SUM(status NOT IN ('closed','responded')) enquiries_open,SUM(status NOT IN ('closed','responded') AND next_action_at<UTC_TIMESTAMP()) enquiries_overdue FROM reader_enquiries")->fetch();
+    $row = db()->query("SELECT SUM(status NOT IN ('closed','responded')) enquiries_open,SUM(status NOT IN ('closed','responded') AND next_action_at<UTC_TIMESTAMP()) enquiries_overdue FROM reader_enquiries r WHERE NOT EXISTS(SELECT 1 FROM reader_enquiry_trash t WHERE t.enquiry_id=r.id)")->fetch();
     $founders = db()->query("SELECT SUM(clarification_status='requested' OR permission_status='requested') founder_waiting,SUM(clarification_status='replied' OR permission_status='granted') founder_replies_pending FROM reader_founder_followups r JOIN founder_submissions f ON f.id=r.founder_id WHERE f.review_status NOT IN ('approved','declined','withdrawn')")->fetch();
     return array_map('intval', array_merge($row ?: [], $founders ?: []));
 }
 
+
+function reader_enquiry_trash(int $id,int $version,int $actor,bool $restore=false): void {
+ if($actor!==(int)comm_config()['owner'])throw new ReaderValidationException('Owner access required.');
+ db()->beginTransaction();try{
+  $q=db()->prepare('SELECT row_version FROM reader_enquiries WHERE id=? FOR UPDATE');$q->execute([$id]);$current=$q->fetchColumn();
+  if($current===false||(int)$current!==$version)throw new ReaderConflictException('This message changed. Reload before continuing.');
+  if($restore)db()->prepare('DELETE FROM reader_enquiry_trash WHERE enquiry_id=?')->execute([$id]);
+  else db()->prepare('INSERT INTO reader_enquiry_trash(enquiry_id,deleted_by,deleted_at) VALUES(?,?,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE enquiry_id=VALUES(enquiry_id)')->execute([$id,$actor]);
+  db()->prepare('UPDATE reader_enquiries SET row_version=row_version+1,updated_at=UTC_TIMESTAMP() WHERE id=?')->execute([$id]);
+  db()->prepare('INSERT INTO reader_enquiry_events(enquiry_id,event_type,note,actor_id,created_at) VALUES(?,?,?,?,UTC_TIMESTAMP())')->execute([$id,$restore?'restored':'moved_to_trash',$restore?'Message restored. No notification was re-sent.':'Message moved to Trash. Content and follow-up history retained.',$actor]);
+  db()->commit();
+ }catch(Throwable $e){if(db()->inTransaction())db()->rollBack();throw $e;}
+}

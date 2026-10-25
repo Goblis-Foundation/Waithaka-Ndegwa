@@ -1,0 +1,3 @@
+# Message deletion
+Website enquiries have Delete message in the Communication Centre and message detail page. Delete moves an enquiry to private Trash, removes it from inbox/people/open counts and prevents scoped contact notifications for it. Restore preserves the original message, review state and follow-up history. Owner-only CSRF-protected POST and optimistic row versions guard every mutation. Audit entries record deletion and restoration.
+This does not delete Gmail, Instagram or Facebook messages: their existing connections remain read-only or native-provider operations. No permanent-delete control or destructive provider permission was added. No real correspondence was deleted during verification.
