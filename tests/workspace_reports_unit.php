@@ -93,3 +93,8 @@ echo "PASS: provider-scoped integration settings and retained secrets.\n";
 foreach(['EUR','USD','GBP']as$currency)wc(isset(wise_giving_fields($currency)['bank_address']),'Every Wise currency includes bank address');
 wc(str_contains(file_get_contents(dirname(__DIR__).'/views/write/wise.php'),'Bank address exactly as shown in Wise'),'Bank address uses a multiline area with source guidance');
 echo "PASS: EUR SEPA, USD ACH and GBP UK bank address fields.\n";
+
+$gbIban=wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture bank','bank_address'=>'Fixture bank address','sort_code'=>'123456','account'=>'98765432','iban'=>'GB82 WEST 1234 5698 7654 32','bic'=>'NWBKGB2L']);
+wc($gbIban['iban']==='GB82WEST12345698765432'&&$gbIban['account']==='98765432','UK supports account number and IBAN together');
+wx(fn()=>wise_giving_validate('GBP',array_replace($gbIban,['iban'=>'GB82WEST12345698765433'])));
+echo "PASS: UK local account details and optional international IBAN checksum.\n";

@@ -4,7 +4,7 @@ require_once __DIR__.'/wise_api.php';
 /** Receiving instructions only. No money-movement permission or unverified settlement. */
 function wise_giving_fields(string $currency): array {
  $base=['holder'=>'Account holder','bank'=>'Bank name','bank_address'=>'Bank address'];
- return $base+match($currency){'EUR'=>['iban'=>'IBAN','bic'=>'BIC / SWIFT code'],'USD'=>['routing'=>'ACH routing number','account'=>'Account number','account_type'=>'Account type'] ,'GBP'=>['sort_code'=>'Sort code','account'=>'Account number'],default=>throw new InvalidArgumentException('Choose EUR, USD or GBP.')};
+ return $base+match($currency){'EUR'=>['iban'=>'IBAN','bic'=>'BIC / SWIFT code'],'USD'=>['routing'=>'ACH routing number','account'=>'Account number','account_type'=>'Account type'] ,'GBP'=>['sort_code'=>'Sort code','account'=>'Account number','iban'=>'IBAN','bic'=>'BIC / SWIFT code'],default=>throw new InvalidArgumentException('Choose EUR, USD or GBP.')};
 }
 function wise_giving_rail(string $currency): string {return ['EUR'=>'SEPA bank transfer','USD'=>'US ACH bank transfer','GBP'=>'UK bank transfer · Faster Payments'][$currency]??'';}
 function wise_giving_iban(string $s): bool {
@@ -12,9 +12,10 @@ function wise_giving_iban(string $s): bool {
  $n=substr($s,4).substr($s,0,4);$r=0;foreach(str_split($n)as$c){$v=ctype_alpha($c)?(string)(ord($c)-55):$c;foreach(str_split($v)as$d)$r=($r*10+(int)$d)%97;}return $r===1;
 }
 function wise_giving_validate(string $currency,array $in): array {
- $row=['currency'=>$currency,'enabled'=>!empty($in['enabled'])];foreach(wise_giving_fields($currency)as$key=>$label)$row[$key]=reader_text($in[$key]??'',$label,$key==='bank_address'?500:180,$row['enabled']);
+ $row=['currency'=>$currency,'enabled'=>!empty($in['enabled'])];foreach(wise_giving_fields($currency)as$key=>$label)$row[$key]=reader_text($in[$key]??'',$label,$key==='bank_address'?500:180,$row['enabled']&&!($currency==='GBP'&&in_array($key,['iban','bic'],true)));
  if(!$row['enabled'])return $row;
  if($currency==='EUR'){$row['iban']=strtoupper(preg_replace('/\s+/','',$row['iban']));$row['bic']=strtoupper($row['bic']);if(!wise_giving_iban($row['iban'])||!preg_match('/^[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/D',$row['bic']))throw new InvalidArgumentException('Check the EUR IBAN and BIC exactly against Wise.');}
+ if($currency==='GBP'&&$row['iban']!==''){$row['iban']=strtoupper(preg_replace('/\s+/','',$row['iban']));$row['bic']=strtoupper($row['bic']);if(!wise_giving_iban($row['iban'])||!preg_match('/^[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/D',$row['bic']))throw new InvalidArgumentException('Check the GBP IBAN and BIC exactly against Wise.');}
  if($currency==='USD'){if(!preg_match('/^[0-9]{9}$/D',$row['routing']))throw new InvalidArgumentException('Use a nine-digit ACH routing number.');$n=array_map('intval',str_split($row['routing']));if((3*($n[0]+$n[3]+$n[6])+7*($n[1]+$n[4]+$n[7])+$n[2]+$n[5]+$n[8])%10!==0||array_sum($n)===0)throw new InvalidArgumentException('Check the ACH routing number checksum.');if(!preg_match('/^[0-9]{4,20}$/D',$row['account'])||!in_array(strtolower($row['account_type']),['checking','savings'],true))throw new InvalidArgumentException('Check the USD account number and account type.');$row['account_type']=strtolower($row['account_type']);}
  if($currency==='GBP'){$row['sort_code']=preg_replace('/[ -]/','',$row['sort_code']);if(!preg_match('/^[0-9]{6}$/D',$row['sort_code'])||!preg_match('/^[0-9]{8}$/D',$row['account']))throw new InvalidArgumentException('Use the six-digit sort code and eight-digit GBP account number.');}
  return $row;
