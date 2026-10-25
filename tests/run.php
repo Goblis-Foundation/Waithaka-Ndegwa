@@ -317,7 +317,7 @@ try {
                   'editorial_unit.php'=>'Editorial content and evidence privacy',
                   'reader_unit.php'=>'Reader preferences and private-link policy',
                   'discovery_test.php'=>'Search, report and image contracts',
-                  'location_unit.php'=>'Country, location and phone policy','readiness_unit.php'=>'Pure operations diagnostics','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
+                  'pesapal_connection_unit.php'=>'Pesapal IPN connection policy','location_unit.php'=>'Country, location and phone policy','readiness_unit.php'=>'Pure operations diagnostics','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
             $suiteCount++;
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $passedCount++;
             else $failed[] = $label;

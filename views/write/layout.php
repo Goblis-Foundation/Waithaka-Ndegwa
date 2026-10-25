@@ -16,7 +16,7 @@ $financeWorkspace=$writerPath==='/write/wise'||$writerPath==='/write/monthly-sup
 if($financeWorkspace||str_starts_with($writerPath,'/write/integration/'))$activeLink='/write/connections';
 if(str_starts_with($writerPath,'/write/edit/'))$activeLink='/write#library';
 $activeGroup='Daily work';foreach($navigation as$group=>$links)if(array_key_exists($activeLink,$links))$activeGroup=$group;
-$sectionLinks=$financeWorkspace?['/write/connections#integrations-finance'=>'Finance integrations','/write/wise'=>'Wise','/write/integration/paypal'=>'PayPal','/write/monthly-support'=>'Monthly support']:($navigation[$activeGroup]??[]);
+$sectionLinks=$financeWorkspace?['/write/connections#integrations-finance'=>'Finance integrations','/write/wise'=>'Wise','/write/integration/paypal'=>'PayPal','/write/integration/pesapal'=>'PesaPal · cards','/write/monthly-support'=>'Monthly support']:($navigation[$activeGroup]??[]);
 $sectionCurrent=$financeWorkspace?$writerPath:$activeLink;
 ?>
 <aside class="workspace-sidebar"><nav id="writer-navigation" class="write-nav workspace-nav" aria-label="Writer navigation">
