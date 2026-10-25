@@ -2,3 +2,5 @@
 
 .routine-week{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem}.routine-week>section{border:1px solid var(--line,#d6ddd8);padding:1rem;border-radius:12px;min-width:0}.routine-week p{font-size:.85rem;overflow-wrap:anywhere}.program-editor textarea{width:100%;box-sizing:border-box}.program-card{overflow-wrap:anywhere}@media print{.program-editor,.program-actions,.program-controls,.program-week{display:none!important}.routine-week{display:block}.routine-week>section{break-inside:avoid}}
 .routine-row{border:1px solid #d4ded7;border-radius:12px;padding:1rem;margin:1rem 0}.routine-days{display:flex;flex-wrap:wrap;gap:.6rem}.routine-days label{display:flex;align-items:center;gap:.3rem}.routine-days input{width:auto}.routine-row legend{font-weight:700;padding:0 .4rem}
+
+.program-card label[hidden]{display:none!important}
