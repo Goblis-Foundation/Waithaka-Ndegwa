@@ -335,6 +335,9 @@ try {
         if(wk_test_process(['node',__DIR__.'/analytics_browser_test.js'],$environment,'Offline Google tag consent and duplicate-event states'))$passedCount++;
         else $failed[]='Offline Google tag consent and duplicate-event states';
         $suiteCount++;
+        if(wk_test_process(['node',__DIR__.'/goal_tabs_test.js'],$environment,'Goal tabs keyboard and deep-link navigation'))$passedCount++;
+        else $failed[]='Goal tabs keyboard and deep-link navigation';
+        $suiteCount++;
         if(wk_test_process(['python3','-B',__DIR__.'/readiness_deployment_test.py'],$environment,'Offline AWS recovery and cutover plans'))$passedCount++;
         else $failed[]='Offline AWS recovery and cutover plans';
         foreach (['branded_dns_test.py'=>'Offline branded DNS preparation and recovery',

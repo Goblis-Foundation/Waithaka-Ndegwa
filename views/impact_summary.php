@@ -1,13 +1,16 @@
+<?php $goalGroups=[
+ ['org'=>0,'keys'=>['startups','permanent_staff'],'id'=>'goal-ventures','tab'=>'Build ventures','lead'=>'Build practical businesses that can stand on their own.','target'=>'startups','unit'=>'startups','description'=>'Through Goblis Group, establish or be directly involved in ventures with paying customers, viable operations and lasting employment.'],
+ ['org'=>1,'keys'=>['social_enterprises','ubunifu_permanent_staff'],'id'=>'goal-incubation','tab'=>'Incubate social enterprises','lead'=>'Help ideas grow into useful, sustainable enterprises.','target'=>'social_enterprises','unit'=>'social enterprises','description'=>'Through Ubunifu Institute, connect applied learning, incubation and enterprise development. Jobs are created by the incubated enterprises.'],
+ ['org'=>3,'keys'=>['market_access'],'id'=>'goal-markets','tab'=>'Open markets','lead'=>'Connect African social enterprises with opportunity.','target'=>'market_access','unit'=>'enterprises connected','description'=>'Through Goblis Foundation’s AfriTrace Link, support market access across all 55 African countries. A documented market connection is distinct from a completed sale.']
+];?>
 <section class="section impact-section" id="goals-2030" aria-labelledby="goals-title">
   <div class="container">
-    <div class="section-heading"><div><span class="eyebrow">My commitments · 1 July 2026–30 June 2030</span><h2 id="goals-title">Building opportunity. Accountable to results.</h2></div><p>Three connected ambitions: build enterprises, strengthen social entrepreneurship and open access to markets.</p></div>
+    <div class="goal-heading"><div><span class="eyebrow">Goal 2030 · My commitments</span><h2 id="goals-title">Build enterprises.<br>Widen opportunity.</h2><p>Three pathways, one ambition: create enterprises that last, strengthen social entrepreneurship and open access to markets.</p></div><div class="goal-period"><span>Reporting period</span><strong>1 July 2026 <span aria-hidden="true">→</span> 30 June 2030</strong><small>Targets and approved progress, shown separately.</small></div></div>
+    <div data-goal-tabs>
+    <nav class="goal-tabs" aria-label="Choose a 2030 pathway"><?php foreach($goalGroups as$i=>$group):$headline=impact_metrics()[$group['target']];?><a id="<?=e($group['id'])?>-tab" href="#<?=e($group['id'])?>" data-goal-tab><span class="goal-tab-step">0<?=$i+1?></span><span class="goal-tab-copy"><strong><?=e($group['tab'])?></strong><small><?=number_format($headline['target'])?> <?=e($group['unit'])?></small></span><span class="goal-tab-arrow" aria-hidden="true">↓</span></a><?php endforeach;?></nav>
     <div class="impact-groups">
-    <?php $organisations=impact_organisations();foreach([
-      ['org'=>0,'keys'=>['startups','permanent_staff']],
-      ['org'=>1,'keys'=>['social_enterprises','ubunifu_permanent_staff']],
-      ['org'=>3,'keys'=>['market_access']]
-    ] as$group):$org=$organisations[$group['org']];?>
-      <section class="impact-group" aria-label="<?=e($org['name'])?> goals">
+    <?php $organisations=impact_organisations();foreach($goalGroups as$group):$org=$organisations[$group['org']];?>
+      <section class="impact-group" id="<?=e($group['id'])?>" data-goal-panel aria-label="<?=e($org['name'])?> goals"><div class="goal-panel-intro"><div><span class="eyebrow"><?=e($org['name'])?></span><h3><?=e($group['lead'])?></h3><p><?=e($group['description'])?></p></div><div class="goal-organisation-links">
         <a class="impact-organisation" href="<?=e($org['url'])?>" target="_blank" rel="noopener noreferrer" aria-label="<?=e('Visit '.$org['name'])?>">
           <span class="impact-organisation-logo"><img src="<?=asset('images/organisations/'.$org['logo'])?>" alt="<?=e($org['name'].' logo')?>" width="240" height="160" loading="lazy" decoding="async"></span>
           <h3><?=e($org['name'])?></h3><span>Explore the organisation ↗</span>
@@ -15,22 +18,23 @@
         <?php if($group['org']===3):$project=$organisations[2];?>
         <a class="impact-project" href="<?=e($project['url'])?>" target="_blank" rel="noopener noreferrer"><img src="<?=asset('images/organisations/'.$project['logo'])?>" alt="AfriTrace Link logo" width="300" height="100" loading="lazy"><span><strong>AfriTrace Link</strong><small>A project of Goblis Foundation</small><small>Planned coverage · all 55 African countries</small><small>Explore AfriTrace Link ↗</small></span></a>
         <?php endif;?>
-        <div class="impact-group-metrics">
+        </div></div><div class="impact-group-metrics">
         <?php foreach($group['keys'] as$key):$metric=impact_metrics()[$key];$report=impact_display(impact_snapshot($metric['source']),$key);?>
       <article class="impact-card">
-        <span class="eyebrow"><?=e(impact_sources()[$metric['source']])?></span>
+        <span class="eyebrow">Target · June 2030</span>
         <p class="impact-target"><?=number_format($metric['target'])?><small>Target by June 2030</small></p>
         <h3><?=e($metric['label'])?></h3><p><?=e($metric['copy'])?></p>
+        <?php if($report['value']!==null):?><progress class="goal-progress" max="<?=$metric['target']?>" value="<?=min($metric['target'],$report['value'])?>" aria-label="<?=e($metric['label'].' approved progress towards target')?>"></progress><?php endif;?>
         <div class="impact-reported"><span><?=e($report['status'])?></span><strong><?=$report['value']===null?'—':number_format($report['value'])?></strong>
         <?php if($report['as_of']):?><small>Measured <?= $report['measurement_period_start']?e($report['measurement_period_start'].' – '.$report['measurement_period_end'].' ('.$report['measurement_timezone'].')'):'through '.e(date('j M Y',strtotime($report['as_of'])))?></small><?php if($report['published_at']):?><small>Published <time datetime="<?=e($report['published_at'])?>"><?=e(gmdate('j M Y, H:i \\U\\T\\C',strtotime($report['published_at'])))?></time></small><?php endif;?><?php if($report['connection_status']==='Source check pending'):?><small>Source connection check pending; the measurement dates above are unchanged.</small><?php endif;?><?php else:?><small>Progress will appear when the source system supplies an approved report.</small><?php endif;?></div>
       </article>
         <?php endforeach;?>
         </div>
         <?php $indirectSource=match($group['org']){0=>'goblis_group',1=>'ubunifu',default=>'goblis_foundation'};$indirect=impact_indirect_groups()[$indirectSource];$indirectSnapshot=impact_snapshot($indirectSource);$beneficiaries=impact_display($indirectSnapshot,'indirect_beneficiaries');?>
-        <aside class="impact-indirect"><h4>Indirect beneficiaries</h4><p><?=e($indirect['copy'])?></p><strong><?=$beneficiaries['value']===null?'Count awaiting verified reporting':number_format($beneficiaries['value']).' people · '.e($beneficiaries['status'])?></strong><?php if($beneficiaries['as_of']):?><small>Measured <?=$beneficiaries['measurement_period_start']?e($beneficiaries['measurement_period_start'].' – '.$beneficiaries['measurement_period_end']):'through '.e(date('j M Y',strtotime($beneficiaries['as_of'])))?></small><?php if($beneficiaries['published_at']):?><small>Published <?=e(gmdate('j M Y, H:i \\U\\T\\C',strtotime($beneficiaries['published_at'])))?></small><?php endif;?><p><?=e($indirectSnapshot['data']['beneficiary_basis']??'')?></p><?php endif;?></aside>
+        <details class="impact-indirect"><summary>Indirect beneficiaries <span>How the benefits may extend</span></summary><div><p><?=e($indirect['copy'])?></p><strong><?=$beneficiaries['value']===null?'Count awaiting verified reporting':number_format($beneficiaries['value']).' people · '.e($beneficiaries['status'])?></strong><?php if($beneficiaries['as_of']):?><small>Measured <?=$beneficiaries['measurement_period_start']?e($beneficiaries['measurement_period_start'].' – '.$beneficiaries['measurement_period_end']):'through '.e(date('j M Y',strtotime($beneficiaries['as_of'])))?></small><?php if($beneficiaries['published_at']):?><small>Published <?=e(gmdate('j M Y, H:i \\U\\T\\C',strtotime($beneficiaries['published_at'])))?></small><?php endif;?><p><?=e($indirectSnapshot['data']['beneficiary_basis']??'')?></p><?php endif;?></div></details>
       </section>
     <?php endforeach;?>
-    </div>
+    </div></div>
     <p class="impact-context">These are my goals, not a claim of results already achieved. Progress comes from the organisations’ reporting systems. Missing data is shown as unavailable, rather than zero. These figures describe shared work with teams and partners, not outcomes attributable to me alone.</p>
     <details class="impact-method"><summary>How progress will be counted</summary>
       <div class="impact-method-copy"><h3>One reporting period. Clear definitions.</h3>
@@ -48,3 +52,5 @@
     <div class="button-row"><a class="button button-primary" href="<?=url('/contact')?>">Collaborate on these goals</a><a class="button button-secondary" href="<?=url('/startup-journeys')?>">Follow Startup Journeys</a></div>
   </div>
 </section>
+
+<script src="<?=asset('js/goal-tabs.js')?>" defer></script>
