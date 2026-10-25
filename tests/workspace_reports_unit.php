@@ -81,3 +81,11 @@ wc(booking_contact_input([])['country']==='Kenya'&&booking_contact_input([])['ph
 wx(fn()=>booking_platform_input(['platform'=>'phone']));wx(fn()=>booking_contact_input(['phone_code'=>'+0','phone'=>'712345678']));
 wc(booking_method_text(['platform'=>'whatsapp','platform_contact'=>'+254712345678'])==='WhatsApp · contact: +254712345678','Historical WhatsApp bookings keep their original method');
 echo "PASS: unified Phone / WhatsApp, Kenya defaults, international contact parsing and legacy method display.\n";
+
+$providerFields=integration_hub_values('paypal',['client_id'=>'fixture-id','secret'=>'fixture-secret','environment'=>'sandbox','mpesa_shortcode'=>'unexpected']);
+wc(array_keys($providerFields)===['paypal.client_id','paypal.secret','paypal.environment'],'Focused connection setup cannot alter another provider');
+wc(integration_hub_values('paypal',['client_id'=>'','secret'=>'','environment'=>'sandbox'])===['paypal.environment'=>['value'=>'sandbox','secret'=>false]],'Blank credentials retain saved secrets');
+wx(fn()=>integration_hub_values('paypal',['environment'=>'invalid']));
+wx(fn()=>integration_hub_values('unknown',[]));
+wx(fn()=>integration_hub_values('openai',['api_key'=>"fixture".chr(10)."secret"]));
+echo "PASS: provider-scoped integration settings and retained secrets.\n";
