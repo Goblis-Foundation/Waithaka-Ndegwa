@@ -34,7 +34,7 @@ def runtime_file(path: str) -> bool:
         return True
     if path in {"index.php", ".htaccess", "composer.json", "composer.lock", "manifest.webmanifest", "sw.js", "offline.html", ".env.example"} or path in STORAGE_MARKERS:
         return True
-    if path in {"bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/founder-story-migrate.php", "bin/culture-topic.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
+    if path in {"bin/message-trash-migrate.php", "bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/founder-story-migrate.php", "bin/culture-topic.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
         return True
     return path in {"deploy/aws/worker-launcher.php", "deploy/aws/run-worker.sh", "deploy/aws/global-bundle.pem", "deploy/aws/media-limits.ini"}
 
@@ -94,7 +94,7 @@ def main() -> None:
         with zipfile.ZipFile(application) as app:
             if app.testzip() is not None:
                 raise RuntimeError("Application ZIP integrity failed.")
-            required = {"bin/culture-topic.php", "app/migrations/180_culture_topic.sql", ".platform/hooks/postdeploy/29_culture_topic.sh", "app/gemini.php", "app/planner.php", "app/trusted_devices.php", "views/write/program.php", "views/write/program_home.php", "assets/css/program.css", "bin/founder-story-migrate.php", "app/founder_story_migration.php", "app/migrations/170_founder_story_approval.sql", ".platform/hooks/postdeploy/28_founder_story.sh", "assets/js/document-qr.js", "assets/js/vendor/qrcode.js", "assets/js/vendor/QRCODE-LICENSE.txt", "views/document_record.php", "assets/css/document.css", "index.php", ".htaccess", "vendor/autoload.php", ".platform/hooks/postdeploy/30_worker.sh",
+            required = {"bin/message-trash-migrate.php", "app/message_trash_migration.php", "app/migrations/190_message_trash.sql", ".platform/hooks/postdeploy/29_message_trash.sh", "bin/culture-topic.php", "app/migrations/180_culture_topic.sql", ".platform/hooks/postdeploy/29_culture_topic.sh", "app/gemini.php", "app/planner.php", "app/trusted_devices.php", "views/write/program.php", "views/write/program_home.php", "assets/css/program.css", "bin/founder-story-migrate.php", "app/founder_story_migration.php", "app/migrations/170_founder_story_approval.sql", ".platform/hooks/postdeploy/28_founder_story.sh", "assets/js/document-qr.js", "assets/js/vendor/qrcode.js", "assets/js/vendor/QRCODE-LICENSE.txt", "views/document_record.php", "assets/css/document.css", "index.php", ".htaccess", "vendor/autoload.php", ".platform/hooks/postdeploy/30_worker.sh",
                         ".platform/hooks/predeploy/25_media_limits.sh", "deploy/aws/global-bundle.pem",
                         "deploy/aws/media-limits.ini", "app/newsletter.php", "app/media_library.php",
                         "app/mail_feedback.php", "app/providers/youtube.php", "app/providers/tiktok.php",
