@@ -214,3 +214,9 @@ rd_check(!reader_enquiry($heldId)['is_trashed'],'Restore returns message to inbo
 rd_check((int)rd_scalar("SELECT COUNT(*) FROM reader_enquiry_events WHERE enquiry_id=? AND event_type IN ('moved_to_trash','restored')",[$heldId])===2,'Delete and restore remain auditable');
 comm_put('config',$trashCfg);
 echo "PASS: owner-only message Trash, original-content retention, notification exclusion, version conflicts and restore.\n";
+
+require_once dirname(__DIR__).'/app/migrations.php';require_once dirname(__DIR__).'/app/message_trash_migration.php';
+message_trash_apply_migration(db(),dirname(__DIR__).'/app/migrations/190_message_trash.sql');
+message_trash_apply_migration(db(),dirname(__DIR__).'/app/migrations/190_message_trash.sql');
+rd_check((string)rd_scalar("SELECT sha256 FROM schema_migrations WHERE name='190_message_trash.sql'")===hash_file('sha256',dirname(__DIR__).'/app/migrations/190_message_trash.sql'),'Production Trash upgrade is idempotent and records the exact migration');
+echo "PASS: explicit production Trash migration verification and repeat-run safety.\n";
