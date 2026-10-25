@@ -45,7 +45,7 @@ function monthly_refresh(string $token): array {
   $r=monthly_record($token);if(!paypal_notifications_current($r)||empty($r['subscription']))throw new RuntimeException('This subscription needs a connection check. Manage payments directly in PayPal meanwhile.');
   $s=http_json('GET',paypal_base().'/v1/billing/subscriptions/'.$r['subscription'],['Authorization: Bearer '.paypal_token()]);
   if(!monthly_subscription_matches($r,$s))throw new RuntimeException('PayPal subscription details did not match this support record.');
-  $r['status']=$s['status'];$r['checked']=time();$r['next_billing']=$s['billing_info']['next_billing_time']??'';$r['failed_payments']=(int)($s['billing_info']['failed_payments_count']??0);
+  $r['status']=$s['status'];$r['checked']=time();$r['next_check']=time()+1800;unset($r['refresh_due']);$r['next_billing']=$s['billing_info']['next_billing_time']??'';$r['failed_payments']=(int)($s['billing_info']['failed_payments_count']??0);
   $last=$s['billing_info']['last_payment']??[];if(($last['amount']['currency_code']??'')===$r['currency']&&payment_equal($r['amount'],$last['amount']['value']??null))$r['last_payment']=['amount'=>$r['amount'],'currency'=>$r['currency'],'time'=>substr((string)($last['time']??''),0,40)];
   // An active mandate is not evidence that any instalment was paid.
   monthly_save($r);return $r;
@@ -84,15 +84,15 @@ function monthly_notice(array $event): bool {
  comm_lock('monthly.'.hash('sha256',$index['token']),function()use($index,$event){$r=monthly_record($index['token']);$r['refresh_due']=true;$r['last_notice']=$event['event_type'];if(in_array($event['event_type'],['PAYMENT.SALE.REFUNDED','PAYMENT.SALE.REVERSED'],true))$r['review']='Refund/reversal notice: review provider transaction records.';monthly_save($r);});return true;
 }
 function monthly_work(): void {
- $cfg=monthly_paypal_cfg();if(!paypal_notifications_current($cfg))return;$rows=comm_records('giving.monthly.record',2000);$count=0;
- foreach($rows as$r){if(empty($r['subscription'])||!paypal_notifications_current($r)||(!empty($r['checked'])&&$r['checked']>time()-1800&&empty($r['refresh_due'])))continue;if($count++>=5)break;
-  try{monthly_refresh($r['token']);comm_lock('monthly.'.hash('sha256',$r['token']),function()use($r){$now=monthly_record($r['token']);unset($now['refresh_due']);monthly_save($now);});}catch(Throwable){/* Keep unresolved subscription visible for a later read-only retry. */}
+ $cfg=monthly_paypal_cfg();if(!paypal_notifications_current($cfg))return;$rows=comm_records('giving.monthly.record',2000);usort($rows,fn($a,$b)=>(int)($a['next_check']??$a['created'])<=>(int)($b['next_check']??$b['created']));$count=0;
+ foreach($rows as$r){if(empty($r['subscription'])||!paypal_notifications_current($r)||(!empty($r['next_check'])&&$r['next_check']>time()&&empty($r['refresh_due']))||(!empty($r['checked'])&&$r['checked']>time()-1800&&empty($r['refresh_due'])))continue;if($count++>=5)break;
+  try{monthly_refresh($r['token']);}catch(Throwable){comm_lock('monthly.'.hash('sha256',$r['token']),function()use($r){$now=monthly_record($r['token']);$now['next_check']=time()+3600;unset($now['refresh_due']);monthly_save($now);});}
  }
 }
 function monthly_dispatch(string $path): bool {
  if($path==='/write/monthly-support'){
   require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);if((int)current_user()['id']!==(int)comm_config()['owner']){http_response_code(403);return true;}$error='';
-  if(is_post()){verify_csrf();try{if(($_POST['action']??'')==='prepare')monthly_paypal_setup($_POST);elseif(($_POST['action']??'')==='publish'){comm_lock('monthly.paypal.setup',function(){$c=monthly_paypal_cfg();if(!paypal_notifications_current($c)||!array_filter($c['plans']??[],fn($p)=>!empty($p['verified'])))throw new InvalidArgumentException('Prepare and verify at least one monthly plan first.');$c['enabled']=!empty($_POST['enabled']);comm_put('giving.monthly.config',$c);});}else throw new InvalidArgumentException('Choose a monthly support action.');flash('success','Monthly support settings saved. No supporter subscription was started.');redirect(url($path));}catch(Throwable $e){$error=$e instanceof InvalidArgumentException?$e->getMessage():'The provider could not confirm this plan. Retry the same amount to preserve the request reference.';}}
+  if(is_post()){verify_csrf();try{if(($_POST['action']??'')==='prepare')monthly_paypal_setup($_POST);elseif(($_POST['action']??'')==='publish'){comm_lock('monthly.paypal.setup',function(){$c=monthly_paypal_cfg();if(!paypal_notifications_current($c)||!array_filter($c['plans']??[],fn($p)=>!empty($p['verified'])))throw new InvalidArgumentException('Prepare and verify at least one monthly plan first.');$c['enabled']=!empty($_POST['enabled']);comm_put('giving.monthly.config',$c);});}else throw new InvalidArgumentException('Choose a monthly support action.');flash('success','Monthly support settings saved. No supporter subscription was started.');redirect(url($path));}catch(Throwable $e){$error=$e->getMessage().' Retry the same amount to preserve the request reference.';}}
   render_write('monthly_support',['writeTitle'=>'Monthly support','cfg'=>monthly_paypal_cfg(),'records'=>comm_records('giving.monthly.record',2000),'error'=>$error]);return true;
  }
  if($path!=='/contribute/monthly'&&!preg_match('~^/contribute/monthly/manage/([a-f0-9]{64})$~D',$path,$m))return false;

@@ -137,3 +137,14 @@ try{
     foreach($paymentIds as $id)db()->prepare('DELETE FROM contributions WHERE id=?')->execute([$id]);
     if($userId)db()->prepare('DELETE FROM users WHERE id=?')->execute([$userId]);
 }
+
+$monthlyToken=bin2hex(random_bytes(32));$monthlyFixture=['token'=>$monthlyToken,'id'=>'MONTHLY-FIXTURE','subscription'=>'I-FIXTURE','plan'=>'P-FIXTURE','amount'=>'10.00','currency'=>'USD','fingerprint'=>paypal_connection_fingerprint(),'status'=>'APPROVAL_PENDING','created'=>time()];
+monthly_save($monthlyFixture);$monthlyKey='communication.giving.monthly.record.'.hash('sha256',$monthlyToken);$q=db()->prepare('SELECT setting_value FROM settings WHERE setting_key=?');$q->execute([$monthlyKey]);check(!str_contains((string)$q->fetchColumn(),$monthlyToken),'Monthly management capability encrypted at rest.');
+check(monthly_record($monthlyToken)['id']==='MONTHLY-FIXTURE','Private monthly capability resolves its own record.');
+$invalidMonthly=false;try{monthly_record(str_repeat('0',64));}catch(InvalidArgumentException){$invalidMonthly=true;}check($invalidMonthly,'Unknown management capability rejected.');
+$monthlyIndex='giving.monthly.provider.'.hash('sha256',paypal_connection_fingerprint().'|I-FIXTURE');comm_put($monthlyIndex,['token'=>$monthlyToken]);
+check(monthly_notice(['event_type'=>'BILLING.SUBSCRIPTION.ACTIVATED','resource'=>['id'=>'I-FIXTURE']]),'Known subscription notification queues read-only refresh.');
+check(monthly_record($monthlyToken)['status']==='APPROVAL_PENDING'&&monthly_record($monthlyToken)['refresh_due'],'Notification does not fabricate active subscription or paid instalment.');
+check(!monthly_notice(['event_type'=>'BILLING.SUBSCRIPTION.ACTIVATED','resource'=>['id'=>'I-FOREIGN']]),'Foreign subscriptions are not imported.');
+db()->prepare('DELETE FROM settings WHERE setting_key IN (?,?)')->execute([$monthlyKey,'communication.'.$monthlyIndex]);
+echo "PASS: encrypted monthly capability, unknown-record rejection and notification-only status refresh.\n";
