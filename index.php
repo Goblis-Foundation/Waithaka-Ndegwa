@@ -142,7 +142,8 @@ if ($path === '/contact') {
 if ($path === '/contribute') {
     if (is_post()) {
         verify_csrf();
-        $method=(string)($_POST['method']??'mpesa');
+        $method=(string)($_POST['method']??'pesapal');
+        if($method==='wise')redirect(url('/contribute?method=wise#wise-bank-transfer'));
         if(!in_array($method,['mpesa','pesapal','paypal'],true)){
             flash('error','Please choose a valid payment method.');redirect(url('/contribute'));
         }
@@ -155,7 +156,7 @@ if ($path === '/contribute') {
                 $minor=payment_minor_units($amount);
                 if($minor<5000||$minor>100000000||$minor%100!==0)throw new InvalidArgumentException('Enter a whole Kenyan shilling amount between 50 and 1,000,000.');
             }elseif($method==='pesapal'){
-                $currency=strtoupper(trim((string)($_POST['card_currency']??'KES')));
+                $currency=strtoupper(trim((string)($_POST['card_currency']??'USD')));
                 if(!in_array($currency,['KES','USD','EUR','GBP'],true))throw new InvalidArgumentException('Choose a supported card currency.');
                 $choice=(string)($_POST['amount_choice_card']??($currency==='KES'?'1000':'10'));
                 $amount=payment_decimal($choice==='other'?($_POST['amount_card']??'0'):$choice);
