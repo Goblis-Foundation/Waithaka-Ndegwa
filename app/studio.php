@@ -77,9 +77,9 @@ function studio_dispatch(string $path): bool {
             if(($_POST['ai_consent']??'')!=='1')throw new InvalidArgumentException('Confirm that this selected text may be sent to the selected AI provider.');
             if(!$providers[$provider]['ready'])throw new InvalidArgumentException($providers[$provider]['name'].' is not configured. Use its settings link below, or continue manually.');
             if(!journeys_rate_limit('studio-ai',(string)current_user()['id'],8,3600))throw new InvalidArgumentException('The hourly drafting limit has been reached. Continue manually and try later.');
-            $suggestion=$provider==='gemini'?google_workspace_gemini($input,$mode,false)['text']:(openai_text($instructions,$input,1400)??'');
+            $suggestion=$provider==='gemini'?google_workspace_gemini($input,$mode,false)['text']:(openai_text($instructions,$input,1400,true)??'');
             if($suggestion==='')throw new InvalidArgumentException('No suggestion was returned. Your text remains below; retry or continue manually.');
-        }catch(InvalidArgumentException $e){$error=$e->getMessage();}catch(Throwable $e){$error=($e instanceof PublishingRemoteException || $e instanceof GeminiRequestException)?$e->getMessage().' Your text remains below.':'The request could not be completed. Your text remains below. Continue manually or check the provider settings.';}
+        }catch(InvalidArgumentException $e){$error=$e->getMessage();}catch(Throwable $e){$error=($e instanceof PublishingRemoteException || $e instanceof GeminiRequestException || $e instanceof OpenAiRequestException)?$e->getMessage().' Your text remains below.':'The request could not be completed. Your text remains below. Continue manually or check the provider settings.';}
     }
     render_write('studio',compact('idea','ideaTitle','input','suggestion','error','mode','providers','provider')+['writeTitle'=>'Studio','aiReady'=>$providers['openai']['ready']||$providers['gemini']['ready']]);return true;
 }
