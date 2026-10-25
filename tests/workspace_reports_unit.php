@@ -12,7 +12,7 @@ $b=['first'=>'Synthetic','last'=>'Visitor','agenda'=>'Discuss an idea'];$brief=b
 $layout=file_get_contents(dirname(__DIR__).'/views/layout.php');wc(!str_contains($layout,'document_record.php'),'No QR inserted on public pages');$booking=file_get_contents(dirname(__DIR__).'/views/booking.php');wc(!str_contains($booking,'preferred_time')&&!str_contains($booking,'preferred_date'),'Booking has no visitor-proposed time fallback');wc(str_contains($booking,'booking_document')&&str_contains($booking,'enctype="multipart/form-data"'),'Attachment form supported');
 echo "PASS: weekly overnight routines, DST rejection, Maps input choice, briefing approval gate and public QR removal.\n";
 
-wc(array_keys(booking_platforms())===['google_meet','phone','whatsapp','signal','zoom','microsoft','webex','other'],'Requested platform display order');wc(booking_platform_input([])['platform']==='google_meet','Meet is default');wx(fn()=>booking_platform_input(['platform'=>'phone','platform_contact'=>'missing country code']));wx(fn()=>booking_platform_input(['platform'=>'other']));wc(booking_platform_input(['platform'=>'signal','platform_contact'=>'@fixture'])['platform_contact']==='@fixture','Signal username supported');
+wc(array_keys(booking_platforms())===['google_meet','phone','zoom','microsoft','webex','other'],'Requested platform display order');wc(booking_platform_input([])['platform']==='google_meet','Meet is default');wx(fn()=>booking_platform_input(['platform'=>'phone','platform_contact'=>'missing country code']));wx(fn()=>booking_platform_input(['platform'=>'other']));wx(fn()=>booking_platform_input(['platform'=>'signal','platform_contact'=>'@fixture']));
 $fixture=['id'=>str_repeat('a',32),'type'=>'intro','agenda'=>'Synthetic','start'=>1793606400,'end'=>1793608200,'email'=>'fixture@example.invalid','first'=>'Synthetic','last'=>'Visitor'];$calendarCfg=['types'=>['intro'=>['name'=>'Intro']]];wc(isset(booking_calendar_body($fixture,$calendarCfg)['conferenceData']),'Default calendar request creates Meet');
 $zoom=$fixture+['platform'=>'zoom','approved_join'=>'https://zoom.us/j/123456789'];$payload=booking_calendar_body($zoom,$calendarCfg);wc(!isset($payload['conferenceData'])&&$payload['location']===$zoom['approved_join'],'Zoom invitation uses approved link without an extra Meet');wc(!booking_platform_ready(['platform'=>'zoom'])&&booking_platform_ready($zoom),'Hosted alternatives need approved join link');
 echo "PASS: requested meeting platform order, defaults, contact validation and provider-specific invitation payloads.\n";
@@ -71,3 +71,21 @@ $streams=[['name'=>'properties/123/dataStreams/456','webStreamData'=>['measureme
 wc(visitor_statistics_binding($streams,'G-FIXTURE','www.example.invalid')['id']==='456','Footer binds to exact deployed tag and host');
 $threw=false;try{visitor_statistics_binding($streams,'G-FIXTURE','different.example.invalid');}catch(RuntimeException){$threw=true;}wc($threw,'Wrong website stream rejected');
 echo "PASS: footer aggregate binding and missing/thresholded data handling.\n";
+
+$ke=booking_platform_input(['platform'=>'phone','phone_code'=>'+254','phone'=>'0712 345 678','country'=>'Kenya','city'=>'Nairobi']);
+wc($ke['phone']==='+254712345678'&&$ke['platform_contact']===$ke['phone'],'One Phone / WhatsApp method uses normalised Kenyan contact');
+wc($ke['country']==='Kenya'&&$ke['city']==='Nairobi','Country and city saved in private booking');
+$global=booking_contact_input(['phone_code'=>'+254','phone'=>'+442079460123','country'=>'United Kingdom','city'=>'London']);
+wc($global['phone']==='+442079460123','Full international phone overrides default calling code');
+wc(booking_contact_input([])['country']==='Kenya'&&booking_contact_input([])['phone_code']==='+254','Kenyan defaults');
+wx(fn()=>booking_platform_input(['platform'=>'phone']));wx(fn()=>booking_contact_input(['phone_code'=>'+0','phone'=>'712345678']));
+wc(booking_method_text(['platform'=>'whatsapp','platform_contact'=>'+254712345678'])==='WhatsApp · contact: +254712345678','Historical WhatsApp bookings keep their original method');
+echo "PASS: unified Phone / WhatsApp, Kenya defaults, international contact parsing and legacy method display.\n";
+
+$providerFields=integration_hub_values('paypal',['client_id'=>'fixture-id','secret'=>'fixture-secret','environment'=>'sandbox','mpesa_shortcode'=>'unexpected']);
+wc(array_keys($providerFields)===['paypal.client_id','paypal.secret','paypal.environment'],'Focused connection setup cannot alter another provider');
+wc(integration_hub_values('paypal',['client_id'=>'','secret'=>'','environment'=>'sandbox'])===['paypal.environment'=>['value'=>'sandbox','secret'=>false]],'Blank credentials retain saved secrets');
+wx(fn()=>integration_hub_values('paypal',['environment'=>'invalid']));
+wx(fn()=>integration_hub_values('unknown',[]));
+wx(fn()=>integration_hub_values('openai',['api_key'=>"fixture".chr(10)."secret"]));
+echo "PASS: provider-scoped integration settings and retained secrets.\n";

@@ -13,25 +13,17 @@ function publishing_dispatch(string $path): bool {
         if (is_post()) verify_csrf();
         if ($path==='/write/connections'&&!is_post()) {
             $connections=[];foreach(db()->query('SELECT * FROM publishing_connections')->fetchAll() as $connection)$connections[$connection['service']]=$connection;
-            render_write('connections',['writeTitle'=>'Connections','connections'=>$connections,'services'=>publishing_services(),'channels'=>publishing_channels()]);return true;
+            render_write('connections',['writeTitle'=>'Integrations','connections'=>$connections,'services'=>publishing_services(),'channels'=>publishing_channels()]);return true;
         }
         if ($path==='/write/connections/settings'&&is_post()) {
-            foreach(['google','linkedin','instagram','facebook','facebook_profile','x','tiktok','tiktok_business'] as $provider) foreach(['client_id','client_secret'] as $field) {
-                $value=trim((string)($_POST[$provider.'_'.$field]??''));
-                if ($value!=='') {
-                    if (strlen($value)>2000||preg_match('/[\r\n]/',$value)) throw new RuntimeException('A provider credential has an invalid format.');
-                    set_setting('publishing.'.$provider.'.'.$field,$value,true);
-                }
-            }
-            $businessAuthorization=trim((string)($_POST['tiktok_business_authorization_url']??''));
-            if($businessAuthorization!==''){
-                if(strlen($businessAuthorization)>8000||preg_match('/[\r\n]/',$businessAuthorization))throw new RuntimeException('The TikTok Accounts API authorization address has an invalid format.');
-                set_setting('publishing.tiktok_business.authorization_url',$businessAuthorization,true);
-            }
-            $version=(string)($_POST['meta_version']??'v24.0');
-            if(!preg_match('/^v\d{2}\.0$/',$version))throw new RuntimeException('Enter a valid Meta API version.');
-            set_setting('publishing.meta.version',$version);
-            flash('success','Provider settings saved securely. No account has been connected or authorized by saving these settings.');redirect(url($back));
+            $setup=$_POST['setup_service']??'';if(!is_string($setup)||($setup!==''&&!isset(publishing_services()[$setup])))throw new InvalidArgumentException('Choose a valid integration.');
+            $providers=$setup!==''?[publishing_client_namespace($setup)]:['google','linkedin','instagram','facebook','facebook_profile','x','tiktok','tiktok_business'];
+            $values=[];foreach($providers as$provider)foreach(['client_id','client_secret']as$field){$value=$_POST[$provider.'_'.$field]??'';if(!is_string($value)||strlen($value)>2000||preg_match('/[\\r\\n]/',$value))throw new InvalidArgumentException('A provider credential has an invalid format.');$value=trim($value);if($value!=='')$values['publishing.'.$provider.'.'.$field]=[$value,true];}
+            if(in_array('tiktok_business',$providers,true)){$v=$_POST['tiktok_business_authorization_url']??'';if(!is_string($v)||strlen($v)>8000||preg_match('/[\\r\\n]/',$v))throw new InvalidArgumentException('Check the TikTok authorisation address.');if(trim($v)!=='')$values['publishing.tiktok_business.authorization_url']=[trim($v),true];}
+            if(isset($_POST['meta_version'])){$version=$_POST['meta_version'];if(!is_string($version)||!preg_match('/^v[0-9]{2}\\.0$/D',$version))throw new InvalidArgumentException('Enter a valid Meta API version.');$values['publishing.meta.version']=[$version,false];}
+            db()->beginTransaction();try{foreach($values as$key=>$value)set_setting($key,$value[0],$value[1]);db()->commit();}catch(Throwable $e){if(db()->inTransaction())db()->rollBack();throw $e;}
+            if($setup!==''&&($_POST['save_and_connect']??'')==='1')redirect(publishing_oauth_start($setup,$userId));
+            flash('success','This provider’s setup was saved securely. Connect the account to authorise its requested features.');redirect(url($setup!==''?'/write/connections#'.$setup:$back));
         }
         if ($path==='/write/connections/buffer/connect'&&is_post()) {
             publishing_buffer_connect((string)($_POST['api_key']??''),$userId);
