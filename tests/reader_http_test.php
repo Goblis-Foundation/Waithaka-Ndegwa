@@ -44,6 +44,7 @@ function rh_latest_token(string $recipient, string $path): string {
     throw new RuntimeException('Expected fixture link not found.');
 }
 try {
+    $msPrivate=rh_request('/write/microsoft');rh_check(in_array($msPrivate['status'],[302,303],true)&&str_contains($msPrivate['headers']['location']??'','/write/login'),'Microsoft workspace requires authentication.');
     $enterpriseIndex=rh_request('/enterprises');rh_check($enterpriseIndex['status']===200&&str_contains($enterpriseIndex['body'],'Follow the work.'),'Enterprise directory is publicly readable with honest empty-state content.');
     $enterpriseMissing=rh_request('/enterprises/nonexistent-fixture');rh_check($enterpriseMissing['status']===404,'Unknown or unpublished enterprise profiles stay unavailable.');
     $enterprisePrivate=rh_request('/write/enterprises');rh_check(in_array($enterprisePrivate['status'],[302,303],true)&&str_contains($enterprisePrivate['headers']['location']??'','/write/login'),'Enterprise editing requires an authenticated owner.');
@@ -81,6 +82,9 @@ try {
     rh_check(rh_redirect(rh_request('/write/readers'), '/write/login'), 'The enquiry queue requires Writer authentication.');
     $response = rh_request('/write/login', null, true); $login = rh_form($response, '/write/login');
     rh_check(rh_redirect(rh_request('/write/login', $login + ['email' => $writerEmail, 'password' => $password], true), '/write'), 'The fixture author signs in through the real login flow.');
+    $msDenied=rh_request('/write/microsoft',null,true);rh_check($msDenied['status']===403,'A signed-in non-owner cannot access Microsoft grants.');rh_private($msDenied,'Microsoft owner guard carries private response headers.');
+    comm_put('config',['owner'=>$actor]);$msOwner=rh_request('/write/microsoft',null,true);rh_check($msOwner['status']===200&&str_contains($msOwner['body'],'Your accounts. One workspace.')&&str_contains($msOwner['body'],'isaac@goblisfoundation.com'),'The owner sees three independent Microsoft connection cards.');rh_private($msOwner,'Microsoft workspace is private.');
+    $msCsrf=rh_request('/write/microsoft',['action'=>'connect','account'=>'personal'],true);rh_check($msCsrf['status']===419,'Microsoft OAuth start requires CSRF protection.');comm_put('config',[]);
     $response = rh_request('/write/readers', null, true); rh_check($response['status'] === 200, 'The shared Writer layout renders the new reader queue.'); rh_private($response, 'Writer reader records carry private response headers.');
     rh_check(rh_request('/write/readers', null, true, 'DELETE')['status'] === 405, 'Unsupported Writer queue methods are rejected.');
     $response = rh_request('/contact?type=speaking');rh_check(str_contains($response['body'],'data-contact-context-title>Invite me to speak')&&str_contains($response['body'],'name="contact_request"'),'Purpose links preselect the native enquiry form and include repeat protection');$form=rh_form($response,'/contact');
@@ -143,4 +147,5 @@ try {
     foreach (array_keys($sessionIds) as $id) db()->prepare('DELETE FROM app_sessions WHERE id=?')->execute([$id]);
     foreach ([$visitorJar, $writerJar] as $file) if (is_file($file)) unlink($file);
 }
+
 

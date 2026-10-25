@@ -1,19 +1,21 @@
 <link rel="stylesheet" href="<?=asset('css/publishing.css')?>">
 <main class="write-main pub-main">
   <div class="writer-head"><div><span class="writer-kicker">Private Writer tools</span><h1>Integrations</h1><p class="pub-lead">Connect services by group. Each card has its own connection, account status and setup. Publishing permissions and account identity stay separate.</p></div></div>
-  <nav class="pub-nav" aria-label="Publishing"><a href="<?=url('/write/media-centre')?>">Media centre & analytics</a><a href="<?=url('/write/publishing')?>">Packages & calendar</a><a href="<?=url('/write/connections')?>" aria-current="page">Connections</a><a href="<?=url('/write/google')?>">Google workspace & calendars</a><a href="#channels">Channel routes</a></nav>
+  <nav class="pub-nav" aria-label="Publishing"><a href="<?=url('/write/media-centre')?>">Media centre & analytics</a><a href="<?=url('/write/publishing')?>">Packages & calendar</a><a href="<?=url('/write/connections')?>" aria-current="page">Connections</a><a href="<?=url('/write/google')?>">Google workspace & calendars</a><a href="<?=url('/write/microsoft')?>">Microsoft 365</a><a href="#channels">Channel routes</a></nav>
   <?php foreach(flashes() as $f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
   <div class="pub-hint">Facebook, Instagram, X and TikTok are recorded as professional accounts. Facebook professional mode is a profile type; a Page is a separate publishing destination. TikTok’s professional label is owner-declared; it does not verify a Business account or grant publishing access. Your six public profile links stay available while connections are being configured.</div>
 <?php $integrationGroups=[
 'meta'=>['name'=>'Meta','intro'=>'Your Facebook professional profile and Instagram publishing, insights and engagement.','services'=>['facebook_profile','instagram','instagram_insights','instagram_comments','instagram_messages','facebook_pages']],
 'google'=>['name'=>'Google','intro'=>'Connect each Google capability separately, with the access it needs.','services'=>array_values(array_filter(array_keys($services),static fn($s)=>str_starts_with($s,'google_')))],
 'finance'=>['name'=>'Finance','intro'=>'Receiving accounts, payment providers and verification. Bank instructions and API access are separate.','services'=>[]],
+'microsoft'=>['name'=>'Microsoft 365','intro'=>'Your three Microsoft identities in one private workspace.','services'=>[]],
 'meetings'=>['name'=>'Meetings','intro'=>'Zoom, Microsoft Teams / Outlook and Webex.','services'=>['meetings_zoom','meetings_microsoft','meetings_webex']],
 'social'=>['name'=>'Other social platforms','intro'=>'Your personal LinkedIn, X and TikTok accounts, plus optional Buffer.','services'=>['linkedin','linkedin_analytics','x','tiktok_read','tiktok_business','buffer']],
 'ai'=>['name'=>'AI & tools','intro'=>'Private drafting, research and notification tools.','services'=>[]]
 ];?>
 <nav class="integration-groups" aria-label="Integration groups"><?php foreach($integrationGroups as$key=>$group):?><a href="#integrations-<?=e($key)?>"><?=e($group['name'])?></a><?php endforeach;?></nav>
 <?php foreach($integrationGroups as$key=>$group):?><section id="integrations-<?=e($key)?>" class="pub-section integration-group"><header class="integration-group-heading"><div><h2><?=e($group['name'])?></h2><p><?=e($group['intro'])?></p></div></header><div class="pub-grid">
+<?php if($key==='microsoft'):?><article class="pub-card"><h3>Microsoft accounts</h3><p>Connect iwaithakaw@gmail.com, isaac@goblisgroup.com and isaac@goblisfoundation.com. Read Outlook, contacts, OneDrive, To Do and OneNote lists; combine calendar views and choose booking conflict calendars.</p><a class="wbtn primary" href="<?=url('/write/microsoft')?>">Connect Microsoft 365</a><p>Account-specific delegated access. Desktop setup guidance is included.</p></article><?php endif;?>
 <?php foreach($group['services']as$service):if(!isset($services[$service]))continue;$definition=$services[$service];$connection=$connections[$service]??null;$status=$connection['status']??'disconnected';$resources=publishing_decode($connection['resources_json']??null);$metadata=publishing_decode($connection['metadata_json']??null);if($service==='google_calendar'):?><article class="pub-card pub-provider"><h3>Google Calendar accounts</h3><p>Connect multiple accounts, select calendars and check access in your private Google workspace.</p><form method="post" action="<?=url('/write/connections/google_calendar/start')?>"><?=csrf_field()?><button class="wbtn primary">Connect calendar account</button></form><a class="wbtn" href="<?=url('/write/google#calendars')?>">Manage connected calendars</a></article><?php else:include __DIR__.'/integration_provider.php';endif;endforeach;?>
 <?php if($key==='finance'):include __DIR__.'/integration_finance_cards.php';endif;?>
 <?php if($key==='ai'):?>
@@ -35,3 +37,4 @@
     </article>
   <?php endforeach;?></div></section>
 </main>
+
