@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/booking_mailboxes.php';
 
 /** Single-host communication records use the existing encrypted settings store.
  * Each record has its own key. Advisory locks serialize reservation and provider mutations.
@@ -93,11 +94,11 @@ function comm_make_booking(array $cfg,array $input): array {
     $type=reader_choice($input['type']??'', $cfg['types'],'meeting');$date=comm_date($input['date']??null);$zone=comm_zone($input['timezone']??'UTC');
     $first=reader_text($input['first']??'','First name',80,true);$last=reader_text($input['last']??'','Last name',80,true);$email=reader_text($input['email']??'','Email',254,true);if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Enter a valid email.');$agenda=reader_text($input['agenda']??'','Agenda',1500,true);$start=filter_var($input['slot']??null,FILTER_VALIDATE_INT);if(!$start)throw new InvalidArgumentException('Choose an available time.');
     if(empty($input['consent']))throw new InvalidArgumentException('Confirm the use of your details for this booking.');
-    $method=booking_platform_input($input);$nonce=$input['request_id']??'';if(!is_string($nonce)||!preg_match('/^[a-f0-9]{32}$/D',$nonce))throw new InvalidArgumentException('Reload the booking form.');
-    return comm_lock('reservations',function()use($cfg,$input,$type,$date,$zone,$first,$last,$email,$agenda,$start,$nonce,$method){$id=substr(hash_hmac('sha256','request|'.$nonce,(string)app_config('app_key')),0,32);$prior=comm_get('booking.'.$id);if($prior)return $prior;
+    $host=booking_mailbox_snapshot($cfg,$input['host']??null);$method=booking_platform_input($input);$nonce=$input['request_id']??'';if(!is_string($nonce)||!preg_match('/^[a-f0-9]{32}$/D',$nonce))throw new InvalidArgumentException('Reload the booking form.');
+    return comm_lock('reservations',function()use($cfg,$input,$type,$date,$zone,$first,$last,$email,$agenda,$start,$nonce,$method,$host){$id=substr(hash_hmac('sha256','request|'.$nonce,(string)app_config('app_key')),0,32);$prior=comm_get('booking.'.$id);if($prior)return $prior;
         if(!in_array($start,comm_slots($cfg,$type,$date),true))throw new RuntimeException('This time is no longer available. Choose another time.');
         $document=booking_document_upload($_FILES['booking_document']??[],($input['document_consent']??'')==='1',booking_document_request_provider($input));
-        $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>'','document'=>$document]+$method;$b+=booking_brief_initial($b);comm_put('booking.'.$id,$b);comm_event('bookings',$id);
+        $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>'','document'=>$document,'host_mailbox'=>$host]+$method;$b+=booking_brief_initial($b);comm_put('booking.'.$id,$b);comm_event('bookings',$id);
         comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);return $b;
     });
 }
@@ -162,14 +163,15 @@ function communication_dispatch(string $path): bool {
         $search=reader_text($_GET['q']??'','Search',100);$enquiries=[];if(in_array($tab,['today','inbox','people'],true)){$q=db()->prepare('SELECT e.*,c.first_name,c.last_name,c.email,c.message,c.reference FROM reader_enquiries e JOIN contact_messages c ON c.id=e.contact_id WHERE CONCAT(c.first_name," ",c.last_name," ",c.email," ",c.message) LIKE ? ORDER BY e.updated_at DESC LIMIT 60');$q->execute(['%'.$search.'%']);$enquiries=$q->fetchAll();}
         render_write('communication',['writeTitle'=>'Communication Centre','tab'=>$tab,'cfg'=>$cfg,'error'=>$error,'bookings'=>$bookings,'summary'=>$summary,'enquiries'=>$enquiries,'search'=>$search,'accounts'=>google_calendar_accounts($uid)]);return true;
     }
-    $manage=null;$slots=[];$type=is_string($_GET['type']??null)?$_GET['type']:'intro';$date=is_string($_GET['date']??null)?$_GET['date']:(new DateTimeImmutable('tomorrow',comm_zone($cfg['timezone'])))->format('Y-m-d');$zone=is_string($_GET['timezone']??null)?$_GET['timezone']:$cfg['timezone'];
+    $manage=null;$slots=[];$hostIdentity=['id'=>'','label'=>'Waithaka Ndegwa'];$type=is_string($_GET['type']??null)?$_GET['type']:'intro';$date=is_string($_GET['date']??null)?$_GET['date']:(new DateTimeImmutable('tomorrow',comm_zone($cfg['timezone'])))->format('Y-m-d');$zone=is_string($_GET['timezone']??null)?$_GET['timezone']:$cfg['timezone'];
     try{
         if(preg_match('~^/book/manage/([a-f0-9]{32})/([a-f0-9]{64})$~D',$path,$m)){$manage=comm_booking_by_cap($m[1],$m[2]);$type=$manage['type'];if(is_post()){verify_csrf();$action=$_POST['action']??'';if(!in_array($action,['cancel','reschedule','late'],true))throw new InvalidArgumentException('Choose a supported action.');$manage=comm_change_booking($manage['id'],$action,isset($_POST['slot'])?(int)$_POST['slot']:null,reader_text($_POST['reason']??'','Reason',1000),(int)($_POST['late_minutes']??0),'guest');flash('success','Booking updated.');redirect(comm_manage_url($manage));}}
         elseif($path!=='/book'){http_response_code(404);return true;}
         elseif(is_post()){verify_csrf();if(!empty($_POST['website']))throw new InvalidArgumentException('Unable to accept this request.');if(!journeys_rate_limit('booking',ip_hash(),5,3600))throw new RuntimeException('Please wait before submitting another booking.');$b=comm_make_booking($cfg,$_POST);redirect(comm_manage_url($b));}
+        $hostIdentity=$manage?($manage['host_mailbox']??['id'=>'','label'=>'Waithaka Ndegwa']):booking_mailbox_snapshot($cfg,$_GET['host']??null);
         comm_zone($zone);comm_date($date);if(!empty($cfg['enabled'])&&!journeys_rate_limit('booking-slots',ip_hash(),30,60))throw new RuntimeException('Please wait before checking more dates.');if(!empty($cfg['enabled'])&&isset($cfg['types'][$type])&&(! $manage||in_array($manage['status'],['requested','confirmed'],true)))$slots=comm_slots($cfg,$type,$date,$manage['id']??null);
     }catch(Throwable $e){$error=$e instanceof InvalidArgumentException?$e->getMessage():'Scheduling is temporarily unavailable. Your existing booking, if any, is unchanged. Please use Contact for assistance.';if($manage&&($e instanceof InvalidArgumentException||get_class($e)===RuntimeException::class))$error=$e->getMessage();}
     if(!isset($cfg['types'][$type]))$type='intro';try{comm_zone($zone);}catch(Throwable){$zone=$cfg['timezone'];}
-    render('booking',['page'=>'booking','cfg'=>$cfg,'type'=>$type,'date'=>$date,'zone'=>$zone,'slots'=>$slots,'manage'=>$manage,'error'=>$error,'seo'=>['title'=>'Book time with Waithaka · Waithaka Ndegwa','description'=>'Schedule a conversation about entrepreneurship, innovation, collaboration or media.','canonical'=>url('/book'),'robots'=>'noindex,nofollow']]);return true;
+    render('booking',['page'=>'booking','cfg'=>$cfg,'type'=>$type,'date'=>$date,'zone'=>$zone,'slots'=>$slots,'hostIdentity'=>$hostIdentity,'manage'=>$manage,'error'=>$error,'seo'=>['title'=>'Book time with Waithaka · Waithaka Ndegwa','description'=>'Schedule a conversation about entrepreneurship, innovation, collaboration or media.','canonical'=>url('/book'),'robots'=>'noindex,nofollow']]);return true;
 }
 

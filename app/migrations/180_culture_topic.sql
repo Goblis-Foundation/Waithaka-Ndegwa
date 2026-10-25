@@ -1,0 +1,1 @@
+INSERT IGNORE INTO categories(name,slug,description,sort_order) VALUES('Culture','culture','Reflections on heritage, identity, language, arts and cultural change, from Kenya and Africa to the wider world.',60);

@@ -15,7 +15,7 @@ function publishing_direct_deliver(array $job, array $snapshot, array $connectio
     $headers = publishing_bearer(publishing_access_token($connection));
     $target = (string)$destination['resource'];
     if ($destination['slug'] === 'x') {
-        $response = publishing_http('POST','https://api.x.com/2/tweets',$headers,['text'=>$variant['text']],false,true)['data'];
+        $response = publishing_http('POST','https://api.x.com/2/tweets',$headers,(['text'=>$variant['text']]+(!empty($variant['platform_options']['location_id'])?['geo'=>['place_id'=>$variant['platform_options']['location_id']]]:[])),false,true)['data'];
         $id = (string)($response['data']['id'] ?? '');
         if ($id === '') throw new PublishingRemoteException('X did not return a post ID. Check your profile before retrying.',0,true);
         return ['status'=>'published','remote_id'=>$id,'external_url'=>'https://x.com/i/web/status/'.rawurlencode($id)];
@@ -33,14 +33,14 @@ function publishing_direct_deliver(array $job, array $snapshot, array $connectio
     }
     if ($destination['slug'] === 'facebook') {
         if ($destination['account_type'] !== 'page') throw new RuntimeException('Direct Facebook publishing is only enabled for a confirmed Page.');
-        $response = publishing_http('POST','https://graph.facebook.com/'.publishing_meta_version().'/'.rawurlencode($target).'/feed',$headers,['message'=>$variant['text']],true,true)['data'];
+        $response = publishing_http('POST','https://graph.facebook.com/'.publishing_meta_version().'/'.rawurlencode($target).'/feed',$headers,(['message'=>$variant['text']]+(!empty($variant['platform_options']['location_id'])?['place'=>$variant['platform_options']['location_id']]:[])),true,true)['data'];
         $id = (string)($response['id'] ?? '');
         if ($id === '') throw new PublishingRemoteException('Facebook did not return a post ID. Check the Page before retrying.',0,true);
         return ['status'=>'published','remote_id'=>$id,'external_url'=>'https://www.facebook.com/'.rawurlencode($id)];
     }
     if ($destination['slug'] === 'instagram') {
         $base = 'https://graph.instagram.com/'.publishing_meta_version();
-        $result = publishing_http('POST',$base.'/'.rawurlencode($target).'/media',$headers,['image_url'=>$variant['media_url'],'caption'=>$variant['text'],'alt_text'=>$variant['alt_text']],true,false)['data'];
+        $result = publishing_http('POST',$base.'/'.rawurlencode($target).'/media',$headers,social_instagram_parameters($variant),true,false)['data'];
         if (empty($result['id'])) throw new RuntimeException('Instagram did not create an image container.');
         // Container creation does not publish. Persist its ID before the separate publishing request.
         $state = ['container_id'=>(string)$result['id'],'phase'=>'container_ready'];

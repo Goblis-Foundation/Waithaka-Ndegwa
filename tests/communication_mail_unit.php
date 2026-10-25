@@ -13,3 +13,10 @@ echo "PASS: bounded private inbox, plain-text only, header isolation and draft M
 mc(comm_mail_status('google_gmail_read',1)['ready'],'Authorized confirmed mailbox usable by its owner');
 mc(!comm_mail_status('google_gmail_read',2)['ready']&&comm_mail_status('google_gmail_read',2)['account']==='','Do not expose or enable another owner’s mailbox');
 mr(fn()=>comm_mail_status('google_calendar',1));
+
+require_once dirname(__DIR__).'/app/booking_mailboxes.php';
+mr(fn()=>booking_mailbox_id('../mailbox'));mr(fn()=>booking_mailbox_mime(['to'=>'visitor@example.invalid','subject'=>"Header\r\nBcc: hidden@example.invalid",'html'=>'<p>Fixture</p>'],'isaac@afrisoltech.com','fixture'));
+if(is_file(dirname(__DIR__).'/vendor/autoload.php'))require_once dirname(__DIR__).'/vendor/autoload.php';
+$bound=booking_mailbox_mime(['to'=>'visitor@example.invalid','subject'=>'Booking fixture','html'=>'<p>Fixture</p>'],'isaac@afrisoltech.com',str_repeat('a',64));
+mc(str_contains($bound,'isaac@afrisoltech.com')&&!str_contains($bound,'Bcc:'),'Verified sender is used in branded MIME without hidden recipients');
+echo "PASS: exact sender MIME and header-injection boundaries.\n";
