@@ -51,3 +51,8 @@ body a,body button{touch-action:manipulation}body input:not([type=checkbox]):not
 body .footer-note a{color:#405349}body .footer-visitor-statistics dd strong{color:var(--ink)}
 
 body .booking-shell .wbtn.primary,body .booking-steps b{background:var(--green-dark);border-color:var(--green-dark)}
+
+/* Keep native radio controls accessible without extending the page width. */
+body .payment-tabs label,body .amount-grid label{position:relative}
+body .payment-tabs input[type=radio],body .amount-grid input[type=radio]{position:absolute;left:0;top:0;width:1px;height:1px;min-height:0;max-width:1px;overflow:hidden;clip-path:inset(50%)}
+body .payment-tabs input:focus-visible+span,body .amount-grid input:focus-visible+span{outline:3px solid #8b6b35;outline-offset:3px}

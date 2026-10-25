@@ -50,3 +50,8 @@ analytics_check(visitor_statistics_realtime_number([])===null,'Missing realtime 
 analytics_check(!isset(visitor_statistics_realtime_request('123',true)['dimensionFilter']),'Exactly one verified stream permits exact property-wide realtime.');
 analytics_check(visitor_statistics_realtime_request('123',false)['dimensionFilter']['filter']['stringFilter']['value']==='123','Multiple or unknown streams always retain exact stream filter.');
 analytics_check(!isset(visitor_statistics_realtime_request('123',true)['minuteRanges']),'Now uses the supported default Analytics realtime window.');
+
+analytics_check(visitor_statistics_realtime_number(['metricHeaders'=>[['name'=>'activeUsers']],'rowCount'=>0])===0,'A successful empty metric report need not repeat the optional kind field.');
+analytics_check(visitor_statistics_realtime_number(['totals'=>[['metricValues'=>[['value'=>'2']]]]])===2,'Read a returned aggregate total.');
+analytics_check(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>1]]]]])===1,'Accept an exact nonnegative integer count.');
+analytics_check(visitor_statistics_realtime_number(['metadata'=>['subjectToThresholding'=>true],'metricHeaders'=>[['name'=>'activeUsers']]])===null,'Thresholded empty reports remain unknown.');
