@@ -35,3 +35,39 @@ $html=workspace_rich_text("# Heading\n\n**Important** and *careful*\n\n- First\n
 wc(str_contains($html,'<h2>Heading</h2>')&&str_contains($html,'<strong>Important</strong>')&&str_contains($html,'<ul><li>First</li>')&&str_contains($html,'<ol><li>Next</li>'),'Notes formatting keeps semantic headings emphasis and lists');
 wc(!str_contains($html,'<script>')&&str_contains($html,'&lt;script&gt;'),'Raw note HTML is always escaped');
 echo "PASS: private voice format bounds, inline AI payload, ownership identifiers, versions and escaped formatting.\n";
+
+wc(!str_contains($booking,'document_consent')&&!str_contains($booking,'document_provider')&&!str_contains($booking,'sent to OpenAI'),'Internal AI workflow is absent from public booking form');
+$manual=booking_brief_initial($b+['document'=>['name'=>'fixture.pdf','ai_consent'=>false]]);
+wc($manual['brief_status']==='needs review'&&!booking_report_ready($manual),'Private attachments without AI authorisation require host review and never queue automatically');
+$prior=booking_brief_initial($b+['document'=>['name'=>'fixture.pdf','ai_consent'=>true]]);
+wc($prior['brief_status']==='pending','Existing explicitly consented attachments retain their processing path');
+wc(wise_giving_iban('DE89370400440532013000'),'IBAN checksum valid');
+wc(!wise_giving_iban('DE89370400440532013001'),'IBAN typo rejected');
+wx(fn()=>wise_giving_validate('USD',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','routing'=>'000000000','account'=>'12345678','account_type'=>'checking','bank_address'=>'Fixture address']));
+$gb=wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','sort_code'=>'12-34-56','account'=>'12345678']);
+wc($gb['sort_code']==='123456','UK sort code preserves all digits');
+wx(fn()=>wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','sort_code'=>'123456','account'=>'1234567']));
+wc(!wise_giving_validate('EUR',[])['enabled'],'Unconfigured currencies stay disabled');
+echo "PASS: private briefing controls, attachment review gate and Wise receiving validation.\n";
+
+$key=openssl_pkey_new(['private_key_bits'=>2048,'private_key_type'=>OPENSSL_KEYTYPE_RSA]);$pub=openssl_pkey_get_details($key)['key'];$raw='{"fixture":"signed"}';openssl_sign($raw,$sig,$key,OPENSSL_ALGO_SHA256);
+wc(wise_api_signature($raw,base64_encode($sig),$pub),'Valid Wise-style RSA signature accepted');
+wc(!wise_api_signature($raw.' ',base64_encode($sig),$pub),'Tampered event rejected');
+wc(!wise_api_signature($raw,'invalid-base64!',$pub),'Malformed signature rejected');
+$cfg=['profile'=>'123','subscription'=>'fixture-sub'];$event=['schema_version'=>'4.0.0','subscription_id'=>'fixture-sub','event_type'=>'balances#update','data'=>['resource'=>['profile_id'=>123],'currency'=>'EUR','amount'=>10,'transaction_type'=>'credit']];
+wc(wise_api_webhook_data($event,$cfg,true)['status']==='test only','Test notifications never acknowledge contributions');
+wc(wise_api_webhook_data($event,$cfg,false)['status']==='awaiting reconciliation','Signed credits still need contribution reconciliation');
+wx(fn()=>wise_api_webhook_data($event,array_replace($cfg,['profile'=>'456']),false));
+wx(fn()=>wise_api_webhook_data($event,array_replace($cfg,['subscription'=>'other']),false));
+wx(fn()=>wise_api_request([],'POST','/transfers',[]));
+wc(openssl_pkey_get_public(wise_api_public_key('production'))!==false&&openssl_pkey_get_public(wise_api_public_key('sandbox'))!==false,'Pinned Wise environment keys are valid');
+echo "PASS: Wise webhook signatures, profile binding, test isolation and money-movement operation rejection.\n";
+
+wc(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>'0']]]]])===0,'An explicitly measured zero remains zero');
+wc(visitor_statistics_number([])===null,'Missing analytics does not fabricate zero');
+$thresholded=['rows'=>[['metricValues'=>[['value'=>'7']]]],'metadata'=>['subjectToThresholding'=>true]];
+wc(visitor_statistics_number($thresholded)===null,'Thresholded aggregate withheld');
+$streams=[['name'=>'properties/123/dataStreams/456','webStreamData'=>['measurementId'=>'G-FIXTURE','defaultUri'=>'https://www.example.invalid']]];
+wc(visitor_statistics_binding($streams,'G-FIXTURE','www.example.invalid')['id']==='456','Footer binds to exact deployed tag and host');
+$threw=false;try{visitor_statistics_binding($streams,'G-FIXTURE','different.example.invalid');}catch(RuntimeException){$threw=true;}wc($threw,'Wrong website stream rejected');
+echo "PASS: footer aggregate binding and missing/thresholded data handling.\n";

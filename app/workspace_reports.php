@@ -2,6 +2,8 @@
 declare(strict_types=1);
 require_once __DIR__.'/voice_notes.php';
 require_once __DIR__.'/text_editor.php';
+require_once __DIR__.'/wise_giving.php';
+require_once __DIR__.'/visitor_statistics.php';
 /** Private notes, reviewed reports, weekly routines and booking briefing preparation. */
 function booking_document_request_provider(array $input): string {return studio_ai_provider($input['document_provider']??'gemini');}
 function booking_document_provider(array $cfg): string {return studio_ai_provider($cfg['document_ai']??'openai');}
@@ -60,11 +62,11 @@ function workspace_note_email(int $uid,array $in): int {
 /** At most one private PDF/image; no public media URL is created. */
 function booking_document_upload(array $file,bool $consent,string $provider='gemini'): array {
  if(($file['error']??UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_NO_FILE)return [];
- if(!$consent)throw new InvalidArgumentException('Allow private AI analysis before attaching a document.');$provider=studio_ai_provider($provider);
+ $provider=studio_ai_provider($provider);
  if(($file['error']??null)!==UPLOAD_ERR_OK||!is_uploaded_file($file['tmp_name']??'')||($file['size']??0)<1||($file['size']??0)>4*1024*1024)throw new InvalidArgumentException('Attach one PDF, JPEG or PNG up to 4 MB.');
  $mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);$ext=['application/pdf'=>'pdf','image/jpeg'=>'jpg','image/png'=>'png'][$mime]??null;if(!$ext)throw new InvalidArgumentException('Use a PDF, JPEG or PNG document.');
  $bytes=file_get_contents($file['tmp_name']);if($bytes===false)throw new RuntimeException('Document could not be read.');$filename='booking-'.bin2hex(random_bytes(16)).'.'.$ext;$path=media_store_private_upload($file['tmp_name'],$filename,$mime);
- return ['path'=>$path,'mime'=>$mime,'name'=>mb_substr(basename(str_replace('\\','/',(string)($file['name']??$filename))),0,180),'size'=>strlen($bytes),'sha256'=>hash('sha256',$bytes),'ai_consent'=>true,'provider'=>$provider];
+ return ['path'=>$path,'mime'=>$mime,'name'=>mb_substr(basename(str_replace('\\','/',(string)($file['name']??$filename))),0,180),'size'=>strlen($bytes),'sha256'=>hash('sha256',$bytes),'ai_consent'=>$consent,'provider'=>$provider];
 }
 function booking_document_bytes(array $doc): string {
  $path=media_private_path((string)$doc['path'],(string)app_config('media.driver','local'));if(!$path)throw new RuntimeException('Private document unavailable.');
@@ -73,7 +75,7 @@ function booking_document_bytes(array $doc): string {
 }
 function booking_brief_initial(array $b): array {
  $report="Meeting briefing — supplied information only\n\nVisitor: ".$b['first'].' '.$b['last']."\nAgenda: ".$b['agenda']."\nRequested method: ".booking_method_text($b)."\n\nOpen questions: Confirm objectives, expected outcomes and participants during review.";
- return ['brief_status'=>empty($b['document'])?'ready':'pending','brief_report'=>empty($b['document'])?$report:'','brief_source'=>empty($b['document'])?'Visitor-supplied agenda; no AI used':'AI document analysis pending','brief_attempts'=>0,'brief_at'=>time(),'brief_revision'=>1];
+ return ['brief_status'=>empty($b['document'])?'ready':(!empty($b['document']['ai_consent'])?'pending':'needs review'),'brief_report'=>empty($b['document'])?$report:'','brief_source'=>empty($b['document'])?'Visitor-supplied agenda; no AI used':'Private attachment awaiting host review','brief_attempts'=>0,'brief_at'=>time(),'brief_revision'=>1];
 }
 function booking_brief_work(): void {
  $cfg=comm_config();$count=0;foreach(comm_records('booking')as$row){if($row['status']==='requested'&&($row['brief_status']??'')==='processing'&&($row['brief_at']??0)<time()-900){comm_lock('reservations',function()use($row){$latest=comm_get('booking.'.$row['id']);if(($latest['brief_status']??'')==='processing'&&($latest['brief_at']??0)<time()-900){$latest['brief_status']='needs review';comm_put('booking.'.$row['id'],$latest);booking_owner_attention($latest);}});continue;}if($count>=3)break;if($row['status']!=='requested'||($row['brief_status']??'')!=='pending')continue;$count++;
@@ -88,13 +90,14 @@ function booking_owner_attention(array $b): void {$id=$b['id'].'.'.$b['version']
 function booking_owner_mail(array $b): void {if(empty($b['brief_report']))return;$id=$b['id'].'.'.$b['version'].'.owner_review';if(!comm_get('mail.'.$id))comm_put('mail.'.$id,['id'=>$id,'booking'=>$b['id'],'version'=>$b['version'],'event'=>'owner_review','status'=>'pending','created'=>time()]);}
 function booking_report_ready(array $b): bool {return ($b['brief_status']??'')==='ready'&&trim((string)($b['brief_report']??''))!=='';}
 function workspace_reports_dispatch(string $path): bool {
- if(booking_reschedule_dispatch($path)||voice_dispatch($path)||contact_guard_dispatch($path)||booking_mailboxes_dispatch($path))return true;
+ if(visitor_statistics_dispatch($path)||wise_giving_dispatch($path)||booking_reschedule_dispatch($path)||voice_dispatch($path)||contact_guard_dispatch($path)||booking_mailboxes_dispatch($path))return true;
  if(preg_match('~^(/write/notes/report|/write/booking-review)/([a-f0-9]{32})$~D',$path,$route)){$_GET['id']=$route[2];$path=$route[1];}
  if(!in_array($path,['/write/notes','/write/notes/report','/write/booking-review','/write/booking-document'],true))return false;require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$error='';$note=null;$emailStatus='';
  if(str_starts_with($path,'/write/booking-')){
   $cfg=comm_config();if((int)$cfg['owner']!==$uid){http_response_code(403);echo 'This booking workspace belongs to another Writer.';return true;}$id=reader_text($_GET['id']??'','Booking',32,true);if(!preg_match('/^[a-f0-9]{32}$/D',$id))not_found();$b=comm_get('booking.'.$id);if(!$b)not_found();
   if($path==='/write/booking-document'){$doc=$b['document']??[];if(!$doc)not_found();$bytes=booking_document_bytes($doc);header('Content-Type: '.$doc['mime']);header('Content-Disposition: attachment; filename="booking-document.'.(['application/pdf'=>'pdf','image/png'=>'png','image/jpeg'=>'jpg'][$doc['mime']]).'"');header('Content-Length: '.strlen($bytes));if($_SERVER['REQUEST_METHOD']!=='HEAD')echo $bytes;return true;}
   if(is_post()){verify_csrf();try{$action=$_POST['action']??'';if($action==='report_save'){comm_lock('reservations',function()use($id){$latest=comm_get('booking.'.$id);if($latest['status']!=='requested')throw new RuntimeException('This request has already been decided.');if((int)($_POST['version']??0)!==$latest['version']||(int)($_POST['brief_revision']??0)!==(int)($latest['brief_revision']??0)||($latest['brief_status']??'')==='processing')throw new RuntimeException('The briefing changed or is processing. Reload before saving.');$platform=$latest['platform']??'google_meet';if(in_array($platform,['zoom','microsoft','webex'],true))$latest['approved_join']=meetings_link(reader_text($_POST['approved_join']??'','Participant join link',3000),$platform);$latest['brief_revision']=($latest['brief_revision']??0)+1;$latest['brief_report']=workspace_report_text($_POST['report']??'');$latest['brief_source']='Host-reviewed briefing';$latest['brief_status']='ready';$latest['brief_at']=time();comm_put('booking.'.$id,$latest);booking_owner_mail($latest);});}
+   elseif($action==='brief_generate'){if(($_POST['host_ai_consent']??'')!=='1')throw new InvalidArgumentException('Confirm that you are authorised to use this material with the selected AI provider.');$provider=studio_ai_provider($_POST['provider']??'openai');comm_lock('reservations',function()use($id,$provider,$uid){$latest=comm_get('booking.'.$id);if($latest['status']!=='requested'||empty($latest['document']))throw new RuntimeException('Choose an undecided booking with an attachment.');if((int)($_POST['version']??0)!==$latest['version']||(int)($_POST['brief_revision']??0)!==(int)($latest['brief_revision']??0)||($latest['brief_status']??'')==='processing')throw new RuntimeException('The briefing changed. Reload before generating.');$latest['document']['ai_consent']=true;$latest['document']['provider']=$provider;$latest['document']['host_authorisation']=['user'=>$uid,'at'=>time()];$latest['brief_revision']=($latest['brief_revision']??0)+1;$latest['brief_status']='pending';$latest['brief_source']='Host requested a private AI draft';$latest['brief_at']=time();comm_put('booking.'.$id,$latest);});}
    elseif(in_array($action,['approve','decline'],true)){if(($_POST['decision_reviewed']??'')!=='1')throw new InvalidArgumentException('Review the report and confirm your decision.');if((int)($_POST['version']??0)!==$b['version'])throw new RuntimeException('Booking changed. Reload before deciding.');comm_change_booking($id,$action,null,reader_text($_POST['reason']??'','Reason',1000),0,'owner');}
    else throw new InvalidArgumentException('Choose a supported review action.');flash('success','Booking review updated.');redirect(url('/write/booking-review?id='.$id));}catch(Throwable $e){$error=$e instanceof InvalidArgumentException||$e instanceof OpenAiRequestException||get_class($e)===RuntimeException::class?$e->getMessage():'Review could not be updated.';}$b=comm_get('booking.'.$id);}
   render_write('booking_review',['writeTitle'=>'Booking briefing & decision','b'=>$b,'cfg'=>$cfg,'error'=>$error]);return true;

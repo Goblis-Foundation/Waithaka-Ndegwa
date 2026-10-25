@@ -11,7 +11,7 @@
       </section>
 
       <section class="settings-card">
-        <h2>Google</h2>
+        <h2>Google</h2><p><a href="<?=url('/write/visitor-statistics')?>">Footer visitor statistics</a></p>
         <div class="field"><label for="google-ga4">GA4 Measurement ID</label><small>Requested site tag: G-RN0YXC2WCH. One shared tag covers public editorial pages. A blank ID turns measurement off.</small><input id="google-ga4" name="google_ga4" value="<?=e(setting('google.ga4','G-RN0YXC2WCH'))?>" placeholder="G-RN0YXC2WCH" pattern="G-[A-Z0-9]{4,20}"></div>
         <div class="field"><label><input type="checkbox" name="google_analytics_enabled" value="1" <?=setting('google.analytics_enabled','1')==='1'?'checked':''?>> Enable public-page analytics after reader consent</label><small>Writer, private links, searches, contact and payment forms are excluded. Advertising storage and personalisation remain off.</small></div>
         <div class="field"><label>Search Console verification token</label><input name="google_search_verification" value="<?=e(setting('google.search_verification',''))?>"></div>
@@ -45,6 +45,8 @@
         <button class="wbtn" type="submit" name="action" value="register_ipn">Save & register IPN</button>
         <p class="help">The public website presents this route as Card with Visa, Mastercard and American Express branding. Card support can request KES, USD, EUR or GBP. Pesapal requires either email or phone for the transaction request; names are optional and anonymous site records do not retain that contact as contributor identity. Pesapal controls the methods shown on its hosted checkout; if it also displays M-Pesa, ask Pesapal whether card-only checkout can be enabled for your merchant account.</p>
       </section>
+
+      <section class="settings-card"><h2>Wise · bank transfer</h2><p>Fourth giving method: EUR via SEPA, USD via ACH and GBP via UK Faster Payments. Publish receiving details for each currency separately.</p><a class="wbtn" href="<?=url('/write/wise')?>">Manage Wise receiving details</a></section>
 
       <section class="settings-card">
         <h2>PayPal</h2>

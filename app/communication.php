@@ -97,9 +97,9 @@ function comm_make_booking(array $cfg,array $input): array {
     $host=booking_mailbox_snapshot($cfg,$input['host']??null);$method=booking_platform_input($input);$nonce=$input['request_id']??'';if(!is_string($nonce)||!preg_match('/^[a-f0-9]{32}$/D',$nonce))throw new InvalidArgumentException('Reload the booking form.');
     return comm_lock('reservations',function()use($cfg,$input,$type,$date,$zone,$first,$last,$email,$agenda,$start,$nonce,$method,$host){$id=substr(hash_hmac('sha256','request|'.$nonce,(string)app_config('app_key')),0,32);$prior=comm_get('booking.'.$id);if($prior)return $prior;
         if(!in_array($start,comm_slots($cfg,$type,$date),true))throw new RuntimeException('This time is no longer available. Choose another time.');
-        $document=booking_document_upload($_FILES['booking_document']??[],($input['document_consent']??'')==='1',booking_document_request_provider($input));
+        $document=booking_document_upload($_FILES['booking_document']??[],false,booking_document_provider($cfg));
         $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>'','document'=>$document,'host_mailbox'=>$host]+$method;$b+=booking_brief_initial($b);comm_put('booking.'.$id,$b);comm_event('bookings',$id);
-        comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);return $b;
+        comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);elseif(($b['brief_status']??'')==='needs review')booking_owner_attention($b);return $b;
     });
 }
 function comm_change_booking(string $id,string $action,?int $newStart=null,string $reason='',int $late=0,string $actor='owner',?int $expectedVersion=null): array {
