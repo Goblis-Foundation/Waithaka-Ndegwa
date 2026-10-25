@@ -336,6 +336,7 @@ try {
         else $failed[]='Offline Google tag consent and duplicate-event states';
         $suiteCount++;
         if(wk_test_process(['node',__DIR__.'/goal_tabs_test.js'],$environment,'Goal tabs keyboard and deep-link navigation'))$passedCount++;
+        if(wk_test_process(['node',__DIR__.'/workspace_navigation_test.js'],$environment,'Workspace tabs, validation and horizontal navigation'))$passedCount++;
         else $failed[]='Goal tabs keyboard and deep-link navigation';
         $suiteCount++;
         if(wk_test_process(['python3','-B',__DIR__.'/readiness_deployment_test.py'],$environment,'Offline AWS recovery and cutover plans'))$passedCount++;
