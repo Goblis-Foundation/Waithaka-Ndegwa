@@ -1,5 +1,5 @@
 <?php
-$api=wise_api_config();$probe=$api['probe']??[];$tab=($_GET['tab']??'')==='accounts'?'accounts':'connection';$currency=in_array($_GET['currency']??'',['EUR','USD','GBP'],true)?$_GET['currency']:'EUR';$enabledCount=count(array_filter($record['accounts']??[],static fn($a)=>!empty($a['enabled'])));$hasToken=!empty($api['token']);$verified=($probe['identity']??'')==='verified';
+$api=wise_api_config();$probe=$api['probe']??[];$tab=($_GET['tab']??'')==='accounts'?'accounts':'connection';$currency=in_array($_GET['currency']??'',['EUR','USD','GBP'],true)?$_GET['currency']:'USD';$enabledCount=count(array_filter($record['accounts']??[],static fn($a)=>!empty($a['enabled'])));$hasToken=!empty($api['token']);$verified=($probe['identity']??'')==='verified';
 ?>
 <link rel="stylesheet" href="<?=asset('css/wise.css')?>">
 <main class="write-main wise-workspace">

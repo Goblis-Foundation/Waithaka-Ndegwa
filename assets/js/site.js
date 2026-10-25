@@ -34,8 +34,8 @@
   const methods=[...document.querySelectorAll('input[name="method"]')];
   const methodPanels=[...document.querySelectorAll('[data-method-fields]')];
   const currencyPanels=[...document.querySelectorAll('[data-currency-panel]')];
-  const syncPayments=()=>{const v=document.querySelector('input[name="method"]:checked')?.value||'mpesa';methodPanels.forEach(p=>{const active=p.dataset.methodFields===v;p.hidden=!active;p.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!active)});const target=v==='mpesa'?'kes':v==='pesapal'?'card':'usd';currencyPanels.forEach(p=>{const active=p.dataset.currencyPanel===target;p.hidden=!active;p.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!active)})};
-  methods.forEach(x=>x.addEventListener('change',syncPayments));syncPayments();
+  const syncPayments=()=>{const v=document.querySelector('input[name="method"]:checked')?.value||'pesapal';methodPanels.forEach(p=>{const active=p.dataset.methodFields===v;p.hidden=!active;p.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!active)});const target=v==='mpesa'?'kes':v==='pesapal'?'card':v==='paypal'?'usd':'none';document.querySelectorAll('[data-checkout-controls]').forEach(p=>{p.hidden=v==='wise';p.querySelectorAll('input,button').forEach(el=>el.disabled=v==='wise')});currencyPanels.forEach(p=>{const active=p.dataset.currencyPanel===target;p.hidden=!active;p.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!active)})};
+  if(new URLSearchParams(location.search).get('method')==='wise'||location.hash==='#wise-bank-transfer'){const bankMethod=methods.find(x=>x.value==='wise');if(bankMethod)bankMethod.checked=true;}methods.forEach(x=>x.addEventListener('change',syncPayments));syncPayments();
 
   const cardCurrency=document.querySelector('[data-card-currency]');
   const cardPresets=document.querySelector('[data-card-presets]');
@@ -43,7 +43,7 @@
   const cardCustom=document.querySelector('#amount_card');
   const presetMap={KES:[250,500,1000,2500,5000],USD:[5,10,25,50,100],EUR:[5,10,25,50,100],GBP:[5,10,25,50,100]};
   const symbolMap={KES:'',USD:'$',EUR:'€',GBP:'£'};
-  const syncCardCurrency=()=>{if(!cardCurrency||!cardPresets)return;const cur=cardCurrency.value||'KES',vals=presetMap[cur]||presetMap.KES,sym=symbolMap[cur]||'';cardLabels.forEach(x=>x.textContent=cur);cardPresets.innerHTML=vals.map((v,i)=>`<label><input type="radio" name="amount_choice_card" value="${v}" ${i===2?'checked':''}><span>${sym}${Number(v).toLocaleString()}</span></label>`).join('')+'<label><input type="radio" name="amount_choice_card" value="other"><span>Other</span></label>';if(cardCustom){cardCustom.min=cur==='KES'?'50':'1';cardCustom.max=cur==='KES'?'1000000':'100000';cardCustom.placeholder=cur==='KES'?'e.g. 1000':'e.g. 25'}};
+  const syncCardCurrency=()=>{if(!cardCurrency||!cardPresets)return;const cur=cardCurrency.value||'USD',vals=presetMap[cur]||presetMap.USD,sym=symbolMap[cur]||'';cardLabels.forEach(x=>x.textContent=cur);cardPresets.innerHTML=vals.map((v,i)=>`<label><input type="radio" name="amount_choice_card" value="${v}" ${i===(cur==='KES'?2:1)?'checked':''}><span>${sym}${Number(v).toLocaleString()}</span></label>`).join('')+'<label><input type="radio" name="amount_choice_card" value="other"><span>Other</span></label>';if(cardCustom){cardCustom.min=cur==='KES'?'50':'1';cardCustom.max=cur==='KES'?'1000000':'100000';cardCustom.placeholder=cur==='KES'?'e.g. 1000':'e.g. 25'}};
   cardCurrency?.addEventListener('change',syncCardCurrency);syncCardCurrency();
 
   const anonymous=document.querySelector('[data-anonymous-toggle]'),identity=document.querySelector('[data-optional-identity]');

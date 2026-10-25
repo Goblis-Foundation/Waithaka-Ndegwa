@@ -105,3 +105,8 @@ wc($newWise['accounts']['USD']===$oldWise['accounts']['USD']&&$newWise['accounts
 wc($newWise['version']===4&&isset($newWise['account_saved']['EUR']),'Currency save records its own save timestamp');
 $staleCurrency=false;try{wise_giving_account_update($oldWise,'EUR',['currency'=>'EUR'],2,1);}catch(RuntimeException){$staleCurrency=true;}wc($staleCurrency,'Stale account changes cannot overwrite current details');
 echo "PASS: independent Wise currency saves, retained accounts and optimistic version checks.\n";
+
+wc(wise_api_setup_test(['event_type'=>'transfers#state-change','schema_version'=>'2.0.0'],true),'Signed Wise setup test may establish reachability before subscription exists');
+wc(!wise_api_setup_test(['event_type'=>'balances#update','schema_version'=>'4.0.0'],false),'Live events cannot bypass configured profile and subscription checks');
+wc(!wise_api_setup_test([],true),'Malformed test data rejected');
+echo "PASS: Wise setup-only test classification preserves strict live event validation.\n";

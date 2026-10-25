@@ -20,7 +20,7 @@ function wise_giving_validate(string $currency,array $in): array {
  if($currency==='GBP'){$row['sort_code']=preg_replace('/[ -]/','',$row['sort_code']);if(!preg_match('/^[0-9]{6}$/D',$row['sort_code'])||!preg_match('/^[0-9]{8}$/D',$row['account']))throw new InvalidArgumentException('Use the six-digit sort code and eight-digit GBP account number.');}
  return $row;
 }
-function wise_giving_public(): array {$s=comm_get('giving.wise');$out=[];foreach(['EUR','USD','GBP']as$c)if(!empty($s['accounts'][$c]['enabled'])){$row=$s['accounts'][$c];$out[$c]=array_intersect_key($row,array_flip(array_merge(['currency'],array_keys(wise_giving_fields($c)))));}return $out;}
+function wise_giving_public(): array {$s=comm_get('giving.wise');$out=[];foreach(['USD','EUR','GBP']as$c)if(!empty($s['accounts'][$c]['enabled'])){$row=$s['accounts'][$c];$out[$c]=array_intersect_key($row,array_flip(array_merge(['currency'],array_keys(wise_giving_fields($c)))));}return $out;}
 function wise_giving_account_update(array $old,string $currency,array $row,int $version,int $uid): array {
  if(!in_array($currency,['EUR','USD','GBP'],true)||($row['currency']??'')!==$currency)throw new InvalidArgumentException('Choose a receiving currency.');
  if($version!==(int)($old['version']??0))throw new RuntimeException('Account details changed. Reload before saving.');
