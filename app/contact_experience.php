@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/contact_guard.php';
 function contact_guides(): array {return [
  'collaboration'=>['title'=>'Build something together','summary'=>'Partnerships, enterprise and practical collaboration.','prompt'=>'What are you working on, where do you see a fit, and what would a useful next step look like?','include'=>['The problem or opportunity','Your organisation or role','The collaboration you have in mind']],
  'speaking'=>['title'=>'Invite me to speak','summary'=>'Events, workshops and conversations with an audience.','prompt'=>'Tell me about your event, audience, date, location or format, and the role you have in mind.','include'=>['Event date and location / online format','Audience and theme','Expected role and practical arrangements']],
@@ -17,7 +18,7 @@ function contact_delivery_ids(int $contactId,string $reference): array {
  $q=db()->prepare('SELECT reference FROM contact_messages WHERE id=?');$q->execute([$contactId]);if($q->fetchColumn()!==$reference)return [];
  $q=db()->prepare('SELECT id FROM email_outbox WHERE dedupe_key IN (?,?) ORDER BY id');$q->execute([hash('sha256','contact:'.$reference),hash('sha256','contact-receipt:'.$reference)]);return array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
 }
-function contact_delivery_register(int $contactId,string $reference): void {if(!contact_delivery_ids($contactId,$reference))return;comm_put('contact.delivery.'.$contactId,['id'=>$contactId,'reference'=>$reference,'created'=>time()]);}
+function contact_delivery_register(int $contactId,string $reference): void {$q=db()->prepare('SELECT id FROM reader_enquiries WHERE contact_id=?');$q->execute([$contactId]);$enquiry=(int)$q->fetchColumn();$meta=$enquiry?contact_guard_meta($enquiry):[];if($meta&&!in_array($meta['state'],['approved','released'],true))return;if(!contact_delivery_ids($contactId,$reference))return;comm_put('contact.delivery.'.$contactId,['id'=>$contactId,'reference'=>$reference,'created'=>time()]);}
 /** Future successful contact submissions only. Does not release the historical outbox. */
 function contact_delivery_work(?callable $testTransport=null): void {
  if(!$testTransport&&!email_transport_ready())return;

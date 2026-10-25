@@ -1,0 +1,6 @@
+# Contact screening
+Hidden field, server-issued one-use 8-hour form token, five submissions per IP per minute, sender limits (default 3/hour and 10/day), normalized duplicate detection (24 hours) and link-density screening all hold suspicious valid submissions for owner review.
+All valid enquiries are persisted as contact_messages plus reader_enquiries before notification decisions. Failed human checks are held rather than silently lost. Exact successful form replay returns the original receipt. Back-button changed text stays in the recovered fresh form for explicit follow-up.
+New held messages have no email outbox entries and no independent-worker registration. /write/contact-controls provides controls, reasons, explicit release or retention without notification. Release is locked/versioned and deduped by original service-message keys; existing global historical queues remain paused. Email acknowledgements are service messages only, not subscriptions.
+Existing reader_contact_submit callers retain default behavior. The public route explicitly opts out and delegates to the screening gate. Delivery registration now receives the authoritative contact id obtained from the enquiry, correcting the distinction between reader and contact IDs.
+Tests use isolated fixture databases; no production enquiry was submitted.

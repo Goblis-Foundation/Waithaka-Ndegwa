@@ -184,3 +184,19 @@ $deliveries=0;contact_delivery_work(static function(array $payload,string $key)u
 echo "PASS: scoped future contact receipts, owner notifications and historical queue isolation.\n";
 
 $longContact=['reference'=>'WK-LONGNAME-FIXTURE','first_name'=>str_repeat('A',120),'last_name'=>str_repeat('B',120),'email'=>'long-contact@example.invalid','phone_code'=>'','phone'=>'','country'=>'','city'=>'','message'=>'Synthetic valid maximum-name fixture'];rd_check(send_contact_email($longContact),'Valid long names still queue the host notification within subject limits');
+
+$guardMessage=['reference'=>'WK-GUARD-HELD','first_name'=>'Synthetic','email'=>'guard-fixture@example.invalid','message'=>'Retain this genuine enquiry for review'];
+$before=(int)rd_scalar('SELECT COUNT(*) FROM email_outbox');
+$heldId=contact_guard_receive($guardMessage,['website'=>'trap','enquiry_type'=>'general'],true,true);
+$held=reader_enquiry($heldId);rd_check($held&&$held['message']===$guardMessage['message']&&$held['notification_state']==='held','Hidden-field submissions are retained with held notification state');
+rd_check((int)rd_scalar('SELECT COUNT(*) FROM email_outbox')===$before,'Held submissions create no owner or sender notification');
+$meta=contact_guard_meta($heldId);contact_delivery_register((int)$held['contact_id'],$held['reference']);rd_check(comm_get('contact.delivery.'.$held['contact_id'])===[],'Registration cannot bypass a held review');
+$reject=false;try{contact_guard_review($actor,['id'=>$heldId,'version'=>$meta['version'],'action'=>'release','review_note'=>'Checked']);}catch(InvalidArgumentException){$reject=true;}rd_check($reject,'Release requires explicit confirmation');
+contact_guard_review($actor,['id'=>$heldId,'version'=>$meta['version'],'action'=>'release','review_note'=>'Synthetic reviewer confirmed','review_consent'=>'1']);
+rd_check(contact_guard_meta($heldId)['state']==='released'&&count(contact_delivery_ids((int)$held['contact_id'],$held['reference']))===2,'Reviewed release queues exactly owner and sender service messages');
+$reject=false;try{contact_guard_review($actor,['id'=>$heldId,'version'=>$meta['version'],'action'=>'release','review_note'=>'Again','review_consent'=>'1']);}catch(RuntimeException){$reject=true;}rd_check($reject,'Already released messages cannot be released twice');
+$duplicateId=contact_guard_receive(array_replace($guardMessage,['reference'=>'WK-GUARD-DUPLICATE']),['enquiry_type'=>'general'],true,true);
+rd_check(in_array('Duplicate message',contact_guard_meta($duplicateId)['reasons'],true)&&reader_enquiry($duplicateId)['notification_state']==='held','Duplicate enquiries remain saved while notifications are suppressed');
+$limits=contact_guard_config();rd_check(in_array('IP limit: more than five messages per minute',contact_guard_reasons([],true,true,5,0,0,false,$limits),true),'Sixth submission in a minute is held');
+$_SESSION['contact_issued']=[];$nonce=contact_form_issue();rd_check(contact_form_consume($nonce)&&!contact_form_consume($nonce),'Server-issued contact token is consumed exactly once');
+echo "PASS: durable held enquiries, zero pre-review mail, explicit deduplicated release, duplicate detection, IP limit and one-use token.\n";

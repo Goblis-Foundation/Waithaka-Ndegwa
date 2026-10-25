@@ -213,7 +213,7 @@ function reader_contact_values(array $message, array $input = []): array {
     return $values;
 }
 /** Save the contact and work item atomically, commit, then attempt notification. */
-function reader_contact_submit(array $message, array $input = []): int {
+function reader_contact_submit(array $message, array $input = [], bool $notify = true): int {
     $values = reader_contact_values($message, $input); $pdo = db(); $pdo->beginTransaction();
     try {
         $query = $pdo->prepare('INSERT INTO contact_messages(reference,first_name,last_name,email,phone_code,phone,country,city,message,ip_hash,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
@@ -222,6 +222,11 @@ function reader_contact_submit(array $message, array $input = []): int {
         $pdo->prepare('INSERT INTO reader_enquiries(contact_id,enquiry_type,created_at,updated_at) VALUES(?,?,UTC_TIMESTAMP(),UTC_TIMESTAMP())')->execute([$contactId, $values['enquiry_type']]);
         $id = (int)$pdo->lastInsertId(); $pdo->commit();
     } catch (Throwable $error) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $error; }
+    if($notify)reader_contact_notifications($id,$values);
+    return $id;
+}
+function reader_contact_notifications(int $id,array $values): void {
+    $pdo=db();
     try {
         $queued = send_contact_email($values);
         $pdo->prepare('UPDATE reader_enquiries SET notification_state=? WHERE id=?')->execute([$queued ? 'queued' : 'failed', $id]);
@@ -233,8 +238,8 @@ function reader_contact_submit(array $message, array $input = []): int {
         $html=email_design('Thank you for getting in touch.','<p>Your message has been received and saved for review.</p><p style="padding:16px;background:#f3f1eb;border-left:3px solid #be955f"><strong>Your reference</strong><br>'.e($values['reference']).'</p><p>I appreciate you taking the time to write. If a response is needed, I will follow up using the contact details you provided.</p><p>Please keep this reference if you contact me about the same enquiry.</p>',['name'=>$values['first_name'],'preheader'=>'Your enquiry has been received.']);
         enqueue_email($values['email'],'Message received · '.$values['reference'].' · Waithaka Ndegwa',$html,'contact-receipt:'.$values['reference']);
     } catch(Throwable $error){error_log('Enquiry receipt queue failed: '.get_class($error));}
-    return $id;
 }
+
 function reader_enquiry(int $id): ?array {
     $query = db()->prepare('SELECT r.*,c.reference,c.first_name,c.last_name,c.email,c.phone_code,c.phone,c.country,c.city,c.message,c.email_sent FROM reader_enquiries r JOIN contact_messages c ON c.id=r.contact_id WHERE r.id=?');
     $query->execute([$id]); return $query->fetch() ?: null;
