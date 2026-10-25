@@ -27,3 +27,15 @@ analytics_check(analytics_page_location('https://wrong.invalid/hello?token=priva
 analytics_check(analytics_campaign_url('/my-thoughts/hello','newsletter','email','post-4','article')===base_url().'/my-thoughts/hello?utm_source=newsletter&utm_medium=email&utm_campaign=post-4&utm_content=article','Campaign links use public destinations and stable IDs.');
 foreach(['https://outside.invalid/x','//outside.invalid/x','/write','/newsletter/confirm','/my-thoughts/x?token=private','/my-thoughts/x#fragment']as$path){try{analytics_campaign_url($path,'newsletter','email','post-4');throw new LogicException('Unsafe destination accepted.');}catch(InvalidArgumentException $e){$checks++;}}
 echo "Analytics policy checks passed: $checks\n";
+
+require dirname(__DIR__).'/app/visitor_statistics.php';
+$boundary=new DateTimeImmutable('2026-10-31T22:30:00Z');
+analytics_check(visitor_statistics_month('Africa/Nairobi',$boundary)['month']==='2026-11','Monthly boundary follows property timezone.');
+analytics_check(visitor_statistics_month('America/New_York',$boundary)['month']==='2026-10','Monthly boundary does not follow server timezone.');
+$fixture=['timezone'=>'Africa/Nairobi','month'=>'2026-11','month_at'=>$boundary->getTimestamp(),'monthly_visitors'=>0,'monthly_visits'=>19];
+analytics_check(visitor_statistics_display($fixture,$boundary)===['label'=>'November 2026','visitors'=>0,'visits'=>19],'Verified zero retained and metrics distinct.');
+$fixture['month']='2026-10';analytics_check(visitor_statistics_display($fixture,$boundary)===[],'Prior month never displayed as current month.');
+$fixture['month']='2026-11';$fixture['month_at']-=86401;analytics_check(visitor_statistics_display($fixture,$boundary)===[],'Stale readings hidden.');
+analytics_check(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>'2'],['value'=>'19']]]]],1)===19,'Read the correct monthly metric.');
+analytics_check(visitor_statistics_number(['metadata'=>['subjectToThresholding'=>true],'rows'=>[['metricValues'=>[['value'=>'19']]]]])===null,'Thresholded counts not published.');
+analytics_check(visitor_statistics_number([])===null,'Missing counts never become fabricated zero.');
