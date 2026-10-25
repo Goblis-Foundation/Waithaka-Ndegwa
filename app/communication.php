@@ -54,6 +54,7 @@ function comm_busy(array $cfg,string $date): array {
     $c=comm_writer_connection($cfg);$r=publishing_http('POST','https://www.googleapis.com/calendar/v3/freeBusy',['Authorization: Bearer '.publishing_access_token($c)],['timeMin'=>$min,'timeMax'=>$max,'items'=>[['id'=>$c['selected_resource']]]])['data'];
     $result=$r['calendars'][$c['selected_resource']]??null;if(!$result||!empty($result['errors']))throw new RuntimeException('Destination calendar is unavailable.');foreach($result['busy']??[]as$b)$busy[]=[strtotime($b['start']),strtotime($b['end'])];
     if(!empty($cfg['microsoft_required'])){$r=publishing_http('GET','https://graph.microsoft.com/v1.0/me/calendarView?'.http_build_query(['startDateTime'=>$min,'endDateTime'=>$max,'$top'=>1000,'$select'=>'start,end,isCancelled,showAs']),['Authorization: Bearer '.meetings_access_token('microsoft',(int)$cfg['owner']),'Prefer: outlook.timezone="UTC"'])['data'];if(!empty($r['@odata.nextLink']))throw new RuntimeException('Outlook availability is incomplete.');foreach($r['value']??[]as$e)if(empty($e['isCancelled'])&&($e['showAs']??'busy')!=='free')$busy[]=[(new DateTimeImmutable($e['start']['dateTime'],new DateTimeZone('UTC')))->getTimestamp(),(new DateTimeImmutable($e['end']['dateTime'],new DateTimeZone('UTC')))->getTimestamp()];}
+    if(function_exists('ms_booking_busy'))array_push($busy,...ms_booking_busy((int)$cfg['owner'],$min,$max));
     return $busy;
 }
 function comm_slots(array $cfg,string $type,string $date,?string $exclude=null): array {
@@ -175,4 +176,5 @@ function communication_dispatch(string $path): bool {
     if(!isset($cfg['types'][$type]))$type='intro';try{comm_zone($zone);}catch(Throwable){$zone=$cfg['timezone'];}
     render('booking',['page'=>'booking','cfg'=>$cfg,'type'=>$type,'date'=>$date,'zone'=>$zone,'slots'=>$slots,'hostIdentity'=>$hostIdentity,'manage'=>$manage,'error'=>$error,'seo'=>['title'=>'Book time with Waithaka · Waithaka Ndegwa','description'=>'Schedule a conversation about entrepreneurship, innovation, collaboration or media.','canonical'=>url('/book'),'robots'=>'noindex,nofollow']]);return true;
 }
+
 
