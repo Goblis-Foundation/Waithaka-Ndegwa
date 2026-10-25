@@ -46,7 +46,7 @@
         <p class="help">The public website presents this route as Card with Visa, Mastercard and American Express branding. Card support can request KES, USD, EUR or GBP. Pesapal requires either email or phone for the transaction request; names are optional and anonymous site records do not retain that contact as contributor identity. Pesapal controls the methods shown on its hosted checkout; if it also displays M-Pesa, ask Pesapal whether card-only checkout can be enabled for your merchant account.</p>
       </section>
 
-      <section class="settings-card"><h2>Wise · bank transfer</h2><p>Fourth giving method: EUR via SEPA, USD via ACH and GBP via UK Faster Payments. Publish receiving details for each currency separately.</p><a class="wbtn" href="<?=url('/write/wise')?>">Manage Wise receiving details</a></section>
+      <section class="settings-card"><h2>Wise · bank transfer</h2><p>Fourth giving method: EUR via SEPA, USD via ACH and GBP via UK Faster Payments. Publish receiving details for each currency separately.</p><a class="wbtn" href="<?=url('/write/wise?tab=accounts')?>">Manage Wise receiving details</a></section>
 
       <section class="settings-card">
         <h2>PayPal</h2>
