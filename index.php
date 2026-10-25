@@ -111,13 +111,11 @@ if ($path === '/contact') {
     header('Cache-Control: no-store, private, max-age=0');header('Referrer-Policy: no-referrer');
     if (is_post()) {
         verify_csrf();
-        if (!empty($_POST['website'])) { redirect(url('/contact#contact-message')); }
         unset($_SESSION['contact_receipt']);
         $_SESSION['contact_form']=contact_draft_values($_POST);
         $contactNonce=contact_form_nonce($_POST['contact_request']??'');
         $contactDigest=hash('sha256',json_encode($_SESSION['contact_form'],JSON_THROW_ON_ERROR));
         if($contactNonce!==''&&isset($_SESSION['contact_requests'][$contactNonce])){$priorReceipt=$_SESSION['contact_requests'][$contactNonce];if(($priorReceipt['digest']??'')!==$contactDigest){flash('error','That form was already sent. Your changes are shown below; review and send this new form to create a follow-up.');redirect(url('/contact#contact-message'));}$_SESSION['contact_receipt']=$priorReceipt;unset($_SESSION['contact_form']);redirect(url('/contact#contact-receipt'));}
-        if (contact_rate_limited()) { flash('error','Too many messages have been sent from this connection. Please try again later.'); redirect(url('/contact#contact-message')); }
         $m=[
             'reference'=>make_reference('WK'),'first_name'=>trim((string)($_POST['first_name']??'')),'last_name'=>trim((string)($_POST['last_name']??'')),
             'email'=>trim((string)($_POST['email']??'')),'phone_code'=>trim((string)($_POST['phone_code']??'+254')),'phone'=>trim((string)($_POST['phone']??'')),
@@ -126,9 +124,9 @@ if ($path === '/contact') {
         if($m['first_name']===''||!filter_var($m['email'],FILTER_VALIDATE_EMAIL)||$m['message']===''){
             flash('error','Please complete all required fields with a valid email address.');redirect(url('/contact#contact-message'));
         }
-        if(!recaptcha_ok()){flash('error','Please complete the “I am not a robot” check.');redirect(url('/contact#contact-message'));}
+        $contactTokenValid=contact_form_consume($contactNonce);$contactCaptchaValid=recaptcha_ok();
         if(function_exists('reader_contact_submit')){
-            try{$contactId=reader_contact_submit($m,$_POST);try{contact_delivery_register($contactId,$m['reference']);}catch(Throwable $deliveryError){error_log('New contact delivery registration needs review.');}}catch(InvalidArgumentException $e){flash('error',$e->getMessage());redirect(url('/contact#contact-message'));}
+            try{$contactId=contact_guard_receive($m,$_POST,$contactTokenValid,$contactCaptchaValid);}catch(InvalidArgumentException $e){flash('error',$e->getMessage());redirect(url('/contact#contact-message'));}
         }else{
             $st=db()->prepare('INSERT INTO contact_messages(reference,first_name,last_name,email,phone_code,phone,country,city,message,ip_hash,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
             $st->execute([$m['reference'],$m['first_name'],$m['last_name'],$m['email'],$m['phone_code'],$m['phone'],$m['country'],$m['city'],$m['message'],ip_hash(),mb_substr($_SERVER['HTTP_USER_AGENT']??'',0,500)]);
