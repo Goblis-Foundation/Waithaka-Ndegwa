@@ -13,6 +13,10 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { planner_work(); } catch(Throwable $e) { error_log('Daily program worker needs review.'); }
 }
+// New contact submissions only; private scoped delivery never releases the old outbox.
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { contact_delivery_work(); } catch(Throwable $e) { error_log('Contact delivery needs review.'); }
+}
 // Staging can serve restored content without draining live external delivery work.
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { founder_story_work(); } catch(Throwable $e) { error_log('Founder story delivery or expiry needs review.'); }
@@ -36,4 +40,5 @@ try {
 } finally {
     if(function_exists('readiness_worker_finish'))readiness_worker_finish($run,$success,$stats,$success?null:'stage_failed');
 }
+
 

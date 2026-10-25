@@ -80,12 +80,17 @@ try {
     rh_check(rh_redirect(rh_request('/write/login', $login + ['email' => $writerEmail, 'password' => $password], true), '/write'), 'The fixture author signs in through the real login flow.');
     $response = rh_request('/write/readers', null, true); rh_check($response['status'] === 200, 'The shared Writer layout renders the new reader queue.'); rh_private($response, 'Writer reader records carry private response headers.');
     rh_check(rh_request('/write/readers', null, true, 'DELETE')['status'] === 405, 'Unsupported Writer queue methods are rejected.');
+    $response = rh_request('/contact?type=speaking');rh_check(str_contains($response['body'],'data-contact-context-title>Invite me to speak')&&str_contains($response['body'],'name="contact_request"'),'Purpose links preselect the native enquiry form and include repeat protection');$form=rh_form($response,'/contact');
+    $failed=rh_request('/contact',$form+['first_name'=>'KEEP THIS NAME','email'=>'invalid','message'=>'KEEP THIS PRIVATE MESSAGE','enquiry_type'=>'speaking','not_robot'=>'1']);rh_check(rh_redirect($failed,'/contact'),'Invalid address returns to the contact form');$restored=rh_request('/contact');rh_check(str_contains($restored['body'],'KEEP THIS NAME')&&str_contains($restored['body'],'KEEP THIS PRIVATE MESSAGE'),'Failed form retains entered text');
     $response = rh_request('/contact'); $form = rh_form($response, '/contact');
     $contactEmail = 'contact-'.$suffix.'@example.invalid'; $response = rh_request('/contact', $form + ['first_name' => 'Contact fixture', 'email' => $contactEmail, 'message' => 'PRIVATE CONTACT '.$suffix, 'enquiry_type' => 'correction', 'not_robot' => '1']);
     $contact = rh_row('SELECT * FROM contact_messages WHERE email=?', [$contactEmail]); if ($contact) $contactIds[] = (int)$contact['id'];
     $enquiry = $contact ? rh_row('SELECT * FROM reader_enquiries WHERE contact_id=?', [$contact['id']]) : [];
     rh_check(rh_redirect($response, '/contact') && $enquiry && $enquiry['enquiry_type'] === 'correction', 'A minimal contact form creates the durable typed enquiry without phone/location requirements.');
     rh_check(rh_count('SELECT COUNT(*) FROM newsletter_subscribers WHERE email=?', [$contactEmail]) === 0, 'Contact POST never creates a marketing record.');
+    $receipt=rh_request('/contact');rh_check(str_contains($receipt['body'],'data-copy-contact')&&str_contains($receipt['body'],$contact['reference']),'Successful contact shows a copyable durable receipt reference');
+    $repeat=rh_request('/contact',$form+['first_name'=>'Contact fixture','email'=>$contactEmail,'message'=>'PRIVATE CONTACT '.$suffix,'enquiry_type'=>'correction','not_robot'=>'1']);rh_check(rh_count('SELECT COUNT(*) FROM contact_messages WHERE email=?',[$contactEmail])===1,'Repeat of the same successful form creates no duplicate enquiry');
+
     $enquiryPath = '/write/readers/enquiries/'.$enquiry['id']; $response = rh_request($enquiryPath, null, true); $form = rh_form($response, $enquiryPath);
     rh_check($response['status'] === 200 && str_contains($response['body'], 'PRIVATE CONTACT '.$suffix), 'Only the authenticated enquiry view exposes the original message.');
     $edit = $form + ['enquiry_type' => 'correction', 'status' => 'waiting', 'next_action' => 'Review supporting source', 'note' => 'Writer fixture follow-up'];
@@ -134,3 +139,4 @@ try {
     foreach (array_keys($sessionIds) as $id) db()->prepare('DELETE FROM app_sessions WHERE id=?')->execute([$id]);
     foreach ([$visitorJar, $writerJar] as $file) if (is_file($file)) unlink($file);
 }
+
