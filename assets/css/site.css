@@ -88,3 +88,10 @@
 @media(max-width:600px){.payment-tabs{grid-template-columns:1fr}.payment-tabs .wise-method{min-height:68px}.wise-account dl{grid-template-columns:1fr}}
 
 .footer-visitor-statistics{padding-top:16px;padding-bottom:16px;border-top:1px solid rgba(255,255,255,.14)}.footer-visitor-statistics p{font-size:.8rem;line-height:1.7;margin:0}.footer-visitor-statistics small{display:block;font-size:.7rem;opacity:.75}.footer-visitor-statistics span{margin:0 12px}
+
+/* Monthly readership: compact, readable and responsive. */
+.footer-visitor-statistics{display:flex;align-items:center;justify-content:space-between;gap:24px;padding-top:24px;padding-bottom:24px;border-top:1px solid rgba(255,255,255,.14)}
+.footer-activity-heading{display:flex;align-items:center;gap:12px}.footer-activity-dot{width:9px;height:9px;border-radius:50%;background:#c4d8ae;flex:none;box-shadow:0 0 0 5px rgba(196,216,174,.1)}
+.footer-visitor-statistics .footer-activity-heading span{margin:0}.footer-activity-title{display:block;font-size:.9rem;font-weight:600;letter-spacing:.01em}.footer-activity-month{display:block;font-size:.76rem;opacity:.75;margin-top:4px!important}
+.footer-visitor-statistics dl{display:flex;gap:36px;margin:0}.footer-visitor-statistics dl>div{display:flex;flex-direction:column-reverse;gap:3px;min-width:74px}.footer-visitor-statistics dt{font-size:.73rem;opacity:.8}.footer-visitor-statistics dd{font-size:1.65rem;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:0}
+@media(max-width:520px){.footer-visitor-statistics{align-items:flex-start;gap:18px;flex-wrap:wrap}.footer-visitor-statistics dl{gap:30px}.footer-visitor-statistics dd{font-size:1.4rem}}
