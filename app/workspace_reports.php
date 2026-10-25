@@ -10,8 +10,9 @@ function booking_platform_input(array $in): array {
 function booking_method_text(array $b): string {return (booking_platforms()[$b['platform']??'google_meet']??'Google Meet').(!empty($b['platform_detail'])?' · '.$b['platform_detail']:'').(!empty($b['platform_contact'])?' · contact: '.$b['platform_contact']:'');}
 function booking_ai_context(array $b): string {return 'Agenda: '.$b['agenda']."\nRequested method: ".(booking_platforms()[$b['platform']??'google_meet']??'Google Meet');}
 function booking_platform_ready(array $b): bool {return !in_array($b['platform']??'google_meet',['zoom','microsoft','webex'],true)||!empty($b['approved_join']);}
+function booking_event_id(array $b): string {return 'bn'.$b['id'];}
 function booking_calendar_body(array $b,array $cfg): array {
- $body=['id'=>'wn'.$b['id'],'summary'=>$cfg['types'][$b['type']]['name'].' · Waithaka Ndegwa','description'=>'Booked through the website. Agenda: '.$b['agenda']."\nMeeting method: ".booking_method_text($b),'start'=>['dateTime'=>gmdate(DATE_ATOM,$b['start'])],'end'=>['dateTime'=>gmdate(DATE_ATOM,$b['end'])],'attendees'=>[['email'=>$b['email'],'displayName'=>$b['first'].' '.$b['last']]],'extendedProperties'=>['private'=>['websiteBooking'=>$b['id']]]];
+ $body=['id'=>booking_event_id($b),'summary'=>$cfg['types'][$b['type']]['name'].' · Waithaka Ndegwa','description'=>'Booked through the website. Agenda: '.$b['agenda']."\nMeeting method: ".booking_method_text($b),'start'=>['dateTime'=>gmdate(DATE_ATOM,$b['start'])],'end'=>['dateTime'=>gmdate(DATE_ATOM,$b['end'])],'attendees'=>[['email'=>$b['email'],'displayName'=>$b['first'].' '.$b['last']]],'extendedProperties'=>['private'=>['websiteBooking'=>$b['id']]]];
  if(($b['platform']??'google_meet')==='google_meet')$body['conferenceData']=['createRequest'=>['requestId'=>$b['id'],'conferenceSolutionKey'=>['type'=>'hangoutsMeet']]];elseif(!empty($b['approved_join']))$body['location']=$b['approved_join'];else $body['location']=booking_method_text($b);return $body;
 }
 function planner_routine_input(array $in): array {

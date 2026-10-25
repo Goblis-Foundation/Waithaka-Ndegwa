@@ -18,3 +18,5 @@ $zoom=$fixture+['platform'=>'zoom','approved_join'=>'https://zoom.us/j/123456789
 echo "PASS: requested meeting platform order, defaults, contact validation and provider-specific invitation payloads.\n";
 
 $context=booking_ai_context(['agenda'=>'Synthetic agenda','platform'=>'phone','platform_contact'=>'+254700000000','email'=>'private@example.invalid','platform_detail'=>'Private address']);wc(!str_contains($context,'+254700000000')&&!str_contains($context,'private@example.invalid')&&!str_contains($context,'Private address'),'Separate booking contacts and arrangement details excluded from AI context');
+
+wc(preg_match('/^[a-v0-9]{5,1024}$/D',booking_event_id($fixture))===1,'Calendar event id obeys Google base32hex contract');wc(booking_calendar_body($fixture,$calendarCfg)['id']===booking_event_id($fixture),'Creation and conflict recovery use identical deterministic ids');

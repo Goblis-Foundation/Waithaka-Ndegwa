@@ -67,7 +67,7 @@ function comm_queue_mail(array $b,string $event): void {
 }
 function comm_event(string $category,string $record): void {comm_put('signal',['category'=>$category,'record'=>$record,'at'=>time(),'id'=>bin2hex(random_bytes(8))]);}
 function comm_provider_event(array $b,array $cfg): array {
-    $c=comm_writer_connection($cfg);$token=publishing_access_token($c);$eventId='wn'.$b['id'];$base='https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($c['selected_resource']).'/events';
+    $c=comm_writer_connection($cfg);$token=publishing_access_token($c);$eventId=booking_event_id($b);$base='https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($c['selected_resource']).'/events';
     $body=booking_calendar_body($b,$cfg);
     try{return publishing_http('POST',$base.'?conferenceDataVersion=1&sendUpdates=all',['Authorization: Bearer '.$token],$body,false,true)['data'];}
     catch(PublishingRemoteException $e){if($e->httpStatus===409){$r=publishing_http('GET',$base.'/'.$eventId,['Authorization: Bearer '.$token])['data'];if(($r['extendedProperties']['private']['websiteBooking']??'')===$b['id'])return $r;}throw $e;}
