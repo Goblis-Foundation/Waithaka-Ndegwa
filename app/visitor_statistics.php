@@ -3,7 +3,9 @@ declare(strict_types=1);
 /** Consented GA4 aggregates only. No public request makes a provider call. */
 function visitor_statistics_number(array $report,int $metric=0): ?int {
  $v=$report['rows'][0]['metricValues'][$metric]['value']??null;
- if(!is_string($v)||!preg_match('/^[0-9]{1,15}$/D',$v)||!empty($report['metadata']['subjectToThresholding']))return null;
+ if(!empty($report['metadata']['subjectToThresholding']))return null;
+ if(is_int($v)&&$v>=0&&$v<=999999999999999)return $v;
+ if(!is_string($v)||!preg_match('/^[0-9]{1,15}$/D',$v))return null;
  return (int)$v;
 }
 function visitor_statistics_binding(array $streams,string $tag,string $host): array {
@@ -32,7 +34,8 @@ function visitor_statistics_realtime_request(string $stream,bool $singleStream):
 }
 function visitor_statistics_realtime_number(array $report): ?int {
  $value=visitor_statistics_number($report);if($value!==null)return $value;
- if(empty($report['metadata']['subjectToThresholding'])&&empty($report['rows'])&&($report['metricHeaders'][0]['name']??'')==='activeUsers'&&($report['kind']??'')==='analyticsData#runRealtimeReport')return 0;
+ if(isset($report['totals'][0])){$total=$report;$total['rows']=[$report['totals'][0]];$value=visitor_statistics_number($total);if($value!==null)return $value;}
+ if(empty($report['metadata']['subjectToThresholding'])&&empty($report['rows'])&&($report['metricHeaders'][0]['name']??'')==='activeUsers'&&empty($report['error']))return 0;
  return null;
 }
 function visitor_statistics_refresh(bool $force=false): void {
@@ -49,6 +52,7 @@ function visitor_statistics_refresh(bool $force=false): void {
  $filter=['filter'=>['fieldName'=>'streamId','stringFilter'=>['matchType'=>'EXACT','value'=>$s['stream']]]];
  try{
   $rt=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runRealtimeReport',$h,visitor_statistics_realtime_request($s['stream'],!empty($s['single_stream'])))['data'];
+  $s['realtime_shape']=['kind'=>is_string($rt['kind']??null)?substr($rt['kind'],0,80):'not returned','metric'=>is_string($rt['metricHeaders'][0]['name']??null)?substr($rt['metricHeaders'][0]['name'],0,50):'not returned','rows'=>count($rt['rows']??[]),'totals'=>count($rt['totals']??[]),'thresholded'=>!empty($rt['metadata']['subjectToThresholding']),'value_type'=>get_debug_type($rt['rows'][0]['metricValues'][0]['value']??null)];
   $s['active']=visitor_statistics_realtime_number($rt);$s['active_at']=time();$s['active_window']=30;$s['realtime_status']='updated';
  }catch(Throwable $realtimeError){unset($s['active'],$s['active_at']);$s['realtime_status']=$realtimeError instanceof PublishingRemoteException?'Provider HTTP '.$realtimeError->httpStatus:'Request unavailable';}
  $period=visitor_statistics_month($s['timezone']);
