@@ -114,7 +114,8 @@ if ($path === '/contact') {
         if (!empty($_POST['website'])) { redirect(url('/contact#contact-message')); }
         $_SESSION['contact_form']=contact_draft_values($_POST);
         $contactNonce=contact_form_nonce($_POST['contact_request']??'');
-        if($contactNonce!==''&&isset($_SESSION['contact_requests'][$contactNonce])){$_SESSION['contact_receipt']=$_SESSION['contact_requests'][$contactNonce];unset($_SESSION['contact_form']);redirect(url('/contact#contact-receipt'));}
+        $contactDigest=hash('sha256',json_encode($_SESSION['contact_form'],JSON_THROW_ON_ERROR));
+        if($contactNonce!==''&&isset($_SESSION['contact_requests'][$contactNonce])){$priorReceipt=$_SESSION['contact_requests'][$contactNonce];if(($priorReceipt['digest']??'')!==$contactDigest){flash('error','That form was already sent. Your changes are shown below; review and send this new form to create a follow-up.');redirect(url('/contact#contact-message'));}$_SESSION['contact_receipt']=$priorReceipt;unset($_SESSION['contact_form']);redirect(url('/contact#contact-receipt'));}
         if (contact_rate_limited()) { flash('error','Too many messages have been sent from this connection. Please try again later.'); redirect(url('/contact#contact-message')); }
         $m=[
             'reference'=>make_reference('WK'),'first_name'=>trim((string)($_POST['first_name']??'')),'last_name'=>trim((string)($_POST['last_name']??'')),
@@ -132,7 +133,7 @@ if ($path === '/contact') {
             $st->execute([$m['reference'],$m['first_name'],$m['last_name'],$m['email'],$m['phone_code'],$m['phone'],$m['country'],$m['city'],$m['message'],ip_hash(),mb_substr($_SERVER['HTTP_USER_AGENT']??'',0,500)]);
             $sent=send_contact_email($m); if($sent&&!function_exists('enqueue_email'))db()->prepare('UPDATE contact_messages SET email_sent=1 WHERE reference=?')->execute([$m['reference']]);
         }
-        $receipt=['reference'=>$m['reference'],'first'=>$m['first_name'],'type'=>$_SESSION['contact_form']['enquiry_type']??'general'];$_SESSION['contact_receipt']=$receipt;unset($_SESSION['contact_form']);if($contactNonce!==''){$_SESSION['contact_requests'][$contactNonce]=$receipt;$_SESSION['contact_requests']=array_slice($_SESSION['contact_requests'],-20,null,true);}
+        $receipt=['reference'=>$m['reference'],'first'=>$m['first_name'],'type'=>$_SESSION['contact_form']['enquiry_type']??'general','digest'=>$contactDigest];$_SESSION['contact_receipt']=$receipt;unset($_SESSION['contact_form']);if($contactNonce!==''){$_SESSION['contact_requests'][$contactNonce]=$receipt;$_SESSION['contact_requests']=array_slice($_SESSION['contact_requests'],-20,null,true);}
         flash('success','Thank you. Your message has been received. Reference: '.$m['reference']);redirect(url('/contact#contact-receipt')); 
     }
     $contactDraft=$_SESSION['contact_form']??[];$contactReceipt=$_SESSION['contact_receipt']??null;unset($_SESSION['contact_form'],$_SESSION['contact_receipt']);if($contactDraft||$contactReceipt)header('X-Robots-Tag: noindex, nofollow, noarchive');$queryType=is_string($_GET['type']??null)&&isset(contact_guides()[$_GET['type']])?$_GET['type']:'general';$contactValues=$contactDraft+['enquiry_type'=>$queryType,'phone_code'=>'+254','country'=>''];
