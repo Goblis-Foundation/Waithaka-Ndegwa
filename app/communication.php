@@ -96,8 +96,9 @@ function comm_make_booking(array $cfg,array $input): array {
     $nonce=$input['request_id']??'';if(!is_string($nonce)||!preg_match('/^[a-f0-9]{32}$/D',$nonce))throw new InvalidArgumentException('Reload the booking form.');
     return comm_lock('reservations',function()use($cfg,$input,$type,$date,$zone,$first,$last,$email,$agenda,$start,$nonce){$id=substr(hash_hmac('sha256','request|'.$nonce,(string)app_config('app_key')),0,32);$prior=comm_get('booking.'.$id);if($prior)return $prior;
         if(!in_array($start,comm_slots($cfg,$type,$date),true))throw new RuntimeException('This time is no longer available. Choose another time.');
-        $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>''];comm_put('booking.'.$id,$b);comm_event('bookings',$id);
-        if(empty($cfg['types'][$type]['approval'])){try{return comm_confirm($b,$cfg);}catch(RuntimeException){return comm_get('booking.'.$id);}}comm_queue_mail($b,'requested');return $b;
+        $document=booking_document_upload($_FILES['booking_document']??[],($input['document_consent']??'')==='1');
+        $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>'','document'=>$document];$b+=booking_brief_initial($b);comm_put('booking.'.$id,$b);comm_event('bookings',$id);
+        comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);return $b;
     });
 }
 function comm_change_booking(string $id,string $action,?int $newStart=null,string $reason='',int $late=0,string $actor='owner'): array {
@@ -116,7 +117,7 @@ function comm_change_booking(string $id,string $action,?int $newStart=null,strin
             if($b['event_id']!==''){$b['status']='cancelling';comm_put('booking.'.$id,$b);$c=comm_writer_connection($cfg);try{publishing_http('DELETE','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($b['calendar']).'/events/'.rawurlencode($b['event_id']).'?sendUpdates=all',['Authorization: Bearer '.publishing_access_token($c)],null,false,true);}catch(Throwable $e){$b['status']='review';comm_put('booking.'.$id,$b);throw new RuntimeException('Calendar cancellation needs review. The time remains reserved.');}}
             $b['status']=$action==='decline'?'declined':'cancelled';$b['version']++;comm_put('booking.'.$id,$b);comm_queue_mail($b,$b['status']);comm_event('bookings',$id);return $b;
         }
-        if($action==='approve'){if($b['status']!=='requested')throw new RuntimeException('Only requests can be approved.');$date=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($cfg['timezone']))->format('Y-m-d');if(!in_array($b['start'],comm_slots($cfg,$b['type'],$date,$id),true))throw new RuntimeException('This requested time now conflicts with your calendar.');return comm_confirm($b,$cfg);}
+        if($action==='approve'){if(!booking_report_ready($b))throw new RuntimeException('Prepare and review the booking briefing report before accepting.');if($b['status']!=='requested')throw new RuntimeException('Only requests can be approved.');$date=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($cfg['timezone']))->format('Y-m-d');if(!in_array($b['start'],comm_slots($cfg,$b['type'],$date,$id),true))throw new RuntimeException('This requested time now conflicts with your calendar.');return comm_confirm($b,$cfg);}
         if($action==='reschedule'){
             if(!in_array($b['status'],['requested','confirmed'],true)||$b['start']<=time())throw new RuntimeException('This booking cannot be rescheduled online.');$date=(new DateTimeImmutable('@'.(int)$newStart))->setTimezone(comm_zone($cfg['timezone']))->format('Y-m-d');if(!in_array($newStart,comm_slots($cfg,$b['type'],$date,$id),true))throw new RuntimeException('Choose an available time.');
             $b['start']=$newStart;$b['end']=$newStart+(int)$cfg['types'][$b['type']]['minutes']*60;
@@ -134,8 +135,8 @@ function comm_config_input(array $input,int $uid): array {
     $dates=trim(reader_text($input['excluded_dates']??'','Excluded dates',3000));$c['excluded_dates']=$dates===''?[]:array_map('comm_date',preg_split('/[\s,]+/',$dates));
     $c['required_accounts']=reader_ids($input['required_accounts']??[],20);foreach($c['required_accounts']as$id)google_calendar_owned($id,$uid);
     foreach(['enabled','worker','microsoft_required']as$k)$c[$k]=!empty($input[$k]);
-    foreach(comm_types()as$k=>$t){$m=filter_var($input['minutes'][$k]??$t['minutes'],FILTER_VALIDATE_INT);if($m===false||$m<15||$m>120||$m%15)throw new InvalidArgumentException('Meeting duration must be 15–120 minutes in 15 minute steps.');$c['types'][$k]=$t+['enabled'=>false];$c['types'][$k]['minutes']=$m;$c['types'][$k]['enabled']=in_array($k,(array)($input['enabled_types']??[]),true);$c['types'][$k]['approval']=in_array($k,(array)($input['approval_types']??[]),true);}
-    if($c['enabled']){comm_writer_connection($c);if(!$c['required_accounts']||!$c['days'])throw new RuntimeException('Choose conflict calendars and working days first.');if(!$c['worker']||!email_transport_ready())throw new RuntimeException('Enable booking notifications and configure email first.');}
+    foreach(comm_types()as$k=>$t){$m=filter_var($input['minutes'][$k]??$t['minutes'],FILTER_VALIDATE_INT);if($m===false||$m<15||$m>120||$m%15)throw new InvalidArgumentException('Meeting duration must be 15–120 minutes in 15 minute steps.');$c['types'][$k]=$t+['enabled'=>false];$c['types'][$k]['minutes']=$m;$c['types'][$k]['enabled']=in_array($k,(array)($input['enabled_types']??[]),true);$c['types'][$k]['approval']=true;}
+    if($c['enabled']){comm_writer_connection($c);if(!$c['required_accounts']||!$c['days'])throw new RuntimeException('Choose conflict calendars and working days first.');if(!$c['worker']||!email_transport_ready())throw new RuntimeException('Enable booking notifications and configure email first.');comm_busy($c,(new DateTimeImmutable('tomorrow',comm_zone($c['timezone'])))->format('Y-m-d'));}
     return $c;
 }
 function comm_json(array $value): never {header('Content-Type: application/json');echo json_encode($value,JSON_THROW_ON_ERROR);exit;}
@@ -171,3 +172,4 @@ function communication_dispatch(string $path): bool {
     if(!isset($cfg['types'][$type]))$type='intro';try{comm_zone($zone);}catch(Throwable){$zone=$cfg['timezone'];}
     render('booking',['page'=>'booking','cfg'=>$cfg,'type'=>$type,'date'=>$date,'zone'=>$zone,'slots'=>$slots,'manage'=>$manage,'error'=>$error,'seo'=>['title'=>'Book time with Waithaka · Waithaka Ndegwa','description'=>'Schedule a conversation about entrepreneurship, innovation, collaboration or media.','canonical'=>url('/book'),'robots'=>'noindex,nofollow']]);return true;
 }
+

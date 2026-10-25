@@ -28,8 +28,9 @@ function planner_fields(array $in,string $zone): array {
  if(count($emails)>10)throw new InvalidArgumentException('Use at most ten notification recipients.');
  if(!is_scalar($in['latitude']??'')||!is_scalar($in['longitude']??''))throw new InvalidArgumentException('Review the location coordinates.');
  $lat=trim((string)($in['latitude']??''));$lng=trim((string)($in['longitude']??''));
+ $location=planner_text($in['location']??'','Location',300);$mode=$in['location_mode']??($lat!==''?'coordinates':'search');if(!in_array($mode,['search','coordinates'],true))throw new InvalidArgumentException('Choose Maps search or coordinates.');if($mode==='search'){$lat='';$lng='';}else{$location='';if($lat===''||$lng==='')throw new InvalidArgumentException('Provide both coordinates.');}
  if(($lat==='')!==($lng==='')||($lat!==''&&(!is_numeric($lat)||!is_numeric($lng)||(float)$lat< -90||(float)$lat>90||(float)$lng< -180||(float)$lng>180)))throw new InvalidArgumentException('Provide both valid latitude and longitude.');
- return ['title'=>$title,'timezone'=>$zone,'start'=>$start,'end'=>$end,'kind'=>$kind,'priority'=>$priority,'reminder'=>$minutes,'location'=>planner_text($in['location']??'','Location',300),'latitude'=>$lat,'longitude'=>$lng,'project'=>planner_text($in['project']??'','Project tag',120),'notes'=>planner_text($in['notes']??'','Notes',4000),'recipients'=>array_values(array_unique($emails))];
+ return ['title'=>$title,'timezone'=>$zone,'start'=>$start,'end'=>$end,'kind'=>$kind,'priority'=>$priority,'reminder'=>$minutes,'location'=>$location,'latitude'=>$lat,'longitude'=>$lng,'project'=>planner_text($in['project']??'','Project tag',120),'notes'=>planner_text($in['notes']??'','Notes',4000),'recipients'=>array_values(array_unique($emails))];
 }
 function planner_maps(array $row,bool $directions=false): string {
  $where=($row['latitude']??'')!==''?$row['latitude'].','.$row['longitude']:($row['location']??'');
@@ -220,7 +221,9 @@ function planner_dispatch(string $path): bool {
  try{$date=comm_date($_GET['date']??(new DateTimeImmutable('now',comm_zone($prefs['timezone'])))->format('Y-m-d'));}catch(Throwable){$date=(new DateTimeImmutable('now',comm_zone($prefs['timezone'])))->format('Y-m-d');}
  if(is_post()){verify_csrf();try{
   $action=$_POST['action']??'';
-  if($action==='save'){planner_save($uid,$_POST);flash('success','Program item saved. No calendar invitation was sent.');}
+  if($action==='routine_save'){planner_routine_save($uid,$_POST);flash('success','Weekly routine saved. It is a template until applied to a week.');}
+  elseif($action==='routine_apply'){$n=planner_routine_apply($uid,$_POST);flash('success',$n.' routine items added. Existing meetings are retained; review overlaps.');}
+  elseif($action==='save'){planner_save($uid,$_POST);flash('success','Program item saved. No calendar invitation was sent.');}
   elseif(in_array($action,['complete','cancel','late','snooze','reopen'],true)){planner_change($uid,$_POST);flash('success','Program updated. Any requested notices are queued separately.');}
   elseif(in_array($action,['remote_cancel','remote_late'],true)){planner_remote_change($uid,$_POST);flash('success','Google accepted the event update and guest notification request. Delivery is separate.');}
   elseif($action==='sync'){planner_sync($uid);flash('success','Connected calendars checked. Review any access warnings.');}
@@ -237,3 +240,4 @@ function planner_dispatch(string $path): bool {
  $rows=planner_day($uid,$date,$prefs['timezone']);$calendar=comm_get('planner.calendar.'.$uid);$mail=comm_records('planner.mail',5000);$mail=array_filter($mail,static fn($r)=>(int)$r['user']===$uid);
  render_write('program',compact('uid','date','prefs','rows','calendar','error','stage','edit','mail')+['writeTitle'=>'Daily program']);return true;
 }
+

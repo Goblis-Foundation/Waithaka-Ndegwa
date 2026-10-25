@@ -52,13 +52,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
     </div>
   </div>
 </header>
-<main id="main"><?=$content?><?php
-if(empty($privatePage) && ($seo['robots']??'')!=='noindex,nofollow') {
- $documentQrPath=(string)(parse_url((string)$seo['canonical'],PHP_URL_PATH)?:'/');
- $documentQrLabel='Open the current online version';$documentQrPrivate=false;
- include __DIR__.'/document_record.php';
-}
-?></main>
+<main id="main"><?=$content?></main>
 <footer class="site-footer">
   <div class="container footer-main">
     <div class="footer-about"><a class="footer-brand" href="<?=url('/')?>"><img src="<?=asset('images/icon.png')?>" alt="" width="44" height="44"><span>Waithaka Ndegwa</span></a><p>My experience and views on social entrepreneurship, agribusiness, infrastructure, innovation, and the world I encounter along the way.</p></div>
@@ -72,3 +66,4 @@ if(empty($privatePage) && ($seo['robots']??'')!=='noindex,nofollow') {
 <script src="<?=asset('js/site.js')?>" defer></script>
 <script src="<?=asset('js/app.js')?>" defer></script></body>
 </html>
+
