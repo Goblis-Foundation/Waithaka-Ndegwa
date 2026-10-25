@@ -25,3 +25,13 @@ wc(booking_document_provider([])==='openai','New booking forms default to the wo
 wc(booking_document_request_provider([])==='gemini','Legacy form consent stays with Gemini when provider snapshot is absent');
 wc(booking_document_request_provider(['document_provider'=>'openai'])==='openai','New form provider snapshot is retained');
 wx(fn()=>booking_document_request_provider(['document_provider'=>'unrecognised']));
+
+wc(voice_format('audio/mp4','clip.m4a')===['m4a','audio/m4a'],'Safari audio MIME normalized for Gemini');
+wx(fn()=>voice_format('text/html','clip.mp3'));wx(fn()=>voice_format('audio/mpeg','clip.html'));
+$audio=voice_gemini_input('synthetic bytes','audio/webm');wc($audio[1]['type']==='audio'&&!isset($audio[1]['uri'])&&base64_decode($audio[1]['data'])==='synthetic bytes','Audio stays inline with no remote URL');
+wx(fn()=>voice_gemini_input(str_repeat('x',4*1024*1024+1),'audio/webm'));wx(fn()=>voice_id('../another-user'));
+wx(fn()=>voice_revision(['version'=>2],['version'=>1]));
+$html=workspace_rich_text("# Heading\n\n**Important** and *careful*\n\n- First\n- Second\n\n1. Next\n\n> Quoted\n<script>alert(1)</script>");
+wc(str_contains($html,'<h2>Heading</h2>')&&str_contains($html,'<strong>Important</strong>')&&str_contains($html,'<ul><li>First</li>')&&str_contains($html,'<ol><li>Next</li>'),'Notes formatting keeps semantic headings emphasis and lists');
+wc(!str_contains($html,'<script>')&&str_contains($html,'&lt;script&gt;'),'Raw note HTML is always escaped');
+echo "PASS: private voice format bounds, inline AI payload, ownership identifiers, versions and escaped formatting.\n";
