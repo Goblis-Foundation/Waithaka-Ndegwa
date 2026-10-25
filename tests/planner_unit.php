@@ -28,3 +28,15 @@ $token=str_repeat('a',64);$trust=['user'=>1,'hash'=>hash('sha256',$token),'epoch
 echo "PASS: program parsing, DST, maps, review boundaries, calendar scopes and trusted-device policy.\n";
 
 $schema=planner_openai_schema();pc($schema['additionalProperties']===false&&$schema['properties']['rows']['maxItems']===100,'Strict structured extraction stays bounded');pc(count($schema['properties']['rows']['items']['required'])===5,'Every extracted field is declared in the strict schema');
+
+pc(planner_reminder_times(['start'=>10000,'reminder'=>15],'staggered')===[9100,9700,10000],'Staggered plan has lead, five-minute and start-time alerts');
+pc(planner_reminder_times(['start'=>10000,'reminder'=>0],'staggered')===[],'Disabled entries never gain reminders');
+pc(planner_reminder_times(['start'=>10000,'reminder'=>5],'staggered')===[9700,10000],'Five-minute lead is not duplicated');
+pc(planner_reminder_latest([9100,9700,10000],9800)===9700,'Late worker selects only latest due stage');
+pc(planner_reminder_times(['start'=>10000,'reminder'=>15,'snooze_until'=>9500],'staggered')===[9500,9700,10000],'Snooze suppresses previous stages but keeps future stages');
+$move=planner_remote_times(['start'=>['dateTime'=>'2026-11-02T09:00:00+03:00']],['new_start'=>'2026-11-03T11:00','new_end'=>'2026-11-03T12:00'],'Africa/Nairobi');
+pc($move['start']['dateTime']==='2026-11-03T08:00:00+00:00'&&$move['end']['dateTime']==='2026-11-03T09:00:00+00:00','Date and time can change together with explicit timezone');
+$allDay=planner_remote_times(['start'=>['date'=>'2026-11-02']],['new_start_date'=>'2026-11-04','new_last_date'=>'2026-11-05'],'Africa/Nairobi');
+pc($allDay===['start'=>['date'=>'2026-11-04'],'end'=>['date'=>'2026-11-06']],'Inclusive all-day last date becomes Google exclusive end date');
+pr(fn()=>planner_remote_times(['start'=>['dateTime'=>'x']],['new_start'=>'2026-11-03T12:00','new_end'=>'2026-11-03T11:00'],'Africa/Nairobi'));
+echo "PASS: staged reminder timing, no catch-up burst, snooze and timed/all-day rescheduling.\n";

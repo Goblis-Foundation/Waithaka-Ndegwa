@@ -52,3 +52,11 @@ planner_routine_save($uid,['routine'=>'1,2,3,4,5,6,7 | 22:00 | 06:00 | Sleep | p
 pd(planner_routine_apply($uid,['week'=>'2026-11-04'])===7,'Routine applied atomically to week');px(fn()=>planner_routine_apply($uid,['week'=>'2026-11-02']));pd(count(array_filter(planner_rows($uid),static fn($r)=>$r['project']==='Weekly routine'))===7,'Repeated apply adds no duplicates');
 $booking=['id'=>str_repeat('7',32),'status'=>'requested','version'=>1,'brief_status'=>'pending','brief_report'=>''];comm_put('booking.'.$booking['id'],$booking);px(fn()=>comm_change_booking($booking['id'],'approve'));pd(comm_get('booking.'.$booking['id'])['status']==='requested','Missing briefing prevents confirmation before provider access');
 echo "PASS: private note ownership, report invalidation, routine duplicate prevention and fail-closed booking acceptance.\n";
+
+comm_put('preferences.'.$uid,['timezone'=>'Africa/Nairobi','enabled'=>true,'categories'=>['planner'],'quiet_start'=>'00:00','quiet_end'=>'00:00']);
+$cascade=planner_save($uid,['title'=>'Staggered fixture','start'=>'2026-11-05T10:00','end'=>'2026-11-05T11:00','request_id'=>str_repeat('9',32),'reminder'=>15,'reminder_sequence'=>'staggered']);
+$start=$cascade['start'];$before=$pushes;planner_work($start-900,$fake);planner_work($start-880,$fake);planner_work($start-300,$fake);planner_work($start,$fake);planner_work($start+20,$fake);
+pd($pushes===$before+3,'Lead, five-minute and start reminders each occur once');
+$late=planner_save($uid,['title'=>'Reconnect fixture','start'=>'2026-11-06T10:00','end'=>'2026-11-06T11:00','request_id'=>str_repeat('6',32),'reminder'=>15,'reminder_sequence'=>'staggered']);$before=$pushes;planner_work($late['start']+120,$fake);pd($pushes===$before+1,'A late reconnect emits one current stage, not a burst of missed stages');
+$cancel=planner_save($uid,['title'=>'Cancelled reminder fixture','start'=>'2026-11-07T10:00','end'=>'2026-11-07T11:00','request_id'=>str_repeat('5',32),'reminder'=>15,'reminder_sequence'=>'staggered']);planner_change($uid,['action'=>'cancel','id'=>$cancel['id'],'version'=>1,'reason'=>'Fixture cancellation']);$before=$pushes;planner_work($cancel['start']-300,$fake);pd($pushes===$before,'Cancellation suppresses future stages');
+echo "PASS: staged reminder delivery, exact-once stages, late reconnect collapse and cancellation suppression.\n";
