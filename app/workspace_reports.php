@@ -88,7 +88,7 @@ function booking_owner_attention(array $b): void {$id=$b['id'].'.'.$b['version']
 function booking_owner_mail(array $b): void {if(empty($b['brief_report']))return;$id=$b['id'].'.'.$b['version'].'.owner_review';if(!comm_get('mail.'.$id))comm_put('mail.'.$id,['id'=>$id,'booking'=>$b['id'],'version'=>$b['version'],'event'=>'owner_review','status'=>'pending','created'=>time()]);}
 function booking_report_ready(array $b): bool {return ($b['brief_status']??'')==='ready'&&trim((string)($b['brief_report']??''))!=='';}
 function workspace_reports_dispatch(string $path): bool {
- if(voice_dispatch($path)||contact_guard_dispatch($path)||booking_mailboxes_dispatch($path))return true;
+ if(booking_reschedule_dispatch($path)||voice_dispatch($path)||contact_guard_dispatch($path)||booking_mailboxes_dispatch($path))return true;
  if(preg_match('~^(/write/notes/report|/write/booking-review)/([a-f0-9]{32})$~D',$path,$route)){$_GET['id']=$route[2];$path=$route[1];}
  if(!in_array($path,['/write/notes','/write/notes/report','/write/booking-review','/write/booking-document'],true))return false;require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$error='';$note=null;$emailStatus='';
  if(str_starts_with($path,'/write/booking-')){

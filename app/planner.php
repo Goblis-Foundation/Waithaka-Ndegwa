@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/planner_updates.php';
 /** Private daily programs. No raw document or AI result can create an invitation. */
 function planner_text(mixed $v,string $name,int $max,bool $required=false): string {return reader_text($v,$name,$max,$required);}
 function planner_time(mixed $value,string $zone): int {
@@ -30,7 +31,7 @@ function planner_fields(array $in,string $zone): array {
  $lat=trim((string)($in['latitude']??''));$lng=trim((string)($in['longitude']??''));
  $location=planner_text($in['location']??'','Location',300);$mode=$in['location_mode']??($lat!==''?'coordinates':'search');if(!in_array($mode,['search','coordinates'],true))throw new InvalidArgumentException('Choose Maps search or coordinates.');if($mode==='search'){$lat='';$lng='';}else{$location='';if($lat===''||$lng==='')throw new InvalidArgumentException('Provide both coordinates.');}
  if(($lat==='')!==($lng==='')||($lat!==''&&(!is_numeric($lat)||!is_numeric($lng)||(float)$lat< -90||(float)$lat>90||(float)$lng< -180||(float)$lng>180)))throw new InvalidArgumentException('Provide both valid latitude and longitude.');
- return ['title'=>$title,'timezone'=>$zone,'start'=>$start,'end'=>$end,'kind'=>$kind,'priority'=>$priority,'reminder'=>$minutes,'location'=>$location,'latitude'=>$lat,'longitude'=>$lng,'project'=>planner_text($in['project']??'','Project tag',120),'notes'=>planner_text($in['notes']??'','Notes',4000),'recipients'=>array_values(array_unique($emails))];
+ return ['title'=>$title,'timezone'=>$zone,'start'=>$start,'end'=>$end,'kind'=>$kind,'priority'=>$priority,'reminder_sequence'=>planner_reminder_sequence($in['reminder_sequence']??'inherit'),'reminder'=>$minutes,'location'=>$location,'latitude'=>$lat,'longitude'=>$lng,'project'=>planner_text($in['project']??'','Project tag',120),'notes'=>planner_text($in['notes']??'','Notes',4000),'recipients'=>array_values(array_unique($emails))];
 }
 function planner_maps(array $row,bool $directions=false): string {
  $where=($row['latitude']??'')!==''?$row['latitude'].','.$row['longitude']:($row['location']??'');
@@ -52,8 +53,9 @@ function planner_save(int $uid,array $in): array {
   if($prior&&(int)($in['version']??0)!==(int)$prior['version'])throw new RuntimeException('This item changed. Reload before editing.');
   if(!$prior&&count(planner_rows($uid))>=5000)throw new RuntimeException('Archive older programs before adding more.');
   $r=$fields+['id'=>$id,'user'=>$uid,'status'=>'planned','created'=>$prior['created']??time(),'updated'=>time(),'version'=>($prior['version']??0)+1,'history'=>$prior['history']??[]];
-  $r['history'][]=['at'=>time(),'action'=>$prior?'edited':'created'];$r['history']=array_slice($r['history'],-50);
-  comm_put('planner.item.'.$uid.'.'.$id,$r);return $r;
+  $moved=$prior&&($prior['start']!==$r['start']||$prior['end']!==$r['end']);$changeReason=planner_text($in['change_reason']??'','Schedule change reason',1000,$moved&&!empty($in['notify_change']));if($moved){$r['previous_start']=$prior['start'];$r['previous_end']=$prior['end'];}
+  $r['history'][]=['at'=>time(),'action'=>$moved?'rescheduled':($prior?'edited':'created'),'reason'=>$changeReason,'previous_start'=>$prior['start']??null,'previous_end'=>$prior['end']??null,'start'=>$r['start'],'end'=>$r['end']];$r['history']=array_slice($r['history'],-50);
+  comm_put('planner.item.'.$uid.'.'.$id,$r);if($moved&&!empty($in['notify_change'])&&$r['recipients'])planner_notice($r,'rescheduled',$changeReason);return $r;
  });
 }
 function planner_day(int $uid,string $date,string $zone): array {
@@ -75,7 +77,7 @@ function planner_sync(int $uid): array {
   $from=$today->modify('-1 day')->format('Y-m-d');$until=$today->modify('+29 days')->format('Y-m-d');
   $result=google_calendar_agenda($uid,$from,$until);$events=[];$errors=$result['errors'];$seen=[];
   foreach($result['events']as$r){if(!empty($r['all_day'])){$start=(new DateTimeImmutable($r['start'].' 00:00:00',comm_zone($r['event_timezone']??$zone)))->getTimestamp();$end=(new DateTimeImmutable($r['end'].' 00:00:00',comm_zone($r['event_timezone']??$zone)))->getTimestamp();}else{$start=(new DateTimeImmutable($r['start']))->getTimestamp();$end=(new DateTimeImmutable($r['end']))->getTimestamp();}
-   $id=substr(hash('sha256',($r['calendar_id']??$r['calendar']).'|'.($r['event_id']??$r['start'].'|'.$r['title'])),0,32);$seen[$id]=true;$events[]=['id'=>$id,'source'=>'google','title'=>$r['title'],'start'=>$start,'end'=>$end,'status'=>'confirmed','kind'=>'meeting','location'=>$r['location']??'','project'=>'','join'=>$r['join'],'url'=>$r['url'],'account'=>$r['account'],'account_id'=>$r['account_id']??0,'calendar_id'=>$r['calendar_id']??'','event_id'=>$r['event_id']??'','etag'=>$r['etag']??'','organizer_self'=>$r['organizer_self']??false,'reminder'=>15,'priority'=>'normal'];
+   $id=substr(hash('sha256',($r['calendar_id']??$r['calendar']).'|'.($r['event_id']??$r['start'].'|'.$r['title'])),0,32);$seen[$id]=true;$events[]=['id'=>$id,'source'=>'google','title'=>$r['title'],'start'=>$start,'end'=>$end,'status'=>'confirmed','kind'=>'meeting','location'=>$r['location']??'','project'=>'','join'=>$r['join'],'url'=>$r['url'],'account'=>$r['account'],'account_id'=>$r['account_id']??0,'calendar_id'=>$r['calendar_id']??'','event_id'=>$r['event_id']??'','etag'=>$r['etag']??'','organizer_self'=>$r['organizer_self']??false,'all_day'=>$r['all_day']??false,'event_timezone'=>$r['event_timezone']??$zone,'reminder'=>15,'priority'=>'normal'];
   }
   foreach(['microsoft','zoom','webex']as$provider){$c=publishing_connection(meetings_service($provider));if(!$c||$c['status']!=='connected'||(int)$c['connected_by']!==$uid)continue;
    try{$remote=meetings_read($provider,$uid);foreach($remote['rows']as$r){$start=(new DateTimeImmutable($r['start'],comm_zone($r['timezone'])))->getTimestamp();$id=substr(hash('sha256',$provider.'|'.$r['start'].'|'.$r['title']),0,32);$events[]=['id'=>$id,'source'=>$provider,'title'=>$r['title'],'start'=>$start,'end'=>$start+1800,'end_estimated'=>true,'kind'=>'meeting','status'=>'confirmed','location'=>'','project'=>'','join'=>$r['join'],'url'=>'','reminder'=>15,'priority'=>'normal'];}if($remote['limited'])$errors[]=$remote['provider'].': results may be incomplete.';}catch(Throwable){$errors[]=meetings_providers()[$provider]['name'].': calendar unavailable.';}
@@ -107,10 +109,10 @@ function planner_change(int $uid,array $in): void {
 function planner_calendar_write_allowed(array $scopes): bool {return (bool)array_intersect($scopes,['https://www.googleapis.com/auth/calendar','https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/calendar.events.owned']);}
 function planner_remote_change(int $uid,array $in): void {
  $id=planner_text($in['remote_id']??'','Calendar event',32,true);if(!preg_match('/^[a-f0-9]{32}$/D',$id))throw new InvalidArgumentException('Choose a calendar event.');
- $action=$in['action']??'';if(!in_array($action,['remote_cancel','remote_late'],true))throw new InvalidArgumentException('Choose a calendar action.');
+ $action=$in['action']??'';if(!in_array($action,['remote_cancel','remote_late','remote_reschedule'],true))throw new InvalidArgumentException('Choose a calendar action.');
  $reason=planner_text($in['reason']??'','Reason',1000,true);$late=filter_var($in['late_minutes']??0,FILTER_VALIDATE_INT);
  if($action==='remote_late'&&($late===false||$late<1||$late>240))throw new InvalidArgumentException('Enter a delay of 1–240 minutes.');
- comm_lock('planner.remote.'.$uid.'.'.$id,function()use($uid,$id,$action,$reason,$late){
+ comm_lock('planner.remote.'.$uid.'.'.$id,function()use($uid,$id,$action,$reason,$late,$in){
   $snapshot=comm_get('planner.calendar.'.$uid);if(($snapshot['observed']??0)<time()-900)throw new RuntimeException('Refresh calendars before changing an event.');
   $row=null;foreach($snapshot['events']??[]as$r)if($r['id']===$id&&$r['source']==='google')$row=$r;
   if(!$row||!empty($row['stale'])||empty($row['organizer_self']))throw new InvalidArgumentException('Only current Google events you organise can be changed here.');
@@ -121,13 +123,14 @@ function planner_remote_change(int $uid,array $in): void {
   $url='https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($row['calendar_id']).'/events/'.rawurlencode($row['event_id']);$headers=publishing_bearer(google_calendar_token($account));
   $current=publishing_http('GET',$url,$headers)['data'];if(empty($current['organizer']['self'])||empty($current['etag'])||($current['status']??'')==='cancelled')throw new RuntimeException('The event changed or you are not its organiser. Refresh and review it.');
   if(!hash_equals((string)$row['etag'],(string)$current['etag']))throw new RuntimeException('The event has changed since your snapshot. Refresh before updating.');
-  $description=(string)($current['description']??'');$description.="\n\n".($action==='remote_cancel'?'Cancellation reason: ':'Expected delay: '.$late.' minutes. Reason: ').$reason;
-  $body=['description'=>$description];if($action==='remote_cancel')$body['status']='cancelled';
+  if(!empty($current['recurrence'])&&empty($current['originalStartTime']))throw new RuntimeException('Open this recurring series in Google Calendar to change the series. Individual occurrences can be changed here.');
+  $description=(string)($current['description']??'');$description.="\n\n".($action==='remote_cancel'?'Cancellation reason: ':($action==='remote_reschedule'?'Schedule change reason: ':'Expected delay: '.$late.' minutes. Reason: ')).e($reason);
+  $body=['description'=>$description];if($action==='remote_cancel')$body['status']='cancelled';if($action==='remote_reschedule')$body+=planner_remote_times($current,$in,(string)($current['start']['timeZone']??comm_get('planner.preferences.'.$uid,['timezone'=>'Africa/Nairobi'])['timezone']));
   comm_put($operation,['state'=>'attempting','at'=>time(),'reason'=>$reason,'late'=>$late]);
-  try{publishing_http('PATCH',$url.'?sendUpdates=all',array_merge($headers,['If-Match: '.$current['etag']]),$body,false,true);comm_put($operation,['state'=>'accepted','at'=>time(),'reason'=>$reason,'late'=>$late]);}
+  try{$changed=publishing_http('PATCH',$url.'?sendUpdates=all',array_merge($headers,['If-Match: '.$current['etag']]),$body,false,true)['data'];comm_put($operation,['state'=>'accepted','at'=>time(),'reason'=>$reason,'late'=>$late]);}
   catch(Throwable){comm_put($operation,['state'=>'unconfirmed','at'=>time(),'reason'=>$reason,'late'=>$late]);throw new RuntimeException('The calendar update is unconfirmed. Check the source event; do not submit it again.');}
   if($action==='remote_cancel')$snapshot['events']=array_values(array_filter($snapshot['events'],static fn($r)=>$r['id']!==$id));
-  else foreach($snapshot['events']as&$r)if($r['id']===$id){$r['stale']=true;$r['late_minutes']=$late;}
+  else foreach($snapshot['events']as&$r)if($r['id']===$id){$r['stale']=true;$r['late_minutes']=$late;if($action==='remote_reschedule'){if(isset($body['start']['date'])){$r['start']=(new DateTimeImmutable($body['start']['date'].' 00:00',comm_zone($r['event_timezone']??'Africa/Nairobi')))->getTimestamp();$r['end']=(new DateTimeImmutable($body['end']['date'].' 00:00',comm_zone($r['event_timezone']??'Africa/Nairobi')))->getTimestamp();}else{$r['start']=strtotime($body['start']['dateTime']);$r['end']=strtotime($body['end']['dateTime']);}}}
   unset($r);comm_put('planner.calendar.'.$uid,$snapshot);comm_event('planner',$id);
  });
 }
@@ -206,17 +209,21 @@ function planner_work(?int $at=null,?callable $push=null): void {
   $rows=planner_rows($uid);$bookingEvents=[];foreach(comm_records('booking')as$b)if($b['status']==='confirmed'&&!empty($b['event_id']))$bookingEvents[($b['calendar']??'').'|'.$b['event_id']]=true;foreach(comm_get('planner.calendar.'.$uid)['events']??[]as$r)if(($snapshot['observed']??0)>=$now-900&&empty($r['stale'])&&!isset($bookingEvents[($r['calendar_id']??'').'|'.($r['event_id']??'')])){$r['version']=hash('sha256',$r['start'].'|'.$r['end']);$rows[]=$r;}
   foreach(comm_records('booking')as$b)if($b['status']==='confirmed')$rows[]=['id'=>'booking-'.$b['id'],'version'=>$b['version'],'start'=>$b['start'],'end'=>$b['end'],'status'=>'planned','reminder'=>(int)($prefs['booking_reminder']??15)];
   $p=comm_get('preferences.'.$uid,comm_preferences([]));$attempts=0;
-  foreach($rows as$r){if(!in_array($r['status'],['planned','confirmed'],true)||empty($r['reminder'])||$r['start']<=$now)continue;$due=(int)($r['snooze_until']??($r['start']-$r['reminder']*60));if($due>$now)continue;
-   $key=hash('sha256',$uid.'|'.$r['id'].'|'.$r['version'].'|'.$due);if(comm_get('planner.alert.'.$key))continue;
+  foreach($rows as$r){if(!in_array($r['status'],['planned','confirmed'],true)||empty($r['reminder'])||($r['end']??$r['start']+3600)<=$now)continue;
+   $sequence=$r['reminder_sequence']??'inherit';if($sequence==='inherit')$sequence=$prefs['reminder_sequence']??'single';
+   $times=planner_reminder_times($r,$sequence);$due=planner_reminder_latest($times,$now);if($due===null)continue;
+   foreach($times as$older)if($older<$due){$oldKey=hash('sha256',$uid.'|'.$r['id'].'|'.$r['version'].'|'.$older);if(!comm_get('planner.alert.'.$oldKey))comm_put('planner.alert.'.$oldKey,['state'=>'superseded','at'=>$now,'item'=>$r['id']]);}
+   $key=hash('sha256',$uid.'|'.$r['id'].'|'.$r['version'].'|'.$due);$prior=comm_get('planner.alert.'.$key);if($prior&&($prior['state']??'')!=='partial')continue;
    $state=$now-$due>300?'missed':((empty($p['enabled'])||!in_array('planner',$p['categories'],true))?'disabled':(comm_quiet($p,$now)?'quiet_hours':'attempting'));
-   $notice=['state'=>$state,'at'=>$now,'item'=>$r['id']];comm_put('planner.alert.'.$key,$notice);
-   if($state!=='attempting')continue;
-   comm_put('planner.notification.'.$uid,['item'=>$r['id'],'at'=>$now]);comm_event('planner',$r['id']);
-   foreach(comm_user_devices($uid)as$d)if($d['enabled']&&$attempts<30){$attempts++;try{$status=$push($d);$d['last_status']=$status>=100&&$status<300?'Reminder accepted':'Reminder unconfirmed';if(in_array($status,[404,410],true))$d['enabled']=false;}catch(Throwable){$d['last_status']='Reminder unconfirmed';}comm_put('device.'.$d['id'],$d);}
-   $notice['state']='attempted';comm_put('planner.alert.'.$key,$notice);
+   $notice=['state'=>$state,'at'=>$now,'item'=>$r['id'],'due'=>$due,'devices'=>$prior['devices']??[]];comm_put('planner.alert.'.$key,$notice);if($state!=='attempting')continue;
+   comm_put('planner.notification.'.$uid,['item'=>$r['id'],'at'=>$now]);comm_event('planner',$r['id']);$remaining=false;
+   foreach(comm_user_devices($uid)as$d)if($d['enabled']&&!isset($notice['devices'][$d['id']])){if($attempts>=30){$remaining=true;continue;}$attempts++;$notice['devices'][$d['id']]='attempting';comm_put('planner.alert.'.$key,$notice);
+    try{$status=$push($d);$d['last_status']=$status>=100&&$status<300?'Reminder accepted':'Reminder unconfirmed';if(in_array($status,[404,410],true))$d['enabled']=false;}catch(Throwable){$d['last_status']='Reminder unconfirmed';}
+    $notice['devices'][$d['id']]=$d['last_status'];comm_put('device.'.$d['id'],$d);comm_put('planner.alert.'.$key,$notice);
+   }$notice['state']=$remaining?'partial':'attempted';comm_put('planner.alert.'.$key,$notice);
   }
   $sent=0;foreach(comm_records('planner.mail',5000)as$j){if($j['state']==='sending'&&($j['created']??$now)<$now-900){$j['state']='unconfirmed';comm_put('planner.mail.'.$j['id'],$j);}if($j['state']!=='pending'||$sent>=10)continue;if(!email_transport_ready())continue;$j['state']='sending';comm_put('planner.mail.'.$j['id'],$j);$sent++;
-   try{if(email_address_suppressed($j['to'])){$j['state']='suppressed';}else{$title=$j['event']==='late'?'Running late':'Program cancellation';$body='<p>'.e($j['title']).'</p><p>'.e((new DateTimeImmutable('@'.$j['start']))->setTimezone(comm_zone($j['timezone']))->format('D j M Y H:i T')).'</p><p>'.e($j['reason']).'</p>';if($j['late'])$body.='<p>Expected delay: '.(int)$j['late'].' minutes. The scheduled meeting time has not changed.</p>';email_deliver(['to'=>$j['to'],'subject'=>$title.' · Waithaka Ndegwa','html'=>email_design($title,$body,['name'=>'there']),'headers'=>[]],'program-'.$j['id']);$j['state']='accepted';}}catch(Throwable){$j['state']='unconfirmed';}
+   try{if(email_address_suppressed($j['to'])){$j['state']='suppressed';}else{$title=$j['event']==='late'?'Running late':($j['event']==='rescheduled'?'Program date or time changed':'Program cancellation');$body='<p>'.e($j['title']).'</p><p>'.e((new DateTimeImmutable('@'.$j['start']))->setTimezone(comm_zone($j['timezone']))->format('D j M Y H:i T')).'</p><p>'.e($j['reason']).'</p>';if($j['late'])$body.='<p>Expected delay: '.(int)$j['late'].' minutes. The scheduled meeting time has not changed.</p>';email_deliver(['to'=>$j['to'],'subject'=>$title.' · Waithaka Ndegwa','html'=>email_design($title,$body,['name'=>'there']),'headers'=>[]],'program-'.$j['id']);$j['state']='accepted';}}catch(Throwable){$j['state']='unconfirmed';}
    $j['attempted']=time();comm_put('planner.mail.'.$j['id'],$j);
   }
   comm_put('planner.worker',['heartbeat'=>$now]);
@@ -233,7 +240,7 @@ function planner_dispatch(string $path): bool {
   elseif(in_array($action,['complete','cancel','late','snooze','reopen'],true)){planner_change($uid,$_POST);flash('success','Program updated. Any requested notices are queued separately.');}
   elseif(in_array($action,['remote_cancel','remote_late'],true)){planner_remote_change($uid,$_POST);flash('success','Google accepted the event update and guest notification request. Delivery is separate.');}
   elseif($action==='sync'){planner_sync($uid);flash('success','Connected calendars checked. Review any access warnings.');}
-  elseif($action==='preferences'){$zone=comm_zone($_POST['timezone']??'Africa/Nairobi')->getName();$reminder=filter_var($_POST['booking_reminder']??15,FILTER_VALIDATE_INT);if(!in_array($reminder,[0,5,10,15,30,60,120],true))throw new InvalidArgumentException('Choose a reminder interval.');comm_put('planner.preferences.'.$uid,['timezone'=>$zone,'sync'=>!empty($_POST['sync']),'booking_reminder'=>$reminder]);flash('success','Planning preferences saved.');}
+  elseif($action==='preferences'){$zone=comm_zone($_POST['timezone']??'Africa/Nairobi')->getName();$reminder=filter_var($_POST['booking_reminder']??15,FILTER_VALIDATE_INT);if(!in_array($reminder,[0,5,10,15,30,60,120],true))throw new InvalidArgumentException('Choose a reminder interval.');comm_put('planner.preferences.'.$uid,['timezone'=>$zone,'sync'=>!empty($_POST['sync']),'booking_reminder'=>$reminder,'reminder_sequence'=>planner_reminder_sequence($_POST['reminder_sequence']??'single')]);flash('success','Planning preferences saved.');}
   elseif($action==='import'){
    if(!journeys_rate_limit('program-import',(string)$uid,10,3600))throw new RuntimeException('Please wait before interpreting more programs.');
    $parsed=!empty($_FILES['program']['name'])?planner_upload($_FILES['program'],$prefs['timezone'],($_POST['ai_consent']??'')==='1',studio_ai_provider($_POST['ai_provider']??'gemini')):planner_parse(planner_text($_POST['program_text']??'','Program text',100000,true),'text',$prefs['timezone'])+['digest'=>hash('sha256',(string)$_POST['program_text']),'ai'=>false];

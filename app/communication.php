@@ -102,9 +102,9 @@ function comm_make_booking(array $cfg,array $input): array {
         comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);return $b;
     });
 }
-function comm_change_booking(string $id,string $action,?int $newStart=null,string $reason='',int $late=0,string $actor='owner'): array {
-    return comm_lock('reservations',function()use($id,$action,$newStart,$reason,$late,$actor){$b=comm_get('booking.'.$id);$cfg=comm_config();if(!$b)throw new InvalidArgumentException('Booking not found.');
-        if(in_array($action,['cancel','decline','late'],true)){
+function comm_change_booking(string $id,string $action,?int $newStart=null,string $reason='',int $late=0,string $actor='owner',?int $expectedVersion=null): array {
+    return comm_lock('reservations',function()use($id,$action,$newStart,$reason,$late,$actor,$expectedVersion){$b=comm_get('booking.'.$id);$cfg=comm_config();if(!$b)throw new InvalidArgumentException('Booking not found.');if($expectedVersion!==null&&$b['version']!==$expectedVersion)throw new RuntimeException('This booking changed. Reload before changing its schedule.');
+        if(in_array($action,['cancel','decline','late','reschedule'],true)){
             $reason=reader_text($reason,'Reason',1000,true);$b['change_reason']=$reason;$b['change_actor']=$actor;
         }
         if($action==='late'){
@@ -121,7 +121,7 @@ function comm_change_booking(string $id,string $action,?int $newStart=null,strin
         if($action==='approve'){if(!booking_platform_ready($b))throw new RuntimeException('Save the approved participant join link for the requested meeting platform before accepting.');if(!booking_report_ready($b))throw new RuntimeException('Prepare and review the booking briefing report before accepting.');if($b['status']!=='requested')throw new RuntimeException('Only requests can be approved.');$date=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($cfg['timezone']))->format('Y-m-d');if(!in_array($b['start'],comm_slots($cfg,$b['type'],$date,$id),true))throw new RuntimeException('This requested time now conflicts with your calendar.');return comm_confirm($b,$cfg);}
         if($action==='reschedule'){
             if(!in_array($b['status'],['requested','confirmed'],true)||$b['start']<=time())throw new RuntimeException('This booking cannot be rescheduled online.');$date=(new DateTimeImmutable('@'.(int)$newStart))->setTimezone(comm_zone($cfg['timezone']))->format('Y-m-d');if(!in_array($newStart,comm_slots($cfg,$b['type'],$date,$id),true))throw new RuntimeException('Choose an available time.');
-            $b['start']=$newStart;$b['end']=$newStart+(int)$cfg['types'][$b['type']]['minutes']*60;
+            if($newStart===$b['start'])throw new InvalidArgumentException('Choose a different date or time.');$b['previous_start']=$b['start'];$b['previous_end']=$b['end'];$b['start']=$newStart;$b['end']=$newStart+(int)$cfg['types'][$b['type']]['minutes']*60;
             if($b['event_id']!==''){$b['status']='rescheduling';comm_put('booking.'.$id,$b);$c=comm_writer_connection($cfg);try{publishing_http('PATCH','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($b['calendar']).'/events/'.rawurlencode($b['event_id']).'?sendUpdates=all',['Authorization: Bearer '.publishing_access_token($c)],['start'=>['dateTime'=>gmdate(DATE_ATOM,$b['start'])],'end'=>['dateTime'=>gmdate(DATE_ATOM,$b['end'])]],false,true);$b['status']='confirmed';}catch(Throwable $e){$b['status']='review';comm_put('booking.'.$id,$b);throw new RuntimeException('Calendar rescheduling needs review. Please contact Waithaka.');}}
             $b['version']++;comm_put('booking.'.$id,$b);comm_queue_mail($b,'rescheduled');comm_event('bookings',$id);return $b;
         }
