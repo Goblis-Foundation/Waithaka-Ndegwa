@@ -7,7 +7,7 @@ if (!installed()) {
 }
 
 $path = path_only();
-if(ms_dispatch($path))exit;
+if(mwa_dispatch($path)||ms_dispatch($path))exit;
 if(enterprise_dispatch($path))exit;
 if(monthly_dispatch($path))exit;
 if($path==='/webhooks/paypal')paypal_notifications_webhook();
