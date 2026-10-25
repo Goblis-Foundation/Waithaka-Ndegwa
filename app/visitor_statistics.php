@@ -49,7 +49,7 @@ function visitor_statistics_refresh(bool $force=false): void {
  $filter=['filter'=>['fieldName'=>'streamId','stringFilter'=>['matchType'=>'EXACT','value'=>$s['stream']]]];
  try{
   $rt=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runRealtimeReport',$h,visitor_statistics_realtime_request($s['stream'],!empty($s['single_stream'])))['data'];
-  $s['active']=visitor_statistics_realtime_number($rt);$s['active_at']=time();$s['active_window']=30;
+  $s['active']=visitor_statistics_realtime_number($rt);$s['active_at']=time();$s['active_window']=30;$s['realtime_status']='updated';
  }catch(Throwable $realtimeError){unset($s['active'],$s['active_at']);$s['realtime_status']=$realtimeError instanceof PublishingRemoteException?'Provider HTTP '.$realtimeError->httpStatus:'Request unavailable';}
  $period=visitor_statistics_month($s['timezone']);
  if($force||($s['month']??'')!==$period['month']||($s['month_at']??0)<time()-3600){
