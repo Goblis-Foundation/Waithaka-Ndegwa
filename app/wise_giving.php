@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/wise_api.php';
 /** Receiving instructions only. No money-movement permission or unverified settlement. */
 function wise_giving_fields(string $currency): array {
  $base=['holder'=>'Account holder','bank'=>'Bank name'];
@@ -20,7 +21,8 @@ function wise_giving_validate(string $currency,array $in): array {
 }
 function wise_giving_public(): array {$s=comm_get('giving.wise');$out=[];foreach(['EUR','USD','GBP']as$c)if(!empty($s['accounts'][$c]['enabled'])){$row=$s['accounts'][$c];$out[$c]=array_intersect_key($row,array_flip(array_merge(['currency'],array_keys(wise_giving_fields($c)))));}return $out;}
 function wise_giving_dispatch(string $path): bool {
+ if($path==='/webhooks/wise')wise_api_webhook();
  if($path!=='/write/wise')return false;require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];if($uid!==(int)comm_config()['owner']){http_response_code(403);echo 'Owner access required.';return true;}$error='';
- if(is_post()){verify_csrf();try{$accounts=[];foreach(['EUR','USD','GBP']as$c)$accounts[$c]=wise_giving_validate($c,(array)($_POST['accounts'][$c]??[]));if(array_filter($accounts,fn($a)=>$a['enabled'])&&($_POST['confirm_public']??'')!=='1')throw new InvalidArgumentException('Confirm that the enabled receiving details may be public.');comm_lock('giving.wise',function()use($accounts,$uid){$old=comm_get('giving.wise');if((int)($_POST['version']??0)!==(int)($old['version']??0))throw new RuntimeException('Details changed. Reload before saving.');comm_put('giving.wise',['version'=>($old['version']??0)+1,'accounts'=>$accounts,'updated'=>time(),'user'=>$uid]);});flash('success','Wise receiving instructions saved. No payment automation or sending access was activated.');redirect(url('/write/wise'));}catch(InvalidArgumentException|RuntimeException $e){$error=$e->getMessage();}}
+ if(is_post()){verify_csrf();try{if(str_starts_with((string)($_POST['action']??''),'api_')){wise_api_owner_action($uid,$_POST);flash('success','Wise setup action completed. No contribution was automatically confirmed.');redirect(url('/write/wise'));}$accounts=[];foreach(['EUR','USD','GBP']as$c)$accounts[$c]=wise_giving_validate($c,(array)($_POST['accounts'][$c]??[]));if(array_filter($accounts,fn($a)=>$a['enabled'])&&($_POST['confirm_public']??'')!=='1')throw new InvalidArgumentException('Confirm that the enabled receiving details may be public.');comm_lock('giving.wise',function()use($accounts,$uid){$old=comm_get('giving.wise');if((int)($_POST['version']??0)!==(int)($old['version']??0))throw new RuntimeException('Details changed. Reload before saving.');comm_put('giving.wise',['version'=>($old['version']??0)+1,'accounts'=>$accounts,'updated'=>time(),'user'=>$uid]);});flash('success','Wise receiving instructions saved. No payment automation or sending access was activated.');redirect(url('/write/wise'));}catch(InvalidArgumentException|RuntimeException $e){$error=$e->getMessage();}}
  render_write('wise',['writeTitle'=>'Wise giving · bank details','record'=>comm_get('giving.wise'),'error'=>$error]);return true;
 }

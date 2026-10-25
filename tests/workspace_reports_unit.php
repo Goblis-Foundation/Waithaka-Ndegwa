@@ -49,3 +49,16 @@ wc($gb['sort_code']==='123456','UK sort code preserves all digits');
 wx(fn()=>wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','sort_code'=>'123456','account'=>'1234567']));
 wc(!wise_giving_validate('EUR',[])['enabled'],'Unconfigured currencies stay disabled');
 echo "PASS: private briefing controls, attachment review gate and Wise receiving validation.\n";
+
+$key=openssl_pkey_new(['private_key_bits'=>2048,'private_key_type'=>OPENSSL_KEYTYPE_RSA]);$pub=openssl_pkey_get_details($key)['key'];$raw='{"fixture":"signed"}';openssl_sign($raw,$sig,$key,OPENSSL_ALGO_SHA256);
+wc(wise_api_signature($raw,base64_encode($sig),$pub),'Valid Wise-style RSA signature accepted');
+wc(!wise_api_signature($raw.' ',base64_encode($sig),$pub),'Tampered event rejected');
+wc(!wise_api_signature($raw,'invalid-base64!',$pub),'Malformed signature rejected');
+$cfg=['profile'=>'123','subscription'=>'fixture-sub'];$event=['schema_version'=>'4.0.0','subscription_id'=>'fixture-sub','event_type'=>'balances#update','data'=>['resource'=>['profile_id'=>123],'currency'=>'EUR','amount'=>10,'transaction_type'=>'credit']];
+wc(wise_api_webhook_data($event,$cfg,true)['status']==='test only','Test notifications never acknowledge contributions');
+wc(wise_api_webhook_data($event,$cfg,false)['status']==='awaiting reconciliation','Signed credits still need contribution reconciliation');
+wx(fn()=>wise_api_webhook_data($event,array_replace($cfg,['profile'=>'456']),false));
+wx(fn()=>wise_api_webhook_data($event,array_replace($cfg,['subscription'=>'other']),false));
+wx(fn()=>wise_api_request([],'POST','/transfers',[]));
+wc(openssl_pkey_get_public(wise_api_public_key('production'))!==false&&openssl_pkey_get_public(wise_api_public_key('sandbox'))!==false,'Pinned Wise environment keys are valid');
+echo "PASS: Wise webhook signatures, profile binding, test isolation and money-movement operation rejection.\n";
