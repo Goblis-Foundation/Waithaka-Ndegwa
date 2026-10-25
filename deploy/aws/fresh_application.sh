@@ -99,7 +99,18 @@ if [[ -f "$SOURCE_DIR/bin/founder-story-migrate.php" && -f "$FOUNDER_MIGRATION_F
     GOOGLE_MIGRATION_REQUIRED=1
   fi
 fi
-if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 ]]; then
+# Message Trash uses the existing temporary, checksum-receipted migration path.
+TRASH_MIGRATION_REQUIRED=0
+TRASH_MIGRATION_FILE="$SOURCE_DIR/app/migrations/190_message_trash.sql"
+if [[ -f "$SOURCE_DIR/bin/message-trash-migrate.php" && -f "$TRASH_MIGRATION_FILE" ]]; then
+  TRASH_MIGRATION_HASH="$(sha256sum "$TRASH_MIGRATION_FILE" | awk '{print $1}')"
+  TRASH_MIGRATION_RECEIPT="schema-migrations/190-$TRASH_MIGRATION_HASH.json"
+  if ! aws s3api head-object --bucket "$RELEASE_BUCKET" --key "$TRASH_MIGRATION_RECEIPT" --region "$REGION" --no-cli-pager >/dev/null 2>&1; then
+    TRASH_MIGRATION_REQUIRED=1
+    GOOGLE_MIGRATION_REQUIRED=1
+  fi
+fi
+if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 || "$TRASH_MIGRATION_REQUIRED" == 1 ]]; then
   backup_metadata="$(mktemp)"
   FOUNDER_BACKUP_PROOF="$(mktemp)"
   # Resolve the one database from the owned stack; never enumerate account databases.
@@ -259,6 +270,15 @@ json.dump({'account_id':'466401734428','migration':'160_google_workspace.sql','s
 PYRECEIPT
   aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$GOOGLE_MIGRATION_RECEIPT" --body "$migration_receipt" --region "$REGION" --no-cli-pager >/dev/null
   rm -f "$migration_receipt"
+  if [[ "$TRASH_MIGRATION_REQUIRED" == 1 ]]; then
+    trash_receipt="$(mktemp)"
+    python3 - "$trash_receipt" "$TRASH_MIGRATION_HASH" "$VERSION" "$FOUNDER_BACKUP_PROOF" <<'PYTRASH'
+import json,sys,datetime
+json.dump({'account_id':'466401734428','migration':'190_message_trash.sql','sha256':sys.argv[2],'release':sys.argv[3],'verified_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'recovery':json.load(open(sys.argv[4]))},open(sys.argv[1],'w'))
+PYTRASH
+    aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$TRASH_MIGRATION_RECEIPT" --body "$trash_receipt" --region "$REGION" --no-cli-pager >/dev/null
+    rm -f "$trash_receipt"
+  fi
   if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 ]]; then
     founder_receipt="$(mktemp)"
     python3 - "$founder_receipt" "$FOUNDER_MIGRATION_HASH" "$VERSION" "$FOUNDER_BACKUP_PROOF" <<'PYFOUNDER'
