@@ -7,6 +7,7 @@ if (!installed()) {
 }
 
 $path = path_only();
+if(enterprise_dispatch($path))exit;
 if(monthly_dispatch($path))exit;
 if($path==='/webhooks/paypal')paypal_notifications_webhook();
 if (workspace_reports_dispatch($path) || planner_dispatch($path) || communication_mail_dispatch($path) || app_security_dispatch($path) || communication_dispatch($path) || meetings_dispatch($path) || google_workspace_dispatch($path) || impact_writer_route($path) || writer_account_route($path) || studio_dispatch($path) || media_centre_dispatch($path)) exit;
@@ -406,6 +407,7 @@ if ($path === '/sitemap.xml') {
     foreach($cats as $c)$entries[]=['loc'=>url('/topic/'.$c['slug'])];
     foreach($posts as $p)$entries[]=['loc'=>url('/my-thoughts/'.$p['slug']),'lastmod'=>date('c',strtotime($p['updated_at']))];
     if(function_exists('app_sitemap_entries'))$entries=array_merge($entries,app_sitemap_entries());
+    $entries=array_merge($entries,enterprise_sitemap());
     echo sitemap_xml($entries);exit;
 }
 
