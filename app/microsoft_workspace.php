@@ -46,10 +46,11 @@ function ms_authorize(string $slot,int $uid): string {
 function ms_consume(string $state,int $uid): array {
  $r=$_SESSION['ms_workspace_oauth']??[];unset($_SESSION['ms_workspace_oauth']);
  if(!is_array($r)||!preg_match('/^[a-f0-9]{64}$/D',$state)||!hash_equals((string)($r['state_hash']??''),hash('sha256',$state))||(int)($r['uid']??0)!==$uid||(int)($r['expires']??0)<time())throw new MicrosoftWorkspaceException('This Microsoft connection expired or belongs to another session. Start again.');
- $_SESSION['ms_workspace_consumed']=['state_hash'=>hash('sha256',$state),'uid'=>$uid,'expires'=>time()+600];return $r;
+ $_SESSION['ms_workspace_consumed']=['state_hash'=>hash('sha256',$state),'uid'=>$uid,'expires'=>time()+600,'purpose'=>$r['purpose']??null];return $r;
 }
 function ms_callback_replay(string $state,int $uid): bool {$r=$_SESSION['ms_workspace_consumed']??[];return preg_match('/^[a-f0-9]{64}$/D',$state)===1&&(int)($r['uid']??0)===$uid&&(int)($r['expires']??0)>=time()&&hash_equals((string)($r['state_hash']??''),hash('sha256',$state));}
 function ms_complete(array $flow,string $code,int $uid): void {
+ if(isset($flow['purpose'])){mwa_complete($flow,$code,$uid);return;}
  $token=meetings_token_request('microsoft',['grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>ms_callback(),'code_verifier'=>$flow['verifier']]);$scopes=ms_granted($token);
  if(!ms_has_scope($scopes,'User.Read'))throw new MicrosoftWorkspaceException('Account identity permission was declined.');
  $who=publishing_http('GET','https://graph.microsoft.com/v1.0/me?$select=id,displayName,mail,userPrincipalName',publishing_bearer($token['access_token']))['data'];$identity=ms_identity($who,$flow['slot']);
@@ -103,7 +104,7 @@ function ms_dispatch(string $path): bool {
  elseif($path!=='/write/microsoft')return false;
  require_auth();private_response_headers();$uid=(int)current_user()['id'];if($uid!==(int)(comm_config()['owner']??0)){http_response_code(403);echo 'Owner access required.';return true;}journeys_method($callback?['GET']:['GET','HEAD','POST']);$error='';$report=null;$agenda=[];
  try{
-  if($callback){if(ms_callback_replay($state,$uid))redirect(url('/write/microsoft'));$flow=ms_consume($state,$uid);if(!empty($_GET['error']))throw new MicrosoftWorkspaceException('Microsoft authorization was not completed. Your existing meeting connection was retained.');$code=is_string($_GET['code']??null)?$_GET['code']:'';if($code===''||strlen($code)>12000)throw new MicrosoftWorkspaceException('Microsoft did not return a valid authorization. Start again.');ms_complete($flow,$code,$uid);flash('success','Microsoft returned the requested identity. Confirm it before reading account data.');redirect(url('/write/microsoft#'.$flow['slot']));}
+  if($callback){if(ms_callback_replay($state,$uid))redirect(url(in_array($_SESSION['ms_workspace_consumed']['purpose']??'', ['drafts','calendar'],true)?'/write/microsoft/actions':'/write/microsoft'));$flow=ms_consume($state,$uid);if(!empty($_GET['error']))throw new MicrosoftWorkspaceException('Microsoft authorization was not completed. Your existing meeting connection was retained.');$code=is_string($_GET['code']??null)?$_GET['code']:'';if($code===''||strlen($code)>12000)throw new MicrosoftWorkspaceException('Microsoft did not return a valid authorization. Start again.');ms_complete($flow,$code,$uid);flash('success','Microsoft returned the requested identity. Confirm it before using this permission.');redirect(url(isset($flow['purpose'])?'/write/microsoft/actions':'/write/microsoft#'.$flow['slot']));}
   if(is_post()){
    verify_csrf();if(!journeys_rate_limit('ms365-owner',(string)$uid,30,300))throw new MicrosoftWorkspaceException('Please wait before another Microsoft request.');$action=is_string($_POST['action']??null)?$_POST['action']:'';
    if($action==='agenda'){foreach(ms_accounts()as$slot=>$email){if((ms_record($slot,$uid)['status']??'')!=='connected')continue;try{$agenda[]=['slot'=>$slot,'report'=>ms_read($slot,'calendar',$uid)];}catch(Throwable){$agenda[]=['slot'=>$slot,'error'=>'This account could not be read. Its availability remains unknown.'];}}}
