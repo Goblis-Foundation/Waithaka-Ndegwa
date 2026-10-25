@@ -12,8 +12,9 @@ $navigation=[
 'Manage workspace'=>['/write/connections'=>'Integrations','/write/google'=>'Google workspace','/write/app'=>'App & notifications','/write/security'=>'Devices & passkeys','/write/operations'=>'Operations','/write/settings'=>'Settings','/write/account'=>'My account']];
 $activeLink='/write';$activeLength=0;foreach($navigation as$links)foreach($links as$link=>$label){if(str_contains($link,'#'))continue;if(($writerPath===$link||($link!=='/write'&&str_starts_with($writerPath,$link.'/')))&&strlen($link)>$activeLength){$activeLink=$link;$activeLength=strlen($link);}}
 
-$financeWorkspace=$writerPath==='/write/wise'||$writerPath==='/write/monthly-support'||str_starts_with($writerPath,'/write/integration/');
-if($financeWorkspace)$activeLink='/write/connections';
+$financeWorkspace=$writerPath==='/write/wise'||$writerPath==='/write/monthly-support'||preg_match('~^/write/integration/(?:paypal|pesapal|mpesa)(?:/|$)~',$writerPath)===1;
+if($financeWorkspace||str_starts_with($writerPath,'/write/integration/'))$activeLink='/write/connections';
+if(str_starts_with($writerPath,'/write/edit/'))$activeLink='/write#library';
 $activeGroup='Daily work';foreach($navigation as$group=>$links)if(array_key_exists($activeLink,$links))$activeGroup=$group;
 $sectionLinks=$financeWorkspace?['/write/connections#integrations-finance'=>'Finance integrations','/write/wise'=>'Wise','/write/integration/paypal'=>'PayPal','/write/monthly-support'=>'Monthly support']:($navigation[$activeGroup]??[]);
 $sectionCurrent=$financeWorkspace?$writerPath:$activeLink;
@@ -33,5 +34,5 @@ if($wu && preg_match('~^/write/(?:releases/[1-9][0-9]*|journeys/founders/[1-9][0
  $documentQrPath=$writerPath;$documentQrPrivate=true;$documentQrLabel='Open the protected workspace record';
  include __DIR__.'/../document_record.php';
 }
-?></div></div><script src="<?=asset('js/write.js')?>" defer></script><?php if($wu):?><nav class="app-mobile-nav" aria-label="Quick workspace navigation"><a href="/write" <?=$writerPath==='/write'?'aria-current="page"':''?>>Today</a><a href="/write/program" <?=str_starts_with($writerPath,'/write/program')?'aria-current="page"':''?>>Plan</a><a href="/write/communication?tab=inbox">Inbox</a><a href="/write/capture">Create</a></nav><?php endif;?><script src="<?=asset('js/communication.js')?>" defer></script><script src="<?=asset('js/app-security.js')?>" defer></script><script src="<?=asset('js/app.js')?>" defer></script></body></html>
+?></div></div><script src="<?=asset('js/write.js')?>" defer></script><?php if($wu):?><nav class="app-mobile-nav" aria-label="Quick workspace navigation"><a href="/write" <?=$writerPath==='/write'?'aria-current="page"':''?>>Today</a><a href="/write/program" <?=str_starts_with($writerPath,'/write/program')?'aria-current="page"':''?>>Plan</a><a href="/write/communication?tab=inbox" <?=str_starts_with($writerPath,'/write/communication')?'aria-current="page"':''?>>Inbox</a><a href="/write/capture" <?=str_starts_with($writerPath,'/write/capture')||$writerPath==='/write/new'||str_starts_with($writerPath,'/write/edit/')?'aria-current="page"':''?>>Create</a></nav><?php endif;?><script src="<?=asset('js/communication.js')?>" defer></script><script src="<?=asset('js/app-security.js')?>" defer></script><script src="<?=asset('js/app.js')?>" defer></script></body></html>
 
