@@ -40,7 +40,7 @@ analytics_check(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>
 analytics_check(visitor_statistics_number(['metadata'=>['subjectToThresholding'=>true],'rows'=>[['metricValues'=>[['value'=>'19']]]]])===null,'Thresholded counts not published.');
 analytics_check(visitor_statistics_number([])===null,'Missing counts never become fabricated zero.');
 
-$fixture=['timezone'=>'Africa/Nairobi','month'=>'2026-11','month_at'=>$boundary->getTimestamp(),'monthly_visitors'=>19,'year'=>'2026','year_at'=>$boundary->getTimestamp(),'yearly_visitors'=>30,'active'=>4,'active_at'=>$boundary->getTimestamp(),'active_window'=>5];
+$fixture=['timezone'=>'Africa/Nairobi','month'=>'2026-11','month_at'=>$boundary->getTimestamp(),'monthly_visitors'=>19,'year'=>'2026','year_at'=>$boundary->getTimestamp(),'yearly_visitors'=>30,'active'=>4,'active_at'=>$boundary->getTimestamp(),'active_window'=>30];
 analytics_check(visitor_statistics_display($fixture,$boundary)===['month_label'=>'November','year_label'=>'2026','now'=>4,'month'=>19,'year'=>30],'Now, month and year use separate verified visitor readings.');
 $fixture['active_at']-=181;analytics_check(!isset(visitor_statistics_display($fixture,$boundary)['now']),'Stale current activity not published.');
 $fixture['year']='2025';analytics_check(!isset(visitor_statistics_display($fixture,$boundary)['year']),'Prior year not shown as current year.');
@@ -49,4 +49,4 @@ analytics_check(visitor_statistics_realtime_number([])===null,'Missing realtime 
 
 analytics_check(!isset(visitor_statistics_realtime_request('123',true)['dimensionFilter']),'Exactly one verified stream permits exact property-wide realtime.');
 analytics_check(visitor_statistics_realtime_request('123',false)['dimensionFilter']['filter']['stringFilter']['value']==='123','Multiple or unknown streams always retain exact stream filter.');
-analytics_check(visitor_statistics_realtime_request('123',true)['minuteRanges'][0]['startMinutesAgo']===4,'Now is the last five minutes.');
+analytics_check(!isset(visitor_statistics_realtime_request('123',true)['minuteRanges']),'Now uses the supported default Analytics realtime window.');

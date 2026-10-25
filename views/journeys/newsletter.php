@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="<?=asset('css/reader.css')?>">
 <section class="journey-hero"><div class="container journey-form-layout">
-  <div><span class="eyebrow">Stay connected</span><h1>Follow the<br>next thought.</h1><p class="journey-lead">New writing, Startup Journeys and reflections from the work along the way, delivered to your inbox.</p><p>Confirm your email to join. You can leave at any time through the unsubscribe link in each edition.</p><div class="journey-rss"><span class="eyebrow">Prefer a feed reader?</span><p>Add the RSS feed to your reader to follow newly published articles.</p><a class="text-link" href="<?=e(url('/feed.xml'))?>">Open the RSS feed →</a></div></div>
+  <div><span class="eyebrow">Stay connected</span><h1>Follow the<br>next thought.</h1><p class="journey-lead">Follow the thinking and the work: new My Thoughts articles, reviewed startup chapters, practical lessons and reflections on the road towards Goal 2030. Choose the subjects that interest you.</p><p>Confirm your email to join. You can leave at any time through the unsubscribe link in each edition.</p><div class="journey-rss"><span class="eyebrow">Prefer a feed reader?</span><p>Add the RSS feed to your reader to follow newly published articles.</p><a class="text-link" href="<?=e(url('/feed.xml'))?>">Open the RSS feed →</a></div></div>
   <div class="journey-panel"><h2>Subscribe by email</h2><?php require __DIR__.'/notices.php';?>
     <form method="post" action="<?=e(url('/newsletter'))?>" class="journey-form">
       <?=csrf_field()?>

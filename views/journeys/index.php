@@ -1,11 +1,11 @@
 <section class="journey-hero">
   <div class="container journey-hero-grid">
-    <div><span class="eyebrow">Startup Journeys</span><h1>The work of<br>building something.</h1><p class="journey-lead">A venture has a starting point, decisions that shape it, and lessons that arrive along the way. Follow those changes, one chapter at a time.</p><div class="journey-actions"><a class="button" href="#journeys">Explore the journeys ↓</a><a class="text-link" href="<?=e(url('/newsletter'))?>">Follow new chapters →</a></div></div>
+    <div><span class="eyebrow">Startup Journeys</span><h1>Building lean.<br>Learning in public.</h1><p class="journey-lead">Business failure has taught me that an idea needs more than conviction. Follow the practical journey towards Goal 2030: the problems we explore, the assumptions we test, the ventures we build and what the evidence changes.</p><div class="journey-actions"><a class="button" href="#journeys">Explore the journeys ↓</a><a class="text-link" href="<?=e(url('/newsletter'))?>">Follow new chapters →</a></div></div>
     <aside class="journey-principles"><span class="eyebrow">What you will find</span><ol><li><strong>A clear starting point</strong><span>The circumstances, resources and question behind each venture.</span></li><li><strong>Decisions in sequence</strong><span>What changed, what was tried and what happened next.</span></li><li><strong>Evidence and reflection</strong><span>The basis for a claim, alongside what is still uncertain.</span></li></ol></aside>
   </div>
 </section>
 <section class="section journey-collection" id="journeys"><div class="container">
-  <div class="journey-section-head"><div><span class="eyebrow">The collection</span><h2>Follow a journey.</h2></div><p>Each journey brings its chapters together in order, from the starting point to the latest reflection.</p></div>
+  <div class="journey-section-head"><div><span class="eyebrow">The collection</span><h2>Follow a journey.</h2></div><p>Each journey brings together its starting point, published chapters, successes, challenges and next targets. Only reviewed progress is presented as a result.</p></div>
   <?php if(!$seasons):?><div class="journey-empty"><h3>The first journey is taking shape.</h3><p>New chapters will appear here when they are ready. In the meantime, explore the writing that informs my work.</p><div class="journey-actions"><a class="button" href="<?=e(url('/my-thoughts'))?>">Read My Thoughts →</a><a class="text-link" href="<?=e(url('/newsletter'))?>">Follow future chapters →</a></div></div><?php endif;?>
   <div class="journey-season-list">
     <?php foreach($seasons as $season):?><article class="journey-season-card">

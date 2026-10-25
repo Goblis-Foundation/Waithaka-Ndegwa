@@ -1,5 +1,5 @@
 <?php
-$thoughts=array_values($posts??[]);$featuredThought=$thoughts[0]??null;$archiveThoughts=$featuredThought?array_slice($thoughts,1):[];$totalThoughts=$pagination['total']??count($thoughts);$archivePage=$pagination['page']??1;$pageTitle=$heading??'My Thoughts';$pageIntro=$intro??'Long-form reflections shaped by experience, work, observation and travel — across social entrepreneurship, agribusiness, infrastructure and innovation.';
+$thoughts=array_values($posts??[]);$featuredThought=$thoughts[0]??null;$archiveThoughts=$featuredThought?array_slice($thoughts,1):[];$totalThoughts=$pagination['total']??count($thoughts);$archivePage=$pagination['page']??1;$pageTitle=$heading??'My Thoughts';$pageIntro=$intro??'Personal reflections on building enterprises, learning from failure, and the people and places that widen my perspective. Explore social entrepreneurship, agribusiness, infrastructure, innovation, travel and culture.';
 ?>
 <section class="archive-hero archive-hero-refined">
   <div class="container archive-hero-grid refined">
