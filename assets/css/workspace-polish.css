@@ -1,0 +1,24 @@
+/* Cohesive private workspace controls and route tabs. */
+.workspace-auth{--green:#526f60;--green-dark:#405f50;--paper:#f3f5ef;--ink:#263a30;--muted:#5b6b60;--line:#d9e2d4}
+.workspace-section-bar{padding:22px 32px 0;max-width:1444px;margin:auto}.workspace-section-bar>span{display:block;font-size:.67rem;text-transform:uppercase;letter-spacing:.09em;font-weight:750;color:#60715e;margin-bottom:10px}
+.workspace-section-tabs{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:thin}
+.workspace-section-tabs a{display:inline-flex;align-items:center;min-height:42px;padding:10px 15px;border:1px solid #cedbc7;border-radius:10px;background:#fff;color:#405349;text-decoration:none;font-size:.78rem;font-weight:600;white-space:nowrap;flex-shrink:0}
+.workspace-section-tabs a:hover{background:#edf2e8;border-color:#9db58e}.workspace-section-tabs a[aria-current=page]{background:#405f50;color:white;border-color:#405f50}.workspace-section-tabs a:focus-visible{outline:3px solid #9c773b;outline-offset:3px}
+.workspace-auth .workspace-nav a{border:1px solid transparent;border-radius:10px;min-height:44px;font-weight:550;margin:4px 0}
+.workspace-auth .workspace-nav a[aria-current=page]{background:#e7eee1;border-color:#c3d3ba;box-shadow:none;color:#314d3c}
+.workspace-auth .workspace-nav-heading{font-size:.64rem;letter-spacing:.09em}.workspace-auth .workspace-nav-group>summary{background:#f7f9f4;border-radius:9px;margin-bottom:6px;padding-left:12px}
+.workspace-auth .wbtn{border-radius:10px;min-height:42px;padding:10px 15px;font-size:.8rem;box-shadow:none}
+.workspace-auth .wbtn.primary{background:#405f50;border-color:#405f50;color:white}
+.workspace-auth .wbtn:hover{filter:none;border-color:#8da77f}.workspace-auth input:not([type=checkbox]):not([type=radio]),.workspace-auth select,.workspace-auth textarea{border-radius:10px;border-color:#bfceba}
+.workspace-auth input:focus-visible,.workspace-auth select:focus-visible,.workspace-auth textarea:focus-visible{outline:2px solid #68845b;outline-offset:2px}
+.workspace-auth .comm-tabs,.workspace-auth .pub-nav,.workspace-auth .wise-tabs{display:flex;gap:7px;overflow-x:auto;flex-wrap:nowrap;padding:6px 2px 14px;border-bottom:1px solid #d4dfcd}
+.workspace-auth .comm-tabs a,.workspace-auth .pub-nav a,.workspace-auth .wise-tabs a{padding:10px 16px;border:1px solid #d0ddc7;border-radius:10px;background:#fff;white-space:nowrap;min-height:44px;display:inline-flex;align-items:center;flex-shrink:0;text-decoration:none;font-size:.82rem}
+.workspace-auth .comm-tabs a[aria-current],.workspace-auth .pub-nav a[aria-current],.workspace-auth .wise-tabs a[aria-current]{background:#405f50;color:white;border-color:#405f50}
+.workspace-auth .workspace-feature,.workspace-auth .dashboard-continue{background:#e8eee1;color:#263a30;border-color:#c5d5bc}
+.workspace-auth .workspace-feature p,.workspace-auth .dashboard-continue p{color:#475c49}
+.workspace-auth .workspace-feature .writer-kicker,.workspace-auth .dashboard-continue .writer-kicker{color:#526b4a}
+.workspace-auth .workspace-feature .wbtn,.workspace-auth .dashboard-continue .wbtn{background:white;color:#314d3c;border:1px solid #b9cdb0}
+.workspace-auth .workspace-quick-card,.workspace-auth .dashboard-action{border-radius:14px}.workspace-auth details>summary{min-height:44px;cursor:pointer}
+.workspace-auth .notice{border-radius:12px}.workspace-auth .workspace-topbar{border-bottom-color:#d8e2d2}
+@media(max-width:1200px){.workspace-section-bar{padding-inline:18px}}
+@media(max-width:600px){.workspace-section-bar{padding:18px 14px 0}.workspace-section-tabs a{font-size:.76rem;min-height:44px;padding:10px 13px}.workspace-auth .comm-tabs,.workspace-auth .pub-nav,.workspace-auth .wise-tabs{margin-right:-3px}.workspace-auth .write-main{margin-top:20px}.workspace-auth .wbtn{min-height:44px}}
