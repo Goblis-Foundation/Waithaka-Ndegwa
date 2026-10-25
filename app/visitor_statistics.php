@@ -19,13 +19,13 @@ function visitor_statistics_display(array $s,?DateTimeImmutable $now=null): arra
  try{$period=visitor_statistics_month($s['timezone'],$now);}catch(Throwable){return [];}
  $stamp=($now??new DateTimeImmutable('now'))->getTimestamp();
  $year=substr($period['month'],0,4);$out=['month_label'=>substr($period['label'],0,-5),'year_label'=>$year];
- if(isset($s['active'])&&is_int($s['active'])&&$s['active']>=0&&($s['active_at']??0)>=$stamp-180&&($s['active_window']??0)===5)$out['now']=$s['active'];
+ if(isset($s['active'])&&is_int($s['active'])&&$s['active']>=0&&($s['active_at']??0)>=$stamp-180&&($s['active_window']??0)===30)$out['now']=$s['active'];
  if(($s['month']??'')===$period['month']&&($s['month_at']??0)>=$stamp-86400&&isset($s['monthly_visitors']))$out['month']=$s['monthly_visitors'];
  if(($s['year']??'')===$year&&($s['year_at']??0)>=$stamp-86400&&isset($s['yearly_visitors']))$out['year']=$s['yearly_visitors'];
  return isset($out['now'])||isset($out['month'])||isset($out['year'])?$out:[];
 }
 function visitor_statistics_realtime_request(string $stream,bool $singleStream): array {
- $request=['metrics'=>[['name'=>'activeUsers']],'minuteRanges'=>[['startMinutesAgo'=>4,'endMinutesAgo'=>0]]];
+ $request=['metrics'=>[['name'=>'activeUsers']]];
  // Property-wide realtime is exact only when Admin API verified one stream in total.
  if(!$singleStream)$request['dimensionFilter']=['filter'=>['fieldName'=>'streamId','stringFilter'=>['matchType'=>'EXACT','value'=>$stream]]];
  return $request;
@@ -49,7 +49,7 @@ function visitor_statistics_refresh(bool $force=false): void {
  $filter=['filter'=>['fieldName'=>'streamId','stringFilter'=>['matchType'=>'EXACT','value'=>$s['stream']]]];
  try{
   $rt=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runRealtimeReport',$h,visitor_statistics_realtime_request($s['stream'],!empty($s['single_stream'])))['data'];
-  $s['active']=visitor_statistics_realtime_number($rt);$s['active_at']=time();$s['active_window']=5;
+  $s['active']=visitor_statistics_realtime_number($rt);$s['active_at']=time();$s['active_window']=30;
  }catch(Throwable $realtimeError){unset($s['active'],$s['active_at']);$s['realtime_status']=$realtimeError instanceof PublishingRemoteException?'Provider HTTP '.$realtimeError->httpStatus:'Request unavailable';}
  $period=visitor_statistics_month($s['timezone']);
  if($force||($s['month']??'')!==$period['month']||($s['month_at']??0)<time()-3600){
