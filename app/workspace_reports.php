@@ -8,13 +8,21 @@ require_once __DIR__.'/visitor_statistics.php';
 function booking_document_request_provider(array $input): string {return studio_ai_provider($input['document_provider']??'gemini');}
 function booking_document_provider(array $cfg): string {return studio_ai_provider($cfg['document_ai']??'openai');}
 function booking_provider_name(string $provider): string {return $provider==='openai'?'OpenAI':'Google Gemini';}
-function booking_platforms(): array {return ['google_meet'=>'Google Meet','phone'=>'Phone','whatsapp'=>'WhatsApp','signal'=>'Signal','zoom'=>'Zoom','microsoft'=>'Microsoft Teams','webex'=>'Webex','other'=>'Other · suggest a platform or arrangement'];}
-function booking_platform_input(array $in): array {
- $platform=reader_choice($in['platform']??'google_meet',booking_platforms(),'meeting method');$detail=reader_text($in['platform_detail']??'','Suggested arrangement',500,$platform==='other');$contact=reader_text($in['platform_contact']??'','Phone / messaging contact',120,in_array($platform,['phone','whatsapp','signal'],true));
- if(in_array($platform,['phone','whatsapp'],true)&&!preg_match('/^\+[1-9][0-9 ()-]{6,24}$/D',$contact))throw new InvalidArgumentException('Use an international phone number starting with + and its country code.');
- return ['platform'=>$platform,'platform_detail'=>$platform==='other'?$detail:'','platform_contact'=>in_array($platform,['phone','whatsapp','signal'],true)?$contact:'','approved_join'=>''];
+function booking_platforms(): array {return ['google_meet'=>'Google Meet','phone'=>'Phone / WhatsApp','zoom'=>'Zoom','microsoft'=>'Microsoft Teams','webex'=>'Webex','other'=>'Other · suggest a platform or arrangement'];}
+function booking_contact_input(array $in): array {
+ $code=reader_text($in['phone_code']??'+254','Country calling code',4,true);if(!preg_match('/^\\+[1-9][0-9]{0,2}$/D',$code))throw new InvalidArgumentException('Use a country calling code such as +254.');
+ $raw=reader_text($in['phone']??$in['platform_contact']??'','Phone number',40);$phone=preg_replace('/[ ().-]/','',$raw);
+ if($phone!==''&&!str_starts_with($phone,'+')){if($code==='+254'&&str_starts_with($phone,'0'))$phone=substr($phone,1);$phone=$code.$phone;}
+ if($phone!==''&&!preg_match('/^\\+[1-9][0-9]{6,14}$/D',$phone))throw new InvalidArgumentException('Enter a valid international phone number. You may enter the full number starting with +.');
+ $country=reader_text($in['country']??'Kenya','Country',120,true);$city=reader_text($in['city']??'','City',120);
+ return ['phone_code'=>$code,'phone'=>$phone,'country'=>$country,'city'=>$city];
 }
-function booking_method_text(array $b): string {return (booking_platforms()[$b['platform']??'google_meet']??'Google Meet').(!empty($b['platform_detail'])?' · '.$b['platform_detail']:'').(!empty($b['platform_contact'])?' · contact: '.$b['platform_contact']:'');}
+function booking_platform_input(array $in): array {
+ $platform=reader_choice($in['platform']??'google_meet',booking_platforms(),'meeting method');$detail=reader_text($in['platform_detail']??'','Suggested arrangement',500,$platform==='other');$contact=booking_contact_input($in);
+ if($platform==='phone'&&$contact['phone']==='')throw new InvalidArgumentException('Enter your Phone / WhatsApp number.');
+ return ['platform'=>$platform,'platform_detail'=>$platform==='other'?$detail:'','platform_contact'=>$platform==='phone'?$contact['phone']:'','approved_join'=>'']+$contact;
+}
+function booking_method_text(array $b): string {return (booking_platforms()[$b['platform']??'google_meet']??(['whatsapp'=>'WhatsApp','signal'=>'Signal'][$b['platform']??'']??'Google Meet')).(!empty($b['platform_detail'])?' · '.$b['platform_detail']:'').(!empty($b['platform_contact'])?' · contact: '.$b['platform_contact']:'');}
 function booking_ai_context(array $b): string {return 'Agenda: '.$b['agenda']."\nRequested method: ".(booking_platforms()[$b['platform']??'google_meet']??'Google Meet');}
 function booking_platform_ready(array $b): bool {return !in_array($b['platform']??'google_meet',['zoom','microsoft','webex'],true)||!empty($b['approved_join']);}
 function booking_event_id(array $b): string {return 'bn'.$b['id'];}
