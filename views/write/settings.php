@@ -11,7 +11,7 @@
       </section>
 
       <section class="settings-card">
-        <h2>Google</h2>
+        <h2>Google</h2><p><a href="<?=url('/write/visitor-statistics')?>">Footer visitor statistics</a></p>
         <div class="field"><label for="google-ga4">GA4 Measurement ID</label><small>Requested site tag: G-RN0YXC2WCH. One shared tag covers public editorial pages. A blank ID turns measurement off.</small><input id="google-ga4" name="google_ga4" value="<?=e(setting('google.ga4','G-RN0YXC2WCH'))?>" placeholder="G-RN0YXC2WCH" pattern="G-[A-Z0-9]{4,20}"></div>
         <div class="field"><label><input type="checkbox" name="google_analytics_enabled" value="1" <?=setting('google.analytics_enabled','1')==='1'?'checked':''?>> Enable public-page analytics after reader consent</label><small>Writer, private links, searches, contact and payment forms are excluded. Advertising storage and personalisation remain off.</small></div>
         <div class="field"><label>Search Console verification token</label><input name="google_search_verification" value="<?=e(setting('google.search_verification',''))?>"></div>

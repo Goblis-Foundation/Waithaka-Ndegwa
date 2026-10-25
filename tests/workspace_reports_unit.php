@@ -62,3 +62,11 @@ wx(fn()=>wise_api_webhook_data($event,array_replace($cfg,['subscription'=>'other
 wx(fn()=>wise_api_request([],'POST','/transfers',[]));
 wc(openssl_pkey_get_public(wise_api_public_key('production'))!==false&&openssl_pkey_get_public(wise_api_public_key('sandbox'))!==false,'Pinned Wise environment keys are valid');
 echo "PASS: Wise webhook signatures, profile binding, test isolation and money-movement operation rejection.\n";
+
+wc(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>'0']]]]])===0,'An explicitly measured zero remains zero');
+wc(visitor_statistics_number([])===null,'Missing analytics does not fabricate zero');
+wc(visitor_statistics_number(['rows'=>[['metricValues'=>[['value'=>'7']]]]],'metadata'=>['subjectToThresholding'=>true]])===null,'Thresholded aggregate withheld');
+$streams=[['name'=>'properties/123/dataStreams/456','webStreamData'=>['measurementId'=>'G-FIXTURE','defaultUri'=>'https://www.example.invalid']]];
+wc(visitor_statistics_binding($streams,'G-FIXTURE','www.example.invalid')['id']==='456','Footer binds to exact deployed tag and host');
+$threw=false;try{visitor_statistics_binding($streams,'G-FIXTURE','different.example.invalid');}catch(RuntimeException){$threw=true;}wc($threw,'Wrong website stream rejected');
+echo "PASS: footer aggregate binding and missing/thresholded data handling.\n";

@@ -6,6 +6,10 @@ require dirname(__DIR__).'/app/bootstrap.php';
 if ($APP_INSTALLED && app_config('app_env')==='production') {
     try { impact_sync(); } catch (Throwable $e) { error_log('Impact reporting refresh unavailable.'); }
 }
+// Read-only consented Google aggregates for the public footer.
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { visitor_statistics_refresh(); } catch(Throwable $e) { error_log('Footer visitor statistics unavailable.'); }
+}
 // Independently opted-in booking service. Does not drain newsletter/social/payment queues.
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { communication_work(); } catch(Throwable $e) { error_log('Communication worker needs review.'); }
