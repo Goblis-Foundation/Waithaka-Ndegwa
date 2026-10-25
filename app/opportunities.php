@@ -94,7 +94,8 @@ function opportunity_admin(int $uid,string $id,array $in): void {
     else{if($r['rounds']>=3)throw new OpportunityException('Three founder review rounds have already been used.');$r['rounds']++;$r['state']='awaiting_approval';$send='approval';$r['review_snapshot']=$r['fields'];}
    }
   }else throw new OpportunityException('Choose a valid action.');
-  opportunity_audit($r,$action,'owner:'.$uid,$note);$r['link']=null;if($send)opportunity_link($r,$send,$send==='approval'?'Please review the exact final listing. Round '.$r['rounds'].' of 3. Approve, return edits or decline. The listing will close without publication after three unapproved reviews.':'Please answer these questions and resubmit your listing: '.$note);opportunity_persist($r);
+  opportunity_audit($r,$action,'owner:'.$uid,$note);$r['link']=null;if($send)opportunity_link($r,$send,$send==='approval'?'Please review the exact final listing. Round '.$r['rounds'].' of 3. Approve, return edits or decline. The listing will close without publication after three unapproved reviews.':'Please answer these questions and resubmit your listing: '.$note);
+  elseif($action==='publish')opportunity_link($r,'followup','Your approved opportunity is now published. Use this private link to view its status or withdraw the listing. Applications remain with your organisation.');opportunity_persist($r);
  });
 }
 function opportunity_public(array $r,?int $now=null): ?array {if(opportunity_state($r,$now)!=='published'||!is_array($r['public']??null)||!hash_equals((string)($r['approved_hash']??''),opportunity_digest($r['fields'])))return null;return $r['public'];}
