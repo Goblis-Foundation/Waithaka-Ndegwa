@@ -6,6 +6,12 @@ function pp_check(bool $ok,string $label):void{if(!$ok)throw new RuntimeExceptio
 $id='12345678-1234-1234-1234-123456789abc';$row=['url'=>url('/payments/pesapal/ipn'),'ipn_id'=>$id,'status'=>'200','error'=>null];
 pp_check(pesapal_ipn_match([$row],$row['url'])===$id,'Exact callback match.');
 pp_check(pesapal_ipn_match([$row],$row['url'].'?other=1')==='','Foreign URL cannot match.');
+$activeRow=array_replace($row,['status'=>'1','ipn_status'=>1,'ipn_notification_type_description'=>'GET']);
+pp_check(pesapal_ipn_match([$activeRow],$row['url'])===$id,'An active callback row is not confused with an HTTP status code.');
+pp_check(pesapal_ipn_match([array_replace($activeRow,['status'=>'401'])],$row['url'])==='','Explicit failure status remains rejected.');
+pp_check(pesapal_ipn_match([array_replace($activeRow,['ipn_status'=>0])],$row['url'])==='','Inactive callback remains rejected.');
+pp_check(pesapal_ipn_match([array_replace($activeRow,['status'=>[]])],$row['url'])==='','Malformed status is rejected.');
+pp_check(pesapal_ipn_match([$activeRow],$row['url'],strtoupper($id))===$id,'UUID read-back matching is case insensitive.');
 $calls=[];$result=pesapal_connection_ipn(function($method,$path,$body=null)use(&$calls,$row){$calls[]=$method;return [$row];});
 pp_check($result===$id&&$calls===['GET','GET'],'Existing IPN reused without registration.');
 $calls=[];$result=pesapal_connection_ipn(function($method,$path,$body=null)use(&$calls,$row){$calls[]=$method;if(count($calls)===1)return [];if($method==='POST'){pp_check($body['url']===$row['url']&&$body['ipn_notification_type']==='GET','Exact registration payload.');return $row;}return [$row];});

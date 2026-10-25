@@ -30,7 +30,10 @@ function pesapal_ipn_call(callable $request,string $stage,string $method,string 
 function pesapal_ipn_match(mixed $rows,string $url,string $expected=''): string {
  if(!is_array($rows)||!array_is_list($rows))throw new PesapalConnectionException('Pesapal IPN list was not available. '.pesapal_ipn_summary($rows,$url));
  foreach($rows as$row){if(!is_array($row))throw new PesapalConnectionException('Pesapal IPN list contained an invalid row.');$id=$row['ipn_id']??'';
-  if(($row['url']??'')===$url&&(string)($row['status']??'')==='200'&&empty($row['error'])&&(!isset($row['ipn_status'])||(int)$row['ipn_status']===1)&&(!isset($row['ipn_notification_type_description'])||$row['ipn_notification_type_description']==='GET')&&is_string($id)&&preg_match('/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/iD',$id)&&($expected===''||$expected===$id))return $id;
+  $status=$row['status']??null;$statusText=is_scalar($status)?trim((string)$status):'';$active=(string)($row['ipn_status']??'')==='1';
+  $explicitFailure=preg_match('/^[345][0-9]{2}$/D',$statusText)||in_array(strtolower($statusText),['0','false','inactive','failed','error'],true);
+  $positiveStatus=$statusText==='200'||($active&&(is_scalar($status)||$status===null)&&!$explicitFailure);
+  if(($row['url']??'')===$url&&$positiveStatus&&empty($row['error'])&&(!isset($row['ipn_status'])||(int)$row['ipn_status']===1)&&(!isset($row['ipn_notification_type_description'])||(is_string($row['ipn_notification_type_description'])&&strtoupper(trim($row['ipn_notification_type_description']))==='GET'))&&is_string($id)&&preg_match('/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/iD',$id)&&($expected===''||strtolower($expected)===strtolower($id)))return $id;
  }return '';
 }
 function pesapal_connection_inspect(?callable $request=null): string {

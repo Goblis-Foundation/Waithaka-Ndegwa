@@ -18,7 +18,7 @@ function rh_row(string $sql, array $params = []): array { $q = db()->prepare($sq
 function rh_count(string $sql, array $params = []): int { $q = db()->prepare($sql); $q->execute($params); return (int)$q->fetchColumn(); }
 function rh_request(string $path, ?array $fields = null, bool $writer = false, string $method = 'GET'): array {
     global $base, $visitorJar, $writerJar, $sessionIds;
-    if (!preg_match('~^/(?:write(?:/|$)|newsletter(?:/|\?|$)|founders(?:/|\?|$)|contact(?:\?|$))~', $path) || preg_match('/[\r\n]/', $path)) throw new RuntimeException('Only the local reader routes are allowed.');
+    if (!preg_match('~^/(?:write(?:/|$)|newsletter(?:/|\?|$)|enterprises(?:/|\?|$)|founders(?:/|\?|$)|contact(?:\?|$))~', $path) || preg_match('/[\r\n]/', $path)) throw new RuntimeException('Only the local reader routes are allowed.');
     $headers = []; $curl = curl_init($base.$path); $jar = $writer ? $writerJar : $visitorJar;
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false, CURLOPT_PROXY => '', CURLOPT_PROTOCOLS => CURLPROTO_HTTP, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 15, CURLOPT_COOKIEFILE => $jar, CURLOPT_COOKIEJAR => $jar, CURLOPT_HEADERFUNCTION => static function($handle, string $line) use (&$headers, &$sessionIds): int { $pair = explode(':', $line, 2); if (count($pair) === 2) { $key = strtolower(trim($pair[0])); $headers[$key] = trim($pair[1]); if ($key === 'set-cookie' && preg_match('/^PHPSESSID=([A-Za-z0-9,-]+)/', $headers[$key], $m)) $sessionIds[$m[1]] = true; } return strlen($line); }]);
     if ($fields !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => http_build_query($fields)]);
@@ -44,6 +44,9 @@ function rh_latest_token(string $recipient, string $path): string {
     throw new RuntimeException('Expected fixture link not found.');
 }
 try {
+    $enterpriseIndex=rh_request('/enterprises');rh_check($enterpriseIndex['status']===200&&str_contains($enterpriseIndex['body'],'Follow the work.'),'Enterprise directory is publicly readable with honest empty-state content.');
+    $enterpriseMissing=rh_request('/enterprises/nonexistent-fixture');rh_check($enterpriseMissing['status']===404,'Unknown or unpublished enterprise profiles stay unavailable.');
+    $enterprisePrivate=rh_request('/write/enterprises');rh_check(in_array($enterprisePrivate['status'],[302,303],true)&&str_contains($enterprisePrivate['headers']['location']??'','/write/login'),'Enterprise editing requires an authenticated owner.');
     db()->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['Reader HTTP fixture', $writerEmail, password_hash($password, PASSWORD_DEFAULT)]); $actor = (int)db()->lastInsertId();
     db()->prepare('INSERT INTO categories(name,slug) VALUES(?,?)')->execute(['Reader HTTP topic '.$suffix, 'reader-http-'.$suffix]); $topicId = (int)db()->lastInsertId();
     $posts = []; foreach (['published', 'draft', 'scheduled'] as $status) { db()->prepare('INSERT INTO posts(user_id,category_id,title,slug,standfirst,content_html,status,published_at) VALUES(?,?,?,?,?,?,?,?)')->execute([$actor, $topicId, 'Reader source '.$status.' '.$suffix, 'reader-source-'.$status.'-'.$suffix, 'Source summary '.$suffix, '<p>Source body.</p>', $status, date('Y-m-d H:i:s', time() + ($status === 'scheduled' ? 86400 : -60))]); $posts[$status] = (int)db()->lastInsertId(); }
