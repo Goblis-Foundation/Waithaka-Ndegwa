@@ -7,14 +7,14 @@ require dirname(__DIR__).'/app/migrations.php';
 require dirname(__DIR__).'/app/message_trash_migration.php';
 $apply=in_array('--apply',$argv,true);
 // Routine releases use the runtime reader to verify the ledger and never reopen admin access.
-$hash=hash_file('sha256',dirname(__DIR__).'/app/migrations/170_message_trash_approval.sql');
-$q=db()->prepare('SELECT sha256 FROM schema_migrations WHERE name=?');$q->execute(['170_message_trash_approval.sql']);$already=$q->fetchColumn();
+$hash=hash_file('sha256',dirname(__DIR__).'/app/migrations/190_message_trash.sql');
+$q=db()->prepare('SELECT sha256 FROM schema_migrations WHERE name=?');$q->execute(['190_message_trash.sql']);$already=$q->fetchColumn();
 if($already!==false){if(!hash_equals((string)$already,$hash))throw new RuntimeException('The applied Message Trash migration differs from this release.');fwrite(STDOUT,"Message Trash migration already verified with runtime read access.\n");exit;}
 
 if(array_diff(array_slice($argv,1),['--apply','--plan']))throw new RuntimeException('Use --plan or --apply.');
 $region=(string)app_config('aws_region','');$arn=(string)getenv('DB_ADMIN_SECRET_ARN');
 if($region!=='af-south-1'||!preg_match('~^arn:aws:secretsmanager:af-south-1:466401734428:secret:[A-Za-z0-9/!_+=.@-]+$~D',$arn))throw new RuntimeException('The exact production database migration identity is required.');
-$file=dirname(__DIR__).'/app/migrations/170_message_trash_approval.sql';$hash=hash_file('sha256',$file);$statements=wk_sql_statements((string)file_get_contents($file));
+$file=dirname(__DIR__).'/app/migrations/190_message_trash.sql';$hash=hash_file('sha256',$file);$statements=wk_sql_statements((string)file_get_contents($file));
 if(count($statements)!==1||!preg_match('/^CREATE TABLE IF NOT EXISTS reader_enquiry_trash\\s*\\(/i',$statements[0]))throw new RuntimeException('Unexpected Message Trash schema.');
 if(!$apply){fwrite(STDOUT,"PLAN: Create the Message Trash marker table and record migration 190. Existing application rows remain unchanged.\n");exit;}
 $client=new \Aws\SecretsManager\SecretsManagerClient(['version'=>'2017-10-17','region'=>$region,'retries'=>2,'http'=>['connect_timeout'=>5,'timeout'=>20]]);
