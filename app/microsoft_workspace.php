@@ -5,7 +5,7 @@ declare(strict_types=1);
 final class MicrosoftWorkspaceException extends RuntimeException {}
 function ms_accounts(): array {return ['personal'=>'iwaithakaw@gmail.com','group'=>'isaac@goblisfoundation.org'];}
 /** Alias relationship explicitly confirmed by the owner; not a separate mailbox. */
-function ms_aliases(): array {return ['personal'=>[],'group'=>['isaac@goblisgroup.com','isaac@goblisfoundation.com']];}
+function ms_aliases(): array {return ['personal'=>[],'group'=>['isaac@goblisgroup.com','isaac@goblisfoundation.com','isaac@waithakandegwa.com']];}
 function ms_features(): array {
  return [
  'calendar'=>['name'=>'Outlook calendar','scope'=>'Calendars.Read','path'=>'/me/calendarView','select'=>'id,subject,start,end,isCancelled','columns'=>['subject'=>'Meeting','start'=>'Starts','end'=>'Ends','isCancelled'=>'Cancelled']],
