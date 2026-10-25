@@ -68,13 +68,13 @@ function comm_queue_mail(array $b,string $event): void {
 function comm_event(string $category,string $record): void {comm_put('signal',['category'=>$category,'record'=>$record,'at'=>time(),'id'=>bin2hex(random_bytes(8))]);}
 function comm_provider_event(array $b,array $cfg): array {
     $c=comm_writer_connection($cfg);$token=publishing_access_token($c);$eventId='wn'.$b['id'];$base='https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($c['selected_resource']).'/events';
-    $body=['id'=>$eventId,'summary'=>$cfg['types'][$b['type']]['name'].' · Waithaka Ndegwa','description'=>'Booked through the website. Agenda: '.$b['agenda'],'start'=>['dateTime'=>gmdate(DATE_ATOM,$b['start'])],'end'=>['dateTime'=>gmdate(DATE_ATOM,$b['end'])],'attendees'=>[['email'=>$b['email'],'displayName'=>$b['first'].' '.$b['last']]],'extendedProperties'=>['private'=>['websiteBooking'=>$b['id']]],'conferenceData'=>['createRequest'=>['requestId'=>$b['id'],'conferenceSolutionKey'=>['type'=>'hangoutsMeet']]]];
+    $body=booking_calendar_body($b,$cfg);
     try{return publishing_http('POST',$base.'?conferenceDataVersion=1&sendUpdates=all',['Authorization: Bearer '.$token],$body,false,true)['data'];}
     catch(PublishingRemoteException $e){if($e->httpStatus===409){$r=publishing_http('GET',$base.'/'.$eventId,['Authorization: Bearer '.$token])['data'];if(($r['extendedProperties']['private']['websiteBooking']??'')===$b['id'])return $r;}throw $e;}
 }
 function comm_confirm(array $b,array $cfg): array {
     $b['conference_status']='pending';$b['conference_attempts']=0;$b['conference_checked']=0;$b['status']='creating';comm_put('booking.'.$b['id'],$b);
-    try{$r=comm_provider_event($b,$cfg);$b['event_id']=$r['id'];$b['calendar']=comm_writer_connection($cfg)['selected_resource'];$b['join']=meetings_event_join($r);$b['conference_status']=$b['join']!==''?'ready':'pending';$b['status']='confirmed';$b['version']++;comm_put('booking.'.$b['id'],$b);comm_queue_mail($b,'confirmed');comm_event('bookings',$b['id']);return $b;}
+    try{$r=comm_provider_event($b,$cfg);$b['event_id']=$r['id'];$b['calendar']=comm_writer_connection($cfg)['selected_resource'];$b['join']=($b['platform']??'google_meet')==='google_meet'?meetings_event_join($r):($b['approved_join']??'');$b['conference_status']=$b['join']!==''?'ready':(($b['platform']??'google_meet')==='google_meet'?'pending':'not_applicable');$b['status']='confirmed';$b['version']++;comm_put('booking.'.$b['id'],$b);comm_queue_mail($b,'confirmed');comm_event('bookings',$b['id']);return $b;}
     catch(Throwable $e){$b['status']='review';comm_put('booking.'.$b['id'],$b);comm_event('connections',$b['id']);throw new RuntimeException('Your request was saved, but calendar confirmation needs review. Please do not submit it again.');}
 }
 function comm_conference_result(array $b,array $event): array {
@@ -83,8 +83,8 @@ function comm_conference_result(array $b,array $event): array {
     $b['conference_status']=$b['join']!==''?'ready':($state==='failure'?'unavailable':'pending');return $b;
 }
 function comm_refresh_conference(array $b,array $cfg): void {
-    if($b['status']!=='confirmed'||$b['join']!==''||$b['end']<time()||($b['conference_attempts']??0)>=6||($b['conference_checked']??0)>time()-60)return;
-    comm_lock('reservations',function()use($b,$cfg){$b=comm_get('booking.'.$b['id']);if($b['status']!=='confirmed'||$b['join']!=='')return;$b['conference_attempts']=($b['conference_attempts']??0)+1;$b['conference_checked']=time();
+    if(($b['platform']??'google_meet')!=='google_meet'||$b['status']!=='confirmed'||$b['join']!==''||$b['end']<time()||($b['conference_attempts']??0)>=6||($b['conference_checked']??0)>time()-60)return;
+    comm_lock('reservations',function()use($b,$cfg){$b=comm_get('booking.'.$b['id']);if(($b['platform']??'google_meet')!=='google_meet'||$b['status']!=='confirmed'||$b['join']!=='')return;$b['conference_attempts']=($b['conference_attempts']??0)+1;$b['conference_checked']=time();
         try{$c=comm_writer_connection($cfg);$r=publishing_http('GET','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($b['calendar']).'/events/'.rawurlencode($b['event_id']),['Authorization: Bearer '.publishing_access_token($c)])['data'];$b=comm_conference_result($b,$r);}catch(Throwable){$b['conference_status']='pending';}
         if($b['conference_attempts']>=6&&$b['join']===''){$b['conference_status']='unavailable';comm_event('connections',$b['id']);}comm_put('booking.'.$b['id'],$b);
     });
@@ -93,11 +93,11 @@ function comm_make_booking(array $cfg,array $input): array {
     $type=reader_choice($input['type']??'', $cfg['types'],'meeting');$date=comm_date($input['date']??null);$zone=comm_zone($input['timezone']??'UTC');
     $first=reader_text($input['first']??'','First name',80,true);$last=reader_text($input['last']??'','Last name',80,true);$email=reader_text($input['email']??'','Email',254,true);if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Enter a valid email.');$agenda=reader_text($input['agenda']??'','Agenda',1500,true);$start=filter_var($input['slot']??null,FILTER_VALIDATE_INT);if(!$start)throw new InvalidArgumentException('Choose an available time.');
     if(empty($input['consent']))throw new InvalidArgumentException('Confirm the use of your details for this booking.');
-    $nonce=$input['request_id']??'';if(!is_string($nonce)||!preg_match('/^[a-f0-9]{32}$/D',$nonce))throw new InvalidArgumentException('Reload the booking form.');
-    return comm_lock('reservations',function()use($cfg,$input,$type,$date,$zone,$first,$last,$email,$agenda,$start,$nonce){$id=substr(hash_hmac('sha256','request|'.$nonce,(string)app_config('app_key')),0,32);$prior=comm_get('booking.'.$id);if($prior)return $prior;
+    $method=booking_platform_input($input);$nonce=$input['request_id']??'';if(!is_string($nonce)||!preg_match('/^[a-f0-9]{32}$/D',$nonce))throw new InvalidArgumentException('Reload the booking form.');
+    return comm_lock('reservations',function()use($cfg,$input,$type,$date,$zone,$first,$last,$email,$agenda,$start,$nonce,$method){$id=substr(hash_hmac('sha256','request|'.$nonce,(string)app_config('app_key')),0,32);$prior=comm_get('booking.'.$id);if($prior)return $prior;
         if(!in_array($start,comm_slots($cfg,$type,$date),true))throw new RuntimeException('This time is no longer available. Choose another time.');
         $document=booking_document_upload($_FILES['booking_document']??[],($input['document_consent']??'')==='1');
-        $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>'','document'=>$document];$b+=booking_brief_initial($b);comm_put('booking.'.$id,$b);comm_event('bookings',$id);
+        $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>'','document'=>$document]+$method;$b+=booking_brief_initial($b);comm_put('booking.'.$id,$b);comm_event('bookings',$id);
         comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);return $b;
     });
 }
@@ -117,7 +117,7 @@ function comm_change_booking(string $id,string $action,?int $newStart=null,strin
             if($b['event_id']!==''){$b['status']='cancelling';comm_put('booking.'.$id,$b);$c=comm_writer_connection($cfg);try{publishing_http('DELETE','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($b['calendar']).'/events/'.rawurlencode($b['event_id']).'?sendUpdates=all',['Authorization: Bearer '.publishing_access_token($c)],null,false,true);}catch(Throwable $e){$b['status']='review';comm_put('booking.'.$id,$b);throw new RuntimeException('Calendar cancellation needs review. The time remains reserved.');}}
             $b['status']=$action==='decline'?'declined':'cancelled';$b['version']++;comm_put('booking.'.$id,$b);comm_queue_mail($b,$b['status']);comm_event('bookings',$id);return $b;
         }
-        if($action==='approve'){if(!booking_report_ready($b))throw new RuntimeException('Prepare and review the booking briefing report before accepting.');if($b['status']!=='requested')throw new RuntimeException('Only requests can be approved.');$date=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($cfg['timezone']))->format('Y-m-d');if(!in_array($b['start'],comm_slots($cfg,$b['type'],$date,$id),true))throw new RuntimeException('This requested time now conflicts with your calendar.');return comm_confirm($b,$cfg);}
+        if($action==='approve'){if(!booking_platform_ready($b))throw new RuntimeException('Save the approved participant join link for the requested meeting platform before accepting.');if(!booking_report_ready($b))throw new RuntimeException('Prepare and review the booking briefing report before accepting.');if($b['status']!=='requested')throw new RuntimeException('Only requests can be approved.');$date=(new DateTimeImmutable('@'.$b['start']))->setTimezone(comm_zone($cfg['timezone']))->format('Y-m-d');if(!in_array($b['start'],comm_slots($cfg,$b['type'],$date,$id),true))throw new RuntimeException('This requested time now conflicts with your calendar.');return comm_confirm($b,$cfg);}
         if($action==='reschedule'){
             if(!in_array($b['status'],['requested','confirmed'],true)||$b['start']<=time())throw new RuntimeException('This booking cannot be rescheduled online.');$date=(new DateTimeImmutable('@'.(int)$newStart))->setTimezone(comm_zone($cfg['timezone']))->format('Y-m-d');if(!in_array($newStart,comm_slots($cfg,$b['type'],$date,$id),true))throw new RuntimeException('Choose an available time.');
             $b['start']=$newStart;$b['end']=$newStart+(int)$cfg['types'][$b['type']]['minutes']*60;
