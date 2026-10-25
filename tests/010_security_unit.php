@@ -85,4 +85,17 @@ check(payment_next_status('failed','pending')==='failed','A pending replay must 
 check(!payment_checkout_url('paypal','https://www.paypal.com.evil.test/checkout'),'Lookalike checkout hosts must be rejected.');
 check(!payment_checkout_url('pesapal','javascript:alert(1)'),'Unsafe checkout URLs must be rejected.');
 check(payment_checkout_url('paypal','https://www.sandbox.paypal.com/checkoutnow?token=ORDER1'),'Expected PayPal checkout should be accepted.');
+
+$notice=['id'=>'WH-FIXTURE','event_type'=>'PAYMENT.CAPTURE.COMPLETED','resource'=>['id'=>'CAPTURE123','supplementary_data'=>['related_ids'=>['order_id'=>'ORDER123']]]];
+check(paypal_notification_locator($notice)===['kind'=>'order','id'=>'ORDER123','review'=>false],'PayPal capture must locate its original order.');
+check(paypal_notification_locator(['event_type'=>'BILLING.SUBSCRIPTION.ACTIVATED'])===[],'Unrelated PayPal products are ignored.');
+check(paypal_notification_locator(array_replace($notice,['resource'=>['supplementary_data'=>['related_ids'=>['order_id'=>'../FOREIGN']]]]))===[],'Malformed PayPal order identifiers rejected.');
+$refund=array_replace($notice,['event_type'=>'PAYMENT.CAPTURE.REFUNDED','resource'=>['supplementary_data'=>['related_ids'=>['capture_id'=>'CAPTURE123']]]]);
+check(paypal_notification_locator($refund)===['kind'=>'capture','id'=>'CAPTURE123','review'=>true],'Refunds match known captures and require review.');
+$headers=['HTTP_PAYPAL_AUTH_ALGO'=>'SHA256withRSA','HTTP_PAYPAL_CERT_URL'=>'https://api.paypal.com/v1/notifications/certs/CERT-fixture','HTTP_PAYPAL_TRANSMISSION_ID'=>'delivery-123','HTTP_PAYPAL_TRANSMISSION_SIG'=>'fixture','HTTP_PAYPAL_TRANSMISSION_TIME'=>'2026-10-25T12:00:00Z'];
+check(paypal_notification_verification($headers,$notice,'123ABC','live')['webhook_event']===$notice,'PayPal verification binds exact event and configured webhook.');
+rejects(fn()=>paypal_notification_verification([],$notice,'123ABC','live'),'Missing signature headers rejected.');
+foreach(['https://api.paypal.com.evil.invalid/v1/notifications/certs/CERT-fixture','https://user@api.paypal.com/v1/notifications/certs/CERT-fixture','http://api.paypal.com/v1/notifications/certs/CERT-fixture','https://api.paypal.com/v1/notifications/certs/CERT-fixture?secret=1','https://api.sandbox.paypal.com/v1/notifications/certs/CERT-fixture']as$cert)rejects(fn()=>paypal_notification_verification(array_replace($headers,['HTTP_PAYPAL_CERT_URL'=>$cert]),$notice,'123ABC','live'),'Foreign or unsafe certificate URLs rejected.');
+echo "PASS: PayPal notification correlation, refund review and signature input boundaries.\n";
+
 echo "PASS: {$checks} security unit assertions\n";

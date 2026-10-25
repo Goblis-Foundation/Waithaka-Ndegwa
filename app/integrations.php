@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/payment_integrity.php';
+require_once __DIR__.'/paypal_notifications.php';
 require_once __DIR__.'/openai.php';
 
 function http_json(string $method,string $urlValue,array $headers=[],?array $body=null,int $timeout=20): array {

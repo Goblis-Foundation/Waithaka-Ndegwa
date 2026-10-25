@@ -6,6 +6,7 @@ declare(strict_types=1);
  */
 require __DIR__.'/../app/functions.php';
 require __DIR__.'/../app/integrations.php';
+require __DIR__.'/../app/communication.php';
 $database=getenv('WK_TEST_DB_NAME')?:'';
 if(!preg_match('/^[a-zA-Z0-9_]+_test$/D',$database)){fwrite(STDERR,"Set WK_TEST_DB_NAME to a disposable database ending _test.\n");exit(2);}
 $CONFIG=['app_key'=>'test-key-not-for-deployment','base_url'=>'https://www.example.test','db'=>[
@@ -116,6 +117,20 @@ try{
     payment_bind_provider((int)$race['id'],'mpesa',$raceCheckout,['merchant'=>$raceMerchant],['CheckoutRequestID'=>$raceCheckout,'MerchantRequestID'=>$raceMerchant]);
     $st=db()->prepare('SELECT state,callback_payload,next_attempt_at<=NOW() due FROM payment_reconciliation WHERE contribution_id=?');$st->execute([$race['id']]);$reconciliation=$st->fetch();
     check($reconciliation['state']==='pending'&&!empty($reconciliation['callback_payload'])&&(int)$reconciliation['due']===1,'Binding after an early callback must preserve evidence and requeue verification.');
+
+    $noticePay=new_payment('paypal','10.00','USD');$noticeOrder='NOTICE'.strtoupper(bin2hex(random_bytes(5)));
+    payment_bind_provider((int)$noticePay['id'],'paypal',$noticeOrder,[],['id'=>$noticeOrder]);
+    $notice=['id'=>'WH-FIXTURE-'.bin2hex(random_bytes(5)),'event_type'=>'PAYMENT.CAPTURE.COMPLETED','resource'=>['supplementary_data'=>['related_ids'=>['order_id'=>$noticeOrder]]]];
+    check(paypal_notifications_record($notice),'Known verified notification is recorded.');
+    check(paypal_notifications_record($notice),'Repeated verified notification is safe.');
+    $q=db()->prepare("SELECT COUNT(*) FROM payment_events WHERE contribution_id=? AND event_source='paypal_webhook'");$q->execute([$noticePay['id']]);check((int)$q->fetchColumn()===1,'Duplicate notification creates one audit record.');
+    check(contribution((int)$noticePay['id'])['status']==='pending','Notification never settles without authenticated provider readback.');
+    $unknown=$notice;$unknown['resource']['supplementary_data']['related_ids']['order_id']='UNKNOWNORDER';check(!paypal_notifications_record($unknown),'Unknown orders never create contributions.');
+    $notice['event_type']='PAYMENT.CAPTURE.REFUNDED';paypal_notifications_record($notice);
+    $q=db()->prepare('SELECT state FROM payment_reconciliation WHERE contribution_id=?');$q->execute([$noticePay['id']]);check($q->fetchColumn()==='review','Refund event is held for authoritative review.');
+    check(contribution((int)$noticePay['id'])['status']==='pending','Refund hint cannot invent a financial reversal.');
+    db()->prepare("DELETE FROM settings WHERE setting_key='communication.paypal.notification.last'")->execute();
+
     echo "PASS: {$checks} database security assertions\n";
 }finally{
     foreach($postIds as $id)db()->prepare('DELETE FROM posts WHERE id=?')->execute([$id]);
