@@ -18,10 +18,16 @@ function visitor_statistics_display(array $s,?DateTimeImmutable $now=null): arra
  if(empty($s['timezone']))return [];
  try{$period=visitor_statistics_month($s['timezone'],$now);}catch(Throwable){return [];}
  $stamp=($now??new DateTimeImmutable('now'))->getTimestamp();
- if(($s['month']??'')!==$period['month']||($s['month_at']??0)<$stamp-86400)return [];
- $out=['label'=>$period['label']];
- foreach(['visitors','visits']as$key)if(isset($s['monthly_'.$key])&&is_int($s['monthly_'.$key])&&$s['monthly_'.$key]>=0)$out[$key]=$s['monthly_'.$key];
- return isset($out['visitors'])||isset($out['visits'])?$out:[];
+ $year=substr($period['month'],0,4);$out=['month_label'=>substr($period['label'],0,-5),'year_label'=>$year];
+ if(isset($s['active'])&&is_int($s['active'])&&$s['active']>=0&&($s['active_at']??0)>=$stamp-180&&($s['active_window']??0)===5)$out['now']=$s['active'];
+ if(($s['month']??'')===$period['month']&&($s['month_at']??0)>=$stamp-86400&&isset($s['monthly_visitors']))$out['month']=$s['monthly_visitors'];
+ if(($s['year']??'')===$year&&($s['year_at']??0)>=$stamp-86400&&isset($s['yearly_visitors']))$out['year']=$s['yearly_visitors'];
+ return isset($out['now'])||isset($out['month'])||isset($out['year'])?$out:[];
+}
+function visitor_statistics_realtime_number(array $report): ?int {
+ $value=visitor_statistics_number($report);if($value!==null)return $value;
+ if(empty($report['metadata']['subjectToThresholding'])&&empty($report['rows'])&&($report['metricHeaders'][0]['name']??'')==='activeUsers'&&($report['kind']??'')==='analyticsData#runRealtimeReport')return 0;
+ return null;
 }
 function visitor_statistics_refresh(bool $force=false): void {
  if(setting('google.analytics_enabled','1')!=='1')return;
@@ -35,10 +41,19 @@ function visitor_statistics_refresh(bool $force=false): void {
   if(($s['binding']??'')!==$binding)$s=['attempted'=>time()];$s+=['stream'=>$stream['id'],'since'=>$since];$s['stream']=$stream['id'];$s['since']=$since;$s['binding']=$binding;$s['binding_at']=time();$s['tag']=$tag;$s['timezone']=$zone->getName();
  }
  $filter=['filter'=>['fieldName'=>'streamId','stringFilter'=>['matchType'=>'EXACT','value'=>$s['stream']]]];
+ try{
+  $rt=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runRealtimeReport',$h,['metrics'=>[['name'=>'activeUsers']],'dimensionFilter'=>$filter,'minuteRanges'=>[['startMinutesAgo'=>4,'endMinutesAgo'=>0]]])['data'];
+  $s['active']=visitor_statistics_realtime_number($rt);$s['active_at']=time();$s['active_window']=5;
+ }catch(Throwable){unset($s['active'],$s['active_at']);}
  $period=visitor_statistics_month($s['timezone']);
  if($force||($s['month']??'')!==$period['month']||($s['month_at']??0)<time()-3600){
   $monthly=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runReport',$h,['dateRanges'=>[['startDate'=>$period['start'],'endDate'=>$period['end']]],'metrics'=>[['name'=>'activeUsers'],['name'=>'sessions']],'dimensionFilter'=>$filter])['data'];
   $s['monthly_visitors']=visitor_statistics_number($monthly,0);$s['monthly_visits']=visitor_statistics_number($monthly,1);$s['month']=$period['month'];$s['month_at']=time();
+ }
+ $year=substr($period['month'],0,4);
+ if($force||($s['year']??'')!==$year||($s['year_at']??0)<time()-3600){
+  $yearly=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$property.':runReport',$h,['dateRanges'=>[['startDate'=>$year.'-01-01','endDate'=>$period['end']]],'metrics'=>[['name'=>'activeUsers']],'dimensionFilter'=>$filter])['data'];
+  $s['yearly_visitors']=visitor_statistics_number($yearly);$s['year']=$year;$s['year_at']=time();
  }
  $s['status']='updated';comm_put('visitor.statistics',$s);
  }catch(Throwable $e){$s['status']='unavailable';comm_put('visitor.statistics',$s);if($force)throw new RuntimeException('Visitor statistics could not be verified. Check the GA4 connection, deployed tag and Admin/Data API access. No estimated numbers were published.');}
