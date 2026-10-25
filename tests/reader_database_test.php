@@ -7,7 +7,7 @@ $host = rd_env('DB_HOST', 'WK_TEST_DB_HOST'); $port = rd_env('DB_PORT', 'WK_TEST
 if (PHP_SAPI !== 'cli' || getenv('APP_ENV') !== 'testing' || getenv('WK_TEST_ALLOW_WRITES') !== '1' || !is_string($name) || !preg_match('/^waithaka_test_[a-z0-9_]+_test$/D', $name) || !in_array($host, ['127.0.0.1', '::1'], true) || !is_string($port) || !ctype_digit($port) || (int)$port < 1 || (int)$port > 65535 || !is_string($user) || $user === '' || !is_string($pass)) { fwrite(STDERR, "Use explicit testing/write opt-in, numeric-loopback DB_* credentials and a fresh waithaka_test_*_test schema.\n"); exit(2); }
 $CONFIG = ['app_env' => 'testing', 'app_key' => 'reader-database-fixture-key-not-production', 'base_url' => 'https://www.waithakandegwa.com', 'timezone' => 'Africa/Nairobi', 'worker_enabled' => false, 'db' => ['host' => $host, 'port' => (int)$port, 'name' => $name, 'user' => $user, 'pass' => $pass, 'charset' => 'utf8mb4'], 'mail' => ['transport' => 'disabled', 'from' => 'fixture@example.invalid', 'from_name' => 'Reader fixture', 'reply_to' => '', 'postal_address' => 'Synthetic fixture address']];
 $APP_INSTALLED = true; date_default_timezone_set('Africa/Nairobi');
-foreach (['functions', 'journeys', 'operations', 'mail_feedback', 'newsletter', 'newsletter_routes', 'reader', 'communication', 'contact_experience'] as $module) require_once __DIR__.'/../app/'.$module.'.php';
+foreach (['functions', 'journeys', 'operations', 'mail_feedback', 'newsletter', 'newsletter_routes', 'reader', 'communication', 'contact_experience', 'enterprises'] as $module) require_once __DIR__.'/../app/'.$module.'.php';
 $checks = 0;
 function rd_check(bool $ok, string $label): void { global $checks; if (!$ok) throw new RuntimeException('FAIL: '.$label); $checks++; }
 function rd_reject(callable $action, string $label): void { try { $action(); } catch (ReaderValidationException|ReaderConflictException|JourneyValidationException|JourneyConflictException|NewsletterValidationException|NewsletterConflictException $error) { rd_check(true, $label); return; } rd_check(false, $label); }
@@ -104,6 +104,7 @@ foreach (['draft', 'scheduled'] as $status) {
 }
 
 set_setting('contact.recipient', 'editor@example.invalid');
+$enterpriseArticles=enterprise_articles(array_values($posts));rd_check(array_map('intval',array_column($enterpriseArticles,'id'))===[$posts['published']],'Enterprise areas link only published articles; drafts and future scheduled versions stay private.');
 $beforeSubscribers = (int)rd_scalar('SELECT COUNT(*) FROM newsletter_subscribers');
 $message = ['reference' => 'WK-READER-000001', 'first_name' => 'Questioner', 'email' => 'questioner@example.invalid', 'message' => 'Please clarify the source.'];
 $enquiry = reader_contact_submit($message, ['enquiry_type' => 'correction']);

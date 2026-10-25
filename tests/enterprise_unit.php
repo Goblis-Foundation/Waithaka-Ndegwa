@@ -20,7 +20,7 @@ er(fn()=>enterprise_save(7,$id,$input+['reviewed'=>'1','consent_confirmed'=>'1']
 er(fn()=>enterprise_save(7,$id,array_replace($input,['version'=>1,'action'=>'publish'])));
 enterprise_save(7,$id,array_replace($input,['version'=>1,'action'=>'publish','reviewed'=>'1','consent_confirmed'=>'1']));
 $p=enterprise_public_profiles()[0];
-ec(!isset($p['private_notes'],$p['consent_reference'],$p['targets_text']),'Private notes and permission references are excluded.');
+ec(array_intersect(['private_notes','consent_reference','targets_text'],array_keys($p))===[],'Private notes and permission references are excluded.');
 ec($p['summary']==='Reviewed summary'&&$p['targets'][0]['value']==='5'&&!isset($p['actual']),'Targets are retained without invented results.');
 enterprise_save(7,$id,array_replace($input,['version'=>2,'summary'=>'Unsaved public replacement','action'=>'draft']));
 ec(enterprise_public_profiles()[0]['summary']==='Reviewed summary','Private edits cannot replace the reviewed public profile.');
