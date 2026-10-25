@@ -3,8 +3,8 @@ declare(strict_types=1);
 require_once __DIR__.'/wise_api.php';
 /** Receiving instructions only. No money-movement permission or unverified settlement. */
 function wise_giving_fields(string $currency): array {
- $base=['holder'=>'Account holder','bank'=>'Bank name'];
- return $base+match($currency){'EUR'=>['iban'=>'IBAN','bic'=>'BIC / SWIFT code'],'USD'=>['routing'=>'ACH routing number','account'=>'Account number','account_type'=>'Account type','bank_address'=>'Bank address'],'GBP'=>['sort_code'=>'Sort code','account'=>'Account number'],default=>throw new InvalidArgumentException('Choose EUR, USD or GBP.')};
+ $base=['holder'=>'Account holder','bank'=>'Bank name','bank_address'=>'Bank address'];
+ return $base+match($currency){'EUR'=>['iban'=>'IBAN','bic'=>'BIC / SWIFT code'],'USD'=>['routing'=>'ACH routing number','account'=>'Account number','account_type'=>'Account type'] ,'GBP'=>['sort_code'=>'Sort code','account'=>'Account number'],default=>throw new InvalidArgumentException('Choose EUR, USD or GBP.')};
 }
 function wise_giving_rail(string $currency): string {return ['EUR'=>'SEPA bank transfer','USD'=>'US ACH bank transfer','GBP'=>'UK bank transfer · Faster Payments'][$currency]??'';}
 function wise_giving_iban(string $s): bool {

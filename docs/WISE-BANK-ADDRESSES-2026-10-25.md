@@ -1,0 +1,2 @@
+# Wise bank addresses
+All three receiving accounts now have their own multiline Bank address area: EUR/SEPA, USD/ACH and GBP/UK. Addresses belong to the bank shown in the Wise receiving instructions, not the account holder’s home address. Saved encrypted with the currency’s account details, displayed only with that explicitly enabled currency. Public instructions preserve line breaks and escape all markup. No bank details have been supplied or published yet.

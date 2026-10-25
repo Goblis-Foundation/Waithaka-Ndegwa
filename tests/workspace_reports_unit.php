@@ -44,7 +44,7 @@ wc($prior['brief_status']==='pending','Existing explicitly consented attachments
 wc(wise_giving_iban('DE89370400440532013000'),'IBAN checksum valid');
 wc(!wise_giving_iban('DE89370400440532013001'),'IBAN typo rejected');
 wx(fn()=>wise_giving_validate('USD',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','routing'=>'000000000','account'=>'12345678','account_type'=>'checking','bank_address'=>'Fixture address']));
-$gb=wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','sort_code'=>'12-34-56','account'=>'12345678']);
+$gb=wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','sort_code'=>'12-34-56','account'=>'12345678','bank_address'=>'Fixture bank address']);
 wc($gb['sort_code']==='123456','UK sort code preserves all digits');
 wx(fn()=>wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture','sort_code'=>'123456','account'=>'1234567']));
 wc(!wise_giving_validate('EUR',[])['enabled'],'Unconfigured currencies stay disabled');
@@ -89,3 +89,7 @@ wx(fn()=>integration_hub_values('paypal',['environment'=>'invalid']));
 wx(fn()=>integration_hub_values('unknown',[]));
 wx(fn()=>integration_hub_values('openai',['api_key'=>"fixture".chr(10)."secret"]));
 echo "PASS: provider-scoped integration settings and retained secrets.\n";
+
+foreach(['EUR','USD','GBP']as$currency)wc(isset(wise_giving_fields($currency)['bank_address']),'Every Wise currency includes bank address');
+wc(str_contains(file_get_contents(dirname(__DIR__).'/views/write/wise.php'),'Bank address exactly as shown in Wise'),'Bank address uses a multiline area with source guidance');
+echo "PASS: EUR SEPA, USD ACH and GBP UK bank address fields.\n";
