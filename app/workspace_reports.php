@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/location.php';
 require_once __DIR__.'/voice_notes.php';
 require_once __DIR__.'/text_editor.php';
 require_once __DIR__.'/wise_giving.php';
@@ -16,7 +17,7 @@ function booking_contact_input(array $in): array {
  if($phone!==''&&!str_starts_with($phone,'+')){if($code==='+254'&&str_starts_with($phone,'0'))$phone=substr($phone,1);$phone=$code.$phone;}
  if($phone!==''&&!preg_match('/^\\+[1-9][0-9]{6,14}$/D',$phone))throw new InvalidArgumentException('Enter a valid international phone number. You may enter the full number starting with +.');
  $country=reader_text($in['country']??'Kenya','Country',120,true);$city=reader_text($in['city']??'','City',120);
- return ['phone_code'=>$code,'phone'=>$phone,'country'=>$country,'city'=>$city];
+ return ['phone_code'=>$code,'phone'=>$phone]+location_fields($in+['country'=>$country,'city'=>$city]);
 }
 function booking_platform_input(array $in): array {
  $platform=reader_choice($in['platform']??'google_meet',booking_platforms(),'meeting method');$detail=reader_text($in['platform_detail']??'','Suggested arrangement',500,$platform==='other');$contact=booking_contact_input($in);

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/email_design.php';
+require_once __DIR__.'/location.php';
 
 /** Startup journeys, reviewed founder stories and a double-opt-in mailing list. */
 final class JourneyValidationException extends InvalidArgumentException {}
@@ -223,16 +224,23 @@ function founders_submission_values(array $input): array {
     $metrics=journeys_text($input['claimed_metrics']??'','Progress and metrics',3000);
     $basis=journeys_choice($input['metric_basis']??'',founders_metric_bases(),'basis for numerical claims');
     if($metrics!==''&&$basis==='not_applicable')throw new JourneyValidationException('Choose how your progress or numerical claims are supported, or leave that field empty.');
-    return ['submission_type'=>$type,'submitter_name'=>journeys_text($input['submitter_name']??'','Your name',120,true),'submitter_email'=>journeys_email($input['submitter_email']??''),
+    $values=['submission_type'=>$type,'submitter_name'=>journeys_text($input['submitter_name']??'','Your name',120,true),'submitter_email'=>journeys_email($input['submitter_email']??''),
         'founder_name'=>journeys_text($input['founder_name']??'','Founder name',120,true),'venture_name'=>journeys_text($input['venture_name']??'','Venture name',180,true),
         'country'=>journeys_text($input['country']??'','Country',120,true),'story_summary'=>journeys_text($input['story_summary']??'','Story',6000,true),
         'claimed_metrics'=>$metrics,'metric_basis'=>$basis,'private_evidence_notes'=>journeys_text($input['private_evidence_notes']??'','Private evidence notes',5000),
         'founder_publication_permission'=>($type==='founder'&&journeys_checked($input['founder_publication_permission']??null))?1:0];
+    if(array_intersect(['county','sub_county','region','district','city','phone'],array_keys($input))){try{$values['_location']=location_fields($input)+location_phone($input);}catch(InvalidArgumentException $e){throw new JourneyValidationException($e->getMessage());}}
+    return $values;
 }
 function founders_submit(array $values): string {
-    $ref='FOUNDER-'.strtoupper(bin2hex(random_bytes(8)));$now=journeys_now();
-    $s=db()->prepare('INSERT INTO founder_submissions(reference,submission_type,submitter_name,submitter_email,founder_name,venture_name,country,story_summary,claimed_metrics,metric_basis,private_evidence_notes,founder_publication_permission,privacy_version,privacy_accepted_at,ip_hash,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    $s->execute([$ref,...array_values($values),'2026-10-21-v1',$now,ip_hash(),$now,$now]);
+    $profile=$values['_location']??null;unset($values['_location']);
+    $ref='FOUNDER-'.strtoupper(bin2hex(random_bytes(8)));$now=journeys_now();$pdo=db();$own=!$pdo->inTransaction();if($own)$pdo->beginTransaction();
+    try{
+     $s=$pdo->prepare('INSERT INTO founder_submissions(reference,submission_type,submitter_name,submitter_email,founder_name,venture_name,country,story_summary,claimed_metrics,metric_basis,private_evidence_notes,founder_publication_permission,privacy_version,privacy_accepted_at,ip_hash,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+     $s->execute([$ref,...array_values($values),'2026-10-21-v1',$now,ip_hash(),$now,$now]);$id=(int)$pdo->lastInsertId();
+     if(is_array($profile))location_record_save('founder',$id,$profile);
+     if($own)$pdo->commit();
+    }catch(Throwable $e){if($own&&$pdo->inTransaction())$pdo->rollBack();throw $e;}
     if(function_exists('reader_founder_received'))reader_founder_received($ref);
     return $ref;
 }
