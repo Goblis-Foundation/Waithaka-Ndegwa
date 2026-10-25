@@ -26,7 +26,7 @@ function not_found(): never {
 function person_schema(): array {
     return [
         '@context'=>'https://schema.org','@type'=>'Person','@id'=>url('/about#person'),'name'=>'Waithaka Ndegwa','url'=>url('/about'),
-        'image'=>asset('images/journey/conversation.webp'),'birthPlace'=>['@type'=>'Place','name'=>'Nyeri, Kenya'],
+        'image'=>asset('images/journey/conversation.webp'),'birthPlace'=>['@type'=>'Place','name'=>'Nyeri Town, Kenya'],'alumniOf'=>[['@type'=>'CollegeOrUniversity','name'=>'The Riara University']],
         'description'=>'On the frontlines of social change in Africa, building practical solutions to some of the world’s most pressing social, economic, and environmental challenges.',
         'jobTitle'=>['Social entrepreneur','Innovation strategist','Ecosystem builder'],
         'sameAs'=>array_values(social_links()),
@@ -105,7 +105,7 @@ if (preg_match('~^/my-thoughts/([a-z0-9-]+)$~',$path,$m)) {
 
 if ($path === '/about') {
     $profile=['@context'=>'https://schema.org','@type'=>'ProfilePage','mainEntity'=>person_schema(),'url'=>url('/about'),'name'=>'About Waithaka Ndegwa'];
-    render('about',['page'=>'about','schema'=>[$profile],'seo'=>['title'=>'About Waithaka Ndegwa · Purpose, Practice & 2030 Goals','description'=>'Meet Waithaka Ndegwa: social entrepreneur, innovation strategist and ecosystem builder. Explore his work, approach and enterprise, employment and market-access goals for 2030.','canonical'=>url('/about')]]);
+    render('about',['page'=>'about','schema'=>[$profile],'seo'=>['title'=>'About Waithaka Ndegwa · My Story & Goal 2030','description'=>'From Nyeri and Endarasha to Bosco Boys Nairobi, business lessons and a lean-startup journey towards Goal 2030. Read Waithaka Ndegwa’s personal story.','canonical'=>url('/about')]]);
     exit;
 }
 
