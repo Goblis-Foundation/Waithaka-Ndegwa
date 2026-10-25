@@ -2,7 +2,7 @@
 <main class="write-main pub-main">
 <?php foreach(flashes()as$f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
 <p class="eyebrow">Private accounts · Microsoft 365</p><h1>Your accounts. One workspace.</h1>
-<p>Connect your three identities and check their calendars together. Your existing Teams &amp; Outlook meeting connection stays available.</p>
+<p>Connect your three identities and check their default Outlook calendars together. Your existing Teams &amp; Outlook meeting connection stays available.</p>
 <nav class="pub-nav" aria-label="Microsoft workspace"><a href="#accounts">Connect accounts</a><a href="#agenda">Combined agenda</a><a href="#desktop">Desktop setup</a><a href="#capabilities">Capabilities</a><a href="<?=url('/write/connections#meetings_microsoft')?>">App setup</a></nav>
 <?php if($error):?><div class="pub-hint pub-warning" role="alert"><?=e($error)?></div><?php endif;?>
 <section class="pub-card" id="capabilities"><h2>Read and plan privately</h2><p>Read the next seven days of Outlook meetings, recent mail headers, contacts, OneDrive file names, To Do lists and OneNote notebooks. Each check displays up to 20 items. Results stay in this private response; they are not stored as reports or sent to AI.</p>
