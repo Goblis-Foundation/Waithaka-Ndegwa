@@ -9,7 +9,7 @@ if (PHP_SAPI !== 'cli' || getenv('APP_ENV') !== 'testing' || getenv('WK_TEST_ALL
 $CONFIG = ['app_env' => 'testing', 'app_key' => getenv('APP_KEY') ?: 'local-test-key-not-for-production-use', 'base_url' => $base, 'timezone' => 'Africa/Nairobi', 'mail' => ['transport' => 'disabled'], 'db' => ['host' => $host, 'port' => (int)$port, 'name' => $name, 'user' => $user, 'pass' => $pass, 'charset' => 'utf8mb4']];
 $APP_INSTALLED = true; date_default_timezone_set('Africa/Nairobi');
 foreach (['functions', 'journeys', 'newsletter', 'reader'] as $module) require_once __DIR__.'/../app/'.$module.'.php';
-$checks = 0; $actor = 0; $subscriberIds = []; $founderIds = []; $contactIds = []; $sessionIds = []; $outboxIds = []; $topicId = 0;
+$opportunityFixtureId='';$opportunitySettings=[];$opportunityEmail='';$checks = 0; $actor = 0; $subscriberIds = []; $founderIds = []; $contactIds = []; $sessionIds = []; $outboxIds = []; $topicId = 0;
 $suffix = bin2hex(random_bytes(8)); $email = 'reader-http-'.$suffix.'@example.invalid'; $writerEmail = 'reader-writer-'.$suffix.'@example.invalid'; $password = bin2hex(random_bytes(20));
 $visitorJar = tempnam(sys_get_temp_dir(), 'wk-reader-visitor-'); $writerJar = tempnam(sys_get_temp_dir(), 'wk-reader-writer-');
 if ($visitorJar === false || $writerJar === false) throw new RuntimeException('Cannot allocate fixture cookie jars.');
@@ -18,7 +18,7 @@ function rh_row(string $sql, array $params = []): array { $q = db()->prepare($sq
 function rh_count(string $sql, array $params = []): int { $q = db()->prepare($sql); $q->execute($params); return (int)$q->fetchColumn(); }
 function rh_request(string $path, ?array $fields = null, bool $writer = false, string $method = 'GET'): array {
     global $base, $visitorJar, $writerJar, $sessionIds;
-    if (!preg_match('~^/(?:write(?:/|$)|newsletter(?:/|\?|$)|enterprises(?:/|\?|$)|founders(?:/|\?|$)|contact(?:\?|$))~', $path) || preg_match('/[\r\n]/', $path)) throw new RuntimeException('Only the local reader routes are allowed.');
+    if (!preg_match('~^/(?:write(?:/|$)|newsletter(?:/|\?|$)|enterprises(?:/|\?|$)|opportunities(?:/|\?|$)|founders(?:/|\?|$)|contact(?:\?|$))~', $path) || preg_match('/[\r\n]/', $path)) throw new RuntimeException('Only the local reader routes are allowed.');
     $headers = []; $curl = curl_init($base.$path); $jar = $writer ? $writerJar : $visitorJar;
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false, CURLOPT_PROXY => '', CURLOPT_PROTOCOLS => CURLPROTO_HTTP, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 15, CURLOPT_COOKIEFILE => $jar, CURLOPT_COOKIEJAR => $jar, CURLOPT_HEADERFUNCTION => static function($handle, string $line) use (&$headers, &$sessionIds): int { $pair = explode(':', $line, 2); if (count($pair) === 2) { $key = strtolower(trim($pair[0])); $headers[$key] = trim($pair[1]); if ($key === 'set-cookie' && preg_match('/^PHPSESSID=([A-Za-z0-9,-]+)/', $headers[$key], $m)) $sessionIds[$m[1]] = true; } return strlen($line); }]);
     if ($fields !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => http_build_query($fields)]);
@@ -45,6 +45,9 @@ function rh_latest_token(string $recipient, string $path): string {
 }
 try {
     $msPrivate=rh_request('/write/microsoft');rh_check(in_array($msPrivate['status'],[302,303],true)&&str_contains($msPrivate['headers']['location']??'','/write/login'),'Microsoft workspace requires authentication.');$msActionPrivate=rh_request('/write/microsoft/actions');rh_check(rh_redirect($msActionPrivate,'/write/login'),'Microsoft actions require authentication.');
+    $oppPrivate=rh_request('/write/opportunities');rh_check(rh_redirect($oppPrivate,'/write/login'),'Opportunity review inbox requires authentication.');
+    $oppIndex=rh_request('/opportunities');rh_check($oppIndex['status']===200&&!str_contains($oppIndex['body'],'JobPosting'), 'Empty opportunity directory renders without fake job schema.');
+    $oppFormPage=rh_request('/opportunities/submit');rh_check($oppFormPage['status']===200&&str_contains($oppFormPage['body'],'Save private draft'),'Opportunity submission form renders.');rh_private($oppFormPage,'Private submissions are non-indexed and no-store.');
     $enterpriseIndex=rh_request('/enterprises');rh_check($enterpriseIndex['status']===200&&str_contains($enterpriseIndex['body'],'Follow the work.'),'Enterprise directory is publicly readable with honest empty-state content.');
     $enterpriseMissing=rh_request('/enterprises/nonexistent-fixture');rh_check($enterpriseMissing['status']===404,'Unknown or unpublished enterprise profiles stay unavailable.');
     $enterprisePrivate=rh_request('/write/enterprises');rh_check(in_array($enterprisePrivate['status'],[302,303],true)&&str_contains($enterprisePrivate['headers']['location']??'','/write/login'),'Enterprise editing requires an authenticated owner.');
@@ -84,6 +87,24 @@ try {
     rh_check(rh_redirect(rh_request('/write/login', $login + ['email' => $writerEmail, 'password' => $password], true), '/write'), 'The fixture author signs in through the real login flow.');
     $msDenied=rh_request('/write/microsoft',null,true);rh_check($msDenied['status']===403,'A signed-in non-owner cannot access Microsoft grants.');rh_private($msDenied,'Microsoft owner guard carries private response headers.');
     set_setting('communication.config',json_encode(['owner'=>$actor],JSON_THROW_ON_ERROR),true);$msOwner=rh_request('/write/microsoft',null,true);rh_check($msOwner['status']===200&&str_contains($msOwner['body'],'Your accounts. One workspace.')&&str_contains($msOwner['body'],'isaac@goblisfoundation.com'),'The owner sees three independent Microsoft connection cards.');rh_private($msOwner,'Microsoft workspace is private.');
+    foreach(['communication.opportunity.index','communication.opportunity.duplicates']as$key)$opportunitySettings[$key]=rh_row('SELECT * FROM settings WHERE setting_key=?',[$key]);
+    $opportunityEmail='opportunity-'.$suffix.'@example.invalid';$oppInput=['contact_name'=>'HTTP Founder','contact_email'=>$opportunityEmail,'relationship'=>'Founder','organisation'=>'HTTP Enterprise','title'=>'HTTP reviewed role','purpose'=>'PRIVATE PURPOSE '.$suffix,'responsibilities'=>'Responsibilities','essential'=>'Experience','application_process'=>'Apply to employer','country'=>'Kenya','county'=>'Nyeri','sub_county'=>'Kieni West','city'=>'Endarasha','salary_min'=>'50000','salary_max'=>'60000','currency'=>'KES','apply_url'=>'https://example.org/jobs','closing_local'=>date('Y-m-d\TH:i',time()+30*86400),'timezone'=>'Africa/Nairobi','no_fee_ack'=>'1','privacy_ack'=>'1','private_evidence'=>'PRIVATE EVIDENCE '.$suffix,'action'=>'submit'];
+    $oppStart=rh_request('/opportunities/submit');$oppHidden=rh_form($oppStart,'/opportunities/submit');
+    $oppSaved=rh_request('/opportunities/submit',$oppHidden+$oppInput);rh_check(rh_redirect($oppSaved,'/opportunities/submit'),'Real opportunity form saves privately and redirects.');
+    foreach(db()->query("SELECT setting_key,setting_value,is_secret FROM settings WHERE setting_key LIKE 'communication.opportunity.record.%'")->fetchAll()as$row){$candidate=json_decode(decrypt_secret($row['setting_value']),true,32,JSON_THROW_ON_ERROR);if(($candidate['contact']['email']??'')===$opportunityEmail){$opportunityFixtureId=$candidate['id'];$oppRecord=$candidate;rh_check((int)$row['is_secret']===1,'Opportunity record is encrypted.');break;}}
+    rh_check($opportunityFixtureId!=='','Saved opportunity can be independently located.');$oppPath='/write/opportunities/'.$opportunityFixtureId;
+    $oppOwner=rh_request($oppPath,null,true);rh_check($oppOwner['status']===200&&str_contains($oppOwner['body'],'PRIVATE EVIDENCE '.$suffix),'Owner can review private authority evidence.');rh_private($oppOwner,'Owner opportunity records stay private.');
+    $oppCsrf=rh_request($oppPath,['action'=>'publish','version'=>1],true);rh_check($oppCsrf['status']===419,'Opportunity mutation requires CSRF.');
+    $oppDraftPublic=rh_request('/opportunities/'.$opportunityFixtureId);rh_check($oppDraftPublic['status']===410&&!str_contains($oppDraftPublic['body'],'PRIVATE PURPOSE'),'Unpublished listing never exposes private content.');
+    $oppOwnerForm=rh_form($oppOwner,$oppPath);$oppApproval=rh_request($oppPath,$oppOwnerForm+array_replace($oppInput,['action'=>'request_approval','contact_confirmed'=>'1','send_ack'=>'1']),true);rh_check(rh_redirect($oppApproval,$oppPath),'Owner queues exact final-copy approval.');
+    $raw=rh_row('SELECT setting_value FROM settings WHERE setting_key=?',['communication.opportunity.record.'.$opportunityFixtureId]);$oppRecord=json_decode(decrypt_secret($raw['setting_value']),true,32,JSON_THROW_ON_ERROR);$oppToken=$oppRecord['link']['token'];
+    $oppReview=rh_request('/opportunities/review?id='.$opportunityFixtureId.'&token='.$oppToken);rh_check($oppReview['status']===200&&str_contains($oppReview['body'],'Approve this exact listing'),'Founder sees exact-copy approval page.');rh_private($oppReview,'Founder capability pages suppress indexing and referrers.');
+    $oppResponse=rh_form($oppReview,'/opportunities/review');$oppApproved=rh_request('/opportunities/review',$oppResponse+['decision'=>'approve','approval_ack'=>'1']);rh_check($oppApproved['status']===200&&str_contains($oppApproved['body'],'Your response is saved.'),'Founder approves with an explicit protected POST.');
+    $oppReplay=rh_request('/opportunities/review?id='.$opportunityFixtureId.'&token='.$oppToken);rh_check($oppReplay['status']===410,'Used founder approval token cannot replay.');
+    $oppOwner=rh_request($oppPath,null,true);$oppPublish=rh_request($oppPath,rh_form($oppOwner,$oppPath)+['action'=>'publish','publish_ack'=>'1'],true);rh_check(rh_redirect($oppPublish,$oppPath),'Owner publishes only after founder approval.');
+    $oppLive=rh_request('/opportunities/'.$opportunityFixtureId);rh_check($oppLive['status']===200&&str_contains($oppLive['body'],'JobPosting')&&!str_contains($oppLive['body'],'PRIVATE EVIDENCE')&&!str_contains($oppLive['body'],$opportunityEmail),'Published listing has live job schema but no private identity or evidence.');
+    $oppOwner=rh_request($oppPath,null,true);$oppWithdraw=rh_request($oppPath,rh_form($oppOwner,$oppPath)+['action'=>'withdraw'],true);rh_check(rh_redirect($oppWithdraw,$oppPath),'Owner can withdraw a live listing.');
+    $oppClosed=rh_request('/opportunities/'.$opportunityFixtureId);rh_check($oppClosed['status']===410&&!str_contains($oppClosed['body'],'JobPosting'),'Withdrawn listing has no application link or job schema.');
     $msCsrf=rh_request('/write/microsoft',['action'=>'connect','account'=>'personal'],true);rh_check($msCsrf['status']===419,'Microsoft OAuth start requires CSRF protection.');
     $actionHome=rh_request('/write/microsoft/actions',null,true);rh_check($actionHome['status']===200&&str_contains($actionHome['body'],'Action history'),'The Microsoft action studio renders for the owner.');rh_private($actionHome,'Action access and history stay private.');
     set_setting('communication.microsoft.workspace.personal',json_encode(['owner'=>$actor,'status'=>'connected','identity'=>['id'=>'http-fixture','email'=>'iwaithakaw@gmail.com']],JSON_THROW_ON_ERROR),true);
@@ -142,7 +163,9 @@ try {
     echo 'Reader HTTP checks: '.$checks." passed.\n";
 } finally {
     // Only random fixture-owned records are removed; no DB is dropped or reused here.
-    $fixtureRecipients = [$email, 'founder-'.$suffix.'@example.invalid'];
+    $fixtureRecipients = [$email, 'founder-'.$suffix.'@example.invalid',$opportunityEmail];
+    if($opportunityFixtureId!=='')db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['communication.opportunity.record.'.$opportunityFixtureId]);
+    foreach($opportunitySettings as$key=>$old){if($old)db()->prepare('UPDATE settings SET setting_value=?,is_secret=? WHERE setting_key=?')->execute([$old['setting_value'],$old['is_secret'],$key]);else db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute([$key]);}
     foreach (db()->query('SELECT id,payload FROM email_outbox')->fetchAll() as $row) {
         try { $payload = json_decode(decrypt_secret($row['payload']), true, 32, JSON_THROW_ON_ERROR); if (in_array($payload['to'] ?? '', $fixtureRecipients, true)) $outboxIds[(int)$row['id']] = true; } catch (Throwable $ignored) { /* Do not alter unrelated or unreadable jobs. */ }
     }
@@ -155,5 +178,6 @@ try {
     foreach (array_keys($sessionIds) as $id) db()->prepare('DELETE FROM app_sessions WHERE id=?')->execute([$id]);
     foreach ([$visitorJar, $writerJar] as $file) if (is_file($file)) unlink($file);
 }
+
 
 

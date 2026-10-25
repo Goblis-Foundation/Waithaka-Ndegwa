@@ -1,0 +1,1 @@
+<section class="section"><div class="container"><h1>This opportunity is closed.</h1><p>Applications are no longer available from this listing.</p><a class="button" href="<?=url('/opportunities')?>">View current opportunities</a></div></section>
