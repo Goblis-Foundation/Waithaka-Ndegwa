@@ -110,3 +110,5 @@ wc(wise_api_setup_test(['event_type'=>'transfers#state-change','schema_version'=
 wc(!wise_api_setup_test(['event_type'=>'balances#update','schema_version'=>'4.0.0'],false),'Live events cannot bypass configured profile and subscription checks');
 wc(!wise_api_setup_test([],true),'Malformed test data rejected');
 echo "PASS: Wise setup-only test classification preserves strict live event validation.\n";
+
+$deposit=array_replace($event,['event_type'=>'balances#credit','schema_version'=>'2.0.0']);wc(wise_api_webhook_data($deposit,$cfg,false)['event']==='balances#credit','Personal Wise deposit events supported without settlement');
