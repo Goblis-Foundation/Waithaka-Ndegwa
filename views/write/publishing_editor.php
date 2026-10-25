@@ -90,3 +90,4 @@
   <?php endif;?>
 </main>
 <script src="<?=asset('js/publishing-automation.js')?>" defer></script>
+<script src="<?=asset('js/text-editor.js')?>" defer></script><link rel="stylesheet" href="<?=asset('css/text-editor.css')?>">

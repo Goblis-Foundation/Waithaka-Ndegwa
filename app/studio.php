@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/text_editor.php';
 
 function studio_ai_provider(mixed $value): string {
     if(!is_string($value)||!in_array($value,['openai','gemini'],true))throw new InvalidArgumentException('Choose OpenAI or Google Gemini.');return $value;
@@ -20,7 +21,7 @@ function studio_capture_fields(string $title,string $idea): array {
     $idea=studio_input($idea);$title=trim($title);
     if(mb_strlen($title)>240)throw new InvalidArgumentException('Keep the title under 240 characters.');
     if($title==='')$title='Idea · '.date('j M Y H:i');
-    return ['id'=>0,'title'=>$title,'content_html'=>'<p>'.nl2br(e($idea),false).'</p>','writer_note'=>'Captured in Studio. Check evidence, permissions and sources before publishing.'];
+    return ['id'=>0,'title'=>$title,'content_html'=>workspace_rich_text($idea),'writer_note'=>'Captured in Studio. Check evidence, permissions and sources before publishing.'];
 }
 function studio_dispatch(string $path): bool {
     if($path==='/write/mail-test'){

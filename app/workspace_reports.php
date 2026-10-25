@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/voice_notes.php';
+require_once __DIR__.'/text_editor.php';
 /** Private notes, reviewed reports, weekly routines and booking briefing preparation. */
 function booking_document_request_provider(array $input): string {return studio_ai_provider($input['document_provider']??'gemini');}
 function booking_document_provider(array $cfg): string {return studio_ai_provider($cfg['document_ai']??'openai');}
@@ -53,7 +55,7 @@ function workspace_note_save(int $uid,array $in): array {
 function workspace_note_email(int $uid,array $in): int {
  $n=workspace_note_owned($uid,reader_text($in['id']??'','Note',32,true));if($n['version']!==(int)($in['version']??0)||$n['report_state']!=='reviewed'||$n['report']==='')throw new RuntimeException('Save and review the current report before sending.');
  $to=reader_text($in['to']??'','Recipient email',190,true);$name=reader_text($in['name']??'','Recipient first name',120,true);if(!filter_var($to,FILTER_VALIDATE_EMAIL)||preg_match('/[\r\n]/',$to))throw new InvalidArgumentException('Enter one valid recipient email.');if(($in['send_consent']??'')!=='1')throw new InvalidArgumentException('Confirm this recipient and report before sending.');
- $id=enqueue_email($to,$n['title'].' · report',email_design($n['title'],'<p>'.nl2br(e($n['report'])).'</p>',['name'=>$name]),'note-report:'.$uid.':'.$n['id'].':'.$n['version'].':'.strtolower($to));email_work(1,null,[$id]);return $id;
+ $id=enqueue_email($to,$n['title'].' · report',email_design($n['title'],workspace_rich_text($n['report']),['name'=>$name]),'note-report:'.$uid.':'.$n['id'].':'.$n['version'].':'.strtolower($to));email_work(1,null,[$id]);return $id;
 }
 /** At most one private PDF/image; no public media URL is created. */
 function booking_document_upload(array $file,bool $consent,string $provider='gemini'): array {
@@ -86,6 +88,7 @@ function booking_owner_attention(array $b): void {$id=$b['id'].'.'.$b['version']
 function booking_owner_mail(array $b): void {if(empty($b['brief_report']))return;$id=$b['id'].'.'.$b['version'].'.owner_review';if(!comm_get('mail.'.$id))comm_put('mail.'.$id,['id'=>$id,'booking'=>$b['id'],'version'=>$b['version'],'event'=>'owner_review','status'=>'pending','created'=>time()]);}
 function booking_report_ready(array $b): bool {return ($b['brief_status']??'')==='ready'&&trim((string)($b['brief_report']??''))!=='';}
 function workspace_reports_dispatch(string $path): bool {
+ if(voice_dispatch($path))return true;
  if(preg_match('~^(/write/notes/report|/write/booking-review)/([a-f0-9]{32})$~D',$path,$route)){$_GET['id']=$route[2];$path=$route[1];}
  if(!in_array($path,['/write/notes','/write/notes/report','/write/booking-review','/write/booking-document'],true))return false;require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$error='';$note=null;$emailStatus='';
  if(str_starts_with($path,'/write/booking-')){

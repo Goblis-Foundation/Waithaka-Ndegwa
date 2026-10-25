@@ -5,7 +5,7 @@
 <?php if($wu):?><span class="workspace-location"><?=e($title)?></span><div class="workspace-top-actions"><a class="wbtn" href="<?=url('/write/capture')?>">Capture idea</a><a class="wbtn primary" href="<?=url('/write/new')?>">New thought</a><button class="wbtn writer-menu-toggle" type="button" data-writer-menu aria-expanded="false" aria-controls="writer-navigation" hidden>Menu</button></div><?php endif;?></header>
 <?php if($wu):
 $navigation=[
-'Daily work'=>['/write'=>'Today','/write/notes'=>'Notes & reports','/write/program'=>'Daily & weekly program','/write/communication'=>'Communication Centre','/write/meetings'=>'Meetings & booking'],
+'Daily work'=>['/write'=>'Today','/write/notes'=>'Notes & reports','/write/voice'=>'Voice notes & post ideas','/write/program'=>'Daily & weekly program','/write/communication'=>'Communication Centre','/write/meetings'=>'Meetings & booking'],
 'Create & publish'=>['/write/studio'=>'Studio & AI','/write/capture'=>'Capture idea','/write/new'=>'New thought','/write#library'=>'Article library','/write/media-centre'=>'Media centre','/write/publishing'=>'Posting & calendar','/write/media'=>'Images & videos','/write/connections'=>'Social connections'],
 'Audience'=>['/write/newsletter'=>'Newsletter','/write/readers'=>'Reader desk','/write/campaigns'=>'Campaigns','/write/discovery'=>'Search performance'],
 'Journeys & impact'=>['/write/journeys'=>'Startup Journeys','/write/journeys/founders'=>'Founder reviews','/write/editorial'=>'Resources & evidence','/write/releases'=>'Consent records','/write/impact'=>'2030 reporting'],
