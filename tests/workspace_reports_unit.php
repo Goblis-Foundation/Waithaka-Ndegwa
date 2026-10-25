@@ -91,10 +91,17 @@ wx(fn()=>integration_hub_values('openai',['api_key'=>"fixture".chr(10)."secret"]
 echo "PASS: provider-scoped integration settings and retained secrets.\n";
 
 foreach(['EUR','USD','GBP']as$currency)wc(isset(wise_giving_fields($currency)['bank_address']),'Every Wise currency includes bank address');
-wc(str_contains(file_get_contents(dirname(__DIR__).'/views/write/wise.php'),'Bank address exactly as shown in Wise'),'Bank address uses a multiline area with source guidance');
+wc(str_contains(file_get_contents(dirname(__DIR__).'/views/write/wise_accounts.php'),'Bank address exactly as shown in Wise'),'Bank address uses a multiline area with source guidance');
 echo "PASS: EUR SEPA, USD ACH and GBP UK bank address fields.\n";
 
 $gbIban=wise_giving_validate('GBP',['enabled'=>1,'holder'=>'Fixture','bank'=>'Fixture bank','bank_address'=>'Fixture bank address','sort_code'=>'123456','account'=>'98765432','iban'=>'GB82 WEST 1234 5698 7654 32','bic'=>'NWBKGB2L']);
 wc($gbIban['iban']==='GB82WEST12345698765432'&&$gbIban['account']==='98765432','UK supports account number and IBAN together');
 wx(fn()=>wise_giving_validate('GBP',array_replace($gbIban,['iban'=>'GB82WEST12345698765433'])));
 echo "PASS: UK local account details and optional international IBAN checksum.\n";
+
+$oldWise=['version'=>3,'accounts'=>['USD'=>['currency'=>'USD','enabled'=>false,'holder'=>'Retain existing USD']]];
+$newWise=wise_giving_account_update($oldWise,'EUR',['currency'=>'EUR','enabled'=>false,'holder'=>'New EUR'],3,1);
+wc($newWise['accounts']['USD']===$oldWise['accounts']['USD']&&$newWise['accounts']['EUR']['holder']==='New EUR','Saving one currency preserves other receiving accounts');
+wc($newWise['version']===4&&isset($newWise['account_saved']['EUR']),'Currency save records its own save timestamp');
+$staleCurrency=false;try{wise_giving_account_update($oldWise,'EUR',['currency'=>'EUR'],2,1);}catch(RuntimeException){$staleCurrency=true;}wc($staleCurrency,'Stale account changes cannot overwrite current details');
+echo "PASS: independent Wise currency saves, retained accounts and optimistic version checks.\n";

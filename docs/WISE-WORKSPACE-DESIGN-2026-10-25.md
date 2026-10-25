@@ -1,0 +1,6 @@
+# Wise workspace design and account-specific saving
+Two focused areas: Connect & activity, and Receiving details. The connection page leads with actual token/profile/publication status and a guided save/verify flow; webhook and eligibility technical guidance stays expandable. Activity remains private and payment acknowledgement stays manual.
+
+Receiving details offers EUR, USD and GBP navigation and one clear currency form at a time. Each has its own Bank address area and Save EUR / USD / GBP account action. A selected-currency save validates only that currency and merges it into the latest locked record, preserving all other currencies and settings. Version checks reject stale changes; per-currency save timestamps provide feedback. Invalid bank-detail input is retained on same-version errors, while credentials never echo back. An unsaved-change indicator and navigation warning protect unsaved account edits. Publication still requires enabling that currency and explicit approval.
+
+GBP keeps its local account and sort code alongside optional IBAN/BIC. Public instructions remain unchanged. No real bank detail, token or subscription has been supplied or activated by this design change.
