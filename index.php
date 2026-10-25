@@ -108,42 +108,37 @@ if ($path === '/about') {
 }
 
 if ($path === '/contact') {
+    header('Cache-Control: no-store, private, max-age=0');header('Referrer-Policy: no-referrer');
     if (is_post()) {
         verify_csrf();
-        if (!empty($_POST['website'])) { redirect(url('/contact')); }
-        if (contact_rate_limited()) { flash('error','Too many messages have been sent from this connection. Please try again later.'); redirect(url('/contact')); }
+        if (!empty($_POST['website'])) { redirect(url('/contact#contact-message')); }
+        unset($_SESSION['contact_receipt']);
+        $_SESSION['contact_form']=contact_draft_values($_POST);
+        $contactNonce=contact_form_nonce($_POST['contact_request']??'');
+        $contactDigest=hash('sha256',json_encode($_SESSION['contact_form'],JSON_THROW_ON_ERROR));
+        if($contactNonce!==''&&isset($_SESSION['contact_requests'][$contactNonce])){$priorReceipt=$_SESSION['contact_requests'][$contactNonce];if(($priorReceipt['digest']??'')!==$contactDigest){flash('error','That form was already sent. Your changes are shown below; review and send this new form to create a follow-up.');redirect(url('/contact#contact-message'));}$_SESSION['contact_receipt']=$priorReceipt;unset($_SESSION['contact_form']);redirect(url('/contact#contact-receipt'));}
+        if (contact_rate_limited()) { flash('error','Too many messages have been sent from this connection. Please try again later.'); redirect(url('/contact#contact-message')); }
         $m=[
             'reference'=>make_reference('WK'),'first_name'=>trim((string)($_POST['first_name']??'')),'last_name'=>trim((string)($_POST['last_name']??'')),
             'email'=>trim((string)($_POST['email']??'')),'phone_code'=>trim((string)($_POST['phone_code']??'+254')),'phone'=>trim((string)($_POST['phone']??'')),
             'country'=>trim((string)($_POST['country']??'Kenya')),'city'=>trim((string)($_POST['city']??'')),'message'=>trim((string)($_POST['message']??'')),
         ];
-        if(($_POST['booking_request']??'')==='1'){
-            try{
-                if(($_POST['booking_consent']??'')!=='1')throw new InvalidArgumentException('Confirm use of your details for this meeting request.');
-                $meetingCfg=comm_config();$meetingType=reader_text($_POST['booking_type']??'','Conversation',40,true);
-                if(!isset($meetingCfg['types'][$meetingType]))throw new InvalidArgumentException('Choose a conversation.');
-                $preferredDate=comm_date($_POST['preferred_date']??'');$preferredTime=reader_text($_POST['preferred_time']??'','Preferred time',5,true);$preferredZone=comm_zone($_POST['booking_timezone']??'');
-                if(!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$preferredTime))throw new InvalidArgumentException('Choose a valid preferred time.');
-                $preferred=new DateTimeImmutable($preferredDate.' '.$preferredTime,$preferredZone);
-                if($preferred->getTimestamp()<time()||$preferred->getTimestamp()>time()+366*86400)throw new InvalidArgumentException('Choose a preferred time in the next year.');
-                if($m['last_name']==='')throw new InvalidArgumentException('Add your last name for the meeting request.');
-                $m['message']="MEETING REQUEST — NOT CONFIRMED\nConversation: ".$meetingCfg['types'][$meetingType]['name']."\nPreferred: ".$preferredDate.' '.$preferredTime.' '.$preferredZone->getName()."\n\n".$m['message'];
-            }catch(InvalidArgumentException $error){flash('error',$error->getMessage());redirect(url('/book'));}
-        }
         if($m['first_name']===''||!filter_var($m['email'],FILTER_VALIDATE_EMAIL)||$m['message']===''){
-            flash('error','Please complete all required fields with a valid email address.');redirect(url('/contact'));
+            flash('error','Please complete all required fields with a valid email address.');redirect(url('/contact#contact-message'));
         }
-        if(!recaptcha_ok()){flash('error','Please complete the “I am not a robot” check.');redirect(url('/contact'));}
+        if(!recaptcha_ok()){flash('error','Please complete the “I am not a robot” check.');redirect(url('/contact#contact-message'));}
         if(function_exists('reader_contact_submit')){
-            try{reader_contact_submit($m,$_POST);}catch(InvalidArgumentException $e){flash('error',$e->getMessage());redirect(url('/contact'));}
+            try{$contactId=reader_contact_submit($m,$_POST);try{contact_delivery_register($contactId,$m['reference']);}catch(Throwable $deliveryError){error_log('New contact delivery registration needs review.');}}catch(InvalidArgumentException $e){flash('error',$e->getMessage());redirect(url('/contact#contact-message'));}
         }else{
             $st=db()->prepare('INSERT INTO contact_messages(reference,first_name,last_name,email,phone_code,phone,country,city,message,ip_hash,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
             $st->execute([$m['reference'],$m['first_name'],$m['last_name'],$m['email'],$m['phone_code'],$m['phone'],$m['country'],$m['city'],$m['message'],ip_hash(),mb_substr($_SERVER['HTTP_USER_AGENT']??'',0,500)]);
             $sent=send_contact_email($m); if($sent&&!function_exists('enqueue_email'))db()->prepare('UPDATE contact_messages SET email_sent=1 WHERE reference=?')->execute([$m['reference']]);
         }
-        flash('success','Thank you. Your message has been received. Reference: '.$m['reference']);redirect(url('/contact'));
+        $receipt=['reference'=>$m['reference'],'first'=>$m['first_name'],'type'=>$_SESSION['contact_form']['enquiry_type']??'general','digest'=>$contactDigest];$_SESSION['contact_receipt']=$receipt;unset($_SESSION['contact_form']);if($contactNonce!==''){$_SESSION['contact_requests'][$contactNonce]=$receipt;$_SESSION['contact_requests']=array_slice($_SESSION['contact_requests'],-20,null,true);}
+        flash('success','Thank you. Your message has been received. Reference: '.$m['reference']);redirect(url('/contact#contact-receipt')); 
     }
-    render('contact',['page'=>'contact','seo'=>['title'=>'Contact · Waithaka Ndegwa','description'=>'Contact Waithaka Ndegwa for thoughtful questions, speaking invitations, collaborations, media enquiries or responses to My Thoughts.','canonical'=>url('/contact')]]);exit;
+    $contactDraft=$_SESSION['contact_form']??[];$contactReceipt=$_SESSION['contact_receipt']??null;unset($_SESSION['contact_form'],$_SESSION['contact_receipt']);if($contactDraft||$contactReceipt)header('X-Robots-Tag: noindex, nofollow, noarchive');$queryType=is_string($_GET['type']??null)&&isset(contact_guides()[$_GET['type']])?$_GET['type']:'general';$contactValues=$contactDraft+['enquiry_type'=>$queryType,'phone_code'=>'+254','country'=>''];
+    render('contact',['contactValues'=>$contactValues,'contactReceipt'=>$contactReceipt,'page'=>'contact','seo'=>['title'=>'Contact · Waithaka Ndegwa','description'=>'Contact Waithaka Ndegwa for thoughtful questions, speaking invitations, collaborations, media enquiries or responses to My Thoughts.','canonical'=>url('/contact')]]);exit;
 }
 
 if ($path === '/contribute') {
@@ -560,4 +555,5 @@ if ($path === '/write/settings') {
 }
 
 not_found();
+
 

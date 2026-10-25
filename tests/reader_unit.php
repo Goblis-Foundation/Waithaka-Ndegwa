@@ -5,7 +5,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 $CONFIG = ['app_env' => 'testing', 'app_key' => 'reader-unit-key-only-not-for-production', 'base_url' => 'https://www.waithakandegwa.com', 'timezone' => 'Africa/Nairobi'];
 $APP_INSTALLED = false;
-foreach (['functions', 'journeys', 'newsletter', 'reader'] as $module) require_once __DIR__.'/../app/'.$module.'.php';
+foreach (['functions', 'journeys', 'newsletter', 'reader', 'contact_experience'] as $module) require_once __DIR__.'/../app/'.$module.'.php';
 $checks = 0;
 function reader_unit_check(bool $condition, string $label): void { global $checks; if (!$condition) throw new RuntimeException('FAIL: '.$label); $checks++; }
 function reader_unit_reject(callable $action, string $label): void { try { $action(); } catch (ReaderValidationException $error) { reader_unit_check(true, $label); return; } reader_unit_check(false, $label); }
@@ -54,3 +54,6 @@ reader_unit_check(str_contains($preview, 'Email preferences') && !str_contains($
 $rendered = newsletter_html($snapshot, 'https://example.com/unsubscribe', 'https://example.com/preferences?a=1&b=2');
 reader_unit_check(str_contains($rendered, 'preferences?a=1&amp;b=2'), 'Recipient preference URLs are escaped in delivery HTML.');
 echo 'Reader pure checks: '.$checks." passed.\n";
+
+
+$contactDraft=contact_draft_values(['first_name'=>'  Synthetic  ','message'=>'Private draft <text>','enquiry_type'=>'speaking','email'=>['bad'],'csrf'=>'must-not-save','not_robot'=>'1']);reader_unit_check($contactDraft['first_name']==='Synthetic'&&$contactDraft['message']==='Private draft <text>','Failed form values preserve author text for escaped rendering');reader_unit_check($contactDraft['email']===''&&!isset($contactDraft['csrf'])&&!isset($contactDraft['not_robot']),'Draft retains only bounded form fields, never captcha/session controls');reader_unit_check(contact_draft_values(['enquiry_type'=>'unsupported'])['enquiry_type']==='general','Unknown enquiry purpose cannot alter routing');reader_unit_check(array_keys(contact_guides())===['collaboration','speaking','media','reader_question','correction','general'],'Purpose paths map to existing typed enquiries');reader_unit_check(contact_form_nonce(str_repeat('a',32))!==''&&contact_form_nonce([])===''&&contact_form_nonce('invalid')==='','Only bounded form tokens can deduplicate successful receipts');

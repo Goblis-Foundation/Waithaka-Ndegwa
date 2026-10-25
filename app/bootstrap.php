@@ -34,7 +34,7 @@ require_once __DIR__.'/media_storage.php';
 require_once __DIR__.'/media_library.php';
 require_once __DIR__.'/mail_feedback.php';
 require_once __DIR__.'/integrations.php';
-foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','founder_stories','founder_story_routes','discovery','discovery_routes','campaigns','campaign_routes','google_workspace','meetings','communication','communication_notifications','app_security','communication_mail','trusted_devices','planner','publishing_automation','workspace_reports'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
+foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','founder_stories','founder_story_routes','discovery','discovery_routes','campaigns','campaign_routes','google_workspace','meetings','communication','communication_notifications','app_security','communication_mail','trusted_devices','planner','publishing_automation','workspace_reports','contact_experience'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
 
 if (PHP_SAPI !== 'cli') {
     header('X-Content-Type-Options: nosniff'); header('Referrer-Policy: strict-origin-when-cross-origin'); header('X-Frame-Options: SAMEORIGIN');
@@ -70,5 +70,6 @@ if (PHP_SAPI !== 'cli') {
     session_start();
     if(function_exists('app_trust_restore')){app_trust_restore();if(!empty($_SESSION['user_id'])&&!isset($_SESSION['trust_opt_out'])&&current_user())app_trust_issue((int)$_SESSION['user_id']);}
 }
+
 
 

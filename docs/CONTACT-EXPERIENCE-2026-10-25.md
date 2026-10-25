@@ -1,0 +1,11 @@
+# Purpose-led contact experience
+
+The public Contact page now shares the website’s forest-green, paper and editorial typography, with six purpose paths mapped to existing Communication Centre enquiry types. Each has tailored prompts and a context checklist. Native links/selects remain usable without JavaScript; enhanced selection never overwrites message text. Required first name/email/message stay prominent, while optional phone/location fields are disclosed on demand. The layout stacks for phones and tablets with 16px form inputs, labelled controls, keyboard focus states and reduced-motion support.
+
+Booking stays on the website’s verified-slot flow. Contact reflects its configured open/closed state and no longer offers an alternative preferred-time request or external Google booking shortcut. Founder submissions, professional information and newsletters retain distinct routes. The page states accurately that a message does not book a meeting, publish content, subscribe to marketing or automatically send the text to AI.
+
+Failed submissions retain bounded, escaped field values for the next view; captcha/CSRF controls are never retained. Successful submissions show the durable reference, with a user-triggered copy control. A bounded session form token prevents resubmitting the same completed form from creating another enquiry. Native POST/redirect/GET and the existing anti-spam, transactional typed intake and designed email templates remain authoritative.
+
+New successful contact submissions register only their own existing owner-notification and visitor-receipt outbox entries. An independent scoped worker processes these future registrations without enabling the global worker or releasing historical newsletter/contact/social/payment messages. Suppression, recipient locking, dedupe and ambiguous-delivery safeguards remain in the existing mail worker. Provider acknowledgement is not inbox receipt. Synthetic CI transports verify exactly two new-contact messages and preservation of an unrelated historical outbox entry; no real visitor email is used for live acceptance.
+
+Validation also covers purpose preselection, failed-form retention, durable receipt rendering and repeat-submit protection. No schema, paid infrastructure, API credentials or access scopes change.
