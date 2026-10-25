@@ -10,7 +10,7 @@ function paypal_notifications_current(array $cfg): bool {
  return isset($cfg['fingerprint'])&&hash_equals((string)$cfg['fingerprint'],paypal_connection_fingerprint());
 }
 function paypal_notification_types(): array {
- return ['CHECKOUT.ORDER.APPROVED','PAYMENT.CAPTURE.COMPLETED','PAYMENT.CAPTURE.PENDING','PAYMENT.CAPTURE.DENIED','PAYMENT.CAPTURE.REFUNDED','PAYMENT.CAPTURE.REVERSED'];
+ return array_merge(['CHECKOUT.ORDER.APPROVED','PAYMENT.CAPTURE.COMPLETED','PAYMENT.CAPTURE.PENDING','PAYMENT.CAPTURE.DENIED','PAYMENT.CAPTURE.REFUNDED','PAYMENT.CAPTURE.REVERSED'],monthly_paypal_events());
 }
 function paypal_notification_locator(array $event): array {
  $type=$event['event_type']??'';if(!in_array($type,paypal_notification_types(),true))return [];
@@ -41,7 +41,7 @@ function paypal_notifications_save(array $in): void {
   if(!preg_match('/^[A-Z0-9]{1,80}$/D',$id))throw new InvalidArgumentException('Enter the PayPal webhook ID.');
   $hook=http_json('GET',paypal_base().'/v1/notifications/webhooks/'.$id,['Authorization: Bearer '.paypal_token()]);
   if(($hook['id']??'')!==$id||($hook['url']??'')!==url('/webhooks/paypal'))throw new InvalidArgumentException('This webhook does not belong to this app and exact callback URL.');
-  $types=array_column($hook['event_types']??[],'name');foreach(paypal_notification_types()as$type)if(!in_array($type,$types,true))throw new InvalidArgumentException('Select all six listed checkout and capture events in PayPal.');
+  $types=array_column($hook['event_types']??[],'name');foreach(paypal_notification_types()as$type)if(!in_array($type,$types,true))throw new InvalidArgumentException('Select all listed checkout, capture and monthly subscription events in PayPal.');
  }
  comm_lock('paypal.notifications',function()use($in,$id,$enabled,$reconcile,$fingerprint){$old=paypal_notifications_config();if((int)($in['notification_version']??0)!==(int)($old['version']??0))throw new InvalidArgumentException('Notification settings changed. Reload before saving.');
   $same=paypal_notifications_current($old);comm_put('paypal.notifications',['version'=>($old['version']??0)+1,'webhook_id'=>$id,'enabled'=>$enabled,'reconcile'=>$reconcile,'fingerprint'=>$fingerprint,'since'=>$same&&isset($old['since'])?$old['since']:(string)db()->query('SELECT NOW()')->fetchColumn(),'updated'=>time()]);
@@ -55,6 +55,7 @@ function paypal_notifications_work(int $limit=5): array {
 }
 /** Call only after signature verification. Does not alter financial contribution status. */
 function paypal_notifications_record(array $event): bool {
+  if(monthly_notice($event))return true;
   $loc=paypal_notification_locator($event);if(!$loc)return false;
   if($loc['kind']==='order')$row=payment_find('paypal',$loc['id']);
   else{$q=db()->prepare("SELECT c.* FROM contributions c JOIN payment_provider_ids i ON i.contribution_id=c.id WHERE i.provider='paypal' AND i.identifier_type='capture' AND i.external_id=? AND c.method='paypal'");$q->execute([$loc['id']]);$row=$q->fetch()?:null;}

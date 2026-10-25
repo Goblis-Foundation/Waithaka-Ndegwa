@@ -99,3 +99,17 @@ foreach(['https://api.paypal.com.evil.invalid/v1/notifications/certs/CERT-fixtur
 echo "PASS: PayPal notification correlation, refund review and signature input boundaries.\n";
 
 echo "PASS: {$checks} security unit assertions\n";
+
+$monthlyPlan=monthly_paypal_plan('PROD-12345678901234567','10.00');
+check(monthly_paypal_plan_matches($monthlyPlan,'PROD-12345678901234567','10.00'),'Monthly plan fixes price currency and monthly frequency.');
+$changed=$monthlyPlan;$changed['billing_cycles'][0]['frequency']['interval_unit']='DAY';check(!monthly_paypal_plan_matches($changed,'PROD-12345678901234567','10.00'),'Daily schedule cannot masquerade as monthly.');
+$changed=$monthlyPlan;$changed['billing_cycles'][0]['pricing_scheme']['fixed_price']['value']='100.00';check(!monthly_paypal_plan_matches($changed,'PROD-12345678901234567','10.00'),'Changed monthly price rejected.');
+$changed=$monthlyPlan;$changed['payment_preferences']['setup_fee']=['currency_code'=>'USD','value'=>'1.00'];check(!monthly_paypal_plan_matches($changed,'PROD-12345678901234567','10.00'),'Unexpected setup fee rejected.');
+rejects(fn()=>monthly_paypal_plan('PROD-12345678901234567','1000.00'),'Unsupported monthly amount rejected.');
+$mr=['subscription'=>'I-FIXTURE','plan'=>'P-FIXTURE','id'=>'MONTHLY-FIXTURE'];$ms=['id'=>'I-FIXTURE','plan_id'=>'P-FIXTURE','custom_id'=>'MONTHLY-FIXTURE','status'=>'ACTIVE'];
+check(monthly_subscription_matches($mr,$ms),'Exact provider subscription and plan correlate.');
+check(!monthly_subscription_matches($mr,array_replace($ms,['custom_id'=>'FOREIGN'])),'Another support reference cannot take over a subscription.');
+check(!monthly_subscription_matches($mr,array_replace($ms,['plan_overridden'=>true])),'Overridden plans require review.');
+check(!monthly_subscription_matches($mr,array_replace($ms,['quantity'=>'2'])),'Unexpected multiplier rejected.');
+check(!monthly_subscription_matches($mr,array_replace($ms,['status'=>'COMPLETED'])),'An instalment status cannot be substituted for a subscription status.');
+echo "PASS: fixed monthly PayPal pricing, no setup fee, subscription identity and no inferred payment settlement.\n";
