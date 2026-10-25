@@ -112,3 +112,8 @@ wc(!wise_api_setup_test([],true),'Malformed test data rejected');
 echo "PASS: Wise setup-only test classification preserves strict live event validation.\n";
 
 $deposit=array_replace($event,['event_type'=>'balances#credit','schema_version'=>'2.0.0']);wc(wise_api_webhook_data($deposit,$cfg,false)['event']==='balances#credit','Personal Wise deposit events supported without settlement');
+
+wc(wise_giving_link('https://wise.com/pay/business/fixture')==='https://wise.com/pay/business/fixture','Permanent Wise business link accepted');
+wc(wise_giving_link('https://wise.com/pay/me/fixture')==='https://wise.com/pay/me/fixture','Personal Wisetag link accepted');
+foreach(['https://wise.com.evil.invalid/pay/me/a','https://evil.invalid/pay/me/a','javascript:alert(1)','https://wise.com/pay/me/a?token=secret','https://user@wise.com/pay/me/a']as$bad)wx(fn()=>wise_giving_link($bad));
+echo "PASS: hosted Wise receiving links reject foreign hosts, credentials and query parameters.\n";
