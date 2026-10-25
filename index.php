@@ -112,6 +112,7 @@ if ($path === '/contact') {
     if (is_post()) {
         verify_csrf();
         if (!empty($_POST['website'])) { redirect(url('/contact#contact-message')); }
+        unset($_SESSION['contact_receipt']);
         $_SESSION['contact_form']=contact_draft_values($_POST);
         $contactNonce=contact_form_nonce($_POST['contact_request']??'');
         $contactDigest=hash('sha256',json_encode($_SESSION['contact_form'],JSON_THROW_ON_ERROR));
