@@ -35,7 +35,7 @@ function voice_gemini_input(string $bytes,string $mime): array {
 function voice_dispatch(string $path): bool {
  if(!in_array($path,['/write/voice','/write/voice/audio'],true))return false;
  require_auth();private_response_headers();journeys_method($path==='/write/voice/audio'?['GET','HEAD']:['GET','HEAD','POST']);$uid=(int)current_user()['id'];$record=null;$error='';
- if($path==='/write/voice/audio'){$r=voice_owned($uid,$_GET['id']??null);$bytes=voice_audio_bytes($r);header('Content-Type: '.$r['audio']['mime']);header('Content-Disposition: inline; filename="voice.'.$r['audio']['ext'].'"');header('X-Content-Type-Options: nosniff');header('Content-Length: '.strlen($bytes));if($_SERVER['REQUEST_METHOD']!=='HEAD')echo $bytes;return true;}
+ if($path==='/write/voice/audio'){try{$r=voice_owned($uid,$_GET['id']??null);}catch(InvalidArgumentException){not_found();}$bytes=voice_audio_bytes($r);header('Content-Type: '.$r['audio']['mime']);header('Content-Disposition: inline; filename="voice.'.$r['audio']['ext'].'"');header('X-Content-Type-Options: nosniff');header('Content-Length: '.strlen($bytes));if($_SERVER['REQUEST_METHOD']!=='HEAD')echo $bytes;return true;}
  if(isset($_GET['id'])){try{$record=voice_owned($uid,$_GET['id']);}catch(InvalidArgumentException){not_found();}}
  if(is_post()){verify_csrf();try{
   $action=$_POST['action']??'';
