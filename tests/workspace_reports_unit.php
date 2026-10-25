@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require dirname(__DIR__).'/app/functions.php';require dirname(__DIR__).'/app/reader.php';require dirname(__DIR__).'/app/communication.php';require dirname(__DIR__).'/app/planner.php';require dirname(__DIR__).'/app/workspace_reports.php';
+require dirname(__DIR__).'/app/functions.php';require dirname(__DIR__).'/app/reader.php';require dirname(__DIR__).'/app/communication.php';require dirname(__DIR__).'/app/planner.php';require dirname(__DIR__).'/app/workspace_reports.php';require dirname(__DIR__).'/app/studio.php';
 function wc(bool $v,string $why):void{if(!$v)throw new RuntimeException($why);}
 function wx(callable $fn):void{try{$fn();}catch(InvalidArgumentException){return;}throw new LogicException('Expected invalid input.');}
 $r=planner_routine_input(['timezone'=>'Africa/Nairobi','routine'=>"1,2,3,4,5,6,7 | 22:00 | 06:00 | Sleep | personal\n1,3 | 09:00 | 10:00 | Focus | focus"]);$rows=planner_routine_expand($r,'2026-11-04');wc(count($rows)===9,'Seven sleep blocks plus two focus blocks');wc($rows[0]['end']-$rows[0]['start']===8*3600,'Sleep crosses midnight');wc($rows[0]['recipients']===[]&&$rows[0]['reminder']===0,'Routine cannot send invitations or flood reminders');wc((new DateTimeImmutable('@'.$rows[0]['start']))->setTimezone(comm_zone('Africa/Nairobi'))->format('Y-m-d')==='2026-11-02','Week anchored to Monday');
@@ -20,3 +20,8 @@ echo "PASS: requested meeting platform order, defaults, contact validation and p
 $context=booking_ai_context(['agenda'=>'Synthetic agenda','platform'=>'phone','platform_contact'=>'+254700000000','email'=>'private@example.invalid','platform_detail'=>'Private address']);wc(!str_contains($context,'+254700000000')&&!str_contains($context,'private@example.invalid')&&!str_contains($context,'Private address'),'Separate booking contacts and arrangement details excluded from AI context');
 
 wc(preg_match('/^[a-v0-9]{5,1024}$/D',booking_event_id($fixture))===1,'Calendar event id obeys Google base32hex contract');wc(booking_calendar_body($fixture,$calendarCfg)['id']===booking_event_id($fixture),'Creation and conflict recovery use identical deterministic ids');
+
+wc(booking_document_provider([])==='openai','New booking forms default to the working OpenAI provider');
+wc(booking_document_request_provider([])==='gemini','Legacy form consent stays with Gemini when provider snapshot is absent');
+wc(booking_document_request_provider(['document_provider'=>'openai'])==='openai','New form provider snapshot is retained');
+wx(fn()=>booking_document_request_provider(['document_provider'=>'unrecognised']));

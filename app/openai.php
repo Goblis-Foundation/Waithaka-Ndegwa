@@ -40,7 +40,26 @@ function openai_completed_text(array $data): string {
 /** One stateless call. Diagnostics never include prompts, provider messages or credentials. */
 function openai_generate(string $key,string $model,string $instructions,string $input,int $maxTokens,?callable $transport=null): string {
  if(trim($key)==='')throw new OpenAiRequestException('not_configured');if(!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$/D',$model)||$maxTokens<1||$maxTokens>16000)throw new OpenAiRequestException('request');
- $body=['model'=>$model,'instructions'=>$instructions,'input'=>$input,'store'=>false,'max_output_tokens'=>$maxTokens];
+ $body=['model'=>$model,'instructions'=>$instructions,'input'=>$input,'store'=>false,'max_output_tokens'=>$maxTokens];return openai_send($key,$body,$transport);
+}
+function openai_send(string $key,array $body,?callable $transport=null): string {
  if($transport)$response=$transport($body);else{$ch=curl_init('https://api.openai.com/v1/responses');curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_POSTFIELDS=>json_encode($body,JSON_THROW_ON_ERROR),CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Content-Type: application/json','Accept: application/json'],CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>30,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2]);$raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);$error=curl_errno($ch);curl_close($ch);$data=is_string($raw)?json_decode($raw,true):null;$response=['status'=>$status,'data'=>is_array($data)?$data:[],'curl_error'=>$error];}
  $status=(int)($response['status']??0);$data=is_array($response['data']??null)?$response['data']:[];$error=(int)($response['curl_error']??0);if($error||$status<200||$status>=300)throw openai_failure($status,$data,$error);return openai_completed_text($data);
+}
+
+function openai_document_body(string $model,string $instructions,string $context,string $bytes,string $mime,int $maxTokens,?array $schema=null): array {
+ if(!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$/D',$model)||$maxTokens<1||$maxTokens>16000)throw new OpenAiRequestException('request');
+ if(strlen($bytes)<1||strlen($bytes)>4*1024*1024||!in_array($mime,['application/pdf','image/png','image/jpeg','text/plain'],true))throw new InvalidArgumentException('Use one supported document up to 4 MB.');
+ $content=[['type'=>'input_text','text'=>$context]];
+ if($mime==='text/plain')$content[]=['type'=>'input_text','text'=>$bytes];
+ elseif($mime==='application/pdf')$content[]=['type'=>'input_file','filename'=>'document.pdf','file_data'=>'data:application/pdf;base64,'.base64_encode($bytes)];
+ else $content[]=['type'=>'input_image','image_url'=>'data:'.$mime.';base64,'.base64_encode($bytes)];
+ $body=['model'=>$model,'instructions'=>$instructions,'input'=>[['role'=>'user','content'=>$content]],'store'=>false,'max_output_tokens'=>$maxTokens];
+ if($schema!==null)$body['text']=['format'=>['type'=>'json_schema','name'=>'program_entries','strict'=>true,'schema'=>$schema]];
+ return $body;
+}
+function openai_document_text(string $instructions,string $context,string $bytes,string $mime,int $maxTokens=6000,?array $schema=null,?callable $transport=null): string {
+ $key=trim((string)setting('openai.api_key',''));if($key==='')throw new OpenAiRequestException('not_configured');
+ $model=trim((string)setting('openai.model','gpt-5.4-mini'))?:'gpt-5.4-mini';
+ return openai_send($key,openai_document_body($model,$instructions,$context,$bytes,$mime,$maxTokens,$schema),$transport);
 }

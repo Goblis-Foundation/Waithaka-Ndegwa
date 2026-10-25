@@ -96,7 +96,7 @@ function comm_make_booking(array $cfg,array $input): array {
     $method=booking_platform_input($input);$nonce=$input['request_id']??'';if(!is_string($nonce)||!preg_match('/^[a-f0-9]{32}$/D',$nonce))throw new InvalidArgumentException('Reload the booking form.');
     return comm_lock('reservations',function()use($cfg,$input,$type,$date,$zone,$first,$last,$email,$agenda,$start,$nonce,$method){$id=substr(hash_hmac('sha256','request|'.$nonce,(string)app_config('app_key')),0,32);$prior=comm_get('booking.'.$id);if($prior)return $prior;
         if(!in_array($start,comm_slots($cfg,$type,$date),true))throw new RuntimeException('This time is no longer available. Choose another time.');
-        $document=booking_document_upload($_FILES['booking_document']??[],($input['document_consent']??'')==='1');
+        $document=booking_document_upload($_FILES['booking_document']??[],($input['document_consent']??'')==='1',booking_document_request_provider($input));
         $b=['id'=>$id,'nonce'=>bin2hex(random_bytes(24)),'type'=>$type,'first'=>$first,'last'=>$last,'email'=>$email,'agenda'=>$agenda,'timezone'=>$zone->getName(),'start'=>$start,'end'=>$start+(int)$cfg['types'][$type]['minutes']*60,'status'=>'requested','created'=>time(),'version'=>1,'join'=>'','event_id'=>'','document'=>$document]+$method;$b+=booking_brief_initial($b);comm_put('booking.'.$id,$b);comm_event('bookings',$id);
         comm_queue_mail($b,'requested');if(booking_report_ready($b))booking_owner_mail($b);return $b;
     });
@@ -128,7 +128,7 @@ function comm_change_booking(string $id,string $action,?int $newStart=null,strin
     });
 }
 function comm_config_input(array $input,int $uid): array {
-    $c=comm_config();$c['owner']=$uid;$c['timezone']=comm_zone($input['timezone']??'Africa/Nairobi')->getName();
+    $c=comm_config();$c['owner']=$uid;$c['timezone']=comm_zone($input['timezone']??'Africa/Nairobi')->getName();$c['document_ai']=studio_ai_provider($input['document_ai']??($c['document_ai']??'openai'));
     foreach(['start','end']as$k){$v=$input[$k]??'';if(!is_string($v)||!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$v))throw new InvalidArgumentException('Choose valid working hours.');$c[$k]=$v;}if($c['start']>=$c['end'])throw new InvalidArgumentException('End time must be after start time.');
     foreach(['notice'=>[1,168],'horizon'=>[1,90],'buffer'=>[0,120],'daily_limit'=>[1,20]]as$k=>[$min,$max]){$n=filter_var($input[$k]??null,FILTER_VALIDATE_INT);if($n===false||$n<$min||$n>$max)throw new InvalidArgumentException('Review scheduling limits.');$c[$k]=$n;}
     $c['days']=reader_ids($input['days']??[],7);if(array_diff($c['days'],range(1,7)))throw new InvalidArgumentException('Choose valid weekdays.');
