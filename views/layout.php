@@ -39,6 +39,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
   <div class="container header-inner">
     <a class="brand" href="<?=url('/')?>" aria-label="Waithaka Ndegwa home"><img src="<?=asset('images/icon.png')?>" alt="" width="42" height="42"><span>Waithaka Ndegwa</span></a>
     <nav id="site-main-nav" class="main-nav" data-main-nav aria-label="Main navigation">
+      <a href="<?=url('/')?>" <?=path_only()==='/'?'aria-current="page"':''?>>Home</a>
       <a href="<?=url('/start-here')?>" <?=path_only()==='/start-here'?'aria-current="page"':''?>>Start here</a>
       <a href="<?=url('/my-thoughts')?>" <?=$page==='thoughts'||$page==='post'?'aria-current="page"':''?>>My Thoughts</a>
       <a href="<?=url('/about')?>" <?=$page==='about'?'aria-current="page"':''?>>About</a>
@@ -57,7 +58,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
 <footer class="site-footer">
   <div class="container footer-main">
     <div class="footer-about"><a class="footer-brand" href="<?=url('/')?>"><img src="<?=asset('images/icon.png')?>" alt="" width="44" height="44"><span>Waithaka Ndegwa</span></a><p>My experience and views on social entrepreneurship, agribusiness, infrastructure, innovation, and the world I encounter along the way.</p></div>
-    <div class="footer-nav"><span>Explore</span><a href="<?=url('/book')?>">Book time</a><a href="<?=url('/start-here')?>">Start Here</a><a href="<?=url('/resources')?>">Resources</a><a href="<?=url('/watch')?>">Watch</a><a href="<?=url('/professional-information')?>">Professional information</a><a href="<?=url('/my-thoughts')?>">My Thoughts</a><a href="<?=url('/about')?>">About</a><a href="<?=url('/about#goals-2030')?>">Goal 2030</a><a href="<?=url('/contact')?>">Contact</a></div><div class="footer-nav"><span>Discover</span><a href="<?=url('/startup-journeys')?>">Startup Journeys</a><a href="<?=url('/founders')?>">Founder Stories</a><a href="<?=url('/newsletter')?>" data-analytics-event="newsletter_signup_open" data-content-id="weekly-updates">Weekly updates</a><a href="<?=url('/feed.xml')?>">RSS feed</a></div>
+    <div class="footer-nav"><span>Explore</span><a href="<?=url('/')?>">Home</a><a href="<?=url('/book')?>">Book time</a><a href="<?=url('/start-here')?>">Start Here</a><a href="<?=url('/resources')?>">Resources</a><a href="<?=url('/watch')?>">Watch</a><a href="<?=url('/professional-information')?>">Professional information</a><a href="<?=url('/my-thoughts')?>">My Thoughts</a><a href="<?=url('/about')?>">About</a><a href="<?=url('/about#goals-2030')?>">Goal 2030</a><a href="<?=url('/contact')?>">Contact</a></div><div class="footer-nav"><span>Discover</span><a href="<?=url('/startup-journeys')?>">Startup Journeys</a><a href="<?=url('/founders')?>">Founder Stories</a><a href="<?=url('/newsletter')?>" data-analytics-event="newsletter_signup_open" data-content-id="weekly-updates">Weekly updates</a><a href="<?=url('/feed.xml')?>">RSS feed</a></div>
     <div class="footer-nav"><span>Follow</span><?php foreach(social_links() as $name=>$link):?><a href="<?=e($link)?>" target="_blank" rel="me noopener noreferrer"><?=e($name)?> ↗</a><?php endforeach;?></div>
   </div>
   <div class="container footer-note"><p><strong>Personal views.</strong> Views expressed here are my own unless explicitly stated otherwise.</p><a href="<?=url('/editorial-independence')?>">Editorial independence →</a></div>
