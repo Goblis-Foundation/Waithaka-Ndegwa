@@ -349,7 +349,7 @@ try {
         foreach (['branded_dns_test.py'=>'Offline branded DNS preparation and recovery',
                   'dns_probe_test.py'=>'Offline authoritative, parent and recursive DNS checks',
                   'google_migration_deployment_test.py'=>'Temporary migration access cleanup boundaries',
-                  'founder_migration_backup_test.py'=>'Founder migration recovery-point boundaries'] as $file => $label) {
+                  'microsoft_domain_dns_test.py'=>'Additive Microsoft domain verification DNS','founder_migration_backup_test.py'=>'Founder migration recovery-point boundaries'] as $file => $label) {
             $suiteCount++;
             if (wk_test_process(['python3','-B',__DIR__.'/'.$file], $environment, $label)) $passedCount++;
             else $failed[]=$label;
