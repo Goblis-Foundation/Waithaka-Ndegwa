@@ -36,6 +36,10 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { monthly_work(); } catch(Throwable $e) { error_log('Monthly support status needs review.'); }
 }
+// Only explicitly approved opportunity schedules and their own scoped notifications.
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { opportunity_automation_work(); } catch(Throwable $e) { error_log('Opportunity automation needs review.'); }
+}
 $enabled=$APP_INSTALLED && (bool)app_config('worker_enabled',false);
 $run=$APP_INSTALLED && function_exists('readiness_worker_begin')?readiness_worker_begin($enabled):null;
 if (!$enabled) { echo "{\"enabled\":false}\n"; exit; }
@@ -51,5 +55,6 @@ try {
 } finally {
     if(function_exists('readiness_worker_finish'))readiness_worker_finish($run,$success,$stats,$success?null:'stage_failed');
 }
+
 
 

@@ -118,6 +118,9 @@ function email_work(int $limit=10,?callable $testTransport=null,?array $onlyOutb
                     db()->prepare("UPDATE email_outbox SET status='suppressed',error_code='recipient_suppressed' WHERE id=?")->execute([$row['id']]);$stats['suppressed']++;continue;
                 }
             }
+            if(str_starts_with($payload['dedupe_key'],'opportunity:')&&function_exists('opportunity_email_gate')&&!opportunity_email_gate($payload['dedupe_key'],$payload,(int)$row['id'])){
+                db()->prepare("UPDATE email_outbox SET status='suppressed',error_code='opportunity_link_obsolete' WHERE id=?")->execute([$row['id']]);$stats['suppressed']++;continue;
+            }
             if(str_starts_with($payload['dedupe_key'],'newsletter-lifecycle:')){
                 $identity=newsletter_lifecycle_identity($payload['dedupe_key']);
                 if($identity){newsletter_subscriber_lock($identity['id'],5);$confirmationSubscriber=$identity['id'];}
@@ -222,4 +225,5 @@ function app_sitemap_entries(): array {
     foreach(['journeys_sitemap_entries','editorial_sitemap_entries']as$handler)if(function_exists($handler))$entries=array_merge($entries,$handler());
     return $entries;
 }
+
 
