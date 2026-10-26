@@ -1,0 +1,35 @@
+name: Configure Microsoft domain verification DNS
+on:
+  push:
+    branches: [main]
+    paths: ['deploy/aws/microsoft_domain_dns.py', '.github/workflows/microsoft-domain-dns.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: waithaka-microsoft-domain-dns
+  cancel-in-progress: false
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test additive DNS plan
+        run: python3 tests/microsoft_domain_dns_test.py
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::466401734428:role/WaithakaGitHubDeployRole
+          aws-region: af-south-1
+          allowed-account-ids: '466401734428'
+          role-session-name: waithaka-microsoft-domain-dns
+      - name: Add verification TXT and verify authoritative read-back
+        run: python3 deploy/aws/microsoft_domain_dns.py --apply
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: microsoft-domain-dns-review
+          path: microsoft-dns-*.json
+          if-no-files-found: ignore
+          retention-days: 30
