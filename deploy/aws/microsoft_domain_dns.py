@@ -39,6 +39,22 @@ def dig(*args):
     return subprocess.check_output(['dig', '+short', *args], text=True, timeout=20).strip().splitlines()
 
 
+def authority_servers(published, provider, resolve):
+    published = {s.lower().rstrip('.') for s in published}
+    provider = {s.lower().rstrip('.') for s in provider}
+    if published == provider:
+        return sorted(published)
+    vanity = {f'ns{i}.waithakandegwa.com' for i in range(1, 5)}
+    if published != vanity:
+        raise RuntimeError('Unexpected public DNS authority. No changes made.')
+    provider_ips = [set(resolve(s)) for s in sorted(provider)]
+    vanity_ips = [set(resolve(s)) for s in sorted(published)]
+    if (len(provider_ips) != 4 or len({ip for ips in provider_ips for ip in ips}) != 4 or any(len(ips) != 1 for ips in provider_ips + vanity_ips)
+            or {next(iter(ips)) for ips in provider_ips} != {next(iter(ips)) for ips in vanity_ips}):
+        raise RuntimeError('Vanity nameservers do not match this Route 53 delegation. No changes made.')
+    return sorted(published)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--apply', action='store_true')
@@ -50,10 +66,12 @@ def main():
         raise RuntimeError('Expected exactly one public personal-domain hosted zone.')
     zone = zones[0]['Id']
     servers = aws('route53', 'get-hosted-zone', '--id', zone)['DelegationSet']['NameServers']
-    authoritative = {s.lower().rstrip('.') for s in dig('NS', DOMAIN)}
-    if authoritative != {s.lower().rstrip('.') for s in servers}:
-        raise RuntimeError('The hosted zone is not the publicly delegated authority. No changes made.')
+    authoritative = authority_servers(dig('NS', DOMAIN), servers, lambda server: dig('A', server))
     records = aws('route53', 'list-resource-record-sets', '--hosted-zone-id', zone)['ResourceRecordSets']
+    current_txt = {decode_txt(v['Value']) for r in records if r['Name'] == DOMAIN and r['Type'] == 'TXT' for v in r.get('ResourceRecords', [])}
+    for server in authoritative:
+        if {decode_txt(v) for v in dig('TXT', DOMAIN, '@' + server)} != current_txt:
+            raise RuntimeError('Public authoritative TXT differs from this hosted zone. No changes made.')
     changes = changes_for(records)
     Path('microsoft-dns-before.json').write_text(json.dumps({'zone': zone, 'records': [r for r in records if r['Name'] == DOMAIN and r['Type'] == 'TXT']}, indent=2))
     Path('microsoft-dns-plan.json').write_text(json.dumps({'Changes': changes}, indent=2))
@@ -66,7 +84,9 @@ def main():
         after = aws('route53', 'list-resource-record-sets', '--hosted-zone-id', zone)['ResourceRecordSets']
         if changes_for(after):
             raise RuntimeError('Route 53 verification read-back failed.')
-        for server in servers:
+        if {s.lower().rstrip('.') for s in dig('NS', DOMAIN)} != set(authoritative):
+            raise RuntimeError('Public delegation changed during the update; verify before continuing.')
+        for server in authoritative:
             if VERIFICATION not in [decode_txt(v) for v in dig('TXT', DOMAIN, '@' + server)]:
                 raise RuntimeError('An authoritative nameserver has not returned the verification TXT.')
         print('PASS: all authoritative nameservers publish MS=ms86777381. Other TXT, SPF, DKIM and MX records were preserved. Microsoft tenant verification remains a separate step.')
