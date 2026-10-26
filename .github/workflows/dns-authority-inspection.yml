@@ -1,0 +1,20 @@
+name: Inspect public personal-domain DNS
+on:
+  push:
+    branches: [codex/dns-authority-inspection]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read public authority and verification records
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          for kind in ('NS','SOA','TXT'):
+              result=subprocess.run(['dig','+short',kind,'waithakandegwa.com.'],capture_output=True,text=True,timeout=25,check=True)
+              print(kind+': '+result.stdout.strip())
+          PY
