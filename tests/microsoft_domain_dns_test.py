@@ -28,3 +28,17 @@ for bad in [[dict(source, SetIdentifier='routed')], [source, source]]:
     except RuntimeError:
         pass
 print('PASS: Microsoft verification TXT is additive, idempotent and compare-and-swap guarded; existing mail and verification values are preserved.')
+
+provider = [f'ns-{i}.awsdns-example.net' for i in range(1, 5)]
+vanity = [f'ns{i}.waithakandegwa.com.' for i in range(1, 5)]
+addresses = {p: [f'192.0.2.{i}'] for i, p in enumerate(provider, 1)}
+addresses.update({v.rstrip('.'): [f'192.0.2.{i}'] for i, v in enumerate(vanity, 1)})
+assert dns.authority_servers(provider, provider, lambda name: []) == sorted(provider)
+assert dns.authority_servers(vanity, provider, addresses.__getitem__) == sorted(v.rstrip('.') for v in vanity)
+for names, resolve in [(['foreign.example'], addresses.__getitem__), (vanity, lambda name: ['192.0.2.255'] if name.startswith('ns1.waithaka') else addresses[name])]:
+    try:
+        dns.authority_servers(names, provider, resolve)
+        raise AssertionError('Foreign or mismatched authority accepted')
+    except RuntimeError:
+        pass
+print('PASS: branded nameservers require exact provider IPv4 delegation mapping; foreign nameservers and mismatched addresses fail closed.')
