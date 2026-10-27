@@ -46,6 +46,7 @@ jobs:
           export NODE_PATH="$RUNNER_TEMP/experience-browser/node_modules"
           export EXPERIENCE_EVIDENCE_DIR="$RUNNER_TEMP/experience-evidence"
           node tests/experience_browser.cjs
+          node tests/experience_review_browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -6,6 +6,13 @@
  const reduced=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
  const shown=el=>!el.disabled&&!el.closest('[hidden]')&&el.getClientRects().length>0;
  const secret=el=>el.type==='password'||/password|secret|token|csrf|nonce|otp|verification_code|api.?key|auth_code|account_number|bank_reference|card_number/i.test(el.name||'');
+ // Collapsing optional details must not remove entered data from the review.
+ // Inactive country fields, hidden capabilities and disabled fieldsets stay excluded.
+ function reviewable(el,form){
+  if(el.matches(':disabled')||secret(el)||el.type==='hidden'||el.closest('[hidden],[inert],[aria-hidden="true"]'))return false;
+  for(let p=el;p&&p!==form.parentElement;p=p.parentElement){const style=getComputedStyle(p);if(style.display==='none'||style.visibility==='hidden'||style.visibility==='collapse')return false;}
+  return true;
+ }
  function labelOf(el){
   const label=el.labels?.[0];if(label){const clone=label.cloneNode(true);clone.querySelectorAll('input,select,textarea,button,small').forEach(n=>n.remove());const text=clone.textContent.trim().replace(/\s+/g,' ');if(text)return text;}
   return el.getAttribute('aria-label')||el.name.replace(/[_\[\]]+/g,' ');
@@ -43,18 +50,40 @@
   const inputs=Array.from(form.querySelectorAll('input,select,textarea')).filter(el=>!['hidden','submit','button'].includes(el.type)&&!secret(el));
   if(inputs.length<7||form.querySelector('.ux-form-assist'))return;
   const bar=make('div',undefined,'ux-form-assist'),progress=make('p','', 'ux-form-progress'),review=button('Review my entries','ux-button');progress.setAttribute('role','status');progress.setAttribute('aria-live','polite');bar.append(progress,review);form.prepend(bar);
-  const update=()=>{const unique=new Map();for(const el of inputs)if(el.required&&!el.disabled&&!el.closest('[hidden]')){const key=el.type==='radio'?el.name:el.id||el.name;unique.set(key,el.validity.valid);}const total=unique.size,done=Array.from(unique.values()).filter(Boolean).length;progress.textContent=total?done+' of '+total+' required fields complete. Nothing is saved by this check.':'Optional details can be left blank. Review before using the form’s final action.';};
+  const update=()=>{const unique=new Map();for(const el of inputs)if(el.required&&reviewable(el,form)){const key=el.type==='radio'?el.name:el.id||el.name;unique.set(key,el.validity.valid);}const total=unique.size,done=Array.from(unique.values()).filter(Boolean).length;progress.textContent=total?done+' of '+total+' required fields complete. Nothing is saved by this check.':'Optional details can be left blank. Review before using the form’s final action.';};
   form.addEventListener('input',update);form.addEventListener('change',update);update();
   if(typeof HTMLDialogElement==='undefined'){review.hidden=true;return;}
-  const d=dialog('Review your entries'),body=make('dl',undefined,'ux-entry-review'),note=make('p','This is a local preview, not a save, payment, publication or approval. Close it and use the form’s own final action when ready.','ux-muted');d.append(body,note);
-  review.addEventListener('click',()=>{body.replaceChildren();for(const el of inputs){if(!shown(el)||secret(el)||(['checkbox','radio'].includes(el.type)&&!el.checked))continue;let value=el.tagName==='SELECT'?el.selectedOptions?.[0]?.textContent:el.type==='file'?Array.from(el.files||[]).map(f=>f.name).join(', '):el.type==='checkbox'?'Selected':el.value;if(!String(value||'').trim())continue;const row=make('div');row.append(make('dt',labelOf(el)),make('dd',String(value)));body.append(row);}if(!body.children.length)body.append(make('p','No visible details entered yet.'));d.showModal();});
+  const d=dialog('Review your entries'),body=make('dl',undefined,'ux-entry-review'),note=make('p','This preview includes entered optional details even when their section is collapsed. It is not a save, payment, publication or approval. Edit a field or close this preview and use the form’s own final action.','ux-muted');d.append(body,note);
+  review.addEventListener('click',()=>{
+   body.replaceChildren();const radioGroups=new Set();
+   for(const el of inputs){
+    if(!reviewable(el,form))continue;
+    let value;
+    if(el.type==='radio'){
+     if(el.checked)value=el.value;
+     else if(el.required&&!el.validity.valid&&!radioGroups.has(el.name)){radioGroups.add(el.name);value='Required — no choice selected';}
+     else continue;
+    }else if(el.type==='checkbox'){if(el.checked)value='Selected';else if(el.required)value='Required — not confirmed';else continue;}
+    else if(el.tagName==='SELECT')value=Array.from(el.selectedOptions||[]).filter(option=>option.value!=='').map(option=>option.textContent.trim()).join(', ');
+    else if(el.type==='file')value=Array.from(el.files||[]).map(f=>f.name).join(', ');
+    else value=el.value;
+    if(!String(value||'').trim()){if(!el.required)continue;value='Required — not completed';}
+    const label=labelOf(el),row=make('div'),term=make('dt',label),detail=make('dd',String(value)),edit=button('Edit','ux-button');
+    edit.setAttribute('aria-label','Edit '+label);edit.dataset.uxEntryEdit=el.name||el.id;
+    // Finish native focus restoration before focusing the selected original control.
+    edit.addEventListener('click',()=>{d.close();requestAnimationFrame(()=>{if(el.isConnected&&reviewable(el,form))reveal(el);});});
+    detail.append(document.createElement('br'),edit);row.append(term,detail);body.append(row);
+   }
+   if(!body.children.length)body.append(make('p','No active details entered yet.'));d.showModal();
+  });
  });
  // Expand collapsed optional sections when native validation needs a field inside them.
  document.addEventListener('invalid',e=>{if(e.target instanceof HTMLElement&&e.target.closest('form')){let p=e.target.parentElement;while(p){if(p.tagName==='DETAILS')p.open=true;p=p.parentElement;}}},true);
  // Owner table filtering is explicitly page-local; it neither fetches nor hides source records.
  document.querySelectorAll('.workspace-auth table,[data-ux-filter-table]').forEach((table,index)=>{
   const rows=Array.from(table.tBodies?.[0]?.rows||[]);if(rows.length<5||table.dataset.uxFiltered)return;table.dataset.uxFiltered='true';
-  const bar=make('div',undefined,'ux-table-filter'),label=make('label','Filter rows on this page'),input=make('input'),status=make('span','', 'ux-muted');input.type='search';input.setAttribute('aria-label','Filter visible table '+(index+1));status.setAttribute('role','status');label.append(input);bar.append(label,status);table.parentElement.insertBefore(bar,table);
-  input.addEventListener('input',()=>{const q=input.value.trim().toLocaleLowerCase();let n=0;rows.forEach(row=>{row.hidden=q!==''&&!row.textContent.toLocaleLowerCase().includes(q);if(!row.hidden)n++;});status.textContent=n+' of '+rows.length+' rows on this page';});
+  const bar=make('div',undefined,'ux-table-filter'),label=make('label','Filter rows on this page'),input=make('input'),clear=button('Clear filter','ux-button'),status=make('span','', 'ux-muted');input.type='search';input.setAttribute('aria-label','Filter visible table '+(index+1));status.setAttribute('role','status');label.append(input);bar.append(label,clear,status);table.parentElement.insertBefore(bar,table);
+  function filter(){const q=input.value.trim().toLocaleLowerCase();let n=0;rows.forEach(row=>{row.hidden=q!==''&&!row.textContent.toLocaleLowerCase().includes(q);if(!row.hidden)n++;});status.textContent=n+' of '+rows.length+' rows on this page';clear.hidden=q==='';}
+  input.addEventListener('input',filter);clear.addEventListener('click',()=>{input.value='';filter();input.focus();});input.addEventListener('keydown',e=>{if(e.key==='Escape'&&input.value){e.preventDefault();input.value='';filter();}});filter();
  });
 })();

@@ -4,6 +4,8 @@ from html.parser import HTMLParser
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 from urllib.error import HTTPError
 from urllib.parse import urlparse
+from pathlib import Path
+import hashlib
 import xml.etree.ElementTree as ET
 BASE='https://www.waithakandegwa.com'
 class NoRedirect(HTTPRedirectHandler):
@@ -17,7 +19,7 @@ def read(path, expected=200):
         return response.read(2*1024*1024).decode('utf-8'),response.headers
 class Page(HTMLParser):
     def __init__(self):
-        super().__init__();self.canonicals=[];self.h1=0;self.robots='';self.country=False;self.phone=False;self.fields=set();self.breadcrumb=False
+        super().__init__();self.canonicals=[];self.h1=0;self.robots='';self.country=False;self.phone=False;self.fields=set();self.breadcrumb=False;self.scripts=[]
     def handle_starttag(self,tag,attrs):
         a=dict(attrs)
         if tag=='h1': self.h1+=1
@@ -27,6 +29,19 @@ class Page(HTMLParser):
         if tag=='input' and a.get('name')=='phone_code' and a.get('value')=='+254':self.phone=True
         if tag in ['input','select','textarea']:self.fields.add(a.get('name',''))
         if tag=='nav' and a.get('aria-label')=='Breadcrumb':self.breadcrumb=True
+        if tag=='script' and a.get('src'):self.scripts.append(a['src'])
+
+def verify_shared_asset(html):
+    page=Page();page.feed(html)
+    candidates=[u for u in page.scripts if urlparse(u).path=='/assets/js/unified-experience.js']
+    if len(candidates)!=1:raise RuntimeError('Expected exactly one shared interaction script')
+    parsed=urlparse(candidates[0]);base=urlparse(BASE)
+    if parsed.netloc and (parsed.scheme!=base.scheme or parsed.netloc!=base.netloc):raise RuntimeError('Unexpected shared interaction origin')
+    body,_=read(parsed.path+('?' + parsed.query if parsed.query else ''))
+    expected=Path(__file__).resolve().parents[2]/'assets/js/unified-experience.js'
+    if hashlib.sha256(body.encode('utf-8')).digest()!=hashlib.sha256(expected.read_bytes()).digest():
+        raise RuntimeError('Live shared interaction script differs from the validated release')
+    print('PASS: exact deployed shared-journey script hash, including complete optional-field review and edit controls.')
 
 def verify():
     for path,marker in [('/explore','What would you like to do?'),('/advertise','Suitability comes before payment.'),('/advertising-policy','Advertising with care.')]:
@@ -38,7 +53,7 @@ def verify():
     if not p.country or not p.phone or not {'county','sub_county','city','phone','advertising_category','suitability_ack'}<=p.fields or 'Town / Area' not in html:
         raise RuntimeError('Kenya-first intake or suitability controls missing')
     if 'no-store' not in headers.get('Cache-Control','') or 'noindex' not in p.robots:raise RuntimeError('Private intake boundary changed')
-    home,_=read('/');about,_=read('/about')
+    home,_=read('/');about,_=read('/about');verify_shared_asset(home)
     for marker in ['A meaningful life,','shared with others.']:
         if marker not in home or marker not in about:raise RuntimeError('Personal-purpose enrichment missing')
     for marker in ['My faith in God','People and nature in harmony','full high school education','The Riara University','Goal 2030','Why I write']:
