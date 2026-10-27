@@ -85,12 +85,12 @@ function desk_make_quote(string $package,array $channels,array $input=[]): array
     $plans=desk_packages();if(!isset($plans[$package]))throw new InvalidArgumentException('Choose an available package.');$p=$plans[$package];
     if(count($channels)!==2||count(array_unique(array_column($channels,'slug')))!==2)throw new InvalidArgumentException('Contract exactly two different social accounts.');
     foreach($channels as$c)if(empty($c['account'])||empty($c['method'])||!in_array($c['slug']??'',['linkedin','facebook','instagram','x'],true))throw new InvalidArgumentException('Choose named, available text/image destinations. Video is a separate service.');
-    $renewal=!empty($input['renewal']);$minor=$renewal?desk_money($input['renewal_amount']??''):$p['minor'];
+    $renewal=!empty($input['renewal']);$custom=!empty($input['custom_quote']);$minor=($renewal||$custom)?desk_money($input['renewal_amount']??''):$p['minor'];
     if(!$minor)throw new InvalidArgumentException('Enter a positive distribution-only renewal price.');
-    $currency=$renewal?strtoupper(desk_text($input['currency']??'KES','Currency',3,true)):$p['currency'];
+    $currency=($renewal||$custom)?strtoupper(desk_text($input['currency']??'KES','Currency',3,true)):$p['currency'];
     if(!preg_match('/^[A-Z]{3}$/D',$currency))throw new InvalidArgumentException('Invalid currency.');
-    $days=filter_var($input['visibility_days']??365,FILTER_VALIDATE_INT);if(!$days||$days>1825)throw new InvalidArgumentException('Choose 1–1,825 days of article visibility.');
-    $q=$p+['code'=>$package];$q['minor']=$minor;$q['currency']=$currency;$q['channels']=$channels;$q['posts']=$p['rounds']*2;$q['renewal']=$renewal;$q['articles']=$renewal?0:1;$q['visibility_days']=$days;$q['terms']=desk_terms();$q['revision']=1;$q['created']=time();$q['hash']=hash('sha256',json_encode($q,JSON_THROW_ON_ERROR));return $q;
+    $days=filter_var($input['visibility_days']??365,FILTER_VALIDATE_INT);if($days===false||$days<1||$days>1825)throw new InvalidArgumentException('Choose 1–1,825 days of article visibility.');
+    $q=$p+['code'=>$package];$q['minor']=$minor;$q['currency']=$currency;$q['channels']=$channels;$q['posts']=$p['rounds']*2;$q['renewal']=$renewal;$q['articles']=$renewal?0:1;$q['visibility_days']=$days;$q['terms']=desk_terms();$q['custom_quote']=$custom;$q['revision']=1;$q['created']=time();$q['hash']=hash('sha256',json_encode($q,JSON_THROW_ON_ERROR));return $q;
 }
 function desk_round_times(array $quote,string $start,string $zone='Africa/Nairobi'): array {
     $stamp=desk_date($start,$zone,'campaign start',true);$d=(new DateTimeImmutable('@'.$stamp))->setTimezone(new DateTimeZone($zone));$out=[];
@@ -99,7 +99,7 @@ function desk_round_times(array $quote,string $start,string $zone='Africa/Nairob
     return $out;
 }
 function desk_payment_matches(array $order,array $proof): bool {
-    return ($proof['status']??'')==='completed'&&($proof['reference']??'')===$order['id']&&($proof['currency']??'')===$order['quote']['currency']&&is_int($proof['minor']??null)&&$proof['minor']===$order['quote']['minor']&&!empty($proof['transaction'])&&($proof['merchant']??'')===($order['merchant']??null);
+    return !empty($order['merchant'])&&($proof['status']??'')==='completed'&&($proof['reference']??'')===$order['id']&&($proof['currency']??'')===$order['quote']['currency']&&is_int($proof['minor']??null)&&$proof['minor']===$order['quote']['minor']&&!empty($proof['transaction'])&&($proof['merchant']??'')===($order['merchant']??null);
 }
 function desk_publish_errors(array $r,array $post,?array $order=null,?int $now=null): array {
     $errors=[];$now??=time();$digest=desk_digest($r,$post);
@@ -109,11 +109,12 @@ function desk_publish_errors(array $r,array $post,?array $order=null,?int $now=n
     if(($r['owner_approval']??'')!==$digest)$errors[]='Your approval must match the current article, facts and creatives.';
     if(!empty($r['fields']['sponsored'])){
         if(($r['client_approval']??'')!==$digest)$errors[]='Client factual approval is required for this exact version.';
-        if(!$order||($order['state']??'')!=='paid'||($order['quote']['hash']??'')!==($order['accepted_hash']??''))$errors[]='An accepted quote and verified commercial payment are required.';
+        if(!$order||($order['state']??'')!=='paid'||($order['quote']['hash']??'')!==($order['accepted_hash']??'')||!empty($order['paused']))$errors[]='An accepted quote and verified commercial payment are required.';
         if(empty($r['fields']['sponsor_name']))$errors[]='Identify the sponsor.';
     }else{
         if(empty($r['fields']['source_url'])||empty($r['fields']['apply_url'])||empty($r['fields']['verified_on']))$errors[]='Verify the official source and application destination.';
     }
+    if(!empty($r['fields']['sponsored'])&&preg_match('~(?:/contribute(?:/|\b)|donate to my writing|tip me|support my thoughts)~i',(string)($post['content_html']??'')))$errors[]='Sponsored content cannot solicit contributions.';
     if(preg_match('/\[(VERIFY|ILLUSTRATIVE)\]/i',(string)($post['content_html']??'')))$errors[]='Resolve draft verification markers.';
     return $errors;
 }

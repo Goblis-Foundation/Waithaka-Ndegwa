@@ -7,8 +7,9 @@
 $navigation=[
 'Daily work'=>['/write'=>'Today','/write/notes'=>'Notes & reports','/write/voice'=>'Voice notes & post ideas','/write/program'=>'Daily & weekly program','/write/communication'=>'Communication Centre','/write/meetings'=>'Meetings & booking','/write/booking-mailboxes'=>'Booking email identities'],
 'Create & publish'=>['/write/studio'=>'Studio & AI','/write/capture'=>'Capture idea','/write/new'=>'New thought','/write#library'=>'Article library','/write/media-centre'=>'Media centre','/write/publishing'=>'Posting & calendar','/write/media'=>'Images & videos'],
+'Publishing desk'=>['/write/desk'=>'Opportunities & features','/write/desk/opportunity/new'=>'New opportunity','/write/desk/sponsored/new'=>'New sponsored feature','/write/desk/orders'=>'Clients & billing','/write/desk/settings'=>'Commercial settings'],
 'Audience'=>['/write/newsletter'=>'Newsletter','/write/readers'=>'Reader desk','/write/contact-controls'=>'Contact controls & review','/write/campaigns'=>'Campaigns','/write/discovery'=>'Search performance','/write/visitor-statistics'=>'Website visitors'],
-'Journeys & impact'=>['/write/enterprises'=>'Enterprise portfolio','/write/opportunities'=>'Opportunity reviews','/write/journeys'=>'Startup Journeys','/write/journeys/founders'=>'Founder reviews','/write/editorial'=>'Resources & evidence','/write/releases'=>'Consent records','/write/impact'=>'2030 reporting'],
+'Journeys & impact'=>['/write/enterprises'=>'Enterprise portfolio','/write/opportunities'=>'Employment reviews','/write/journeys'=>'Startup Journeys','/write/journeys/founders'=>'Founder reviews','/write/editorial'=>'Resources & evidence','/write/releases'=>'Consent records','/write/impact'=>'2030 reporting'],
 'Manage workspace'=>['/write/connections'=>'Integrations','/write/google'=>'Google workspace','/write/microsoft'=>'Microsoft 365','/write/app'=>'App & notifications','/write/security'=>'Devices & passkeys','/write/operations'=>'Operations','/write/settings'=>'Settings','/write/account'=>'My account']];
 $activeLink='/write';$activeLength=0;foreach($navigation as$links)foreach($links as$link=>$label){if(str_contains($link,'#'))continue;if(($writerPath===$link||($link!=='/write'&&str_starts_with($writerPath,$link.'/')))&&strlen($link)>$activeLength){$activeLink=$link;$activeLength=strlen($link);}}
 
@@ -35,6 +36,5 @@ if($wu && preg_match('~^/write/(?:releases/[1-9][0-9]*|journeys/founders/[1-9][0
  include __DIR__.'/../document_record.php';
 }
 ?></div></div><script src="<?=asset('js/write.js')?>" defer></script><script src="<?=asset('js/editor-tabs.js')?>" defer></script><script src="<?=asset('js/navigation-rails.js')?>" defer></script><?php if($wu):?><nav class="app-mobile-nav" aria-label="Quick workspace navigation"><a href="/write" <?=$writerPath==='/write'?'aria-current="page"':''?>>Today</a><a href="/write/program" <?=str_starts_with($writerPath,'/write/program')?'aria-current="page"':''?>>Plan</a><a href="/write/communication?tab=inbox" <?=str_starts_with($writerPath,'/write/communication')?'aria-current="page"':''?>>Inbox</a><a href="/write/capture" <?=str_starts_with($writerPath,'/write/capture')||$writerPath==='/write/new'||str_starts_with($writerPath,'/write/edit/')?'aria-current="page"':''?>>Create</a></nav><?php endif;?><script src="<?=asset('js/communication.js')?>" defer></script><script src="<?=asset('js/app-security.js')?>" defer></script><script src="<?=asset('js/app.js')?>" defer></script></body></html>
-
 
 

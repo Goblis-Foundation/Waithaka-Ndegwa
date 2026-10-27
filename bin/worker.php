@@ -25,9 +25,13 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { founder_story_work(); } catch(Throwable $e) { error_log('Founder story delivery or expiry needs review.'); }
 }
+// Curated publication, deadline expiry and commercial reconciliation use their own approvals.
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { desk_work(); } catch(Throwable $e) { error_log('Publishing desk needs review.'); }
+}
 // Only explicitly queued weekly revisions; legacy mail/payment/social queues keep their own gate.
 if($APP_INSTALLED && app_config('app_env')==='production'){
-    try { publishing_weekly_work(); } catch(Throwable $e) { error_log('Weekly publishing queue needs review.'); }
+    try { desk_delivery_gate(static fn()=>publishing_weekly_work()); } catch(Throwable $e) { error_log('Weekly publishing queue needs review.'); }
 }
 // Explicitly enabled read-only PayPal reconciliation; never captures money or drains other delivery queues.
 if($APP_INSTALLED && app_config('app_env')==='production'){
@@ -49,7 +53,7 @@ try {
     foreach(['publishing'=>'publishing_work','payments'=>'payment_reconcile_due','newsletter'=>'newsletter_work','email'=>'email_work','discovery'=>'discovery_work']as$stage=>$handler){
         if(!function_exists($handler))continue;
         if(function_exists('readiness_worker_touch'))readiness_worker_touch($run,$stage,$stats);
-        $stats[$stage]=$handler($limit);
+        $stats[$stage]=$stage==='publishing'?desk_delivery_gate(static fn()=>$handler($limit)):$handler($limit);
     }
     $success=true;echo json_encode($stats,JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR).PHP_EOL;
 } finally {
