@@ -129,8 +129,9 @@ try {
     $badActionCsrf=rh_request($actionPath,['action'=>'apply','version'=>'1','apply_confirm'=>'1'],true);rh_check($badActionCsrf['status']===419,'Native Microsoft application requires CSRF protection.');db()->prepare('DELETE FROM settings WHERE setting_key IN (?,?,?)')->execute([$actionKey,'communication.microsoft.workspace.personal','communication.microsoft.action_index.'.$actor]);set_setting('communication.config','[]',true);
     $response = rh_request('/write/readers', null, true); rh_check($response['status'] === 200, 'The shared Writer layout renders the new reader queue.'); rh_private($response, 'Writer reader records carry private response headers.');
     rh_check(rh_request('/write/readers', null, true, 'DELETE')['status'] === 405, 'Unsupported Writer queue methods are rejected.');
-    $response = rh_request('/contact?type=speaking');rh_check(str_contains($response['body'],'data-contact-context-title>Invite me to speak')&&str_contains($response['body'],'name="contact_request"'),'Purpose links preselect the native enquiry form and include repeat protection');$form=rh_form($response,'/contact');
-    $failed=rh_request('/contact',$form+['first_name'=>'KEEP THIS NAME','email'=>'invalid','message'=>'KEEP THIS PRIVATE MESSAGE','enquiry_type'=>'speaking','not_robot'=>'1']);rh_check(rh_redirect($failed,'/contact'),'Invalid address returns to the contact form');$restored=rh_request('/contact');rh_check(str_contains($restored['body'],'KEEP THIS NAME')&&str_contains($restored['body'],'KEEP THIS PRIVATE MESSAGE'),'Failed form retains entered text');
+    $retired=rh_request('/contact?type=speaking');rh_check($retired['status']===200&&!str_contains($retired['body'],'Invite me to speak')&&!str_contains($retired['body'],'value="speaking"'),'Retired purpose bookmarks fall back without restoring a speaking invitation');
+    $response=rh_request('/contact?type=media');rh_check(str_contains($response['body'],'data-contact-context-title>Arrange an interview')&&str_contains($response['body'],'name="contact_request"'),'Current purpose links preselect the enquiry form with repeat protection');$form=rh_form($response,'/contact');
+    $failed=rh_request('/contact',$form+['first_name'=>'KEEP THIS NAME','email'=>'invalid','message'=>'KEEP THIS PRIVATE MESSAGE','enquiry_type'=>'media','not_robot'=>'1']);rh_check(rh_redirect($failed,'/contact'),'Invalid address returns to the contact form');$restored=rh_request('/contact');rh_check(str_contains($restored['body'],'KEEP THIS NAME')&&str_contains($restored['body'],'KEEP THIS PRIVATE MESSAGE'),'Failed form retains entered text');
     $response = rh_request('/contact'); $form = rh_form($response, '/contact');
     $contactEmail = 'contact-'.$suffix.'@example.invalid'; $response = rh_request('/contact', $form + ['first_name' => 'Contact fixture', 'email' => $contactEmail, 'message' => 'PRIVATE CONTACT '.$suffix, 'enquiry_type' => 'correction', 'not_robot' => '1']);
     $contact = rh_row('SELECT * FROM contact_messages WHERE email=?', [$contactEmail]); if ($contact) $contactIds[] = (int)$contact['id'];
@@ -140,7 +141,6 @@ try {
     $receipt=rh_request('/contact');rh_check(str_contains($receipt['body'],'data-copy-contact')&&str_contains($receipt['body'],$contact['reference']),'Successful contact shows a copyable durable receipt reference');
     $repeat=rh_request('/contact',$form+['first_name'=>'Contact fixture','email'=>$contactEmail,'message'=>'PRIVATE CONTACT '.$suffix,'enquiry_type'=>'correction','not_robot'=>'1']);rh_check(rh_count('SELECT COUNT(*) FROM contact_messages WHERE email=?',[$contactEmail])===1,'Repeat of the same successful form creates no duplicate enquiry');
     rh_request('/contact',$form+['first_name'=>'Contact fixture','email'=>$contactEmail,'message'=>'CHANGED PRIVATE CONTACT '.$suffix,'enquiry_type'=>'correction','not_robot'=>'1']);$changed=rh_request('/contact');rh_check(str_contains($changed['body'],'CHANGED PRIVATE CONTACT '.$suffix)&&str_contains($changed['body'],'That form was already sent')&&rh_count('SELECT COUNT(*) FROM contact_messages WHERE email=?',[$contactEmail])===1,'Back-button edits remain in a fresh form instead of silently disappearing or creating a duplicate');
-
     $enquiryPath = '/write/readers/enquiries/'.$enquiry['id']; $response = rh_request($enquiryPath, null, true); $form = rh_form($response, $enquiryPath);
     rh_check($response['status'] === 200 && str_contains($response['body'], 'PRIVATE CONTACT '.$suffix), 'Only the authenticated enquiry view exposes the original message.');
     $edit = $form + ['enquiry_type' => 'correction', 'status' => 'waiting', 'next_action' => 'Review supporting source', 'note' => 'Writer fixture follow-up'];
@@ -193,6 +193,3 @@ try {
     foreach (array_keys($sessionIds) as $id) db()->prepare('DELETE FROM app_sessions WHERE id=?')->execute([$id]);
     foreach ([$visitorJar, $writerJar] as $file) if (is_file($file)) unlink($file);
 }
-
-
-
