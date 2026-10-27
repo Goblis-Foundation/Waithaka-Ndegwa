@@ -102,3 +102,5 @@ jobs:
                       elif blocked.search(line): print('[sensitive log line omitted]')
                       else: print(line[:1600])
           PY
+# Read-only acceptance rerun after release 7dca603: inspect the monthly timer's
+# postdeploy output and boolean sender readiness. No message or payment is sent.
