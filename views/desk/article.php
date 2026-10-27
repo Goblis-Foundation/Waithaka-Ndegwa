@@ -3,6 +3,9 @@ $f=$record['fields'];$sponsored=!empty($f['sponsored']);$closed=desk_closed($rec
 $body=sanitize_html((string)$post['content_html']);
 if($sponsored){$dom=new DOMDocument();$old=libxml_use_internal_errors(true);try{$dom->loadHTML('<?xml encoding="UTF-8"><div id="desk-body">'.$body.'</div>',LIBXML_HTML_NOIMPLIED|LIBXML_HTML_NODEFDTD|LIBXML_NONET);foreach($dom->getElementsByTagName('a')as$a)$a->setAttribute('rel','sponsored noopener noreferrer');$node=$dom->getElementById('desk-body');$body='';if($node)foreach($node->childNodes as$child)$body.=$dom->saveHTML($child);}finally{libxml_clear_errors();libxml_use_internal_errors($old);}}
 $banner=$preview?($record['creatives']['landscape']??null):($record['public']['creatives']['landscape']??null);
+$seo=array_merge($seo??[],['type'=>'article','description'=>($sponsored?'Sponsored feature. ':'').($post['standfirst']?:excerpt($body,220))]);
+if($banner){$seo['image']=$banner['url'];$seo['image_alt']=$banner['alt'];}
+elseif(!empty($post['featured_image'])){$seo['image']=featured_image_url($post['featured_image']);$seo['image_alt']=$post['featured_image_alt']?:$post['title'];}
 ?>
 <link rel="stylesheet" href="<?=e(asset('css/publishing-desk.css'))?>">
 <article class="desk desk-public desk-article">
