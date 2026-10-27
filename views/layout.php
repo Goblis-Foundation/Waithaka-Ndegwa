@@ -16,7 +16,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
 <title><?=e($seo['title'])?></title>
 <meta name="description" content="<?=e($seo['description'])?>">
 <link rel="canonical" href="<?=e($seo['canonical'])?>">
-<meta name="robots" content="<?=e($seo['robots'] ?? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:large')?>">
+<meta name="robots" content="<?=e($seo['robots'] ?? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')?>">
 <meta name="author" content="Waithaka Ndegwa"><meta name="theme-color" content="#073b6a">
 <?php if($verification):?><meta name="google-site-verification" content="<?=e($verification)?>"><?php endif;?>
 <meta property="og:site_name" content="Waithaka Ndegwa"><meta property="og:type" content="<?=e($seo['type'])?>"><meta property="og:title" content="<?=e($seo['title'])?>"><meta property="og:description" content="<?=e($seo['description'])?>"><meta property="og:url" content="<?=e($seo['canonical'])?>"><meta property="og:image" content="<?=e($seo['image'])?>"><meta property="og:image:alt" content="<?=e($seo['image_alt'] ?? 'Waithaka Ndegwa')?>"><meta property="og:locale" content="en_KE">
