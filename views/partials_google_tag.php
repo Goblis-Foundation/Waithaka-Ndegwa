@@ -7,9 +7,8 @@ function gtag(){window.dataLayer.push(arguments);}
   'use strict';
   const id=<?=json_encode($ga4, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
   const page=<?=json_encode(['page_location'=>analytics_page_location((string)$seo['canonical'], $_GET), 'page_title'=>(string)$seo['title']], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_SLASHES)?>;
-  // Referrer attribution needs only the origin; tokens and searches stay private.
   try{const ref=new URL(document.referrer);page.page_referrer=/^https?:$/.test(ref.protocol)?ref.origin+'/':'';}catch(e){page.page_referrer='';}
-  let choice=null,viewSent=false;
+  let choice=null,viewSent=false,lastPresence=0;
   try{choice=localStorage.getItem('wk_consent');}catch(e){}
   if(!['analytics','necessary'].includes(choice))choice=null;
   window['ga-disable-'+id]=choice!=='analytics';
@@ -25,6 +24,10 @@ function gtag(){window.dataLayer.push(arguments);}
       window['ga-disable-'+id]=choice!=='analytics';
       gtag('consent','update',{analytics_storage:choice==='analytics'?'granted':'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
       if(choice==='analytics'&&!viewSent){viewSent=true;gtag('event','page_view',{...page,send_to:id});}
+    },
+    presence(){
+      if(choice!=='analytics'||document.visibilityState!=='visible'||window['ga-disable-'+id]||Date.now()-lastPresence<25000)return false;
+      lastPresence=Date.now();gtag('event','wn_live_presence',{...page,send_to:id});return true;
     },
     track(name,contentId){
       if(choice!=='analytics'||!events.has(name)||/[\r\n]/.test(contentId||'')||(!identifiers.has(contentId)&&!/^(?:post|journey|resource|watch|episode)-[1-9][0-9]{0,8}$/.test(contentId||'')))return;

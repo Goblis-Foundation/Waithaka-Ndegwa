@@ -160,3 +160,6 @@ jobs:
                   if attempt==17: raise RuntimeError('Production acceptance checks did not pass after DNS propagation retries') from None
                   time.sleep(10)
           PY
+
+      - name: Verify publishing, approved branding and automatic visitor refresh
+        run: python3 -B deploy/aws/verify_publishing_release.py

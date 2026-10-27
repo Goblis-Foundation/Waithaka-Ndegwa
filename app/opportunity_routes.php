@@ -1,11 +1,13 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/publishing_desk.php';
 function opportunity_render(string $view,array $data,string $title,string $path,bool $private=false): void {
  if($private)private_response_headers();
  render('opportunities/'.$view,$data+['page'=>'founders','privatePage'=>$private,'suppressAnalytics'=>$private,'seo'=>['title'=>$title.' · Waithaka Ndegwa','description'=>'Reviewed enterprise employment opportunities, approved by their founders.','canonical'=>url($path),'robots'=>$private?'noindex,nofollow':'index,follow']]);
 }
 function opportunity_error(Throwable $e): string {if($e instanceof InvalidArgumentException){http_response_code(422);return $e->getMessage();}http_response_code(503);error_log('Opportunity request failed: '.get_class($e));return 'This request could not be completed. Your saved record remains available. Please try again.';}
 function opportunity_dispatch(string $path): bool {
+ if(desk_dispatch($path))return true;
  if(opportunity_webhook_dispatch($path))return true;
  if($path==='/opportunities'){
   journeys_method(['GET','HEAD']);$items=opportunity_public_list();$q=is_string($_GET['q']??null)&&mb_check_encoding($_GET['q'],'UTF-8')?mb_substr(trim($_GET['q']),0,120):'';$items=array_values(array_filter($items,static fn($p)=>$q===''||mb_stripos($p['title'].' '.$p['organisation'].' '.location_label($p),$q)!==false));opportunity_render('index',compact('items','q'),'Opportunities','/opportunities');return true;

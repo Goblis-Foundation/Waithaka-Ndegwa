@@ -1,0 +1,24 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const {present}=require('../assets/js/visitor-statistics.js');
+let now=Date.parse('2026-12-31T20:59:30Z');
+const snapshot={enabled:true,timezone:'Africa/Nairobi',month_key:'2026-12',year_key:'2026',now:2,month:14,year:28,as_of:{now:now/1000,month:now/1000,year:now/1000}};
+assert.equal(present(snapshot,now).month_label,'December');assert.equal(present(snapshot,now).year,28);assert.equal(present(snapshot,now).now,2);
+let view=present(snapshot,Date.parse('2026-12-31T21:00:01Z'));assert.equal(view.month_label,'January');assert.equal(view.year_label,'2027');assert.equal(view.month,null);assert.equal(view.year,null);
+assert.equal(present(snapshot,now+151000).now,null);assert.equal(present({...snapshot,now:0},now).now,0);assert.equal(present({...snapshot,now:'4'},now).now,null);assert.equal(present({...snapshot,enabled:false},now).month,null);assert.deepEqual(present(snapshot,now),present(snapshot,now),'Polling must not increment totals.');
+const php=fs.readFileSync(require.resolve('../views/partials_google_tag.php'),'utf8');
+let source='(function(){'+php.split('(function(){')[1].split('})();')[0]+'})();';
+const values=[JSON.stringify('G-FIXTURE'),JSON.stringify({page_location:'https://example.org/',page_title:'Fixture'}),JSON.stringify(['fixture'])];let at=0;source=source.replace(/<\?=[\s\S]*?\?>/g,()=>values[at++]);
+let clock=100000,choice='necessary';const events=[];
+class Clock extends Date{static now(){return clock;}}
+const context={window:{},document:{visibilityState:'visible',referrer:''},localStorage:{getItem:()=>choice},gtag:(...a)=>events.push(a),Date:Clock,URL,Set};
+vm.runInNewContext(source,context);
+const presenceEvents=()=>events.filter(e=>e[0]==='event'&&e[1]==='wn_live_presence');
+assert.equal(context.window.wkAnalytics.presence(),false);assert.equal(presenceEvents().length,0);
+context.window.wkAnalytics.setConsent('analytics');assert.equal(context.window.wkAnalytics.presence(),true);assert.equal(presenceEvents().length,1);assert.equal(presenceEvents()[0][2].send_to,'G-FIXTURE');
+assert.equal(context.window.wkAnalytics.presence(),false,'Duplicate immediate heartbeat suppressed');
+clock+=30000;context.document.visibilityState='hidden';assert.equal(context.window.wkAnalytics.presence(),false,'Hidden tab does not count as current activity');
+context.document.visibilityState='visible';assert.equal(context.window.wkAnalytics.presence(),true);
+clock+=30000;context.window.wkAnalytics.setConsent('necessary');assert.equal(context.window.wkAnalytics.presence(),false,'Revoking consent stops presence events');
+assert.equal(presenceEvents().length,2);
+console.log('PASS: live display, independent totals, month/year rollover, stale-data expiry, consent, hidden tabs and heartbeat deduplication.');

@@ -1,0 +1,1 @@
+<link rel="stylesheet" href="<?=e(asset('css/publishing-desk.css'))?>"><section class="desk desk-public"><div class="desk-empty"><h1><?=e($heading)?></h1><p><?=e($message)?></p><a class="desk-button" href="<?=url('/contact')?>">Contact the editor</a></div></section>

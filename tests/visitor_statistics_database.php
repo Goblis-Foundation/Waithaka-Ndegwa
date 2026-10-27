@@ -1,0 +1,31 @@
+<?php
+declare(strict_types=1);
+if(PHP_SAPI!=='cli'||getenv('WK_TEST_ALLOW_WRITES')!=='1')throw new RuntimeException('Use an explicitly permitted disposable test database.');
+ob_start();require __DIR__.'/prepare.php';$name='waithaka_test_visitors_'.bin2hex(random_bytes(6)).'_test';$dbSettings=wk_test_database_settings();wk_test_prepare($name,false);
+$CONFIG=['app_env'=>'testing','base_url'=>'https://www.example.org','timezone'=>'Africa/Nairobi','app_key'=>'test-only-'.str_repeat('v',48),'db'=>$dbSettings+['name'=>$name,'charset'=>'utf8mb4']];$APP_INSTALLED=true;date_default_timezone_set('Africa/Nairobi');
+require dirname(__DIR__).'/vendor/autoload.php';
+foreach(['impact','writer_account','studio','media_centre','analytics','operations','media_storage','media_library','mail_feedback','integrations','journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','founder_stories','founder_story_routes','discovery','discovery_routes','campaigns','campaign_routes','google_workspace','meetings','communication','communication_notifications','app_security','communication_mail','trusted_devices','planner','publishing_automation','workspace_reports','contact_experience','enterprises','microsoft_workspace','microsoft_actions','opportunities','opportunity_routes']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
+function vs_assert(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);}
+set_setting('google.ga4','G-RN0YXC2WCH');set_setting('google.analytics_enabled','1');
+db()->prepare('INSERT INTO publishing_connections(service,provider,status,selected_resource) VALUES(?,?,?,?)')->execute(['google_analytics','google','connected','properties/123']);
+$t=time();$period=visitor_statistics_month('Africa/Nairobi');$year=substr($period['month'],0,4);
+$s=['timezone'=>'Africa/Nairobi','active'=>2,'active_at'=>$t,'active_window'=>2,'active_mode'=>'presence','month'=>$period['month'],'monthly_visitors'=>14,'monthly_metric'=>'totalUsers','month_at'=>$t,'year'=>$year,'yearly_visitors'=>28,'yearly_metric'=>'totalUsers','year_at'=>$t,'tag'=>'G-RN0YXC2WCH','binding'=>hash('sha256','properties/123|G-RN0YXC2WCH|www.example.org'),'binding_at'=>$t,'property'=>'properties/123','stream'=>'456'];comm_put('visitor.statistics',$s);
+$p=visitor_statistics_public();vs_assert($p['now']===2&&$p['month']===14&&$p['year']===28,'Verified counters are independent.');
+$_SERVER['REQUEST_METHOD']='GET';$_SERVER['REQUEST_URI']='/api/visitor-statistics';$_SESSION=[];
+ob_start();$handled=workspace_reports_dispatch('/api/visitor-statistics');$json=(string)ob_get_clean();vs_assert($handled,'Live aggregate route is reachable through actual dispatcher.');$out=json_decode($json,true,16,JSON_THROW_ON_ERROR);vs_assert($out['month']===14&&$out['refresh_after']===30,'Endpoint provides current aggregate snapshot.');
+$allowed=['enabled','server_time','timezone','month_key','year_key','month_label','year_label','refresh_after','now','month','year','as_of'];vs_assert(array_diff(array_keys($out),$allowed)===[]&&!str_contains($json,'properties/123')&&!array_key_exists('stream',$out)&&!array_key_exists('binding',$out),'Public endpoint exposes only approved aggregate fields, never connection metadata.');
+db()->prepare('UPDATE publishing_connections SET selected_resource=? WHERE service=?')->execute(['properties/999','google_analytics']);vs_assert(visitor_statistics_public()===[],'Changing Analytics property invalidates old public readings immediately.');
+db()->prepare('UPDATE publishing_connections SET selected_resource=? WHERE service=?')->execute(['properties/123','google_analytics']);$s['active_at']=$t-151;comm_put('visitor.statistics',$s);vs_assert(!isset(visitor_statistics_public()['now']),'Old live count is not frozen publicly.');
+$s['month']='2000-01';$s['year']='2000';comm_put('visitor.statistics',$s);$p=visitor_statistics_payload();vs_assert($p['month']===null&&$p['year']===null&&$p['month_key']===$period['month']&&$p['year_key']===$year,'Outdated periods are not relabelled.');
+// Settings are intentionally cached for one PHP request. Verify an admin change
+// from a fresh process, matching the next real browser poll after a redirect.
+set_setting('google.analytics_enabled','0');
+$child= <<<'PHP'
+$CONFIG=json_decode(stream_get_contents(STDIN),true,32,JSON_THROW_ON_ERROR);
+if(($CONFIG['app_env']??'')!=='testing'||!in_array($CONFIG['db']['host']??'',['127.0.0.1','::1'],true)||!preg_match('/^waithaka_test_[a-z0-9_]+_test$/D',$CONFIG['db']['name']??''))throw new RuntimeException('Fixture-only process.');
+$APP_INSTALLED=true;require 'app/functions.php';require 'app/visitor_statistics.php';echo json_encode(visitor_statistics_payload(),JSON_THROW_ON_ERROR);
+PHP;
+$process=proc_open([PHP_BINARY,'-r',$child],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,dirname(__DIR__),['APP_ENV'=>'testing'],['bypass_shell'=>true]);
+vs_assert(is_resource($process),'Fresh-request fixture starts.');fwrite($pipes[0],json_encode($CONFIG,JSON_THROW_ON_ERROR));fclose($pipes[0]);$result=stream_get_contents($pipes[1]);$error=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($process);
+vs_assert($exit===0&&$error==='','Fresh-request fixture completes without errors.');$disabled=json_decode($result,true,16,JSON_THROW_ON_ERROR);vs_assert($disabled['enabled']===false&&$disabled['now']===null&&$disabled['month']===null&&$disabled['year']===null,'Disabled analytics stops all public counters on the next request.');
+ob_end_clean();echo "PASS: actual public dispatch, independent aggregates, property rebinding, freshness, calendar changes and privacy against disposable MySQL.\n";
