@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/monthly_roundup.php';
+require_once __DIR__.'/correspondence_log.php';
+require_once __DIR__.'/client_contact.php';
 /** Explicit mailbox reads and private drafts. Never an inbox sync daemon or a send endpoint. */
 function comm_mail_connection(string $service,int $uid): array {$c=publishing_connection($service);if(!$c||$c['status']!=='connected'||(int)$c['connected_by']!==$uid||empty($c['selected_resource']))throw new RuntimeException('Connect and confirm this mailbox feature first.');return $c;}
 function comm_mail_headers(array $payload): array {$out=[];foreach($payload['headers']??[]as$h){$n=strtolower((string)($h['name']??''));if(in_array($n,['from','to','subject','date'],true))$out[$n]=mb_substr((string)($h['value']??''),0,1000);}return $out;}
@@ -17,7 +20,7 @@ function comm_mail_mime(string $to,string $subject,string $body,string $name='',
 }
 function comm_mail_draft(int $uid,array $input): array {
     $c=comm_mail_connection('google_gmail_draft',$uid);$to=reader_text($input['to']??'','Recipient',190,true);$subject=reader_text($input['subject']??'','Subject',180,true);$body=reader_text($input['body']??'','Message',12000,true);$name=reader_text($input['name']??'','Recipient first name',120,true);$from='';foreach(publishing_decode($c['resources_json'])as$r)if(($r['id']??'')===$c['selected_resource'])$from=(string)($r['name']??'');if(!filter_var($from,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Confirm your sender mailbox again.');$mime=comm_mail_mime($to,$subject,$body,$name,$from);$nonce=$input['request_id']??'';if(!is_string($nonce)||!preg_match('/^[a-f0-9]{32}$/D',$nonce))throw new InvalidArgumentException('Reload the draft form.');$id=hash_hmac('sha256','mail-draft|'.$uid.'|'.$nonce,(string)app_config('app_key'));
-    return comm_lock('draft.'.$id,function()use($id,$uid,$c,$mime){$prior=comm_get('draft.'.$id);if($prior)return $prior;$job=['id'=>$id,'user'=>$uid,'status'=>'creating','at'=>time(),'account'=>$c['display_name']];comm_put('draft.'.$id,$job);try{$r=publishing_http('POST','https://gmail.googleapis.com/gmail/v1/users/me/drafts',['Authorization: Bearer '.publishing_access_token($c)],['message'=>['raw'=>comm_b64($mime)]],false,true)['data'];if(empty($r['id']))throw new RuntimeException('Draft acknowledgement unavailable.');$job['status']='created';}catch(Throwable){$job['status']='review';}comm_put('draft.'.$id,$job);return $job;});
+    return comm_lock('draft.'.$id,function()use($id,$uid,$c,$mime,$to,$subject){$prior=comm_get('draft.'.$id);if($prior)return $prior;$job=['id'=>$id,'user'=>$uid,'status'=>'creating','at'=>time(),'account'=>$c['display_name'],'recipient'=>$to,'subject'=>$subject];comm_put('draft.'.$id,$job);try{$r=publishing_http('POST','https://gmail.googleapis.com/gmail/v1/users/me/drafts',['Authorization: Bearer '.publishing_access_token($c)],['message'=>['raw'=>comm_b64($mime)]],false,true)['data'];if(!is_string($r['id']??null)||!preg_match('/^[a-zA-Z0-9_-]{1,200}$/D',$r['id']))throw new RuntimeException('Draft acknowledgement unavailable.');$job['provider_draft_id']=$r['id'];$job['status']='created';}catch(Throwable){$job['status']='review';}comm_put('draft.'.$id,$job);return $job;});
 }
 function comm_mail_status(string $service,int $uid): array {
     if(!in_array($service,['google_gmail_read','google_gmail_draft'],true))throw new InvalidArgumentException('Choose a mailbox feature.');
@@ -25,6 +28,7 @@ function comm_mail_status(string $service,int $uid): array {
     $ready=$c['status']==='connected'&&!empty($c['selected_resource']);return ['ready'=>$ready,'label'=>$ready?'Authorized':'Confirm or reconnect','account'=>(string)$c['display_name']];
 }
 function communication_mail_dispatch(string $path): bool {
+    if(roundup_dispatch($path)||correspondence_dispatch($path)||client_contact_dispatch($path))return true;
     if($path!=='/write/communication/mail')return false;require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$error='';$report=null;$draft=null;
     if(is_post()){verify_csrf();try{if(!journeys_rate_limit('mailbox-read',(string)$uid,30,3600))throw new RuntimeException('Please wait before requesting more mailbox actions.');$action=$_POST['action']??'';if($action==='read')$report=comm_mail_read($uid,is_string($_POST['message_id']??null)?$_POST['message_id']:'');elseif($action==='draft')$draft=comm_mail_draft($uid,$_POST);else throw new InvalidArgumentException('Choose a supported mailbox action.');}catch(Throwable $e){$error=$e instanceof PublishingRemoteException||$e instanceof InvalidArgumentException||get_class($e)===RuntimeException::class?$e->getMessage():'Mailbox action failed. Review its connection and Gmail API access.';}}
     render_write('mailbox',['writeTitle'=>'Email conversations','error'=>$error,'report'=>$report,'draft'=>$draft,'readStatus'=>comm_mail_status('google_gmail_read',$uid),'draftStatus'=>comm_mail_status('google_gmail_draft',$uid)]);return true;
