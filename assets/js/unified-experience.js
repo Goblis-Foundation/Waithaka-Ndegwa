@@ -12,7 +12,13 @@
  }
  function reveal(el){let parent=el.parentElement;while(parent){if(parent.tagName==='DETAILS')parent.open=true;parent=parent.parentElement;}el.focus({preventScroll:true});el.scrollIntoView({behavior:reduced()?'auto':'smooth',block:'center'});}
  function dialog(title){
-  const d=make('dialog',undefined,'ux-dialog');d.setAttribute('aria-label',title);const heading=make('h2',title),close=button('Close','ux-button');const head=make('div',undefined,'ux-dialog-heading');head.append(heading,close);d.append(head);document.body.append(d);close.addEventListener('click',()=>d.close());d.addEventListener('click',e=>{if(e.target===d)d.close();});return d;
+  const d=make('dialog',undefined,'ux-dialog');d.setAttribute('aria-label',title);const heading=make('h2',title),close=button('Close','ux-button');const head=make('div',undefined,'ux-dialog-heading');head.append(heading,close);d.append(head);document.body.append(d);
+  close.addEventListener('click',()=>d.close());
+  d.addEventListener('click',e=>{if(e.target===d)d.close();});
+  // Search inputs can consume their first Escape to clear a value. Dialog dismissal
+  // must still work immediately, with native focus restoration and no form action.
+  d.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.isComposing){e.preventDefault();e.stopPropagation();d.close();}});
+  return d;
  }
  // One task launcher from the existing navigation. It never invents grant-dependent actions.
  const sidebar=document.querySelector('.workspace-auth .workspace-nav');
