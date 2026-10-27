@@ -1,0 +1,33 @@
+<?php
+declare(strict_types=1);
+if(PHP_SAPI!=='cli')exit(2);
+require dirname(__DIR__).'/app/monthly_roundup_policy.php';
+$n=0;function mr_check(bool $ok,string $why):void{global $n;$n++;if(!$ok)throw new RuntimeException($why);}
+$w=roundup_window(new DateTimeImmutable('2026-11-01T00:00:00+03:00'));
+mr_check($w['key']==='2026-10'&&$w['month']==='October'&&$w['welcome_month']==='November','Welcome and coverage refer to different months.');
+mr_check(gmdate('c',$w['release'])==='2026-10-31T21:00:00+00:00','Nairobi midnight is anchored in the correct UTC instant.');
+mr_check($w['start']==(new DateTimeImmutable('2026-10-01T00:00:00+03:00'))->getTimestamp(),'Coverage begins at local midnight.');
+mr_check(!roundup_due($w,$w['release']-1)&&roundup_due($w,$w['release']),'Never publish early.');
+mr_check(!roundup_due($w,$w['release']+7*86400),'No surprise late monthly blast after the catch-up window.');
+$jan=roundup_window(new DateTimeImmutable('2027-01-01T00:00:00+03:00'));mr_check($jan['key']==='2026-12'&&$jan['welcome_year']==='2027','Year rollover.');
+$leap=roundup_window(new DateTimeImmutable('2028-03-01T00:00:00+03:00'));mr_check(($leap['end']-$leap['start'])/86400===29,'Leap February.');
+$normal=roundup_window(new DateTimeImmutable('2027-03-01T00:00:00+03:00'));mr_check(($normal['end']-$normal['start'])/86400===28,'Ordinary February.');
+mr_check(!roundup_due(roundup_window(new DateTimeImmutable('2026-10-01T00:00:00+03:00')),(new DateTimeImmutable('2026-10-01T00:00:00+03:00'))->getTimestamp()),'No pre-authorisation backfill.');
+$origin='https://www.example.org';$item=['type'=>'article','public'=>true,'published'=>$w['start'],'title'=>'Public update','excerpt'=>'Verified excerpt','url'=>$origin.'/my-thoughts/public-update'];
+mr_check(roundup_item($item,$w,$origin)!==null,'Inclusive lower boundary.');
+mr_check(roundup_item(array_replace($item,['published'=>$w['end']-1]),$w,$origin)!==null,'Last second of previous month included.');
+mr_check(roundup_item(array_replace($item,['published'=>$w['end']]),$w,$origin)===null,'New-month items excluded.');
+mr_check(roundup_item(array_replace($item,['public'=>false]),$w,$origin)===null,'Private draft excluded.');
+foreach(['/write/notes','/client/workspace/private','/founders/review','/my-thoughts/public-update?token=secret','/my-thoughts/public-update#private']as$path)mr_check(roundup_item(array_replace($item,['url'=>$origin.$path]),$w,$origin)===null,'Private/capability URL refused.');
+mr_check(roundup_item(array_replace($item,['url'=>'https://outside.example/my-thoughts/x']),$w,$origin)===null,'No invented external archive destination.');
+mr_check(roundup_item(array_replace($item,['sponsored'=>true]),$w,$origin)===null,'Paid article is not automatically sold as newsletter inventory.');
+$paid=roundup_item(array_replace($item,['type'=>'partner','sponsored'=>true,'newsletter_permission'=>true,'sponsor'=>'Verified client']),$w,$origin);mr_check($paid!==null&&$paid['sponsored'],'Explicit permission preserves sponsor classification.');
+$items=roundup_select([$item,$item,array_replace($item,['public'=>false])],$w,$origin);mr_check(count($items)===1,'Repeated source does not duplicate an entry.');
+$safe=roundup_item($item+['client_email'=>'PRIVATE','phone'=>'PRIVATE','notes'=>'PRIVATE'],$w,$origin);mr_check(!str_contains(json_encode($safe),'PRIVATE'),'Allowlisted public projection only.');
+$html=roundup_body($w,$items,true,$origin.roundup_public_path($w['key']));mr_check(str_contains($html,'Welcome to November 2026.')&&str_contains($html,'October 2026'),'Welcoming article copy uses correct calendar labels.');
+mr_check(str_contains($html,'www.waithakandegwa.com')&&str_contains($html,'@iwaithakaw')&&!str_contains($html,'/contribute'),'Brand footer without a contribution request.');
+$closed=$items;$closed[0]['closed']=true;mr_check(str_contains(roundup_body($w,$closed),'Closed —'),'Closed calls labelled rather than promoted as open.');
+mr_check(str_contains(roundup_body($w,[]),'No new public items were recorded'),'No invented achievements in a quiet month.');
+mr_check(str_contains(roundup_policy_text(),'No unrelated queue')&&str_contains(roundup_policy_text(),'one-click unsubscribe'),'Delivery boundary is explicit.');
+$timer=file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/31_monthly_roundup.sh');mr_check(str_contains($timer,'OnCalendar=*-*-01 00:00:00 Africa/Nairobi')&&str_contains($timer,'Persistent=true')&&str_contains($timer,'AccuracySec=1s'),'Native timer is calendar-anchored, precise and persistent.');
+echo 'PASS: '.$n." monthly calendar, public-source, consent and branding checks.\n";

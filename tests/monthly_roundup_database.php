@@ -1,0 +1,35 @@
+<?php
+declare(strict_types=1);
+if(PHP_SAPI!=='cli'||getenv('WK_TEST_ALLOW_WRITES')!=='1')throw new RuntimeException('Explicit disposable database permission is required.');
+require __DIR__.'/prepare.php';$name='waithaka_test_roundup_'.bin2hex(random_bytes(6)).'_test';$dbSettings=wk_test_database_settings();wk_test_prepare($name,false);
+$CONFIG=['app_env'=>'testing','base_url'=>'https://www.example.org','timezone'=>'Africa/Nairobi','app_key'=>'test-only-'.str_repeat('m',48),'db'=>$dbSettings+['name'=>$name,'charset'=>'utf8mb4'],'mail'=>['transport'=>'disabled','from'=>'writer@example.org','from_name'=>'Waithaka Ndegwa','reply_to'=>'reply@example.org','postal_address'=>'Fixture address, Nairobi, Kenya']];$APP_INSTALLED=true;date_default_timezone_set('Africa/Nairobi');
+require dirname(__DIR__).'/vendor/autoload.php';
+foreach(['impact','writer_account','studio','media_centre','analytics','operations','media_storage','media_library','mail_feedback','integrations','journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','founder_stories','founder_story_routes','discovery','discovery_routes','campaigns','campaign_routes','google_workspace','meetings','communication','communication_notifications','app_security','communication_mail','trusted_devices','planner','publishing_automation','workspace_reports','contact_experience','enterprises','microsoft_workspace','microsoft_actions','opportunities','opportunity_routes']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
+set_error_handler(static function(int $severity,string $message,string $file,int $line):bool{if(error_reporting()&$severity)throw new ErrorException($message,0,$severity,$file,$line);return false;});
+$n=0;function rd(bool $ok,string $why):void{global $n;$n++;if(!$ok)throw new RuntimeException($why);}
+$pdo=db();$pdo->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['Fixture owner','owner@example.org',password_hash(bin2hex(random_bytes(16)),PASSWORD_DEFAULT)]);$uid=(int)$pdo->lastInsertId();$cfg=comm_config();$cfg['owner']=$uid;comm_put('config',$cfg);
+$next=(new DateTimeImmutable('first day of next month',roundup_zone()))->setTime(0,0);$window=roundup_window($next);$cfg=roundup_config();$cfg['first_release']='2000-01-01';comm_put('roundup.config',$cfg);
+$cat=(int)$pdo->query('SELECT id FROM categories ORDER BY id LIMIT 1')->fetchColumn();$at=max((new DateTimeImmutable('first day of this month',roundup_zone()))->setTime(0,0)->getTimestamp(),time()-60);
+$public=writer_save_post(['title'=>'Fixture public monthly update','standfirst'=>'A verified public fixture.','content_html'=>'<p>This public update is safe for the monthly archive.</p>','category_id'=>$cat,'published_at'=>date('Y-m-d\TH:i',$at)],$uid,true);
+writer_save_post(['title'=>'PRIVATE-DRAFT-MARKER','content_html'=>'<p>Do not disclose this private draft.</p>'],$uid,false);
+$items=roundup_collect($window);rd(count($items)>=1&&!str_contains(json_encode($items),'PRIVATE-DRAFT-MARKER'),'Only public source fields are collected.');
+$pdo->prepare("INSERT INTO newsletter_subscribers(email,name,status,consent_version,requested_at,confirmed_at,created_at,updated_at) VALUES(?,?,'confirmed',?,NOW(),NOW(),NOW(),NOW())")->execute(['reader@example.org','Fixture Reader','fixture-monthly-v1']);
+$unrelated=enqueue_email('other@example.org','Unrelated fixture','<p>Do not release this queue.</p>','fixture:unrelated');$sent=[];
+$transport=static function(array $payload,string $key)use(&$sent):string{$sent[]=$payload;return 'fixture-provider-'.$key;};
+$result=roundup_work($next,$transport);$edition=roundup_edition($window['key']);
+rd($edition['public']&&$edition['scheduled_for']===$window['release'],'One public edition records the planned midnight separately from actual publication.');
+rd(!empty($edition['campaign_id'])&&count($sent)===1,'One confirmed recipient receives one scoped fixture delivery.');
+rd(str_contains($sent[0]['html'],'brand-lockup.png')&&isset($sent[0]['headers']['List-Unsubscribe-Post']),'Approved branding and one-click unsubscribe are in the actual envelope.');
+rd(!str_contains($sent[0]['html'],'PRIVATE-DRAFT-MARKER'),'Private drafts never enter outbound content.');
+$q=$pdo->prepare('SELECT status FROM email_outbox WHERE id=?');$q->execute([$unrelated]);rd($q->fetchColumn()==='pending','Unrelated historical outbox remains untouched.');
+$campaignId=$edition['campaign_id'];$count=(int)$pdo->query('SELECT COUNT(*) FROM newsletter_campaigns')->fetchColumn();roundup_work($next,$transport);
+rd(count($sent)===1&&roundup_edition($window['key'])['campaign_id']===$campaignId&&(int)$pdo->query('SELECT COUNT(*) FROM newsletter_campaigns')->fetchColumn()===$count,'Retries create no duplicate edition, campaign or send.');
+$pdo->prepare("INSERT INTO newsletter_subscribers(email,name,status,consent_version,requested_at,confirmed_at,created_at,updated_at) VALUES(?,?,'confirmed',?,NOW(),NOW(),NOW(),NOW())")->execute(['late@example.org','Late Fixture','fixture-monthly-v1']);roundup_work($next,$transport);rd(count($sent)===1,'Later subscriptions are not added to an already frozen edition.');
+$client=['name'=>'Fixture Client','email'=>'client@example.org','business'=>'Fixture Business'];$r=desk_new(['title'=>'Fixture business feature','organisation'=>'Fixture Business','purchase_url'=>'https://example.org/buy'],'sponsored',$uid,$client);
+$r=client_contact_save($r['id'],['version'=>$r['version'],'country'=>'Uganda','region'=>'Central','district'=>'Kampala','city'=>'Kampala','phone_code'=>'+44','phone'=>'+447700900123'],'client');
+rd($r['client']['contact_profile']['region']==='Central'&&!str_contains(json_encode(desk_ai_material($r)),'447700900123'),'Client profile is retained privately and excluded from AI/public facts.');
+try{client_contact_save($r['id'],['version'=>0,'country'=>'Kenya'],'client');throw new RuntimeException('Stale contact profile accepted');}catch(InvalidArgumentException){rd(true,'Concurrent profile edits are protected.');}
+$log=correspondence_page(['view'=>'outgoing'],$uid);rd($log['total']>=2&&count($log['rows'])>=2,'Protected outgoing log reads the actual encrypted outbox.');
+$before=count($sent);$CONFIG['mail']['from']='changed@example.org';$later=$next->modify('+1 month');$blocked=roundup_work($later,$transport);rd($blocked['email_state']==='blocked_sender'&&count($sent)===$before,'Changed sender cannot silently dispatch a new monthly campaign.');
+$CONFIG['mail']['from']='writer@example.org';$pdo->exec("UPDATE newsletter_subscribers SET status='unsubscribed',consent_revision=consent_revision+1");$none=roundup_work($later,$transport);rd($none['email_state']==='no_subscribers'&&count($sent)===$before,'No confirmed audience creates no fake delivery.');
+restore_error_handler();echo 'PASS: '.$n." monthly database assertions: real sources, immutable campaign identity, scoped outbox, opt-out, sender binding, private profiles and correspondence evidence. No external mail or provider calls.\n";
