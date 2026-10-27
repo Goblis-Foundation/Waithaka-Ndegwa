@@ -9,6 +9,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+from verify_reconciliation_release import verify as verify_reconciliation
 
 BASE = 'https://www.waithakandegwa.com'
 LOGO_SHA256 = 'f674df8d4a9f30df3ce663b7f001af8fd1b18984d251ff5924c9ff01bac77c0b'
@@ -42,14 +43,14 @@ def check_pages() -> None:
             raise RuntimeError('New route or approved logo is not visible: ' + path)
         if path == '/promote' and 'googletagmanager.com/gtag/js' in text:
             raise RuntimeError('Private commercial intake must not emit Analytics')
-    logo, _ = read('/assets/images/brand-lockup.webp?release=20261027')
+    logo, _ = read('/assets/images/brand-lockup.webp?v=20261027')
     if hashlib.sha256(logo).hexdigest() != LOGO_SHA256:
         raise RuntimeError('The deployed wordmark does not match the approved bytes')
     for name, width, height in [('icon-192.png',192,192),('icon-512.png',512,512),('apple-touch-icon.png',180,180),('brand-lockup.png',720,160)]:
-        image, _ = read('/assets/images/' + name + '?release=20261027')
+        image, _ = read('/assets/images/' + name + '?v=20261027')
         if image[:8] != b'\x89PNG\r\n\x1a\n' or len(image) < 24 or struct.unpack('>II',image[16:24]) != (width,height):
             raise RuntimeError('Incorrect ready-to-use icon or fallback: ' + name)
-    icon, _ = read('/assets/images/favicon.svg?release=20261027')
+    icon, _ = read('/assets/images/favicon.svg?v=20261027')
     if b'<path' not in icon or b'Waithaka Ndegwa' not in icon:
         raise RuntimeError('Approved vector favicon is missing')
     private, headers = read('/client/workspace/' + '0' * 32, 403)
@@ -58,6 +59,7 @@ def check_pages() -> None:
     health, _ = read('/healthz')
     if json.loads(health).get('ok') is not True:
         raise RuntimeError('Database health is not ready')
+    verify_reconciliation()
     print('PASS: public publishing routes, private intake/client isolation, approved logo hash, finished icon dimensions and database health.')
 
 def snapshot() -> dict:
@@ -75,7 +77,7 @@ def snapshot() -> dict:
         value = result.get(key)
         if value is not None:
             at = result.get('as_of',{}).get(key)
-            if type(value) is not int or value < 0 or type(at) is not int or not -5 <= result['server_time']-at <= (150 if key == 'now' else 900):
+            if type(value) is not int or value < 0 or type(at) is not int or not -5 <= result['server_time']-at <= (60 if key == 'now' else 900):
                 raise RuntimeError('A visitor value is invalid or stale')
     return result
 

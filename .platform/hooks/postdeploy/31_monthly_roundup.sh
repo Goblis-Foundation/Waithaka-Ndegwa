@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Same workload identity and runtime launcher as the existing worker. No new
-# provider grant, purchase, account, transport setting or historical queue release.
+# Same workload identity and protected runtime launcher as the existing worker.
 systemd-analyze calendar '*-*-01 00:00:00 Africa/Nairobi' >/dev/null
 cat > /etc/systemd/system/waithaka-monthly-roundup.service <<'SERVICE'
 [Unit]
@@ -17,8 +16,8 @@ ExecStart=/usr/bin/php /var/app/current/deploy/aws/worker-launcher.php --monthly
 TimeoutStartSec=180s
 UMask=0077
 NoNewPrivileges=true
-StandardOutput=append:/var/log/waithaka-worker.log
-StandardError=append:/var/log/waithaka-worker.log
+StandardOutput=journal
+StandardError=journal
 SERVICE
 cat > /etc/systemd/system/waithaka-monthly-roundup.timer <<'TIMER'
 [Unit]
@@ -38,7 +37,8 @@ chmod 0644 /etc/systemd/system/waithaka-monthly-roundup.service /etc/systemd/sys
 systemctl daemon-reload
 systemctl enable --now waithaka-monthly-roundup.timer
 systemctl is-active --quiet waithaka-monthly-roundup.timer
-# Initialise the exact policy and sender binding. The application refuses any
-# publication before 1 November 2026 and never publishes October's draft early.
+# Initialises policy/sender binding; before 1 November no publication or send.
 systemctl start waithaka-monthly-roundup.service
 systemctl show waithaka-monthly-roundup.timer -p ActiveState -p NextElapseUSecRealtime --no-pager
+# This output is an allowlisted aggregate readiness record, not mail content.
+journalctl -u waithaka-monthly-roundup.service -n 10 --no-pager -o cat | grep '^{' || true

@@ -2,31 +2,30 @@
 declare(strict_types=1);
 if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
 require dirname(__DIR__).'/app/bootstrap.php';
-// A separate calendar trigger executes only the owner-authorised monthly work.
-// It never enables or drains the site's unrelated historical delivery queues.
+// The calendar trigger executes only the owner-authorised monthly work.
 if(($argv[1]??'')==='--monthly-roundup'){
     if(!$APP_INSTALLED||app_config('app_env')!=='production'){echo "{\"enabled\":false}\n";exit;}
-    reconciliation_preferences();echo json_encode(roundup_work(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES).PHP_EOL;exit;
+    reconciliation_preferences();$result=roundup_work();$cfg=roundup_config();$sender=newsletter_sender();
+    $ready=filter_var($sender['from']??'',FILTER_VALIDATE_EMAIL)&&trim((string)($sender['name']??''))!==''&&trim((string)($sender['postal_address']??''))!==''&&email_transport_ready();
+    $next=(new DateTimeImmutable('first day of next month',roundup_zone()))->setTime(0,0);
+    $result['readiness']=['policy_enabled'=>!empty($cfg['enabled']),'email_enabled'=>!empty($cfg['email_enabled']),'sender_complete_and_transport_ready'=>(bool)$ready,'sender_binding_current'=>hash_equals((string)$cfg['sender_hash'],roundup_sender_hash()),'owner_configured'=>(int)(comm_config()['owner']??0)>0,'next_release'=>$next->format(DATE_ATOM),'timezone'=>'Africa/Nairobi'];
+    echo json_encode($result,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES).PHP_EOL;exit;
 }
 if($APP_INSTALLED&&app_config('app_env')==='production'){
     try{reconciliation_preferences();roundup_work();}catch(Throwable $e){error_log('Monthly roundup needs review: '.get_class($e));}
 }
-// Aggregate reporting is independent of paused mail/social delivery. No feeds means no network calls.
 if ($APP_INSTALLED && app_config('app_env')==='production') {
     try { impact_sync(); } catch (Throwable $e) { error_log('Impact reporting refresh unavailable.'); }
 }
-// Read-only consented Google aggregates for the public footer.
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { visitor_statistics_refresh(); } catch(Throwable $e) { error_log('Footer visitor statistics unavailable.'); }
 }
-// Independently opted-in booking service. Does not drain newsletter/social/payment queues.
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { communication_work(); } catch(Throwable $e) { error_log('Communication worker needs review.'); }
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { planner_work(); } catch(Throwable $e) { error_log('Daily program worker needs review.'); }
 }
-// New contact submissions only; private scoped delivery never releases the old outbox.
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { contact_delivery_work(); } catch(Throwable $e) { error_log('Contact delivery needs review.'); }
 }
@@ -36,7 +35,6 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { desk_work(); } catch(Throwable $e) { error_log('Publishing desk needs review.'); }
 }
-// Only explicitly queued weekly revisions; legacy delivery queues keep their gate.
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { desk_delivery_gate(static fn()=>publishing_weekly_work()); } catch(Throwable $e) { error_log('Weekly publishing queue needs review.'); }
 }
