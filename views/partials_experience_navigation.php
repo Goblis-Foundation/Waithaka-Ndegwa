@@ -1,0 +1,1 @@
+<?php if(!empty($uxCrumbs)):?><nav class="container ux-breadcrumbs" aria-label="Breadcrumb"><ol><?php foreach($uxCrumbs as$i=>$crumb):?><li><?php if($i===count($uxCrumbs)-1):?><span aria-current="page"><?=e($crumb['name'])?></span><?php else:?><a href="<?=e($crumb['url'])?>"><?=e($crumb['name'])?></a><?php endif;?></li><?php endforeach;?></ol></nav><?php endif;?>

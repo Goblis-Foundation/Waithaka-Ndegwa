@@ -1,0 +1,44 @@
+name: Prepare reviewed experience integration
+on:
+  push:
+    branches: [feat/unified-journeys-seo-20261027]
+    paths: ['bin/apply-experience-wiring.py', '.github/workflows/prepare-experience-wiring.yml']
+permissions:
+  contents: write
+concurrency:
+  group: waithaka-experience-source-integration
+  cancel-in-progress: false
+jobs:
+  integrate:
+    if: github.repository == 'Goblis-Foundation/Waithaka-Ndegwa' && github.ref == 'refs/heads/feat/unified-journeys-seo-20261027'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/unified-journeys-seo-20261027
+          fetch-depth: 2
+      - name: Apply exact-match integration on the feature branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = 'feat/unified-journeys-seo-20261027'
+          python3 -B bin/apply-experience-wiring.py
+          git diff --check
+          git diff --stat
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app assets views tests composer.json deploy/aws/verify_reconciliation_release.py
+          git commit -m 'feat: wire reviewed experience, suitability and repeat-campaign controls'
+          git push origin HEAD:refs/heads/feat/unified-journeys-seo-20261027
+      - name: Archive source for isolated review
+        if: always()
+        run: |
+          git archive --format=zip --output="$RUNNER_TEMP/experience-source.zip" HEAD
+          git rev-parse HEAD
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experience-source-review
+          path: ${{ runner.temp }}/experience-source.zip
+          retention-days: 1
