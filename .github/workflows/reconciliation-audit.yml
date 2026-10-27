@@ -1,0 +1,52 @@
+name: Reconciliation source audit
+on:
+  push:
+    branches: [fix/no-drop-forms-email-20261027]
+    paths: ['.github/workflows/reconciliation-audit.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 300
+      - name: Compile source-only requirements evidence
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,subprocess
+          root=Path('.')
+          print('=== DOCUMENT REGISTER ===')
+          for p in sorted(Path('docs').glob('*.md')): print(p.as_posix())
+          print('=== SPEAKING ENTRY POINTS ===')
+          for directory in ['app','views','assets/js']:
+              for p in sorted(Path(directory).rglob('*')):
+                  if p.suffix not in ['.php','.js','.json','.html']: continue
+                  for n,line in enumerate(p.read_text(errors='replace').splitlines(),1):
+                      if re.search(r'speaking|speaker|keynote|invite me|invitation to speak',line,re.I): print(str(p)+':'+str(n)+':'+line[:1800])
+          print('=== LOCATION COMPONENT USE ===')
+          for p in sorted(Path('views').rglob('*.php')):
+              text=p.read_text()
+              if '<form' in text and re.search(r'country|county|phone|organisation|organization',text,re.I):
+                  print(str(p)+': shared-location='+str('location_fields' in text or 'location_form' in text or 'location-fields' in text))
+          print('=== EMAIL AND LOCATION FUNCTIONS ===')
+          for path in ['app/email_design.php','app/location.php','app/communication_mail.php','app/reader.php','app/contact_guard.php']:
+              p=Path(path)
+              for n,line in enumerate(p.read_text().splitlines(),1):
+                  if re.search(r'^function |enqueue_email|email_design|location_fields|location_parse',line): print(path+':'+str(n)+':'+line[:1300])
+          print('=== 26 OCTOBER NAIROBI COMMITS ===')
+          result=subprocess.run(['git','log','--since=2026-10-25T21:00:00Z','--until=2026-10-26T21:00:00Z','--format=%h %s','-80'],text=True,capture_output=True,check=True)
+          print(result.stdout)
+          print('=== DOCUMENTED PENDING / GATES ===')
+          for p in sorted(Path('docs').glob('*.md')):
+              if '2026-10-26' not in p.name and p.name not in ['GOOGLE-SOCIAL-CAPABILITY-AUDIT-2026-10-25.md','MICROSOFT-365-WORKSPACE-2026-10-25.md','COMMUNICATION-APP-2026-10-24.md','VALIDATION.md']:continue
+              print('--- '+str(p))
+              text=p.read_text()
+              for n,line in enumerate(text.splitlines(),1):
+                  if re.search(r'pending|not implemented|not connected|remaining|blocked|defer|gate|not yet|not proved|Limits',line,re.I):print(str(n)+':'+line[:1600])
+          PY
