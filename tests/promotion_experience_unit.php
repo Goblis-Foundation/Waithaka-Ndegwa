@@ -3,6 +3,8 @@ declare(strict_types=1);
 if(PHP_SAPI!=='cli')exit(2);
 require dirname(__DIR__).'/app/publishing_desk_policy.php';
 require dirname(__DIR__).'/app/promotion_experience.php';
+require dirname(__DIR__).'/app/commercial_control.php';require dirname(__DIR__).'/app/location.php';
+function country_options():array{return ['Kenya','Uganda','United Kingdom'];}
 function e(string $s):string{return htmlspecialchars($s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function url(string $s=''):string{return 'https://www.example.org'.$s;}
 function asset(string $s):string{return '/assets/'.$s;}

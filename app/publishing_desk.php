@@ -5,6 +5,8 @@ require_once __DIR__.'/publishing_desk_lifecycle.php';
 require_once __DIR__.'/publishing_desk_billing.php';
 require_once __DIR__.'/publishing_desk_routes.php';
 require_once __DIR__.'/publishing_desk_media.php';
+require_once __DIR__.'/commercial_control.php';
+require_once __DIR__.'/experience_workflows.php';
 
 function desk_config(): array {
     return comm_get('desk.config')+['billing_enabled'=>false,'seller'=>'','billing_email'=>'','invoice_address'=>'','tax_note'=>'Taxes, if applicable, are stated in your accepted quotation.','bank_instructions'=>'','bank_reference'=>'','paypal_merchant'=>'','providers'=>[],'daily_cap'=>1,'brand_asset'=>0];
@@ -37,13 +39,14 @@ function desk_new(array $in,string $kind,int $uid,?array $client=null): array {
     $fields=desk_fields($in,$kind);$id=bin2hex(random_bytes(16));
     $saved=writer_save_post(['title'=>$fields['title'],'standfirst'=>$fields['summary'],'content_html'=>desk_article_html($fields,$kind)],$uid,false);
     $r=['id'=>$id,'kind'=>$kind,'fields'=>$fields,'state'=>'draft','slug'=>substr(slugify($fields['title']),0,130).'-'.substr($id,0,8),'post_id'=>$saved['id'],'created'=>time(),'version'=>0,'client'=>$client,'creatives'=>[],'orders'=>[],'campaigns'=>[],'owner_approval'=>null,'client_approval'=>null,'public'=>null,'public_visible'=>false];
+    $r=commercial_new_review($r,$in);
     $pdo=db();$pdo->beginTransaction();try{comm_put('desk.post.'.$saved['id'],['id'=>$id,'sponsored'=>$fields['sponsored']]);$r=desk_store($r,'created',(string)$uid);$pdo->commit();return $r;}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 function desk_expect(array $r,array $in): void {if((string)($in['version']??'')!==(string)$r['version'])throw new InvalidArgumentException('This record changed. Reload before continuing.');}
 function desk_current_order(array $r): ?array {return empty($r['order'])?null:desk_order($r['order']);}
 function desk_assert_publish(array $r,?array $order=null): array {
     desk_fields(desk_edit_fields($r['fields']),$r['kind'],true);
-    $post=writer_post_by_id((int)$r['post_id']);if(!$post)throw new InvalidArgumentException('The source article is unavailable.');$order??=desk_current_order($r);
+    $post=writer_post_by_id((int)$r['post_id']);if(!$post)throw new InvalidArgumentException('The source article is unavailable.');$order??=desk_current_order($r);commercial_assert_suitable($r,$post);
     if($r['fields']['sponsored']&&$order&&($order['record']??'')!==$r['id'])throw new InvalidArgumentException('The commercial order belongs to another article.');
     $errors=desk_publish_errors($r,$post,$order);if($errors)throw new InvalidArgumentException(implode(' ',$errors));return $post;
 }
@@ -57,7 +60,8 @@ function desk_send_client(array $r,string $subject): void {
 }
 function desk_client(array $in): array {
     $email=desk_text($in['client_email']??'','Client email',254,true);if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Enter a valid client email.');
-    return ['name'=>desk_text($in['client_name']??'','Client name',120,true),'email'=>strtolower($email),'business'=>desk_text($in['organisation']??'','Business',180,true)];
+    $client=['name'=>desk_text($in['client_name']??'','Client name',120,true),'email'=>strtolower($email),'business'=>desk_text($in['organisation']??'','Business',180,true)];
+    $profile=commercial_client_profile($in);if($profile!==null)$client['contact_profile']=$profile;return $client;
 }
 function desk_update(string $id,array $in,int $uid): array {
     return comm_lock('desk.catalog',function()use($id,$in,$uid){
@@ -66,8 +70,8 @@ function desk_update(string $id,array $in,int $uid): array {
         if($action==='save'){
             $fields=desk_fields($in,$r['kind']);$fields['sponsored']=$fields['sponsored']||$r['fields']['sponsored'];
             if($fields['sponsored']&&$fields['sponsor_name']==='')$fields['sponsor_name']=$fields['organisation'];
-            $r['fields']=$fields;$r['owner_approval']=$r['client_approval']=null;$r['state']='draft';
-            if(!empty($in['client_email'])){$newClient=desk_client($in);if(!empty($r['orders'])&&!hash_equals($r['client']['email']??'',$newClient['email']))throw new InvalidArgumentException('An invoiced record cannot be transferred to another client email. Create a separate brief.');$r['client']=$newClient;}
+            $r['fields']=$fields;if($fields['sponsored']&&!isset($r['suitability']))$r=commercial_new_review($r,$in);$r['owner_approval']=$r['client_approval']=null;$r['state']='draft';
+            if(!empty($in['client_email'])){$newClient=desk_client($in);if(!empty($r['orders'])&&!hash_equals($r['client']['email']??'',$newClient['email']))throw new InvalidArgumentException('An invoiced record cannot be transferred to another client email. Create a separate brief.');$r['client']=commercial_preserve_client($r['client']??[],$newClient);}
             comm_put('desk.post.'.$r['post_id'],['id'=>$r['id'],'sponsored'=>$fields['sponsored']]);
         }elseif($action==='draft'){
             $input=desk_post_input($post);$input['title']=$r['fields']['title'];$input['standfirst']=$r['fields']['summary'];$input['content_html']=desk_article_html($r['fields'],$r['kind']);
@@ -130,6 +134,7 @@ function desk_capacity(array $times,array $channels,?string $except=null): void 
 }
 function desk_quote(string $id,array $in,int $uid): array {
     return comm_lock('desk.catalog',function()use($id,$in,$uid){$r=desk_get($id);desk_expect($r,$in);if(!$r['fields']['sponsored']||empty($r['client']))throw new InvalidArgumentException('Add the sponsor and client contact first.');
+        $reviewPost=writer_post_by_id((int)$r['post_id']);if(!$reviewPost)throw new InvalidArgumentException('Source article unavailable.');commercial_assert_suitable($r,$reviewPost);
         $cfg=desk_config();if($cfg['seller']===''||$cfg['billing_email']===''||$cfg['invoice_address']==='')throw new InvalidArgumentException('Complete the commercial supplier details in Publishing desk settings first.');
         if(!empty($in['renewal'])&&empty($r['public']))throw new InvalidArgumentException('A distribution-only renewal requires an existing article.');
         $channels=[];foreach(['channel_one','channel_two']as$key)$channels[]=desk_channel_snapshot((string)($in[$key]??''),(string)($in[$key.'_account']??''));
@@ -174,6 +179,7 @@ function desk_prepare_campaign(string $id,string $oid,int $uid): void {
     });
 }
 function desk_schedule_campaign(string $oid,int $uid): int {
+    $mode=desk_order($oid);if(!empty($mode['automatic_repeats']['enabled']))return commercial_launch_first($oid,$uid);
     return comm_lock('desk.catalog',function()use($oid,$uid){$o=desk_order($oid);$r=desk_get($o['record']);$post=desk_assert_publish($r,$o);$digest=desk_digest($r,$post);
         if($o['state']!=='paid'||!empty($o['paused'])||$r['state']!=='published'||count($o['campaign'])!==$o['quote']['rounds'])throw new InvalidArgumentException('Prepare the paid campaign and publish the article first.');
         $prepared=[];foreach($o['campaign']as$i=>$round){$p=publishing_package((int)$round['package']);if(empty($p['approved_revision_id']))throw new InvalidArgumentException('Review and approve every social round in Posting & calendar first.');
@@ -220,7 +226,7 @@ function desk_prepare_organic(string $id,array $in,int $uid): void {
 }
 function desk_delivery_guard(): void {
     $q=db()->query("SELECT j.id,j.destination_json,v.snapshot_json,v.package_id,p.source_post_id FROM publishing_jobs j JOIN publishing_revisions v ON v.id=j.revision_id JOIN publishing_packages p ON p.id=v.package_id WHERE j.status IN ('scheduled','assisted','reminder_queued','reminder_sent','failed','reconnect') AND (j.remote_id IS NULL OR j.remote_id='')");
-    foreach($q->fetchAll()as$job){$r=desk_post_record((int)$job['source_post_id']);if(!$r)continue;$map=comm_get('desk.package.'.$job['package_id']);$post=writer_post_by_id((int)$r['post_id']);
+    foreach($q->fetchAll()as$job){$o=null;$r=desk_post_record((int)$job['source_post_id']);if(!$r)continue;$map=comm_get('desk.package.'.$job['package_id']);$post=writer_post_by_id((int)$r['post_id']);
         $valid=$map&&empty($map['retired'])&&$post&&$r['state']==='published'&&!desk_closed($r)&&hash_equals((string)$map['digest'],desk_digest($r,$post))&&($r['owner_approval']??'')===$map['digest']&&($r['public']['digest']??'')===$map['digest'];
         $snap=publishing_decode($job['snapshot_json']);$dest=publishing_decode($job['destination_json']);$slug=$dest['slug']??'';
         try{desk_check_variant($r,$snap['variants'][$slug]??[],$slug);}catch(Throwable){$valid=false;}
@@ -230,6 +236,7 @@ function desk_delivery_guard(): void {
             $valid=$valid&&$expected&&hash_equals($expected['route_hash'],desk_destination_key($dest));
             try{if($expected)desk_contract_variant($r,$snap['variants'][$slug]??[],$expected);}catch(Throwable){$valid=false;}
         }
+        if($valid&&!commercial_delivery_allowed($r,$o,$map,$job))$valid=false;
         if(!$valid){$u=db()->prepare("UPDATE publishing_jobs SET status='cancelled',last_error='Source, disclosure, payment or exact-version approval changed; review in Publishing desk.' WHERE id=? AND (remote_id IS NULL OR remote_id='')");$u->execute([$job['id']]);}
     }
 }
@@ -238,5 +245,5 @@ function desk_work(): void {
     if(app_config('app_env')!=='production')return;
     comm_lock('desk.catalog',function(){foreach(desk_all()as$r){if($r['state']==='published'&&desk_closed($r)){$r['state']='closed';desk_store($r,'deadline_closed','worker');}
         if($r['state']==='scheduled'&&($r['publish_at']??PHP_INT_MAX)<=time()){try{desk_publish($r,(int)comm_config()['owner']);}catch(Throwable){$r['state']='review';$r['worker_notice']='Scheduled article needs renewed verification or approval.';desk_store($r,'schedule_blocked','worker');}}}desk_delivery_guard();});
-    desk_reconcile_due();desk_mail_work();
+    desk_reconcile_due();commercial_repeat_work();desk_mail_work();
 }

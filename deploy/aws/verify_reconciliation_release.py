@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from verify_promotion_release import verify as verify_promotion
+from verify_experience_release import verify as verify_experience
 
 BASE = 'https://www.waithakandegwa.com'
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -58,6 +59,7 @@ def verify() -> None:
     if 'no-store' not in headers.get('Cache-Control',''):
         raise RuntimeError('Client location route is not private')
     verify_promotion()
+    verify_experience()
     print('PASS: monthly archive, retired speaking invitations, shared country/county controls, uniform views/counter footer and private workspace boundaries. No form, email or newsletter was submitted.')
 
 if __name__ == '__main__':

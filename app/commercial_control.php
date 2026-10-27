@@ -84,7 +84,7 @@ function commercial_auto_valid(array $r,array $o): bool {
  $a=$o['automatic_repeats']??[];if(empty($a['enabled'])||!in_array($a['state']??'',['armed','scheduled'],true)||!empty($o['paused'])||!empty($r['cancellation_requested'])||!empty($o['cancellation_requested'])||!empty($o['settlement'])||!empty($o['schedule_proposal'])||($r['order']??'')!==$o['id'])return false;
  try{$p=desk_assert_publish($r,$o);if($r['state']!=='published'||empty($r['public_visible'])||($r['public']['digest']??'')!==desk_digest($r,$p))return false;
   if(!hash_equals(commercial_pinned_hash($r,$p,$o,$a['pins']??[]),(string)($a['hash']??'')))return false;
-  foreach($a['pins']as$i=>$pin){$package=publishing_package((int)$pin['package']);$map=comm_get('desk.package.'.$pin['package']);if(!$package||(int)$package['approved_revision_id']!==(int)$pin['revision']||!empty($map['retired'])||($map['order']??'')!==$o['id']||($o['campaign'][$i]['package']??null)!==$pin['package'])return false;}
+  foreach($a['pins']as$i=>$pin){$q=db()->prepare('SELECT content_hash,snapshot_json FROM publishing_revisions WHERE id=? AND package_id=?');$q->execute([(int)$pin['revision'],(int)$pin['package']]);$rev=$q->fetch();if(!$rev||!hash_equals((string)$pin['hash'],(string)$rev['content_hash'])||!hash_equals((string)$rev['content_hash'],hash('sha256',(string)$rev['snapshot_json'])))return false;$snap=publishing_decode($rev['snapshot_json']);foreach($o['quote']['channels']as$c){if(!isset($snap['destinations'][$c['slug']])||desk_destination_key($snap['destinations'][$c['slug']])!==$c['route_hash'])return false;desk_contract_variant($r,$snap['variants'][$c['slug']]??[],$c);}$package=publishing_package((int)$pin['package']);$map=comm_get('desk.package.'.$pin['package']);if(!$package||(int)$package['approved_revision_id']!==(int)$pin['revision']||!empty($map['retired'])||($map['order']??'')!==$o['id']||($o['campaign'][$i]['package']??null)!==$pin['package'])return false;}
   foreach($o['quote']['channels']as$c){$current=desk_channel_snapshot($c['slug'],$c['method']==='manual'?$c['account']:'');if($current['route_hash']!==$c['route_hash'])return false;}
   return true;
  }catch(Throwable){return false;}
@@ -112,8 +112,9 @@ function commercial_delivery_allowed(array $r,?array $o,array $map,array $job): 
  if(!$o||!isset($o['automatic_repeats'])||(int)($map['round']??0)===0)return true;
  return commercial_auto_valid($r,$o)&&commercial_first_complete($o,desk_round_jobs((int)$o['automatic_repeats']['pins'][0]['package']));
 }
-function commercial_repeat_work(): void {
- if(app_config('app_env')!=='production')return;
+function commercial_repeat_work(bool $fixture=false): void {
+ if($fixture&&app_config('app_env')!=='testing')throw new RuntimeException('Fixture override is disabled.');
+ if(app_config('app_env')!=='production'&&!$fixture)return;
  comm_lock('desk.catalog',function(){foreach(comm_records('desk.order',3000)as$o){$a=$o['automatic_repeats']??[];if(empty($a['enabled'])||!in_array($a['state']??'',['armed','scheduled'],true))continue;
   $r=desk_get($o['record']);if(!commercial_auto_valid($r,$o)){$o['automatic_repeats']['state']='review';$o['automatic_repeats']['notice']='Payment, suitability, content, approval, dates or destination changed. Review before resuming.';comm_put('desk.order.'.$o['id'],$o);continue;}
   if(!commercial_first_complete($o,desk_round_jobs((int)$a['pins'][0]['package'])))continue;

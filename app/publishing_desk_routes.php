@@ -59,6 +59,7 @@ function desk_native_guard(string $path): bool {
     return false;
 }
 function desk_dispatch(string $path): bool {
+    if(ux_dispatch($path)||commercial_dispatch($path))return true;
     if(desk_native_guard($path))return true;
     if($path==='/publishing-sitemap.xml'){journeys_method(['GET','HEAD']);header('Content-Type: application/xml; charset=utf-8');echo sitemap_xml(desk_sitemap());return true;}
     if($path==='/robots.txt'){journeys_method(['GET','HEAD']);header('Content-Type: text/plain; charset=utf-8');echo "User-agent: *\nAllow: /\nDisallow: /write\nDisallow: /install\nDisallow: /app\nDisallow: /storage\nDisallow: /client/\nDisallow: /payments/\nDisallow: /consent/\nDisallow: /webhooks/\nDisallow: /newsletter/confirm\nDisallow: /newsletter/unsubscribe\nDisallow: /newsletter/preferences\nDisallow: /founders/follow-up\nDisallow: /opportunities/review\nDisallow: /opportunities/evidence\n\nSitemap: ".url('/sitemap.xml')."\nSitemap: ".url('/publishing-sitemap.xml')."\n";return true;}
@@ -84,7 +85,7 @@ function desk_dispatch(string $path): bool {
                 if(!isset($forms[$nonce])||$forms[$nonce]<time()-7200)throw new InvalidArgumentException('This form expired or was already submitted.');
                 if(!empty($_POST['website_repeat'])){$received=true;unset($_SESSION['desk_forms'][$nonce]);}
                 else{
-                    $client=desk_client($_POST);if(($_POST['privacy_ack']??'')!=='1'||($_POST['authority_ack']??'')!=='1')throw new InvalidArgumentException('Confirm permission to submit this business brief and use these contact details.');
+                    commercial_intake_values($_POST);$client=desk_client($_POST);if(($_POST['privacy_ack']??'')!=='1'||($_POST['authority_ack']??'')!=='1')throw new InvalidArgumentException('Confirm permission to submit this business brief and use these contact details.');
                     if(!journeys_rate_limit('desk-intake',ip_hash(),5,3600)||!journeys_rate_limit('desk-client',$client['email'],3,86400))throw new InvalidArgumentException('Please wait before submitting another brief.');
                     $uid=(int)(comm_config()['owner']??0);if(!$uid)throw new RuntimeException('Publishing owner is not configured.');
                     $r=comm_lock('desk.catalog',function()use($client,$uid){if(count(desk_all())>=2000)throw new InvalidArgumentException('Please contact the editor before sending another brief.');$r=desk_new($_POST,'sponsored',$uid,$client);$r['state']='submitted';$r['requested_package']=desk_choice($_POST['package']??'single',desk_packages(),'package');return desk_store($r,'client_submitted','client');});

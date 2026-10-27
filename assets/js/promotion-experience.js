@@ -89,9 +89,14 @@
           summaryRow(list, 'Scope', `1 sponsored article; ${plan.planRounds} rounds; ${plan.planPosts} individual social posts. ${plan.planDuration}.`);
         }
       } else {
-        panel.querySelectorAll('.promote-field input:not([type="file"]),.promote-field textarea').forEach(input => {
-          const label = input.closest('label').querySelector('span').textContent.replace(/\s*(?:optional|\*)\s*$/, '').trim();
-          summaryRow(list, label, input.value.trim());
+        panel.querySelectorAll('input,textarea,select').forEach(input => {
+          if (input.disabled || input.closest('[hidden]') || ['hidden','file','checkbox','radio','submit','button'].includes(input.type)) return;
+          const source = input.labels?.[0];
+          const clone = source?.cloneNode(true);
+          clone?.querySelectorAll('input,textarea,select,small,button').forEach(node => node.remove());
+          const label = (clone?.textContent || input.name).replace(/\s*(?:optional|\*)\s*$/, '').trim();
+          const value = input.tagName === 'SELECT' ? (input.selectedOptions?.[0]?.textContent || '') : input.value.trim();
+          summaryRow(list, label, value);
         });
         if (index === 3) summaryRow(list, 'Private attachment', file?.files?.[0]?.name || 'None selected');
       }
