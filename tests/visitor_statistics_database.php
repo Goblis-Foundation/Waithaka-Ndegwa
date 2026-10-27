@@ -17,5 +17,15 @@ $allowed=['enabled','server_time','timezone','month_key','year_key','month_label
 db()->prepare('UPDATE publishing_connections SET selected_resource=? WHERE service=?')->execute(['properties/999','google_analytics']);vs_assert(visitor_statistics_public()===[],'Changing Analytics property invalidates old public readings immediately.');
 db()->prepare('UPDATE publishing_connections SET selected_resource=? WHERE service=?')->execute(['properties/123','google_analytics']);$s['active_at']=$t-151;comm_put('visitor.statistics',$s);vs_assert(!isset(visitor_statistics_public()['now']),'Old live count is not frozen publicly.');
 $s['month']='2000-01';$s['year']='2000';comm_put('visitor.statistics',$s);$p=visitor_statistics_payload();vs_assert($p['month']===null&&$p['year']===null&&$p['month_key']===$period['month']&&$p['year_key']===$year,'Outdated periods are not relabelled.');
-set_setting('google.analytics_enabled','0');vs_assert(visitor_statistics_payload()['enabled']===false,'Disabled analytics stops public counters.');
+// Settings are intentionally cached for one PHP request. Verify an admin change
+// from a fresh process, matching the next real browser poll after a redirect.
+set_setting('google.analytics_enabled','0');
+$child= <<<'PHP'
+$CONFIG=json_decode(stream_get_contents(STDIN),true,32,JSON_THROW_ON_ERROR);
+if(($CONFIG['app_env']??'')!=='testing'||!in_array($CONFIG['db']['host']??'',['127.0.0.1','::1'],true)||!preg_match('/^waithaka_test_[a-z0-9_]+_test$/D',$CONFIG['db']['name']??''))throw new RuntimeException('Fixture-only process.');
+$APP_INSTALLED=true;require 'app/functions.php';require 'app/visitor_statistics.php';echo json_encode(visitor_statistics_payload(),JSON_THROW_ON_ERROR);
+PHP;
+$process=proc_open([PHP_BINARY,'-r',$child],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,dirname(__DIR__),['APP_ENV'=>'testing'],['bypass_shell'=>true]);
+vs_assert(is_resource($process),'Fresh-request fixture starts.');fwrite($pipes[0],json_encode($CONFIG,JSON_THROW_ON_ERROR));fclose($pipes[0]);$result=stream_get_contents($pipes[1]);$error=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($process);
+vs_assert($exit===0&&$error==='','Fresh-request fixture completes without errors.');$disabled=json_decode($result,true,16,JSON_THROW_ON_ERROR);vs_assert($disabled['enabled']===false&&$disabled['now']===null&&$disabled['month']===null&&$disabled['year']===null,'Disabled analytics stops all public counters on the next request.');
 ob_end_clean();echo "PASS: actual public dispatch, independent aggregates, property rebinding, freshness, calendar changes and privacy against disposable MySQL.\n";
