@@ -38,7 +38,7 @@
       try {
         const url = new URL(input.value.trim());
         valid = url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443');
-      } catch (_) { /* Report a useful field error; the server performs the stricter public-link checks. */ }
+      } catch (_) { /* The server also performs stricter public-link checks. */ }
       input.setCustomValidity(valid ? '' : 'Use a complete public HTTPS link, without a username or password.');
     });
   }
@@ -90,7 +90,10 @@
         }
       } else {
         panel.querySelectorAll('input,textarea,select').forEach(input => {
-          if (input.disabled || input.closest('[hidden]') || ['hidden','file','checkbox','radio','submit','button'].includes(input.type)) return;
+          // Previous steps are intentionally hidden while their values are reviewed.
+          // An inactive subsection inside a step is different and stays excluded.
+          const hiddenSection = input.closest('[hidden]');
+          if (input.disabled || (hiddenSection && hiddenSection !== panel) || ['hidden','file','checkbox','radio','submit','button'].includes(input.type)) return;
           const source = input.labels?.[0];
           const clone = source?.cloneNode(true);
           clone?.querySelectorAll('input,textarea,select,small,button').forEach(node => node.remove());
