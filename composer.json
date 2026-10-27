@@ -1,19 +1,9 @@
 {
  "name":"waithaka-ndegwa/publishing-site","description":"Waithaka Ndegwa personal publishing and startup journeys","type":"project","license":"proprietary",
  "require":{
-  "php": "^8.3",
-  "ext-curl": "*",
-  "ext-dom": "*",
-  "ext-fileinfo": "*",
-  "ext-gd": "*",
-  "ext-mbstring": "*",
-  "ext-openssl": "*",
-  "ext-pdo": "*",
-  "ext-pdo_mysql": "*",
-  "aws/aws-php-sns-message-validator": "^1.0",
-  "aws/aws-sdk-php": "^3.0",
-  "lbuchs/webauthn": "^2.2",
-  "phpmailer/phpmailer": "^7.0"
+  "php":"^8.3","ext-curl":"*","ext-dom":"*","ext-fileinfo":"*","ext-gd":"*","ext-mbstring":"*","ext-openssl":"*","ext-pdo":"*","ext-pdo_mysql":"*",
+  "aws/aws-php-sns-message-validator":"^1.0","aws/aws-sdk-php":"^3.0","lbuchs/webauthn":"^2.2","phpmailer/phpmailer":"^7.0"
  },
- "config":{"sort-packages":true,"allow-plugins":{},"platform":{"php":"8.3.0"}},"scripts":{"test":["php tests/run.php","php tests/publishing_desk_unit.php","php tests/publishing_desk_database.php"]}
+ "config":{"sort-packages":true,"allow-plugins":{},"platform":{"php":"8.3.0"}},
+ "scripts":{"test":["php tests/run.php","php tests/publishing_desk_unit.php","php tests/publishing_desk_database.php","php tests/visitor_statistics_unit.php","node tests/visitor_statistics_browser_test.js","php tests/visitor_statistics_database.php","php tests/brand_assets_unit.php"]}
 }

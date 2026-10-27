@@ -1,0 +1,6 @@
+<?php if(empty($privatePage)&&$ga4!==''):$visitorStats=visitor_statistics_payload();?>
+<section class="container footer-visitor-statistics" aria-label="Website visitors" data-visitor-statistics data-endpoint="<?=e(url('/api/visitor-statistics'))?>" data-statistics="<?=e(json_encode($visitorStats,JSON_THROW_ON_ERROR|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT))?>">
+<div class="footer-activity-heading"><span class="footer-activity-dot" aria-hidden="true"></span><span class="footer-activity-title">You’re in good company</span></div>
+<dl><?php foreach(['now'=>'Now','month'=>$visitorStats['month_label'],'year'=>$visitorStats['year_label']]as$key=>$label):?><div class="footer-visitor-period" data-visitor-period="<?=e($key)?>"><dt data-visitor-label="<?=e($key)?>"><?=e($label)?></dt><dd><strong data-visitor-number><?=isset($visitorStats[$key])?number_format($visitorStats[$key]):'—'?></strong><span data-visitor-unit <?=!isset($visitorStats[$key])?'hidden':''?>><?=($visitorStats[$key]??null)===1?'visitor':'visitors'?></span></dd></div><?php endforeach;?></dl>
+</section><script src="<?=e(asset('js/visitor-statistics.js'))?>" defer></script>
+<?php endif;?>
