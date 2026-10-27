@@ -19,6 +19,6 @@ $selectedCountry=$lv('country','Kenya');if($selectedCountry==='')$selectedCountr
 <label for="<?=e($locationPrefix)?>-region">State / Province / Region<input id="<?=e($locationPrefix)?>-region" name="region" autocomplete="address-level1" maxlength="120" value="<?=e($lv('region'))?>" placeholder="Outside Kenya · if applicable"></label>
 <label for="<?=e($locationPrefix)?>-district">District / Area<input id="<?=e($locationPrefix)?>-district" name="district" autocomplete="address-level2" maxlength="120" value="<?=e($lv('district'))?>" placeholder="Outside Kenya · if applicable"></label>
 </div>
-<label for="<?=e($locationPrefix)?>-city"><span data-location-city-label><?=$selectedCountry==='Kenya'?'Town or Location':'City / Town / Locality'?></span><input id="<?=e($locationPrefix)?>-city" name="city" autocomplete="address-level3" maxlength="120" value="<?=e($lv('city'))?>" placeholder="Where you are based · optional"></label>
+<label for="<?=e($locationPrefix)?>-city"><span data-location-city-label><?=$selectedCountry==='Kenya'?'Town / Area':'City / Town / Locality'?></span><input id="<?=e($locationPrefix)?>-city" name="city" autocomplete="address-level3" maxlength="120" value="<?=e($lv('city'))?>" placeholder="Where you are based · optional"></label>
 </fieldset>
 <script src="<?=asset('js/location-fields.js')?>" defer></script>

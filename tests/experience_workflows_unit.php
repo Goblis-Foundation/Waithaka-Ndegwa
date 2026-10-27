@@ -1,0 +1,44 @@
+<?php
+declare(strict_types=1);
+if(PHP_SAPI!=='cli')exit(2);
+$CONFIG=['app_env'=>'testing','base_url'=>'https://www.example.org','timezone'=>'Africa/Nairobi','app_key'=>'fixture-only-experience-key-'.str_repeat('x',40)];$APP_INSTALLED=false;$_SESSION=[];$_GET=[];
+foreach(['functions','location','publishing_desk_policy','commercial_control','experience_workflows','promotion_experience']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
+$n=0;function uxcheck(bool $ok,string $why):void{global $n;$n++;if(!$ok)throw new RuntimeException($why);}
+function uxreject(callable $action,string $why):void{try{$action();}catch(InvalidArgumentException){uxcheck(true,$why);return;}throw new RuntimeException('Expected rejection: '.$why);}
+$ke=commercial_client_profile(['country'=>'Kenya','phone_code'=>'+254','phone'=>'0718751696','county'=>'Nyeri','sub_county'=>'Kieni','city'=>'Endarasha']);
+uxcheck($ke['phone']==='+254718751696'&&$ke['county']==='Nyeri'&&$ke['sub_county']==='Kieni'&&$ke['city']==='Endarasha','Kenyan contact values normalise without guessed sub-county data.');
+$defaults=commercial_client_profile(['phone'=>'']);uxcheck($defaults['country']==='Kenya'&&$defaults['phone_code']==='+254','Kenya and +254 defaults.');
+$abroad=commercial_client_profile(['country'=>'Uganda','phone_code'=>'+44','phone'=>'+447700900123','county'=>'Nyeri','sub_county'=>'Kieni','region'=>'Central','district'=>'Kampala','city'=>'Kampala']);
+uxcheck($abroad['county']===''&&$abroad['sub_county']===''&&$abroad['region']==='Central'&&$abroad['phone_code']==='+44','Phone country and residence stay independent; inactive fields clear.');
+uxreject(fn()=>commercial_client_profile(['country'=>'Kenya','county'=>'Fabricated county']),'Server rejects an invalid county.');
+uxcheck(commercial_client_profile(['client_name'=>'Fixture'])===null,'Missing fields do not invent client details.');
+$old=['email'=>'fixture@example.org','contact_profile'=>$ke];uxcheck(commercial_preserve_client($old,['email'=>'fixture@example.org','name'=>'Edited'])['contact_profile']===$ke,'Brief editing preserves the same private client profile.');
+uxcheck(!isset(commercial_preserve_client($old,['email'=>'other@example.org'])['contact_profile']),'Client replacement does not copy another person’s details.');
+uxreject(fn()=>commercial_intake_values(['advertising_category'=>'excluded','suitability_ack'=>'1']),'Excluded offers cannot enter intake.');
+uxreject(fn()=>commercial_intake_values(['advertising_category'=>'enterprise']),'Suitability acknowledgement is required.');
+uxcheck(commercial_intake_values(['advertising_category'=>'regulated','suitability_ack'=>'1'])==='regulated','Regulated offers enter assessment, not automatic approval.');
+$r=['kind'=>'sponsored','fields'=>['sponsored'=>true,'title'=>'Fixture'],'creatives'=>[]];$post=['title'=>'Fixture','content_html'=>'<p>Reviewed claim.</p>'];
+uxcheck(commercial_suitable($r,$post),'Existing reviewed records retain their historical workflow.');
+$r=commercial_new_review($r,['advertising_category'=>'enterprise','suitability_ack'=>'1']);uxcheck(!commercial_suitable($r,$post),'New paid records start pending.');
+$r['suitability']['state']='approved';$r['suitability']['digest']=commercial_material_hash($r,$post);uxcheck(commercial_suitable($r,$post),'Only the reviewed content hash is suitable.');
+$changed=$post;$changed['content_html'].='<p>Another claim.</p>';uxcheck(!commercial_suitable($r,$changed),'Changing a claim invalidates the review.');
+$changed=$r;$changed['creatives']['landscape']=['sha256'=>'different'];uxcheck(!commercial_suitable($changed,$post),'Changing creative invalidates review.');
+$changed=$r;$changed['suitability']['state']='declined';uxcheck(!commercial_suitable($changed,$post),'Declined offers remain blocked.');
+$seo=['title'=>'Original','description'=>'Original description','canonical'=>url('/opportunities'),'robots'=>'index,follow'];$p=ux_seo($seo,'/opportunities',false,['page'=>'2']);uxcheck(str_ends_with($p['canonical'],'?page=2')&&str_contains($p['title'],'Page 2'),'Archive pages have their own canonical and title.');
+uxcheck(ux_seo($seo,'/opportunities',false,['q'=>'climate'])['robots']==='noindex,follow','Ad hoc filtered URLs do not compete as separate search pages.');
+uxcheck(ux_seo($seo,'/opportunities',true)===$seo,'Private metadata is never rewritten as indexable.');
+$crumbs=ux_breadcrumbs(['title'=>'A useful idea · Waithaka Ndegwa','canonical'=>url('/my-thoughts/a-useful-idea')],'/my-thoughts/a-useful-idea');uxcheck(count($crumbs)===3&&$crumbs[2]['name']==='A useful idea','Public article breadcrumbs are meaningful.');
+uxcheck(ux_breadcrumbs($seo,'/client/workspace/private',true)===[]&&ux_breadcrumbs($seo,'/write/desk')===[],'No private breadcrumb metadata.');
+$schema=ux_breadcrumb_schema($crumbs);uxcheck($schema['@type']==='BreadcrumbList'&&$schema['itemListElement'][2]['position']===3,'Visible breadcrumbs have matching structured data.');
+uxcheck(count(ux_journeys())===6&&count(ux_workspace_groups())===6,'Distinct public and owner task paths remain available.');
+foreach(ux_journeys()as$j)foreach($j['links']as$href=>$label)uxcheck(str_starts_with($href,'/')&&!str_starts_with($href,'//')&&!str_contains($href,'token='),'Journey destinations are ordinary local routes, not capabilities.');
+$locationValues=[];$locationPrefix='unit-profile';ob_start();include dirname(__DIR__).'/views/partials_location_fields.php';$html=ob_get_clean();
+uxcheck(str_contains($html,'value="Kenya" selected')&&str_contains($html,'value="+254"'),'Rendered profile defaults are correct.');
+foreach(['county','sub_county','city','region','district','phone']as$name)uxcheck(str_contains($html,'name="'.$name.'"'),'Shared profile control: '.$name);
+uxcheck(str_contains($html,'Town / Area'),'Consistent owner-requested Town / Area label.');
+$purpose=file_get_contents(dirname(__DIR__).'/views/personal_purpose.php');uxcheck(str_contains($purpose,'My faith in God')&&str_contains($purpose,'People and nature in harmony')&&str_contains($purpose,'Salesians of Don Bosco'),'User-supplied personal convictions and gratitude are included.');
+uxcheck(!str_contains($purpose,'affordable rates')&&!str_contains($purpose,'Joel Osteen')&&!str_contains($purpose,'guarantee your success'),'No unsupported fees, borrowed quotation or guarantee is added.');
+$about=file_get_contents(dirname(__DIR__).'/views/about.php');uxcheck(str_contains($about,'Nyeri Town')&&str_contains($about,'The Riara University')&&str_contains($about,'“Mjengo University”')&&str_contains($about,'full high school education'),'Previously corrected biography remains.');
+$js=file_get_contents(dirname(__DIR__).'/assets/js/unified-experience.js');uxcheck(!preg_match('/localStorage|sessionStorage|\bfetch\s*\(|XMLHttpRequest|\.submit\s*\(/',$js),'Shared enhancement performs no storage, provider call or implicit form submission.');
+uxcheck(!str_contains($js,'innerHTML')&&str_contains($js,'textContent'),'Review text cannot inject HTML.');
+echo 'PASS: '.$n." shared-profile, suitability, source-content, navigation and SEO checks.\n";

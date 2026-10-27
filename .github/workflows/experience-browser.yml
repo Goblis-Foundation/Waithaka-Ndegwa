@@ -1,0 +1,55 @@
+name: Experience browser checks
+on:
+  push:
+    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', '.github/workflows/experience-browser.yml']
+  pull_request:
+    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', '.github/workflows/experience-browser.yml']
+permissions:
+  contents: read
+concurrency:
+  group: experience-browser-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, mbstring
+          coverage: none
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Prepare isolated component fixtures and browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/experience-fixtures"
+          php tests/experience_render_fixture.php "$RUNNER_TEMP/experience-fixtures"
+          ln -s "$GITHUB_WORKSPACE/assets" "$RUNNER_TEMP/experience-fixtures/assets"
+          npm install --prefix "$RUNNER_TEMP/experience-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/experience-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Exercise interaction and responsive behaviour without real submissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8125 --bind 127.0.0.1 --directory "$RUNNER_TEMP/experience-fixtures" >"$RUNNER_TEMP/experience-server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" || true' EXIT
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8125/explore.html >/dev/null && break; sleep 0.2; done
+          export NODE_PATH="$RUNNER_TEMP/experience-browser/node_modules"
+          export EXPERIENCE_EVIDENCE_DIR="$RUNNER_TEMP/experience-evidence"
+          node tests/experience_browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experience-browser-evidence
+          path: ${{ runner.temp }}/experience-evidence
+          if-no-files-found: ignore
+          retention-days: 3

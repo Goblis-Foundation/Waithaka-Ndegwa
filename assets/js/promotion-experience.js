@@ -38,7 +38,7 @@
       try {
         const url = new URL(input.value.trim());
         valid = url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443');
-      } catch (_) { /* Report a useful field error; the server performs the stricter public-link checks. */ }
+      } catch (_) { /* The server also performs stricter public-link checks. */ }
       input.setCustomValidity(valid ? '' : 'Use a complete public HTTPS link, without a username or password.');
     });
   }
@@ -89,9 +89,17 @@
           summaryRow(list, 'Scope', `1 sponsored article; ${plan.planRounds} rounds; ${plan.planPosts} individual social posts. ${plan.planDuration}.`);
         }
       } else {
-        panel.querySelectorAll('.promote-field input:not([type="file"]),.promote-field textarea').forEach(input => {
-          const label = input.closest('label').querySelector('span').textContent.replace(/\s*(?:optional|\*)\s*$/, '').trim();
-          summaryRow(list, label, input.value.trim());
+        panel.querySelectorAll('input,textarea,select').forEach(input => {
+          // Previous steps are intentionally hidden while their values are reviewed.
+          // An inactive subsection inside a step is different and stays excluded.
+          const hiddenSection = input.closest('[hidden]');
+          if (input.disabled || (hiddenSection && hiddenSection !== panel) || ['hidden','file','checkbox','radio','submit','button'].includes(input.type)) return;
+          const source = input.labels?.[0];
+          const clone = source?.cloneNode(true);
+          clone?.querySelectorAll('input,textarea,select,small,button').forEach(node => node.remove());
+          const label = (clone?.textContent || input.name).replace(/\s*(?:optional|\*)\s*$/, '').trim();
+          const value = input.tagName === 'SELECT' ? (input.selectedOptions?.[0]?.textContent || '') : input.value.trim();
+          summaryRow(list, label, value);
         });
         if (index === 3) summaryRow(list, 'Private attachment', file?.files?.[0]?.name || 'None selected');
       }
