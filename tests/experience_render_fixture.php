@@ -29,13 +29,23 @@ $publicPage='<article class="ux-page"><h1>Public page layout</h1><p>Equivalent p
 file_put_contents($out.'/public-explore-layout.html',ef_render('layout',['page'=>'explore','content'=>$publicPage,'suppressAnalytics'=>true]));
 $_SERVER['REQUEST_URI']='/search';
 $searchEmpty=ef_render('search',[
-  'q'=>'','type'=>'all','categories'=>[],'results'=>[],'counts'=>array_fill_keys(array_keys(discovery_types()),0),
+  'q'=>'','type'=>'all','categories'=>[
+    ['slug'=>'social-entrepreneurship','name'=>'Social entrepreneurship'],
+    ['slug'=>'travel','name'=>'Travel']
+  ],'results'=>[],'counts'=>array_fill_keys(array_keys(discovery_types()),0),
   'pagination'=>['total'=>0,'start'=>0,'end'=>0,'page'=>1,'pages'=>0,'previous'=>'','next'=>'']
 ]);
 file_put_contents($out.'/public-search.html',ef_render('layout',['page'=>'search','content'=>$searchEmpty,'suppressAnalytics'=>true]));
 $searchResults=ef_render('search',[
-  'q'=>'enterprise','type'=>'post','categories'=>[],'results'=>[],'counts'=>array_fill_keys(array_keys(discovery_types()),0),
-  'pagination'=>['total'=>0,'start'=>0,'end'=>0,'page'=>1,'pages'=>0,'previous'=>'','next'=>'']
+  'q'=>'enterprise','type'=>'post','categories'=>[],
+  'results'=>[[
+    'type'=>'post','title'=>'Synthetic enterprise search result',
+    'summary'=>'Local fixture only; no production article or client record.',
+    'url'=>url('/my-thoughts/fixture-only'),'image'=>'',
+    'published_at'=>'2026-10-01 09:00:00'
+  ]],
+  'counts'=>array_fill_keys(array_keys(discovery_types()),1),
+  'pagination'=>['total'=>1,'start'=>1,'end'=>1,'page'=>1,'pages'=>1,'previous'=>'','next'=>'']
 ]);
 file_put_contents($out.'/public-search-results.html',ef_render('layout',['page'=>'search','content'=>$searchResults,'suppressAnalytics'=>true]));
 /* Actual shared field partials, rendered as used in each eligible journey.
