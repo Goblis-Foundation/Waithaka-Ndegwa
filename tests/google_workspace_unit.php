@@ -16,6 +16,53 @@ gw_check(google_workspace_public_url(base_url().'/resources/test')===base_url().
 gw_reject(fn()=>google_workspace_link('https://calendar.google.com.evil.invalid/x',['calendar.google.com']),'Booking host exact');
 $calls=[];$transport=function($method,$url,$headers,$body=null)use(&$calls){$calls[]=[$method,$url,$body];return ['data'=>['rows'=>[['dimensionValues'=>[['value'=>'Kenya']],'metricValues'=>[['value'=>'0'],['value'=>'2'],['value'=>'3'],['value'=>'0.5']]]]]];};
 $r=google_workspace_report('ga4-countries','2026-01-01','2026-01-28',$transport);gw_check($r['rows'][0]===['Kenya','0','2','3','0.5'],'Zero and metric ordering preserved');gw_check(str_contains($calls[0][1],'/properties/123:runReport')&&$calls[0][2]['dimensions'][0]['name']==='country','Read only approved property and fixed dimension');
+// Exact 28-day Search Console read-only review, paired by public canonical URL.
+$public=base_url();
+$searchRows=function($kind)use($public):array {
+    $row=static fn(string $path,int $clicks,int $impressions,float $ctr,float $position):array=>
+        ['keys'=>[$path],'clicks'=>$clicks,'impressions'=>$impressions,'ctr'=>$ctr,'position'=>$position];
+    if($kind==='now')return [
+        $row($public.'/my-thoughts/learning',20,300,.0667,8.2),
+        $row($public.'/resources/problem-interview-worksheet',1,200,.005,8.0),
+        $row($public.'/startup-journeys/venture-a',4,85,.047,9.0),
+        $row($public.'/my-thoughts/progress',23,120,.192,6.0),
+        $row($public.'/write/notes',60,300,.20,5.0),
+        $row('https://other.example.org/resources/example',50,200,.25,5.0)
+    ];
+    return [
+        $row($public.'/my-thoughts/learning',50,320,.156,7.8),
+        $row($public.'/resources/problem-interview-worksheet',1,210,.005,8.2),
+        $row($public.'/my-thoughts/progress',8,80,.10,6.8),
+        $row($public.'/my-thoughts/older-page',150,1000,.15,4.0)
+    ];
+};
+$reviewCalls=[];
+$reviewTransport=function($method,$endpoint,$headers,$body=null)use(&$reviewCalls,$searchRows):array{
+    $reviewCalls[]=[$method,$endpoint,$body];
+    if($method!=='POST'||!str_contains($endpoint,'/searchAnalytics/query'))throw new RuntimeException('Unexpected provider endpoint.');
+    return ['data'=>['rows'=>$searchRows(($body['startDate']??'')==='2026-09-28'?'now':'before')]];
+};
+$searchReview=google_search_review(28,$reviewTransport,'2026-10-28');
+gw_check(count($reviewCalls)===2,'Review requires exactly two read-only Search Analytics requests.');
+gw_check($searchReview['current']===['start'=>'2026-09-28','end'=>'2026-10-25']
+    &&$searchReview['previous']===['start'=>'2026-08-31','end'=>'2026-09-27'],'Equal length, non-overlapping finalized reporting periods.');
+foreach($reviewCalls as $call)gw_check(($call[2]['dimensions']??null)===['page']
+    &&($call[2]['dataState']??'')==='final'&&($call[2]['rowLimit']??null)===1000
+    &&str_contains($call[1],'sc-domain%3Awaithakandegwa.com'),'Review reads fixed site, dimensions and finalized data.');
+gw_check($searchReview['current_sample']===4&&$searchReview['previous_sample']===4,'Reject external and private page URLs without counting as valid results.');
+gw_check(count($searchReview['rows'])===4,'Four classification signals for comparable and absent data.');
+$labels=array_column($searchReview['rows'],'signal');
+gw_check($labels===['Clicks declined','CTR worth reviewing','No comparable prior row','Clicks increased'],'Signals are deterministic and prioritized.');
+gw_check($searchReview['rows'][2]['prior_clicks']===null,'Missing prior top-row observation is null, not fabricated zero.');
+gw_check(!str_contains(json_encode($searchReview),'/write/notes')&&!str_contains(json_encode($searchReview),'other.example.org')
+    &&!str_contains(json_encode($searchReview),'older-page'),'No private, foreign or prior-only rows exposed.');
+gw_reject(fn()=>google_search_review(7,$reviewTransport,'2026-10-28'),'Unsupported cadence fails before API access.');
+gw_check(google_search_review_compare(['rows'=>[]],['rows'=>[['https://www.waithakandegwa.com/my-thoughts/older',12,100,.12,8]]])['rows']===[],
+    'Absent current top-row records never become a zero-click decline.');
+$reviewView=file_get_contents(dirname(__DIR__).'/views/write/google_workspace.php');
+gw_check(str_contains($reviewView,'id="search-review"')&&str_contains($reviewView,'name="review_days"')
+    &&str_contains($reviewView,'No review signals were found'),'Private read-only control, bounded cadence and empty-state message exist.');
+
 gw_reject(fn()=>google_workspace_report('arbitrary-sql','2026-01-01','2026-01-28',$transport),'Unsupported reports reject');
 gw_reject(fn()=>google_workspace_report('ga4-countries','2026-01-28','2026-01-01',$transport),'Reversed range rejects');
 $clean=google_mcp_snapshot('ga4-countries',$r+['credentials'=>'secret','calendar'=>'private']);gw_check(!str_contains(json_encode($clean),'secret')&&!str_contains(json_encode($clean),'private')&&$clean['rows'][0][1]===0,'MCP strips metadata and preserves zero');

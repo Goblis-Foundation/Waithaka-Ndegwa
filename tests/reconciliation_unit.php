@@ -23,5 +23,14 @@ $foreign=client_contact_values(['country'=>'Uganda','county'=>'Nyeri','sub_count
 rc(count(location_kenya_counties())===47,'All 47 existing county options preserved.');
 $css=file_get_contents(dirname(__DIR__).'/assets/css/brand-refresh.css');rc(str_contains($css,'grid-template-columns:repeat(3,minmax(0,1fr))')&&str_contains($css,'font-variant-numeric:tabular-nums'),'Equal visitor columns and stable number alignment.');
 rc(str_contains($css,'body .site-footer .footer-note')&&str_contains($css,'@media(max-width:760px)'),'Shared views notice and mobile footer rules.');
+$mainView=file_get_contents(dirname(__DIR__).'/views/layout.php');
+$homeView=file_get_contents(dirname(__DIR__).'/views/home.php');
+$aboutView=file_get_contents(dirname(__DIR__).'/views/about.php');
+$impactView=file_get_contents(dirname(__DIR__).'/views/impact_summary.php');
+preg_match('~<nav id="site-main-nav"[^>]*>(.*?)</nav>~s',$mainView,$mainNavigation);
+rc(!empty($mainNavigation)&&!str_contains($mainNavigation[1],'goals-2030'),'Goal 2030 removed from all primary navigation sizes.');
+rc(str_contains($mainView,'/about#goals-2030'),'Footer still offers in-page 2030 section link.');
+rc(str_contains($homeView,'href="#goals-2030"')&&str_contains($aboutView,'href="#goals-2030"'),'Homepage and About retain in-page Goal 2030 access.');
+rc(str_contains($impactView,'id="goals-2030"'),'Goal 2030 remains a section with unchanged anchor.');
 rc(count(reconciliation_items())>=20,'No-drop register retains implemented and blocked requirements.');
 echo 'PASS: '.$n." email branding, invitation removal, shared forms, footer and reconciliation assertions.\n";
