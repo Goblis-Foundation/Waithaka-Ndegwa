@@ -1,1 +1,12 @@
 .location-fields{border:1px solid var(--line,#d8e0d4);border-radius:14px;padding:20px;margin:20px 0;min-width:0}.location-fields legend{padding:0 8px;font-size:.9rem;font-weight:700}.location-fields label{display:block;font-size:.85rem;font-weight:600;margin-bottom:14px}.location-fields input,.location-fields select{display:block;width:100%;min-width:0;min-height:44px;margin-top:7px;border:1px solid #bdcbb8;border-radius:10px;padding:10px 12px;background:#fff;color:#263a30;font:inherit}.location-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.location-help{font-size:.78rem;color:var(--muted,#59695e);line-height:1.6;margin:0 0 18px}.location-country-specific[hidden]{display:none!important}.location-fields :focus-visible{outline:3px solid #8b6b35;outline-offset:2px}@media(max-width:600px){.location-fields{padding:16px}.location-grid{grid-template-columns:1fr;gap:0}}
+
+/* Shared Kenya-first location hierarchy across public forms and private intake. */
+.location-fields .location-kenya-help {
+  grid-column: 1 / -1;
+  margin: 0 0 6px;
+  color: var(--muted,#59695e);
+  font-size: .8rem;
+  font-weight: 400;
+}
+.location-fields .location-grid > * { min-width: 0; }
+.location-fields :is(input,select) { max-width: 100%; box-sizing: border-box; }
