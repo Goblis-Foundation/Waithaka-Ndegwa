@@ -132,7 +132,7 @@ function current_user(): ?array {
 }
 /** Resume a known workspace only; never replay action URLs or OAuth tokens. */
 function writer_login_destination(mixed $value): string {
-    $allowed=['/write','/write/control-centre','/write/notes','/write/voice','/write/program','/write/communication','/write/correspondence','/write/meetings','/write/booking-mailboxes','/write/studio','/write/capture','/write/new','/write/media-centre','/write/publishing','/write/media','/write/desk','/write/desk/orders','/write/desk/settings','/write/newsletter','/write/monthly-roundup','/write/readers','/write/contact-controls','/write/campaigns','/write/seo-checks','/write/discovery','/write/visitor-statistics','/write/enterprises','/write/opportunities','/write/journeys','/write/journeys/founders','/write/editorial','/write/releases','/write/impact','/write/connections','/write/google','/write/microsoft','/write/app','/write/security','/write/operations','/write/reconciliation','/write/settings','/write/account'];
+    $allowed=['/write','/write/control-centre','/write/notes','/write/voice','/write/program','/write/communication','/write/correspondence','/write/meetings','/write/booking-mailboxes','/write/studio','/write/capture','/write/new','/write/media-centre','/write/publishing','/write/media','/write/desk','/write/desk/orders','/write/desk/settings','/write/newsletter','/write/monthly-roundup','/write/readers','/write/contact-controls','/write/campaigns','/write/seo-checks','/write/discovery','/write/visitor-statistics','/write/enterprises','/write/opportunities','/write/journeys','/write/journeys/founders','/write/editorial','/write/releases','/write/impact','/write/connections','/write/google','/write/google/actions','/write/google/sync','/write/microsoft','/write/app','/write/security','/write/security/sign-in','/write/operations','/write/reconciliation','/write/settings','/write/account'];
     if(!is_string($value)||strlen($value)>250)return '/write';
     $path=explode('?',$value,2)[0];if(!in_array($path,$allowed,true))return '/write';
     if($path==='/write/communication'&&$value==='/write/communication?tab=content')return $value;
@@ -156,11 +156,11 @@ function login_rate_limited(string $email): bool {
 function attempt_login(string $email, string $password): bool {
     $email = strtolower(trim($email));
     if (login_rate_limited($email)) return false;
-    $st = db()->prepare('SELECT * FROM users WHERE email=? AND is_active=1 LIMIT 1');
-    $st->execute([$email]); $user = $st->fetch();
+    if(function_exists('wa_find_user'))$user=wa_find_user($email);else{$st = db()->prepare('SELECT * FROM users WHERE email=? AND is_active=1 LIMIT 1');$st->execute([$email]);$user=$st->fetch();}
     $ok = $user && password_verify($password, $user['password_hash']);
     db()->prepare('INSERT INTO login_attempts(email,ip_hash,success) VALUES(?,?,?)')->execute([$email,ip_hash(),$ok?1:0]);
     if ($ok) {
+        if(function_exists('wa_enforced')&&wa_enforced()){wa_begin($user,$email,app_trust_choice($_POST['trust_device']??null));return true;}
         session_regenerate_id(true); $_SESSION['user_id'] = $user['id']; $_SESSION['csrf'] = bin2hex(random_bytes(32));
         $_SESSION['auth_epoch']=(string)setting('auth.password_epoch.'.$user['id'],'');$_SESSION['interactive_at']=time();
         if(function_exists('app_trust_issue')){$_SESSION['trust_opt_out']=!app_trust_choice($_POST['trust_device']??null);if(!$_SESSION['trust_opt_out'])app_trust_issue((int)$user['id']);}

@@ -15,6 +15,7 @@
     "ext-pdo_mysql": "*",
     "aws/aws-php-sns-message-validator": "^1.0",
     "aws/aws-sdk-php": "^3.0",
+    "firebase/php-jwt": "^7.0",
     "lbuchs/webauthn": "^2.2",
     "phpmailer/phpmailer": "^7.0"
   },

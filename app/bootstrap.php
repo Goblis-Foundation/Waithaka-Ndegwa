@@ -34,7 +34,7 @@ require_once __DIR__.'/media_storage.php';
 require_once __DIR__.'/media_library.php';
 require_once __DIR__.'/mail_feedback.php';
 require_once __DIR__.'/integrations.php';
-foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','founder_stories','founder_story_routes','discovery','discovery_routes','campaigns','campaign_routes','google_workspace','meetings','communication','communications_cycle','communication_notifications','app_security','communication_mail','trusted_devices','planner','publishing_automation','workspace_reports','contact_experience','enterprises','microsoft_workspace','microsoft_actions','opportunities','opportunity_routes'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
+foreach (['journeys','journey_routes','newsletter','newsletter_routes','media_library_routes','publishing','publishing_routes','readiness','readiness_routes','editorial','editorial_routes','reader','reader_routes','founder_stories','founder_story_routes','discovery','discovery_routes','campaigns','campaign_routes','google_workspace','google_actions','google_calendar_sync','preparation_status','meetings','communication','communications_cycle','communication_notifications','app_security','writer_auth','writer_auth_providers','writer_auth_routes','communication_mail','trusted_devices','planner','publishing_automation','workspace_reports','contact_experience','enterprises','microsoft_workspace','microsoft_actions','opportunities','opportunity_routes'] as $module) if (is_file(__DIR__.'/'.$module.'.php')) require_once __DIR__.'/'.$module.'.php';
 
 if (PHP_SAPI !== 'cli') {
     header('X-Content-Type-Options: nosniff'); header('Referrer-Policy: strict-origin-when-cross-origin'); header('X-Frame-Options: SAMEORIGIN');
@@ -68,7 +68,7 @@ if (PHP_SAPI !== 'cli') {
     else { $sessionDir=__DIR__.'/../storage/sessions'; if (!is_dir($sessionDir)) mkdir($sessionDir,0700,true); session_save_path($sessionDir); }
     session_set_cookie_params(['httponly'=>true,'secure'=>wk_request_is_https()||str_starts_with(base_url(),'https://'),'samesite'=>'Lax','path'=>'/']);
     session_start();
-    if(function_exists('app_trust_restore')){app_trust_restore();if(!empty($_SESSION['user_id'])&&!isset($_SESSION['trust_opt_out'])&&current_user())app_trust_issue((int)$_SESSION['user_id']);}
+    if(function_exists('app_trust_restore')){app_trust_restore();if(!empty($_SESSION['user_id'])&&!isset($_SESSION['trust_opt_out'])&&(!wa_enforced()||($_SESSION['wa_auth_version']??0)===1)&&current_user())app_trust_issue((int)$_SESSION['user_id']);}
 }
 
 

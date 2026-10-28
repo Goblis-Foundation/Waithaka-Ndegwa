@@ -3,10 +3,15 @@ declare(strict_types=1);
 require_once __DIR__.'/gemini.php';
 require_once __DIR__.'/google_search_review.php';
 
-/** Personal Google workspace. All remote reads are explicit; no background calendar replication. */
+/** Personal Google workspace. Explicit workspace reads; separately opted-in selected-calendar cache. */
 function google_workspace_identity(string $service,array $who,array $headers): array {
     if(in_array($service,['google_gmail_read','google_gmail_draft'],true))return [['id'=>(string)$who['sub'],'name'=>(string)($who['email']??'My mailbox'),'type'=>'mailbox']];
     if($service==='google_drive')return [['id'=>(string)$who['sub'],'name'=>(string)($who['email']??'Selected files'),'type'=>'drive_account']];
+    if($service==='google_tasks'){
+        $r=publishing_http('GET','https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=100',$headers)['data'];
+        if(!is_array($r['items']??null)||!empty($r['nextPageToken']))throw new RuntimeException('Google returned an incomplete task-list inventory. Keep at most 100 lists before connecting.');
+        $out=[];foreach($r['items']as$list)if(is_string($list['id']??null)&&is_string($list['title']??null))$out[]=['id'=>$list['id'],'name'=>$list['title'],'type'=>'task_list'];return $out;
+    }
     if($service==='google_postmaster'){
         $r=publishing_http('GET','https://gmailpostmastertools.googleapis.com/v1/domains?pageSize=100',$headers)['data'];$out=[];
         foreach($r['domains']??[]as$d)if(($d['permission']??'')!=='PERMISSION_UNSPECIFIED')$out[]=['id'=>$d['name'],'name'=>substr($d['name'],8),'type'=>'sender_domain'];
@@ -92,10 +97,10 @@ function google_calendar_agenda(int $userId,string $start,string $end): array {
             // The same subscribed calendar can be present in several accounts. Read once.
             if(isset($seen[$id]))continue;
             try{
-                $page='';$calendarItems=[];
+                $page='';$calendarItems=[];$cached=function_exists('gcs_cached')?gcs_cached($a,$id,$start,$end):null;
                 for($n=0;$n<4;$n++){
                     $params=['timeMin'=>$start.'T00:00:00Z','timeMax'=>google_workspace_shift_date($end,1).'T00:00:00Z','singleEvents'=>'true','orderBy'=>'startTime','maxResults'=>250];if($page!=='')$params['pageToken']=$page;
-                    $r=publishing_http('GET','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($id).'/events?'.http_build_query($params,'','&',PHP_QUERY_RFC3986),$headers)['data'];
+                    $r=$cached??publishing_http('GET','https://www.googleapis.com/calendar/v3/calendars/'.rawurlencode($id).'/events?'.http_build_query($params,'','&',PHP_QUERY_RFC3986),$headers)['data'];
                     foreach($r['items']??[]as$e){if(($e['status']??'')==='cancelled')continue;$calendarItems[]=['account_id'=>(int)$a['id'],'calendar_id'=>$id,'event_id'=>(string)($e['id']??''),'etag'=>(string)($e['etag']??''),'organizer_self'=>!empty($e['organizer']['self']),'event_timezone'=>(string)($e['start']['timeZone']??$zones[$id]??'UTC'),'location'=>(string)($e['location']??''),'calendar'=>$names[$id]??'Selected calendar','account'=>$a['display_name'],'title'=>$e['summary']??'Busy','start'=>$e['start']['dateTime']??$e['start']['date']??'','end'=>$e['end']['dateTime']??$e['end']['date']??'','all_day'=>isset($e['start']['date']),'join'=>meetings_event_join($e),'url'=>google_workspace_link($e['htmlLink']??'',['calendar.google.com','www.google.com'])];}
                     $page=(string)($r['nextPageToken']??'');if($page==='')break;
                 }
@@ -231,7 +236,7 @@ function google_drive_text(string $id,array $connection): array {
     return ['title'=>mb_substr((string)($m['name']??'Imported Google Doc'),0,240),'text'=>$raw];
 }
 function google_workspace_health(): array {
-    $rows=[];foreach(['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','google_youtube_analytics','google_drive','google_postmaster']as$s){$c=publishing_connection($s);$credentials=$c?publishing_credentials($c):[];$expiry=(int)($credentials['expires_at']??0);$refresh=(int)($credentials['refresh_token_expires_in']??0);
+    $rows=[];foreach(['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','google_youtube_analytics','google_drive','google_tasks','google_postmaster']as$s){$c=publishing_connection($s);$credentials=$c?publishing_credentials($c):[];$expiry=(int)($credentials['expires_at']??0);$refresh=(int)($credentials['refresh_token_expires_in']??0);
         $rows[]=['name'=>publishing_services()[$s]['name'],'status'=>$c['status']??'not_connected','verified'=>$c['verified_at']??'Not connected','refresh'=>!empty($credentials['refresh_token'])?'Refresh credential saved':'Reconnect if token expires','expiry'=>$expiry?gmdate('Y-m-d H:i',$expiry).' UTC':'Not returned','duration'=>$refresh>0?round($refresh/86400,1).' days reported at grant':'Not returned'];}
     return $rows;
 }

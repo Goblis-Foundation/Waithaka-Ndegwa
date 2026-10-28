@@ -14,14 +14,15 @@ if(($argv[1]??'')==='--monthly-roundup'){
 if($APP_INSTALLED&&app_config('app_env')==='production'){
     try{reconciliation_preferences();roundup_work();}catch(Throwable $e){error_log('Monthly roundup needs review: '.get_class($e));}
 }
+if($APP_INSTALLED && app_config('app_env')==='production'){try{wa_cleanup();}catch(Throwable){error_log('Expired sign-in challenge cleanup unavailable.');}}
 if ($APP_INSTALLED && app_config('app_env')==='production') {
-    try { impact_sync(); } catch (Throwable $e) { error_log('Impact reporting refresh unavailable.'); }
+    try { preparation_stage('impact',static fn()=>impact_sync()); } catch (Throwable $e) { error_log('Impact reporting refresh unavailable.'); }
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){
-    try { communications_cycle_work(); } catch(Throwable $e) { error_log('Editorial calendar or safe newsletter draft requires review: '.get_class($e)); }
+    try { preparation_stage('editorial',static fn()=>communications_cycle_work()); } catch(Throwable $e) { error_log('Editorial calendar or safe newsletter draft requires review: '.get_class($e)); }
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){
-    try { visitor_statistics_refresh(); } catch(Throwable $e) { error_log('Footer visitor statistics unavailable.'); }
+    try { preparation_stage('audience',static fn()=>visitor_statistics_refresh()); } catch(Throwable $e) { error_log('Footer visitor statistics unavailable.'); }
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { communication_work(); } catch(Throwable $e) { error_log('Communication worker needs review.'); }
@@ -49,6 +50,9 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { opportunity_automation_work(); } catch(Throwable $e) { error_log('Opportunity automation needs review.'); }
+}
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { preparation_stage('calendars',static fn()=>gcs_work()); } catch(Throwable $e) { error_log('Private calendar refresh needs review.'); }
 }
 $enabled=$APP_INSTALLED && (bool)app_config('worker_enabled',false);
 $run=$APP_INSTALLED && function_exists('readiness_worker_begin')?readiness_worker_begin($enabled):null;

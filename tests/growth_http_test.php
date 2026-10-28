@@ -29,7 +29,7 @@ if(app_config('app_env')!=='testing'||!installed()||base_url()!==$base
 if(db()->query('SELECT DATABASE()')->fetchColumn()!==$fixtureDatabase)throw new RuntimeException('The connected database is not the explicit fixture database.');
 $checks=0;$prefix='growth-http-'.bin2hex(random_bytes(5));$cookie=tempnam(sys_get_temp_dir(),'wk-growth-cookie-');
 if($cookie===false)throw new RuntimeException('Cannot create the isolated HTTP cookie jar.');
-function growth_check(bool $ok,string $label):void{if(!$ok)throw new RuntimeException($label);$GLOBALS['checks']++;}
+function growth_check(bool $ok,string $label):void{if(!$ok){fwrite(STDERR, 'FAIL: '.$label.PHP_EOL);throw new RuntimeException($label);}$GLOBALS['checks']++;}
 function growth_request(string $path,?array $post=null):array{
     global$base,$cookie;$headers=[];$c=curl_init($base.$path);curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>20,CURLOPT_PROXY=>'',CURLOPT_PROTOCOLS=>CURLPROTO_HTTP,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_HEADERFUNCTION=>static function($handle,$line)use(&$headers){$pair=explode(':',$line,2);if(count($pair)===2)$headers[strtolower(trim($pair[0]))]=trim($pair[1]);return strlen($line);}]);
     if($post!==null)curl_setopt_array($c,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>http_build_query($post)]);$body=curl_exec($c);$status=(int)curl_getinfo($c,CURLINFO_RESPONSE_CODE);curl_close($c);if($body===false)throw new RuntimeException('Local HTTP fixture failed.');return compact('headers','body','status');
@@ -69,7 +69,7 @@ try{
     $r=growth_request('/write/impact');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Reporting connections require Writer authentication.');
     $r=growth_request('/write/campaigns');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Campaigns require Writer authentication.');
     $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check($r['status']===302,'The synthetic Writer can authenticate.');
-    $overview=growth_request('/write');growth_check($overview['status']===200&&str_contains($overview['body'],'Your day, in one place.')&&str_contains($overview['body'],'workspace-sidebar'),'Professional overview renders with grouped sidebar.');
+    $overview=growth_request('/write');growth_check($overview['status']===200&&str_contains($overview['body'],'Workspace overview')&&str_contains($overview['body'],'workspace-sidebar'),'Professional overview renders with grouped sidebar.');
     foreach(['Daily work','Create &amp; publish','Audience','Journeys &amp; impact','Manage workspace']as$group)growth_check(str_contains($overview['body'],$group),'Sidebar keeps workspace group: '.$group);
     growth_check(str_contains($overview['body'],'id="library"')&&str_contains($overview['body'],'data-writer-search')&&str_contains($overview['body'],'data-writer-filter'),'Article library filters remain available.');
     growth_check(str_contains($overview['body'],'of 6 platforms with saved account access')&&str_contains($overview['body'],'Social deliveries'),'Overview uses actual social connection and job summary.');
