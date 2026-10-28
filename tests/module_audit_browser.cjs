@@ -4,17 +4,19 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1363,height:900},reducedMotion:'reduce'});
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
- const host='http://127.0.0.1:8125/';
+ const host='http://127.0.0.1:8125/';const layoutFailures=[];
  for(const key of ['login','login-error','program','desk-0','desk-1','impact','register']){
   await page.goto(host+'module-'+key+'.html');
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
   ok(await page.locator('h1').count()===1,key+' has one page heading');
   for(const width of [320,360,390,600,760,900,1024,1180,1363,1440]){
    await page.setViewportSize({width,height:900});
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
    const bad=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-innerWidth,controls:[...document.querySelectorAll('main input,main button,main select')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(e).visibility!=='hidden'&&(r.left< -2||r.right>innerWidth+2);}).map(e=>e.name||e.textContent.slice(0,45))}));
-   ok(bad.overflow<=2,key+' does not overflow at '+width+': '+bad.overflow);ok(!bad.controls.length,key+' controls fit '+width+': '+bad.controls.join(','));
+   if(bad.overflow>2||bad.controls.length){const elements=await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.right>innerWidth+2;}).slice(0,12).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent.slice(0,70),right:e.getBoundingClientRect().right})));layoutFailures.push({key,width,...bad,elements});}else checks+=2;
   }
  }
+ ok(layoutFailures.length===0,'Module layouts: '+JSON.stringify(layoutFailures));
  await page.goto(host+'module-login-error.html');
  ok(await page.getByLabel('Writer email',{exact:true}).inputValue()==='fixture@example.invalid','Email retained after rejection');
  ok(!await page.locator('[name=trust_device]').isChecked(),'Shared-device choice retained after rejection');
