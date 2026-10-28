@@ -1,6 +1,24 @@
 <link rel="stylesheet" href="<?=asset('css/publishing.css')?>">
 <main class="write-main pub-main"><div class="writer-head"><div><span class="writer-kicker">Your publishing rhythm</span><h1>Weekly publishing schedule</h1><p>Choose the days and times for reviewed articles and approved social versions. These are editable starting points, not claims about your audience’s best times.</p></div><a class="wbtn" href="<?=url('/write/publishing')?>">Publishing centre</a></div>
 <?php foreach(flashes()as$f):?><p class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></p><?php endforeach;?>
+
+<section class="pub-card pub-section publishing-automation-readiness" aria-labelledby="automation-readiness-title">
+<h2 id="automation-readiness-title">Posting automation · actual readiness</h2>
+<p>These statuses describe saved routes only. They do not initiate posts, refresh tokens, approve content, connect accounts or claim remote publication.</p>
+<dl class="posting-readiness-summary">
+<dt>Global delivery worker</dt><dd><?=$overview['worker_enabled']?'Enabled in application configuration':'Disabled in application configuration'?></dd>
+<dt>Weekly queue</dt><dd><?=$overview['weekly_enabled']?'Enabled':'Paused'?> · <?=$overview['can_send']?'Eligible to process approved jobs':'Will not send weekly jobs'?></dd>
+<dt>Last scheduler heartbeat</dt><dd><?=empty($overview['heartbeat_at'])?'Not recorded':e((new DateTimeImmutable('@'.$overview['heartbeat_at']))->setTimezone(comm_zone($cfg['timezone']))->format('j M Y H:i T'))?> · <?=$overview['heartbeat_recent']?'Recent':'Stale or not verified'?></dd>
+<dt>Registered weekly jobs</dt><dd><?=(int)$overview['registrations']?></dd>
+</dl>
+<?php if($overview['counts']):?><p>Job states: <?php foreach($overview['counts']as$status=>$number):?><span><?=e($status)?>: <?=(int)$number?> · </span><?php endforeach;?></p><?else:?><p>No registered weekly jobs were found. A configured schedule alone never creates or publishes a post.</p><?php endif;?>
+<div class="pub-table-wrap"><table class="pub-table"><caption>Saved destination routes; a confirmed account is not an unrestricted publishing grant</caption><thead><tr><th>Channel</th><th>Route</th><th>Account</th><th>Status and next action</th><th>Next preferred slot</th></tr></thead><tbody>
+<?php foreach($overview['routes']as$row):?><tr><th scope="row"><?=e($row['name'])?></th>
+<td><?=e(ucfirst($row['method']))?></td><td><?=e($row['account'])?></td>
+<td><strong><?=e($row['status'])?></strong><small><?=e($row['reason'])?></small></td>
+<td><?=e($row['next_preference']??'Not available')?> <small>Preference only, not a queued release</small></td></tr><?php endforeach;?></tbody></table></div>
+<p>Direct delivery requires the correct personal account, approved API product, exact granted scopes, an approved immutable publication revision and a confirmed destination. Facebook professional-mode personal profile posting is assisted. TikTok public Direct Post requires its own approved product, user consent and provider audit; Business Account APIs are not a substitute for a creator's personal identity. <a href="<?=url('/write/connections')?>">Review connections and routes</a> · <a href="<?=url('/write/publishing')?>">Review approved jobs and outcomes</a>.</p>
+</section>
 <form method="post" class="pub-card"><?=csrf_field()?><div class="field"><label for="weekly-zone">Schedule timezone</label><select id="weekly-zone" name="timezone"><?php foreach(DateTimeZone::listIdentifiers()as$z):?><option <?=$cfg['timezone']===$z?'selected':''?>><?=e($z)?></option><?php endforeach;?></select></div>
 <label class="pub-choice"><input type="checkbox" name="run" value="1" <?=$cfg['run']?'checked':''?>><span>Process the explicitly queued weekly social deliveries. Turning this off pauses this weekly queue; it does not undo posts already accepted by a platform or change article publication dates.</span></label>
 <?php foreach(['article'=>'Articles','linkedin'=>'LinkedIn','facebook'=>'Facebook','instagram'=>'Instagram','x'=>'X','youtube'=>'YouTube','tiktok'=>'TikTok']as$key=>$label):?><fieldset class="pub-section"><legend><strong><?=e($label)?></strong></legend><div class="writer-actions"><?php foreach([1=>'Mon',2=>'Tue',3=>'Wed',4=>'Thu',5=>'Fri',6=>'Sat',7=>'Sun']as$n=>$day):?><label class="pub-choice"><input type="checkbox" name="slots[<?=$key?>][days][]" value="<?=$n?>" <?=in_array($n,$cfg[$key]['days'],true)?'checked':''?>><?=$day?></label><?php endforeach;?></div><div class="field"><label for="time-<?=$key?>">Time · <?=e($label)?></label><input id="time-<?=$key?>" type="time" name="slots[<?=$key?>][time]" value="<?=e($cfg[$key]['time'])?>" required></div></fieldset><?php endforeach;?>

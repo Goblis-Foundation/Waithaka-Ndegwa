@@ -17,4 +17,16 @@ pa_check(publishing_pick_media('instagram','Climate enterprise','',$assets)['id'
 pa_check(publishing_pick_media('youtube','Climate enterprise','',$assets)===null,'An image is never invented into a video');
 pa_check(publishing_pick_media('instagram','Completely different subject','',$assets)===null,'No unrelated fallback asset');
 pa_check(publishing_pick_media('linkedin','Climate enterprise','',$assets,['delivery_method'=>'direct'])===null,'Text-only route does not receive unsupported media');
-echo "PASS: weekly slots, collision avoidance, DST, bounded platform copy and relevant media selection.\n";
+pa_check(publishing_weekly_can_send(['run'=>true],true),'Weekly worker may process only when both switches allow it');
+pa_check(!publishing_weekly_can_send(['run'=>false],true)&&!publishing_weekly_can_send(['run'=>true],false),'Both pause switches prevent weekly sends');
+pa_check(publishing_weekly_paused_scope([8,3,8,-2,0],false)===' AND j.id NOT IN (8,3)','Paused weekly jobs excluded from unscoped worker without SQL injection');
+pa_check(publishing_weekly_paused_scope([8],true)==='','Enabled weekly jobs remain in unscoped queue');
+$preview=publishing_weekly_route_preview(['slug'=>'facebook','name'=>'Facebook profile','delivery_method'=>'manual'],['usable'=>true,'reason'=>'Finish in Facebook'],publishing_weekly_defaults(),$after);
+pa_check($preview['assisted']&&str_contains($preview['status'],'Assisted')&&$preview['next_preference']!==null,'Professional profile is not claimed as an automatic post');
+$disabled=publishing_weekly_route_preview(['slug'=>'tiktok','delivery_method'=>'direct'],['usable'=>false,'reason'=>'Provider audit required'],publishing_weekly_defaults(),$after);
+pa_check(!$disabled['usable']&&str_contains($disabled['status'],'Unavailable'),'Unapproved TikTok route remains unavailable');
+$ci=publishing_weekly_route_preview(['slug'=>'linkedin','delivery_method'=>'direct'],['usable'=>true,'reason'=>'Saved connection only'],publishing_weekly_defaults(),$after);
+pa_check($ci['usable']&&str_contains($ci['status'],'approval and provider check'),'Saved direct route is not published nor unconstrained');
+$source=file_get_contents(dirname(__DIR__).'/app/publishing.php');
+pa_check(str_contains($source,'publishing_weekly_paused_scope(publishing_automation_ids()'),'Global unscoped worker respects weekly pause before selecting new scheduled posts');
+echo "PASS: weekly slots, collision avoidance, DST, bounded platform copy, global worker pause and account readiness.\n";

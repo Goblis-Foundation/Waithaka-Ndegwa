@@ -49,9 +49,68 @@ function publishing_automation_register(array $ids): void {
  if(count($all)>2000)throw new RuntimeException('Review the weekly queue before adding more deliveries.');
  comm_put('publishing.weekly.jobs',['ids'=>$all]);
 }
+
+/** A stopped global worker must never bypass the weekly queue pause. */
+function publishing_weekly_can_send(array $cfg,bool $workerEnabled): bool {
+ return $workerEnabled&&!empty($cfg['run']);
+}
+/** Apply only to NEW scheduled jobs in the unscoped worker; accepted provider tasks still reconcile. */
+function publishing_weekly_paused_scope(array $ids,bool $weeklyRun): string {
+ if($weeklyRun)return '';
+ $ids=array_values(array_unique(array_filter(array_map('intval',$ids),static fn($id)=>$id>0)));
+ return $ids?' AND j.id NOT IN ('.implode(',',$ids).')':'';
+}
+/** Read-only route description, not a provider grant or authority to post. */
+function publishing_weekly_route_preview(array $channel,array $cap,array $cfg,int $now): array {
+ $slug=(string)($channel['slug']??'');$method=(string)($channel['delivery_method']??'manual');
+ $enabled=($cap['usable']??false)===true;$assisted=$method==='manual';
+ $status=$assisted?'Assisted · platform completion required':($enabled?'Saved route · approval and provider check required':'Unavailable · setup or reconnect required');
+ $next=null;
+ if(isset($cfg[$slug]['days'],$cfg[$slug]['time'])&&is_array($cfg[$slug]['days'])){
+  try{$stamp=publishing_weekly_next($cfg[$slug],(string)$cfg['timezone'],$now+300);
+      $next=(new DateTimeImmutable('@'.$stamp))->setTimezone(comm_zone((string)$cfg['timezone']))->format('D j M Y, H:i T');}
+  catch(Throwable){$next=null;}
+ }
+ return ['slug'=>$slug,'name'=>(string)($channel['name']??ucfirst($slug)),'method'=>$method,'status'=>$status,'usable'=>$enabled,
+   'assisted'=>$assisted,'next_preference'=>$next,'reason'=>(string)($cap['reason']??'Review account configuration.')];
+}
+/** No provider API requests or token decryption; status from saved, confirmed connections. */
+function publishing_weekly_overview(): array {
+ $cfg=publishing_weekly_config();$heartbeat=comm_get('publishing.weekly.heartbeat');
+ $enabled=(bool)app_config('worker_enabled',false);$now=time();$routes=[];$connections=[];
+ foreach(publishing_channels()as$channel){
+  $slug=(string)$channel['slug'];$method=(string)($channel['delivery_method']??'manual');
+  $connection=null;$remote=null;
+  if($method!=='manual'){
+   $service=$method==='buffer'?'buffer':publishing_service_for_channel($slug);
+   if(!array_key_exists($service,$connections))$connections[$service]=publishing_connection($service);
+   $connection=$connections[$service];
+   if($method==='buffer'&&$connection){
+    foreach(publishing_buffer_channels($connection)as$choice)if((string)($choice['id']??'')===(string)($channel['buffer_channel_id']??'')){$remote=$choice;break;}
+   }
+  }
+  try{$cap=publishing_capability($channel,$connection,$remote);}
+  catch(Throwable){$cap=['usable'=>false,'reason'=>'This route needs account re-verification.'];}
+  $row=publishing_weekly_route_preview($channel,$cap,$cfg,$now);
+  $row['account']=$connection&&($connection['status']??'')==='connected'?(string)($connection['display_name']??'Confirmed destination'):'Not connected';
+  $routes[]=$row;
+ }
+ $ids=publishing_automation_ids();$counts=[];
+ if($ids){
+  $q=db()->query('SELECT status, COUNT(*) amount FROM publishing_jobs WHERE id IN ('.implode(',',$ids).') GROUP BY status');
+  foreach($q->fetchAll()as$x)$counts[(string)$x['status']]=(int)$x['amount'];
+ }
+ $last=is_array($heartbeat)&&is_numeric($heartbeat['at']??null)?(int)$heartbeat['at']:0;
+ return ['worker_enabled'=>$enabled,'weekly_enabled'=>!empty($cfg['run']),
+  'can_send'=>publishing_weekly_can_send($cfg,$enabled),
+  'heartbeat_at'=>$last>0?$last:null,'heartbeat_recent'=>$last>0&&$last<=$now+120&&$last>=$now-1800,
+  'registrations'=>count($ids),'counts'=>$counts,'routes'=>$routes];
+}
+
 function publishing_weekly_work(): void {
- $cfg=publishing_weekly_config();comm_put('publishing.weekly.heartbeat',['at'=>time(),'run'=>$cfg['run']]);
- if(!$cfg['run'])return;$ids=publishing_automation_ids();if($ids){db()->exec("UPDATE publishing_jobs SET status='failed',last_error='This weekly slot was missed by more than 24 hours. Review and explicitly retry or re-queue before sending.' WHERE id IN (".implode(',',$ids).") AND status='scheduled' AND scheduled_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR)");publishing_work(10,$ids);publishing_weekly_reminders($ids);}
+ $cfg=publishing_weekly_config();$globalWorkerEnabled=(bool)app_config('worker_enabled',false);
+ comm_put('publishing.weekly.heartbeat',['at'=>time(),'run'=>$cfg['run'],'worker_enabled'=>$globalWorkerEnabled]);
+ if(!publishing_weekly_can_send($cfg,$globalWorkerEnabled))return;$ids=publishing_automation_ids();if($ids){db()->exec("UPDATE publishing_jobs SET status='failed',last_error='This weekly slot was missed by more than 24 hours. Review and explicitly retry or re-queue before sending.' WHERE id IN (".implode(',',$ids).") AND status='scheduled' AND scheduled_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR)");publishing_work(10,$ids);publishing_weekly_reminders($ids);}
 }
 function publishing_copy_limits(): array {return ['linkedin'=>3000,'facebook'=>20000,'instagram'=>2200,'x'=>280,'youtube'=>5000,'tiktok'=>2200];}
 function publishing_fit_text(string $text,int $length): string {
