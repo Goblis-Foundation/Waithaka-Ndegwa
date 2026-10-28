@@ -29,7 +29,7 @@ catch(PublishingRemoteException $e){check($e->ambiguous,'Unconfirmed LinkedIn mu
 try{publishing_linkedin_posts_receipt(['status'=>201,'headers'=>['x-restli-id'=>'urn:li:organization:123']]);check(false,'Organization result should not certify personal post');}
 catch(PublishingRemoteException $e){check($e->ambiguous,'Mismatched LinkedIn post result remains ambiguous.');}
 $directSource=file_get_contents(dirname(__DIR__).'/app/providers/direct.php');
-check(str_contains($directSource,'https://api.linkedin.com/rest/posts')&&!str_contains($directSource,'/v2/ugcPosts'),
+check(str_contains($directSource,"publishing_http('POST','https://api.linkedin.com/rest/posts'")&&!str_contains($directSource,"publishing_http('POST','https://api.linkedin.com/v2/ugcPosts'"),
     'Direct LinkedIn delivery migrated away from the retired UGC route.');
 
 $identity=['status'=>'connected','external_id'=>'actual-returned-id','selected_resource'=>'actual-resource'];
