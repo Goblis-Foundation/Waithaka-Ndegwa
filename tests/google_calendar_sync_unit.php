@@ -9,7 +9,7 @@ function publishing_json(array $v):string{return json_encode($v,JSON_THROW_ON_ER
 function publishing_decode(string $v):array{return json_decode($v,true,32,JSON_THROW_ON_ERROR);}
 function comm_get(string $k,array $default=[]):array{return $GLOBALS['store'][$k]??$default;}
 function comm_put(string $k,array $v):void{$GLOBALS['store'][$k]=$v;}
-function comm_lock(string $k,callable $f):mixed{return $f();}
+function comm_lock(string $k,callable $f):mixed{if(isset($GLOBALS['lock_hook'])&&$k===($GLOBALS['hook_key']??'')){$hook=$GLOBALS['lock_hook'];unset($GLOBALS['lock_hook']);$hook();}return $f();}
 function url(string $p):string{return 'https://example.invalid'.$p;}
 function google_workspace_shift_date(string $date,int $days):string{return (new DateTimeImmutable($date.'T00:00:00Z'))->modify(($days>=0?'+':'').$days.' days')->format('Y-m-d');}
 function fixture_event(string $id='a'):array{return ['id'=>$id,'summary'=>'Private title','start'=>['dateTime'=>'2026-10-29T10:00:00+03:00'],'end'=>['dateTime'=>'2026-10-29T11:00:00+03:00'],'etag'=>'v1','attendees'=>[['email'=>'never-copy@example.invalid']],'description'=>'private body excluded','attachments'=>[['fileUrl'=>'private-file']],'organizer'=>['self'=>true,'email'=>'private-organizer@example.invalid'],'conferenceData'=>['entryPoints'=>[['entryPointType'=>'video','uri'=>'https://meet.google.com/aaa-bbbb-ccc'],['entryPointType'=>'phone','uri'=>'tel:private']]]];}
@@ -33,7 +33,7 @@ function comm_records(string $prefix,int $limit=2000):array{return array_values(
 function db():object{return new class{function prepare(string $sql):object{return new class{function execute(array $args):void{unset($GLOBALS['store'][substr($args[0],14)]);}};}};}
 function google_calendar_accounts(int $uid):array{return [$GLOBALS['worker_account']];}
 function google_calendar_owned(int $id,int $uid):array{if($id!==1||$uid!==7)throw new RuntimeException('Wrong owner');return $GLOBALS['worker_account'];}
-function google_calendar_token(array $a):string{return 'synthetic-only';}
+function google_calendar_token(array $a):string{if(isset($GLOBALS['token_error']))throw $GLOBALS['token_error'];return 'synthetic-only';}
 function publishing_bearer(string $t):array{return ['Authorization: Bearer '.$t];}
 $GLOBALS['worker_account']=$a;$store=[];$key=gcs_key(1,'selected');gcs_preferences(7,true,false);
 $result=gcs_work($now,static fn()=>['data'=>['items'=>[fixture_event()],'nextSyncToken'=>'worker-token']]);check($result['checked']===1&&isset($store[$key]['events']['a']),'Worker stores only complete selected snapshot');
@@ -44,4 +44,19 @@ gcs_preferences(7,true,false);$result=gcs_work($now+3604,static function(){gcs_p
 $result=gcs_work($now+4505,static function(){$GLOBALS['worker_account']['selected_json']='[]';return ['data'=>['items'=>[fixture_event()],'nextSyncToken'=>'unselected']];});check(empty($store[$key]['events']),'Unselection during read prevents snapshot commit');gcs_work($now+5406,static function(){throw new RuntimeException('Must not call provider');});check(!isset($store[$key]),'Next worker removes unselected local record');
 $GLOBALS['worker_account']=$a;$store=[];gcs_preferences(7,false,false);$result=gcs_work($now,static function(){throw new RuntimeException('Disabled worker must never call provider');});check(!$result['enabled'],'Background refresh defaults and disables without provider calls');
 foreach(['2026-02-30','2026-10-29T25:00:00Z','2026-10-29T10:00:00']as$value){$bad=fixture_event();$bad['start']=str_contains($value,'T')?['dateTime'=>$value]:['date'=>$value];denied(fn()=>gcs_event($bad),'Invalid or unzoned event time rejected');}
+// Live first-attempt failure must retain backoff even when no successful snapshot exists.
+$GLOBALS['worker_account']=$a;$store=[];gcs_preferences(7,true,false);$callCount=0;
+$failure=static function()use(&$callCount){$callCount++;throw new PublishingRemoteException('private-provider-secret',429);};
+gcs_work($now,$failure);$first=$store[$key];check($first['revision']===gcs_revision($a)&&$first['failures']===1,'Initial failure retains revision and retry history');check($first['retry_at']>=$now+300&&$first['retry_at']<=$now+360,'Initial transient backoff includes bounded jitter');
+comm_put($key.'.notice',['at'=>$now+61,'number'=>'1']);$result=gcs_work($now+61,$failure);check($callCount===1&&$result['failed']===0,'Manual checks and notifications cannot bypass a pending retry');
+gcs_work($first['retry_at'],$failure);$second=$store[$key];check($second['failures']===2&&$second['retry_at']>=$first['retry_at']+600,'Consecutive failures increase delay instead of retrying every minute');check(!str_contains(publishing_json($second),'private-provider-secret'),'Only classified status is persisted');
+check(gcs_cached($a,'selected','2026-10-28','2026-10-30',$now+62)===null,'Failed snapshot cannot appear as fresh agenda data');
+$result=gcs_work($second['retry_at'],static fn()=>['data'=>['items'=>[],'nextSyncToken'=>'recovered']]);check($result['checked']===1&&empty($store[$key]['error'])&&empty($store[$key]['retry_at'])&&empty($store[$key]['failures']),'Complete success clears failure history');
+foreach([400,401,403,404,429,500,503]as$status){$classified=gcs_failure(new PublishingRemoteException('do-not-store-token',$status),'access',1,$now);check(str_contains($classified['error'],'HTTP '.$status)&&!str_contains(publishing_json($classified),'do-not-store-token'),'HTTP classification never copies provider body');if(in_array($status,[400,401,404],true))check($classified['retry_at']>=$now+1800,'Rejected access/request uses slower review interval');}
+check(gcs_failure(new RuntimeException('secret'),'events',99,$now)['retry_at']===$now+3600,'Repeated failures cap retries at one hour');
+$store=[];gcs_preferences(7,true,false);$GLOBALS['token_error']=new PublishingRemoteException('secret-refresh-token',400);gcs_work($now,$failure);unset($GLOBALS['token_error']);check(str_contains($store[$key]['error'],'access renewal')&&$callCount===2,'Access renewal failure is distinguished without calling events endpoint');
+$GLOBALS['worker_account']['verified_at']='reviewed-again';$result=gcs_work($now+1,static fn()=>['data'=>['items'=>[],'nextSyncToken'=>'new-grant']]);check($result['checked']===1&&empty($store[$key]['retry_at']),'Account review invalidates failed revision and permits immediate recovery');
+// A competing worker may commit after the queue is built but before this worker acquires its lock.
+$GLOBALS['hook_key']=$key;$GLOBALS['lock_hook']=static function()use($key,$now){$GLOBALS['store'][$key]['attempted']=$now+1000;$GLOBALS['store'][$key]['retry_at']=$now+2000;};
+$result=gcs_work($now+1000,$failure);check($callCount===2&&$result['failed']===0,'Worker rechecks retry eligibility after acquiring the calendar lock');
 echo 'PASS: '.$checks." incremental-calendar, bounded-cache and authenticated-notification checks. No provider called.\n";
