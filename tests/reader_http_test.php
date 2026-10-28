@@ -124,12 +124,16 @@ try {
     $msCsrf=rh_request('/write/microsoft',['action'=>'connect','account'=>'personal'],true);rh_check($msCsrf['status']===419,'Microsoft OAuth start requires CSRF protection.');
     $actionHome=rh_request('/write/microsoft/actions',null,true);rh_check($actionHome['status']===200&&str_contains($actionHome['body'],'Action history'),'The Microsoft action studio renders for the owner.');rh_private($actionHome,'Action access and history stay private.');
     foreach(['/write/google/actions'=>'Google action studio','/write/google/actions/new'=>'Prepare your content','/write/google/sync'=>'Private calendar refresh','/write/security/sign-in'=>'Sign-in & verification']as$route=>$heading){$r=rh_request($route,null,true);rh_check($r['status']===200&&str_contains($r['body'],$heading),'Google owner page renders: '.$route);rh_private($r,'Google workspace response is private');rh_check(!str_contains($r['body'],'googletagmanager.com'),'Google private content has no analytics');rh_check(rh_request($route,['action'=>'settings'],true)['status']===419,'Google POST requires CSRF');}
+    $securityPage=rh_request('/write/security/sign-in',null,true);$securityForm=rh_form($securityPage,'/write/security/sign-in','stepup');
+    rh_check(str_contains($securityPage['body'],'name="verification_email"')&&str_contains($securityPage['body'],'isaac@goblisgroup.com')&&str_contains($securityPage['body'],'isaac@goblisfoundation.org'),'Owner can choose only their approved verification addresses');
+    foreach(['link_google','link_microsoft']as$action){$result=rh_request('/write/security/sign-in',array_replace($securityForm,['action'=>$action]),true);rh_check($result['status']===200&&str_contains($result['body'],'Verify your identity below'),'Provider linking requires fresh verification before any external redirect');}
     set_setting('communication.config',json_encode(['owner'=>$actor+1000000],JSON_THROW_ON_ERROR),true);
     try {
         foreach(['/write/google/actions','/write/google/sync']as$route)rh_check(rh_request($route,null,true)['status']===403,'A signed-in non-owner cannot access Google actions: '.$route);
         $ownSecurity=rh_request('/write/security/sign-in',null,true);
         rh_check($ownSecurity['status']===200&&str_contains($ownSecurity['body'],'Sign-in & verification'),'Each signed-in user can manage their own verification settings');
         rh_private($ownSecurity,'Personal verification settings remain private');
+        rh_check(!str_contains($ownSecurity['body'],'isaac@goblisgroup.com')&&!str_contains($ownSecurity['body'],'isaac@goblisfoundation.org'),'Other writers never receive owner verification destinations');
     } finally {
         set_setting('communication.config',json_encode(['owner'=>$actor],JSON_THROW_ON_ERROR),true);
     }

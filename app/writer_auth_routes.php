@@ -9,8 +9,9 @@ function wa_security_dispatch(): bool {
     if(is_post()){
         verify_csrf();try{
             if(!journeys_rate_limit('auth-settings',(string)$uid,25,900))throw new WriterAuthException('Wait before another security change.');$action=$_POST['action']??'';
-            if($action==='stepup'){app_password_check($uid,$_POST['password']??'');$email=$_SESSION['login_email']??strtolower($user['email']);redirect(url(wa_begin($user,$email,false,'manage')));}
+            if($action==='stepup'){$email=wa_stepup_email($user,$_POST['verification_email']??null);app_password_check($uid,$_POST['password']??'');redirect(url(wa_begin($user,$email,false,'manage')));}
             if(!wa_stepup($uid))throw new WriterAuthException('Verify your identity below before changing sign-in methods.');
+            if($action==='link_google'||$action==='link_microsoft')redirect(wa_oauth_start(substr($action,5),false,'link'));
             if($action==='totp_start'){$_SESSION['wa_totp_setup']=['secret'=>wa_base32(random_bytes(20)),'uid'=>$uid,'expires'=>time()+600];flash('success','Scan the QR code or enter the setup key, then confirm a code from your authenticator.');}
             elseif($action==='totp_finish'){
                 $s=$_SESSION['wa_totp_setup']??[];if(($s['uid']??0)!==$uid||($s['expires']??0)<=time()||($counter=wa_totp_counter($s['secret'],wa_input('code',32),time()))===null)throw new WriterAuthException('Check the authenticator code or start setup again.');
@@ -40,7 +41,7 @@ function wa_input(string $key,int $max): string {$v=$_POST[$key]??'';if(!is_stri
 function wa_dispatch(string $path): bool {
     if($path==='/write/security/sign-in'){private_response_headers();return wa_security_dispatch();}
     foreach(wa_providers()as$provider=>$p)if($path==='/write/connections/callback/'.$p['callback']&&($_SESSION['wa_oauth']['provider']??'')===$provider){
-        private_response_headers();journeys_method(['GET']);try{$f=wa_oauth_consume($provider,$_GET['state']??null);if(isset($_GET['error']))throw new WriterAuthException('Provider sign-in was cancelled. Choose another method or try again.');$code=$_GET['code']??'';if(!is_string($code))throw new WriterAuthException('Invalid sign-in response.');redirect(url(wa_oauth_complete($provider,$f,$code)));}catch(WriterAuthException $e){flash('error',$e->getMessage());}catch(Throwable){flash('error','Provider sign-in could not be completed. Use your Writer password or try again.');}redirect(url('/write/login'));
+        private_response_headers();journeys_method(['GET']);$returnTo=($_SESSION['wa_oauth']['purpose']??'login')==='link'?'/write/security/sign-in':'/write/login';try{$f=wa_oauth_consume($provider,$_GET['state']??null);if(isset($_GET['error']))throw new WriterAuthException('Provider sign-in was cancelled. Choose another method or try again.');$code=$_GET['code']??'';if(!is_string($code))throw new WriterAuthException('Invalid sign-in response.');redirect(url(wa_oauth_complete($provider,$f,$code)));}catch(WriterAuthException $e){flash('error',$e->getMessage());}catch(Throwable){flash('error','Provider sign-in could not be completed. Use your Writer password or try again.');}redirect(url($returnTo));
     }
     if(preg_match('~^/write/auth/(google|microsoft)$~D',$path,$m)){
         private_response_headers();journeys_method(['POST']);verify_csrf();if(current_user())redirect(url('/write/security/sign-in'));try{redirect(wa_oauth_start($m[1],app_trust_choice($_POST['trust_device']??null)));}catch(WriterAuthException $e){flash('error',$e->getMessage());}catch(Throwable){flash('error','Provider sign-in is unavailable. Use your Writer password.');}redirect(url('/write/login'));
@@ -48,7 +49,8 @@ function wa_dispatch(string $path): bool {
     if($path!=='/write/verify')return false;private_response_headers();journeys_method(['GET','HEAD','POST']);$error='';$challenge=[];
     if(is_post())verify_csrf();try{
         if(is_post()&&($_POST['action']??'')==='cancel'){
-            try{$c=wa_pending();comm_lock('wa-challenge-'.$c['id'],static function()use($c){$c['used']=true;unset($c['code_hash'],$c['sms_sid']);comm_put('auth.challenge.'.$c['id'],$c);});}catch(WriterAuthException){}unset($_SESSION['wa_pending']);redirect(url('/write/login'));
+            $returnTo=!empty($_SESSION['user_id'])?'/write/security/sign-in':'/write/login';
+            try{$c=wa_pending();comm_lock('wa-challenge-'.$c['id'],static function()use($c){$c['used']=true;unset($c['code_hash'],$c['sms_sid']);comm_put('auth.challenge.'.$c['id'],$c);});}catch(WriterAuthException){}unset($_SESSION['wa_pending']);redirect(url($returnTo));
         }
         $challenge=wa_pending();if(is_post()){
             $action=wa_input('action',20);if($action==='verify')redirect(url(wa_finish(wa_verify_code(wa_input('code',80)))));

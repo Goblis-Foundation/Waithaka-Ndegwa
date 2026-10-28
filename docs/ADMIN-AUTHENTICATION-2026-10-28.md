@@ -34,3 +34,11 @@ Tests use actual RSA signatures, RFC TOTP vectors and isolated persistence/trans
 ## Release evidence
 
 PR #86 was deployed successfully on 28 October 2026. See [production acceptance](ADMIN-RELEASE-ACCEPTANCE-2026-10-28.md) for exact CI runs, live observations and remaining provider/device activation requirements.
+
+## Completion of account setup
+
+Security verification now offers only the current user's approved addresses. The owner can choose either explicitly approved alias for the code without changing the account's canonical email or records. Other writers cannot select owner aliases. A valid password is still required before delivery.
+
+Google and Microsoft can be linked directly from Sign-in & verification after recent verification. The OAuth flow is pinned to that authenticated user and security epoch, rechecked after the provider exchange, and rejected if another local account is returned. First linking still requires an email code to the exact returned approved address. The stable issuer/subject binding is retained; email claims cannot silently replace it. Completing a link rotates the security epoch and invalidates other remembered sessions while preserving the current account. Cancellation returns to Security.
+
+References: [OWASP sensitive-account reauthentication](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) and [OpenID stable subject identifiers](https://openid.net/specs/openid-connect-core-1_0.html#ClaimStability).

@@ -11,7 +11,7 @@ function comm_records(string $key,int $limit=2000):array{return [];}
 function publishing_callback_url(string $service):string{return 'https://example.invalid/write/connections/callback/'.$service;}
 function publishing_client(string $provider):array{return ['client_id'=>'synthetic-client','client_secret'=>'synthetic-secret'];}
 function publishing_connection(string $service):?array{return null;}
-function comm_config():array{return ['owner'=>0];}
+function comm_config():array{return ['owner'=>7];}
 function comm_zone(mixed $zone):DateTimeZone{return new DateTimeZone($zone);}
 function comm_date(mixed $date):string{return $date;}
 function ma_render(string $view,array $data=[]):string{extract($data,EXTR_SKIP);ob_start();include dirname(__DIR__).'/views/write/'.$view.'.php';return (string)ob_get_clean();}

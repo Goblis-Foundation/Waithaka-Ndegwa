@@ -8,15 +8,23 @@ function wa_providers(): array {return [
 function wa_provider_ready(string $provider): bool {$c=publishing_client($provider);return isset(wa_providers()[$provider])&&$c['client_id']!==''&&$c['client_secret']!=='';}
 /** Reuse the registered application callback; one-use state distinguishes sign-in from workspace grants. */
 function wa_callback(string $provider): string {return publishing_callback_url(wa_providers()[$provider]['callback']);}
-function wa_oauth_start(string $provider,bool $trust): string {
+function wa_oauth_context(array $flow): void {
+    $purpose=$flow['purpose']??'login';if(!in_array($purpose,['login','link'],true))throw new WriterAuthException('Start a new provider sign-in.');
+    if($purpose==='link'){
+        $uid=(int)($flow['user_id']??0);
+        if($uid<1||(int)($_SESSION['user_id']??0)!==$uid||!wa_stepup($uid)||!hash_equals((string)($flow['epoch']??''),app_trust_epoch($uid)))throw new WriterAuthException('Verify your identity again before linking a sign-in account.');
+    }
+}
+function wa_oauth_start(string $provider,bool $trust,string $purpose='login'): string {
     $p=wa_providers()[$provider]??throw new WriterAuthException('Choose Google or Microsoft.');if(!wa_provider_ready($provider))throw new WriterAuthException($p['name'].' sign-in needs its application setup. Use your Writer password for now.');
     if(!journeys_rate_limit('auth-oauth',ip_hash(),20,900))throw new WriterAuthException('Please wait before starting another sign-in.');
+    $context=['purpose'=>$purpose,'user_id'=>$purpose==='link'?(int)($_SESSION['user_id']??0):0];if($purpose==='link')$context['epoch']=app_trust_epoch($context['user_id']);wa_oauth_context($context);
     $client=publishing_client($provider);$state=bin2hex(random_bytes(32));$nonce=bin2hex(random_bytes(32));$verifier=rtrim(strtr(base64_encode(random_bytes(48)),'+/','-_'),'=');
-    $_SESSION['wa_oauth']=['provider'=>$provider,'state_hash'=>wa_mac($state),'nonce'=>$nonce,'verifier'=>$verifier,'trust'=>$trust,'expires'=>time()+600,'session'=>wa_mac(session_id()),'client'=>wa_mac(publishing_json($client))];
+    $_SESSION['wa_oauth']=$context+['provider'=>$provider,'state_hash'=>wa_mac($state),'nonce'=>$nonce,'verifier'=>$verifier,'trust'=>$purpose==='login'&&$trust,'expires'=>time()+600,'session'=>wa_mac(session_id()),'client'=>wa_mac(publishing_json($client))];
     return $p['authorize'].'?'.http_build_query(['client_id'=>$client['client_id'],'response_type'=>'code','redirect_uri'=>wa_callback($provider),'scope'=>'openid profile email','state'=>$state,'nonce'=>$nonce,'code_challenge'=>rtrim(strtr(base64_encode(hash('sha256',$verifier,true)),'+/','-_'),'='),'code_challenge_method'=>'S256','prompt'=>'select_account','response_mode'=>'query'],'','&',PHP_QUERY_RFC3986);
 }
 function wa_oauth_consume(string $provider,mixed $state): array {
-    $f=$_SESSION['wa_oauth']??[];unset($_SESSION['wa_oauth']);if(!is_string($state)||!preg_match('/^[a-f0-9]{64}$/D',$state)||($f['provider']??'')!==$provider||($f['expires']??0)<=time()||!hash_equals($f['state_hash']??'',wa_mac($state))||!hash_equals($f['session']??'',wa_mac(session_id()))||!hash_equals($f['client']??'',wa_mac(publishing_json(publishing_client($provider)))))throw new WriterAuthException('This provider sign-in expired or changed. Start again.');return $f;
+    $f=$_SESSION['wa_oauth']??[];unset($_SESSION['wa_oauth']);if(!is_string($state)||!preg_match('/^[a-f0-9]{64}$/D',$state)||($f['provider']??'')!==$provider||($f['expires']??0)<=time()||!hash_equals($f['state_hash']??'',wa_mac($state))||!hash_equals($f['session']??'',wa_mac(session_id()))||!hash_equals($f['client']??'',wa_mac(publishing_json(publishing_client($provider)))))throw new WriterAuthException('This provider sign-in expired or changed. Start again.');wa_oauth_context($f);return $f;
 }
 function wa_id_claims(string $provider,string $token,array $jwks,string $client,string $nonce,?int $now=null): array {
     $now??=time();if(strlen($token)>32000)throw new WriterAuthException('Invalid provider identity.');
@@ -46,20 +54,26 @@ function wa_identity_target(string $provider,array $claims): array {
 }
 function wa_bind_identity(array $challenge): void {
     if($challenge['method']!=='email')throw new WriterAuthException('Verify this email before linking an identity.');$i=$challenge['link_identity'];
-    comm_lock('wa-identities',static function()use($challenge,$i){
+    comm_lock('wa-factors-'.$challenge['uid'],static function()use($challenge,$i){comm_lock('wa-identities',static function()use($challenge,$i){
+        if(!hash_equals($challenge['epoch'],app_trust_epoch((int)$challenge['uid'])))throw new WriterAuthException('The account security changed. Start again.');
         $emailKey='auth.identity_email.'.hash('sha256',$i['provider'].'|'.$challenge['email']);$prior=comm_get($emailKey);$identity=comm_get('auth.identity.'.$i['key']);
         if($prior&&($prior['key']!==$i['key']||(int)$prior['uid']!==$challenge['uid'])||$identity&&(int)$identity['uid']!==$challenge['uid'])throw new WriterAuthException('This email is already linked to a different provider identity. Review sign-in settings.');
         comm_put('auth.identity.'.$i['key'],$i+['uid'=>$challenge['uid'],'email'=>$challenge['email'],'linked_at'=>time()]);comm_put($emailKey,['key'=>$i['key'],'uid'=>$challenge['uid']]);
-    });
+    });});
 }
 function wa_oauth_complete(string $provider,array $flow,string $code,?callable $http=null): string {
-    if($code===''||strlen($code)>8000)throw new WriterAuthException('The provider did not return a valid sign-in code.');$http??='publishing_http';$p=wa_providers()[$provider];$client=publishing_client($provider);
+    wa_oauth_context($flow);if($code===''||strlen($code)>8000)throw new WriterAuthException('The provider did not return a valid sign-in code.');$http??='publishing_http';$p=wa_providers()[$provider];$client=publishing_client($provider);
     $r=$http('POST',$p['token'],[],$client+['grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>wa_callback($provider),'code_verifier'=>$flow['verifier']],true)['data'];
     if(!is_string($r['id_token']??null))throw new WriterAuthException('The provider did not return a verified sign-in identity.');$cache=comm_get('auth.jwks.'.$provider);$keys=$cache['keys']??[];
     if(($cache['at']??0)<time()-3600){$keys=$http('GET',$p['keys'])['data'];comm_put('auth.jwks.'.$provider,['at'=>time(),'keys'=>$keys]);}
     try{$claims=wa_id_claims($provider,$r['id_token'],$keys,$client['client_id'],$flow['nonce']);}
     catch(WriterAuthException){$keys=$http('GET',$p['keys'])['data'];$claims=wa_id_claims($provider,$r['id_token'],$keys,$client['client_id'],$flow['nonce']);comm_put('auth.jwks.'.$provider,['at'=>time(),'keys'=>$keys]);}
-    $target=wa_identity_target($provider,$claims);return wa_begin($target['user'],$target['email'],(bool)$flow['trust'],'login',$target['link']);
+    wa_oauth_context($flow);$target=wa_identity_target($provider,$claims);$purpose=$flow['purpose']??'login';
+    if($purpose==='link'){
+        if((int)$target['user']['id']!==(int)$flow['user_id'])throw new WriterAuthException('Choose a provider identity approved for your current account.');
+        if(!$target['link'])throw new WriterAuthException('This provider identity is already linked to your account.');
+    }
+    return wa_begin($target['user'],$target['email'],(bool)$flow['trust'],$purpose,$target['link']);
 }
 
 /** Twilio Verify holds SMS codes. The application accepts only an exact approved verification. */

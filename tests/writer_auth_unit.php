@@ -14,6 +14,8 @@ function app_trust_epoch(int $uid):string{return $GLOBALS['epochs'][$uid]??'';}
 function app_trust_issue(int $uid):void{$GLOBALS['trusted']=$uid;}
 function app_trust_forget():void{unset($GLOBALS['trusted']);}
 function writer_login_return():string{return '/write/program';}
+function flash(string $type,string $message):void{$GLOBALS['flashes'][]=[$type,$message];}
+function wa_security_changed(int $uid):void{$GLOBALS['epochs'][$uid]='link-epoch-'.bin2hex(random_bytes(8));$_SESSION['auth_epoch']=$GLOBALS['epochs'][$uid];app_trust_forget();$_SESSION['trust_opt_out']=true;}
 function journeys_rate_limit(string $p,string $id,int $limit,int $seconds=3600):bool{return $GLOBALS['rates'];}
 function ip_hash():string{return 'test-ip';}
 function db():object{return new class{function prepare(string $sql):object{return new class($sql){private array $args=[];function __construct(private string $sql){}function execute(array $args):void{$this->args=$args;}function fetch():array|false{if(str_contains($this->sql,'WHERE id='))return $GLOBALS['users'][(int)$this->args[0]]??false;foreach($GLOBALS['users']as$u)if($u['email']===$this->args[0])return $u;return false;}};}};}
@@ -44,4 +46,32 @@ foreach(['iss'=>'https://evil.invalid','aud'=>'wrong-client','nonce'=>'wrong','e
 $tenant='12345678-1234-1234-1234-123456789abc';$ms=array_replace($payload,['iss'=>'https://login.microsoftonline.com/'.$tenant.'/v2.0','tid'=>$tenant,'aud'=>'client-ms']);check(wa_id_claims('microsoft',$jwt($ms),$jwks,'client-ms','exact-nonce')['tid']===$tenant,'Microsoft tenant issuer matched');denied(fn()=>wa_id_claims('microsoft',$jwt(array_replace($ms,['tid'=>'87654321-1234-1234-1234-123456789abc'])),$jwks,'client-ms','exact-nonce'),'Cross-tenant issuer mismatch rejected');$badKeys=$jwks;$badKeys['keys'][0]['issuer']='https://untrusted.invalid';denied(fn()=>wa_id_claims('microsoft',$jwt($ms),$badKeys,'client-ms','exact-nonce'),'Signing key issuer constraint checked');
 $service='VA'.str_repeat('a',32);$sid='VE'.str_repeat('b',32);$phone='+254700000001';comm_put('auth.sms',['enabled'=>true,'account'=>'AC'.str_repeat('c',32),'service'=>$service,'token'=>'synthetic-token']);$httpResult=['sid'=>$sid,'service_sid'=>$service,'to'=>$phone,'status'=>'pending'];check(wa_sms_start($phone)===$sid,'SMS start requires exact provider acknowledgement');$httpResult['status']='approved';check(wa_sms_check($phone,$sid,'123456'),'Exact approved SMS verification accepted');foreach(['sid'=>'VE'.str_repeat('d',32),'to'=>'+254700000002','service_sid'=>'VA'.str_repeat('e',32),'status'=>'pending']as$k=>$v){$prior=$httpResult;$httpResult[$k]=$v;check(!wa_sms_check($phone,$sid,'123456'),'SMS rejects mismatched '.$k);$httpResult=$prior;}denied(fn()=>wa_phone('0718751696'),'Phone enrollment requires explicit international number');
 $rates=false;denied(fn()=>wa_oauth_start('google',false),'OAuth start rate limited');$rates=true;wa_begin($users[7],$users[7]['email'],false);$rates=false;denied(fn()=>wa_verify_code(last_code()),'Verification limited across challenges');$rates=true;
+// Security setup remains on the current account and only uses its approved addresses.
+$_SESSION=['user_id'=>7,'login_email'=>'owner@example.invalid'];
+check(wa_stepup_email($users[7])==='owner@example.invalid','Security email defaults to the current approved address');
+check(wa_stepup_email($users[7],' ISAAC@GOBLISGROUP.COM ')==='isaac@goblisgroup.com','Approved owner alias can receive security step-up');
+foreach(['attacker@example.invalid',['owner@example.invalid']]as$v)denied(fn()=>wa_stepup_email($users[7],$v),'Arbitrary and non-scalar verification destinations rejected');
+denied(fn()=>wa_stepup_email($users[8],'isaac@goblisfoundation.org'),'Another writer cannot use owner aliases');
+denied(fn()=>wa_oauth_start('google',false,'link'),'Signed-in linking requires recent verification');
+$_SESSION['wa_verified_uid']=7;$_SESSION['wa_verified_at']=time();
+denied(fn()=>wa_oauth_start('google',false,'other'),'Unsupported OAuth purpose rejected');
+$auth=wa_oauth_start('google',true,'link');parse_str(parse_url($auth,PHP_URL_QUERY),$q);check($_SESSION['wa_oauth']['user_id']===7&&!$_SESSION['wa_oauth']['trust'],'Linking pins the current owner and never creates remembered access');
+$_SESSION['user_id']=8;denied(fn()=>wa_oauth_consume('google',$q['state']),'Account switch invalidates pending link state');$_SESSION['user_id']=7;
+$auth=wa_oauth_start('google',false,'link');parse_str(parse_url($auth,PHP_URL_QUERY),$q);$epochs[7]='updated';denied(fn()=>wa_oauth_consume('google',$q['state']),'Security change invalidates pending link state');$epochs[7]='v1';
+$completeLink=static function(string $email,string $subject,?callable $duringExchange=null)use($jwt,$payload,$jwks):string{
+    $auth=wa_oauth_start('google',false,'link');parse_str(parse_url($auth,PHP_URL_QUERY),$q);$flow=wa_oauth_consume('google',$q['state']);
+    $token=$jwt(array_replace($payload,['email'=>$email,'sub'=>$subject,'nonce'=>$flow['nonce'],'iat'=>time(),'exp'=>time()+300]));
+    return wa_oauth_complete('google',$flow,'synthetic-code',static function($method,$url)use($token,$jwks,$duringExchange){if(str_ends_with($url,'/token')){if($duringExchange)$duringExchange();return ['data'=>['id_token'=>$token]];}return ['data'=>$jwks];});
+};
+denied(fn()=>$completeLink('writer@example.invalid','different-writer'),'A valid provider token for a different local account cannot replace the signed-in owner');
+check($_SESSION['user_id']===7,'Rejected identity does not switch the signed-in user');
+check($completeLink('isaac@goblisfoundation.org','setup-subject')==='/write/verify','Signed provider proof advances to exact-mailbox confirmation');
+$c=wa_pending();$identityKey=$c['link_identity']['key'];check($c['purpose']==='link'&&$c['email']==='isaac@goblisfoundation.org'&&!comm_get('auth.identity.'.$identityKey),'Provider link is not persisted before email proof');
+$_SESSION['user_id']=8;denied(fn()=>wa_pending(),'Link challenge cannot be verified after an account switch');$_SESSION['user_id']=7;
+$epochBefore=$epochs[7];$trusted=7;$done=wa_verify_code(last_code());check(wa_finish($done)==='/write/security/sign-in','Verified link returns to security settings');
+check($_SESSION['user_id']===7&&$_SESSION['login_email']==='owner@example.invalid'&&comm_get('auth.identity.'.$identityKey)['uid']===7,'Linking preserves the current user and address');
+check($epochs[7]!==$epochBefore&&!isset($trusted)&&$_SESSION['auth_epoch']===$epochs[7],'Linking rotates the security epoch and invalidates remembered credentials');
+denied(fn()=>$completeLink('isaac@goblisfoundation.org','setup-subject'),'An already linked provider identity is not silently rebound');
+denied(fn()=>$completeLink('owner@example.invalid','late-subject',static function(){$GLOBALS['epochs'][7]='changed-during-token';}),'Security change during token exchange prevents linking');
+check(!comm_get('auth.identity.'.wa_identity_key('google','https://accounts.google.com','late-subject')),'Interrupted exchange stores no provider binding');
 echo 'PASS: '.$checks." authentication, signed OIDC, alias ownership, OTP, TOTP, recovery, rate-limit and SMS checks. No external delivery.\n";
