@@ -174,3 +174,37 @@ jobs:
 
       - name: Verify publishing, approved branding and automatic visitor refresh
         run: python3 -B deploy/aws/verify_publishing_release.py
+
+  live-outline-acceptance:
+    name: Verify centered public section selectors on the live website
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install isolated browser for read-only live acceptance
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/outline-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/outline-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify centered Home, Start Here, and every checked public selector
+        env:
+          NODE_PATH: ${{ runner.temp }}/outline-browser/node_modules
+          OUTLINE_LIVE: '1'
+          OUTLINE_EVIDENCE_DIR: ${{ runner.temp }}/outline-evidence
+        run: node tests/outline_navigation_browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: centered-live-page-sections
+          path: ${{ runner.temp }}/outline-evidence
+          if-no-files-found: ignore
+          retention-days: 3

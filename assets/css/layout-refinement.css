@@ -390,3 +390,46 @@ body #main .desk-filter.desk-filter-sponsored button { min-height: 45px; }
   }
   body #main .desk-filter.desk-filter-sponsored > label:first-child { grid-column: auto; }
 }
+
+/* Shared on-page SECTION SELECTOR: this is not the Search page or main menu.
+ * The progressive-enhancement script inserts it as a sibling BEFORE the
+ * first public page surface. Keep it inside the same centered gutters as
+ * the site header and all page content (never full bleed into a hero).
+ */
+body #main > .ux-page-outline.container {
+  box-sizing: border-box;
+  width: min(var(--container), calc(100% - (var(--page-gutter) * 2)));
+  max-width: none;
+  margin: clamp(16px, 2.2vw, 24px) auto clamp(8px, 1.7vw, 18px);
+  padding: clamp(12px, 1.3vw, 16px) clamp(14px, 2vw, 20px);
+  border: 1px solid #cedfe8;
+  border-radius: 12px;
+  background: #f2f7fa;
+  color: #203c4f;
+}
+body #main > .ux-page-outline.container label {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(10px, 1.8vw, 20px);
+  min-width: 0;
+  margin: 0;
+}
+body #main > .ux-page-outline.container select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 46px;
+  font-size: 1rem;
+}
+@media (max-width: 650px) {
+  body #main > .ux-page-outline.container label {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 8px;
+  }
+}
+@media print {
+  body #main > .ux-page-outline.container { display: none; }
+}
