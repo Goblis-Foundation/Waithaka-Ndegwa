@@ -1,6 +1,6 @@
 'use strict';
-const VERSION='wn-app-v4';const OFFLINE='/offline.html';
-const BRAND_VERSION='20261027';
+const VERSION='wn-app-v5';const OFFLINE='/offline.html';
+const BRAND_VERSION='20261028b';
 const ICON_PATHS=['/assets/images/icon-192.png','/assets/images/icon-512.png'];
 const iconKey=path=>path+'?v='+BRAND_VERSION;
 self.addEventListener('install',e=>e.waitUntil(caches.open(VERSION).then(c=>c.addAll([OFFLINE,...ICON_PATHS.map(iconKey)]))));
