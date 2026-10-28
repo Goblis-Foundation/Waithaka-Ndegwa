@@ -75,7 +75,7 @@ $fixtures=[
   'enterprises'=>['/enterprises','enterprises','enterprises/index',[
     'filters'=>['q'=>'','country'=>'','sector'=>'','stage'=>''],'countries'=>[],'sectors'=>[],'profiles'=>[]
   ]],
-  'employment'=>['/opportunities/submit','founders','opportunities/index',['q'=>'','items'=>[]]],
+  'employment'=>['/opportunities/jobs','founders','opportunities/index',['q'=>'','items'=>[]]],
   'opportunities'=>['/opportunities','experience','desk/index',[
     'kind'=>'opportunity','items'=>[],'filters'=>['q'=>'','type'=>'','country'=>'','sector'=>'','status'=>''],
     'pageNumber'=>1,'total'=>0,'jobs'=>[]
