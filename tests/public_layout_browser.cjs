@@ -16,6 +16,8 @@ const fs=require('node:fs');
  await page.goto(host+'public-home.html');
  check(await page.locator('.public-explore-links a').count()===4,'Four featured discovery destinations');
  check(await page.locator('.public-explore-all').count()===1,'Complete destination index remains linked');
+ check(await page.locator('#site-main-nav a[href*="#goals-2030"]').count()===0,'Goal 2030 is not a standalone primary menu destination');
+ check(await page.locator('.site-footer a[href*="#goals-2030"]').count()===1,'Goal 2030 remains discoverable as a content section from footer');
  check((await page.locator('link[href*="layout-refinement.css"]').count())===1,'Shared refinement stylesheet loads once');
  for(const width of sizes){
   await page.setViewportSize({width,height:900});
