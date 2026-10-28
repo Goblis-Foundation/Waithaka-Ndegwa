@@ -15,4 +15,18 @@ file_put_contents($out.'/explore.html',ef_page(ef_render('experience/hub')));fil
 $body=ef_render('write/control_centre',['counts'=>['Fixture drafts'=>2,'Fixture messages'=>3,'Fixture review'=>null,'Fixture posts'=>1]]);
 $body.='<form method="post" action="/fixture-only"><h2>Fixture contact</h2>';foreach(['Name','Email','Company','Country','County','Town','Message']as$i=>$name)$body.='<label>'.$name.'<input name="field'.$i.'" '.($i<2?'required':'').'></label>';$body.='<input name="csrf" type="hidden" value="DO-NOT-PREVIEW"><button type="submit">Explicit fixture save</button></form><h2>Fixture records</h2><table><tbody>';foreach(['Alpha','Beta','Gamma','Delta','Epsilon']as$name)$body.='<tr><td>'.$name.'</td></tr>';$body.='</tbody></table>';
 file_put_contents($out.'/workspace.html',ef_page($body,true));
+/* An isolated render of the actual public layout, including its header,
+ * secondary navigation, footer and production stylesheet ordering.
+ * No live site, external account, production database or submission is used.
+ */
+$_SERVER['REQUEST_URI']='/';
+$publicHome='<section class="home-hero"><div class="container home-hero-grid">'
+    .'<div class="home-hero-copy"><h1>Waithaka Ndegwa</h1><p>Public layout fixture</p></div>'
+    .'<div class="home-hero-media" aria-hidden="true"></div></div></section>';
+file_put_contents($out.'/public-home.html',ef_render('layout',['page'=>'home','content'=>$publicHome]));
+$_SERVER['REQUEST_URI']='/explore';
+$publicPage='<article class="ux-page"><h1>Public page layout</h1><p>Equivalent public page gutters and content width.</p></article>';
+file_put_contents($out.'/public-explore-layout.html',ef_render('layout',['page'=>'explore','content'=>$publicPage]));
+$_SERVER['REQUEST_URI']='/';
+
 echo "Rendered isolated actual-view fixtures. No database, provider or production content accessed.\n";
