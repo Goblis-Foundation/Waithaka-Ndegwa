@@ -17,10 +17,10 @@ check($memberPost['author']==='urn:li:person:member_one-123'&&$memberPost['comme
     &&!isset($memberPost['specificContent']),'Member-owned LinkedIn Posts API payload uses the current schema, not legacy UGC.');
 check(publishing_linkedin_posts_headers()===['X-Restli-Protocol-Version: 2.0.0','Linkedin-Version: 202608'],
     'Versioned LinkedIn Posts API headers are explicit.');
-rejects(fn()=>publishing_linkedin_posts_payload('urn:li:organization:123','text'),
-    'No organization URN can be substituted for personal member identity.');
-rejects(fn()=>publishing_linkedin_posts_payload('member',' '),
-    'Empty LinkedIn publication is rejected before provider mutation.');
+try{publishing_linkedin_posts_payload('urn:li:organization:123','text');check(false,'Organisation URN accepted');}
+catch(InvalidArgumentException){check(true,'No organization URN can be substituted for personal member identity.');}
+try{publishing_linkedin_posts_payload('member',' ');check(false,'Empty LinkedIn publication accepted');}
+catch(InvalidArgumentException){check(true,'Empty LinkedIn publication rejected before provider mutation.');}
 $receipt=publishing_linkedin_posts_receipt(['status'=>201,'headers'=>['x-restli-id'=>'urn:li:share:6844785523593134080']]);
 check($receipt['status']==='published'&&$receipt['remote_id']==='urn:li:share:6844785523593134080'
     &&str_contains($receipt['external_url'],'feed/update/'),'Only verified LinkedIn creation receipt becomes a published post.');
