@@ -2,11 +2,35 @@
 declare(strict_types=1);
 
 /** Direct adapters intentionally expose only formats implemented end-to-end here.
- * LinkedIn: https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin
+ * LinkedIn Posts API: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api
  * X: https://docs.x.com/x-api/posts/create-post
  * Instagram: https://developers.facebook.com/documentation/instagram-platform/content-publishing
  * Pages: https://developers.facebook.com/documentation/pages-api/posts
  */
+/** Official LinkedIn Posts API (versioned), not legacy /v2/ugcPosts. */
+function publishing_linkedin_posts_headers(): array {
+ return ['X-Restli-Protocol-Version: 2.0.0','Linkedin-Version: 202608'];
+}
+function publishing_linkedin_posts_payload(string $member,string $text): array {
+ if(!preg_match('/^[a-zA-Z0-9_-]{1,120}$/D',$member))
+  throw new InvalidArgumentException('The confirmed LinkedIn member identifier is invalid. Reconnect this account.');
+ if(trim($text)===''||mb_strlen($text)>3000)
+  throw new InvalidArgumentException('LinkedIn requires reviewed text of 1–3,000 characters.');
+ return ['author'=>'urn:li:person:'.$member,
+  'commentary'=>$text,
+  'visibility'=>'PUBLIC',
+  'distribution'=>['feedDistribution'=>'MAIN_FEED','targetEntities'=>[],'thirdPartyDistributionChannels'=>[]],
+  'lifecycleState'=>'PUBLISHED',
+  'isReshareDisabledByAuthor'=>false];
+}
+/** Successful 201 response alone cannot establish the post permalink without x-restli-id. */
+function publishing_linkedin_posts_receipt(array $response): array {
+ $id=(string)($response['headers']['x-restli-id']??'');
+ if(($response['status']??0)!==201||!preg_match('/^urn:li:(?:share|ugcPost):[0-9]{5,25}$/D',$id))
+  throw new PublishingRemoteException('LinkedIn did not confirm a valid post ID. Check your personal profile before another attempt.',0,true);
+ return ['status'=>'published','remote_id'=>$id,'external_url'=>'https://www.linkedin.com/feed/update/'.rawurlencode($id).'/'];
+}
+
 function publishing_direct_deliver(array $job, array $snapshot, array $connection): array {
     $destination = publishing_decode($job['destination_json']);
     if ($destination['slug'] === 'youtube') return publishing_youtube_deliver($job,$snapshot,$connection);
@@ -21,15 +45,10 @@ function publishing_direct_deliver(array $job, array $snapshot, array $connectio
         return ['status'=>'published','remote_id'=>$id,'external_url'=>'https://x.com/i/web/status/'.rawurlencode($id)];
     }
     if ($destination['slug'] === 'linkedin') {
-        $headers[] = 'X-Restli-Protocol-Version: 2.0.0';
-        $response = publishing_http('POST','https://api.linkedin.com/v2/ugcPosts',$headers,[
-            'author'=>'urn:li:person:'.$target,'lifecycleState'=>'PUBLISHED',
-            'specificContent'=>['com.linkedin.ugc.ShareContent'=>['shareCommentary'=>['text'=>$variant['text']],'shareMediaCategory'=>'NONE']],
-            'visibility'=>['com.linkedin.ugc.MemberNetworkVisibility'=>'PUBLIC']
-        ],false,true);
-        $id = (string)($response['data']['id'] ?? $response['headers']['x-restli-id'] ?? '');
-        if ($id === '') throw new PublishingRemoteException('LinkedIn did not return a post ID. Check your profile before retrying.',0,true);
-        return ['status'=>'published','remote_id'=>$id,'external_url'=>'https://www.linkedin.com/feed/update/'.rawurlencode($id).'/'];
+        $headers=array_merge($headers,publishing_linkedin_posts_headers());
+        $response=publishing_http('POST','https://api.linkedin.com/rest/posts',$headers,
+            publishing_linkedin_posts_payload($target,$variant['text']),false,true);
+        return publishing_linkedin_posts_receipt($response);
     }
     if ($destination['slug'] === 'facebook') {
         if ($destination['account_type'] !== 'page') throw new RuntimeException('Direct Facebook publishing is only enabled for a confirmed Page.');

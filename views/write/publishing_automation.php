@@ -11,7 +11,7 @@
 <dt>Last scheduler heartbeat</dt><dd><?=empty($overview['heartbeat_at'])?'Not recorded':e((new DateTimeImmutable('@'.$overview['heartbeat_at']))->setTimezone(comm_zone($cfg['timezone']))->format('j M Y H:i T'))?> · <?=$overview['heartbeat_recent']?'Recent':'Stale or not verified'?></dd>
 <dt>Registered weekly jobs</dt><dd><?=(int)$overview['registrations']?></dd>
 </dl>
-<?php if($overview['counts']):?><p>Job states: <?php foreach($overview['counts']as$status=>$number):?><span><?=e($status)?>: <?=(int)$number?> · </span><?php endforeach;?></p><?else:?><p>No registered weekly jobs were found. A configured schedule alone never creates or publishes a post.</p><?php endif;?>
+<?php if($overview['counts']):?><p>Job states: <?php foreach($overview['counts']as$status=>$number):?><span><?=e($status)?>: <?=(int)$number?> · </span><?php endforeach;?></p><?php else:?><p>No registered weekly jobs were found. A configured schedule alone never creates or publishes a post.</p><?php endif;?>
 <div class="pub-table-wrap"><table class="pub-table"><caption>Saved destination routes; a confirmed account is not an unrestricted publishing grant</caption><thead><tr><th>Channel</th><th>Route</th><th>Account</th><th>Status and next action</th><th>Next preferred slot</th></tr></thead><tbody>
 <?php foreach($overview['routes']as$row):?><tr><th scope="row"><?=e($row['name'])?></th>
 <td><?=e(ucfirst($row['method']))?></td><td><?=e($row['account'])?></td>
