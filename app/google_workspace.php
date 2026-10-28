@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/gemini.php';
+require_once __DIR__.'/google_search_review.php';
 
 /** Personal Google workspace. All remote reads are explicit; no background calendar replication. */
 function google_workspace_identity(string $service,array $who,array $headers): array {
@@ -236,7 +237,7 @@ function google_workspace_health(): array {
 }
 function google_workspace_dispatch(string $path): bool {
     if(!preg_match('~^/write/google(?:/|$)~',$path))return false;
-    require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$result=null;$error='';$draft=null;$agenda=null;$input='';$mode='outline';
+    require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$result=null;$error='';$draft=null;$agenda=null;$searchReview=null;$input='';$mode='outline';
     try{
         if($path==='/write/google/picker-token'){
             journeys_method(['POST']);verify_csrf();$c=google_workspace_connection('google_drive');
@@ -261,8 +262,9 @@ function google_workspace_dispatch(string $path): bool {
             }elseif($action==='calendar-refresh'){
                 $a=google_calendar_owned((int)($_POST['account_id']??0),$uid);$available=google_calendar_discover(publishing_bearer(google_calendar_token($a)));$old=publishing_decode($a['selected_json']);$selected=array_values(array_intersect($old,array_column($available,'id')));db()->prepare('UPDATE google_calendar_accounts SET calendars_json=?,selected_json=?,verified_at=UTC_TIMESTAMP() WHERE id=? AND user_id=?')->execute([publishing_json($available),publishing_json($selected),$a['id'],$uid]);flash('success','Calendar list refreshed. Newly discovered calendars remain unselected.');redirect(url('/write/google#calendars'));
             }else{
-                if(!journeys_rate_limit('google-workspace-'.$action,(string)$uid,$action==='gemini'?8:20,3600))throw new RuntimeException('Please wait before requesting another report.');
-                if($action==='agenda')$agenda=google_calendar_agenda($uid,google_workspace_date($_POST['start']??null,gmdate('Y-m-d')),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('+7 days'))));
+                if(!journeys_rate_limit('google-workspace-'.$action,(string)$uid,$action==='gemini'?8:($action==='search-review'?6:20),3600))throw new RuntimeException('Please wait before requesting another report.');
+                if($action==='search-review'){$days=filter_var($_POST['review_days']??null,FILTER_VALIDATE_INT);if(!in_array($days,[28,90],true))throw new InvalidArgumentException('Choose a 28-day or 90-day review.');$searchReview=google_search_review($days);}
+                elseif($action==='agenda')$agenda=google_calendar_agenda($uid,google_workspace_date($_POST['start']??null,gmdate('Y-m-d')),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('+7 days'))));
                 elseif($action==='report'){$key=is_string($_POST['report']??null)?$_POST['report']:'';$result=google_workspace_report($key,google_workspace_date($_POST['start']??null,gmdate('Y-m-d',strtotime('-30 days'))),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('-3 days'))));google_workspace_save_report($result,$uid);if(($_POST['compare']??'')==='1'){$previous=google_workspace_previous_period($result['start'],$result['end']);$result['comparison']=google_workspace_report($key,$previous['start'],$previous['end']);}}
                 elseif(in_array($action,['ga4-diagnostics','sitemaps','inspect'],true))$result=google_workspace_diagnostics($action,is_string($_POST['url']??null)?$_POST['url']:'');
                 elseif(in_array($action,['pagespeed','crux'],true))$result=google_workspace_performance($action,is_string($_POST['url']??null)?$_POST['url']:'',($_POST['strategy']??'')==='desktop'?'desktop':'mobile');
@@ -273,5 +275,5 @@ function google_workspace_dispatch(string $path): bool {
             }
         }
     }catch(Throwable $e){$error=!($e instanceof PDOException)&&($e instanceof InvalidArgumentException||$e instanceof RuntimeException)?$e->getMessage():'This request could not be completed. Your saved content is unchanged.';if($path==='/write/google/picker-token'){http_response_code(400);header('Content-Type: application/json');echo '{"error":"Reconnect Drive or check Picker settings."}';return true;}}
-    render_write('google_workspace',['writeTitle'=>'Google workspace','accounts'=>google_calendar_accounts($uid),'health'=>google_workspace_health(),'result'=>$result,'agenda'=>$agenda,'draft'=>$draft,'error'=>$error,'input'=>$input,'mode'=>$mode]);return true;
+    render_write('google_workspace',['writeTitle'=>'Google workspace','accounts'=>google_calendar_accounts($uid),'health'=>google_workspace_health(),'result'=>$result,'agenda'=>$agenda,'searchReview'=>$searchReview,'draft'=>$draft,'error'=>$error,'input'=>$input,'mode'=>$mode]);return true;
 }
