@@ -299,6 +299,10 @@ try {
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',
+                  'writer_auth_unit.php'=>'Writer authentication and verification',
+                  'google_actions_unit.php'=>'Reviewed Google actions and independent results',
+                  'google_calendar_sync_unit.php'=>'Incremental calendar snapshots and notification authentication',
+                  'preparation_status_unit.php'=>'Private preparation monitoring and privacy',
                   'openai_unit.php'=>'Stateless OpenAI output and safe failure boundaries',
                   'gemini_unit.php'=>'Stateless Gemini document and model boundaries',
                   'communication_mail_unit.php'=>'Mailbox privacy and draft header boundaries',
@@ -360,6 +364,7 @@ try {
             else $failed[]='YouTube resumable protocol fixture';
             $suites = [
                 'security' => '010_security_database.php',
+                'writer_auth' => 'writer_auth_database.php',
                 'journeys' => 'journeys_workflows.php',
                 'publishing' => 'publishing_database_test.php',
                 'operations' => 'operations_test.php',

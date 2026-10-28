@@ -21,7 +21,7 @@ function app_trust_issue(int $uid): void {
  if(session_id()!==''){$legacy=hash_hmac('sha256',session_id(),(string)app_config('app_key'));$old=comm_get('session.'.$legacy);if((int)($old['user']??0)===$uid){$old['revoked']=true;comm_put('session.'.$legacy,$old);}}
  $selector=bin2hex(random_bytes(16));$token=bin2hex(random_bytes(32));$id=hash('sha256',$selector);$now=time();
  $csrf=(string)($_SESSION['csrf']??bin2hex(random_bytes(32)));$_SESSION['csrf']=$csrf;
- $r=['csrf'=>$csrf,'id'=>$id,'user'=>$uid,'hash'=>hash('sha256',$token),'epoch'=>app_trust_epoch($uid),'created'=>$now,'seen'=>$now,'expires'=>$now+180*86400,'revoked'=>false];
+ $r=['auth_version'=>(int)($_SESSION['wa_auth_version']??0),'csrf'=>$csrf,'id'=>$id,'user'=>$uid,'hash'=>hash('sha256',$token),'epoch'=>app_trust_epoch($uid),'created'=>$now,'seen'=>$now,'expires'=>$now+180*86400,'revoked'=>false];
  comm_put('trusted.'.$id,$r);$_SESSION['trusted_id']=$id;$_SESSION['trust_opt_out']=false;
  app_trust_cookie($selector.'.'.$token,$r['expires']);
 }
@@ -34,7 +34,7 @@ function app_trust_restore(): bool {
  if(!$r||!app_trust_valid($r,$token,app_trust_epoch((int)($r['user']??0)),time())||!empty(comm_get('session.'.$id)['revoked'])){app_trust_cookie('',time()-3600);return false;}
  $q=db()->prepare('SELECT id FROM users WHERE id=? AND is_active=1');$q->execute([$r['user']]);if(!$q->fetchColumn()){app_trust_cookie('',time()-3600);return false;}
  if(session_status()===PHP_SESSION_ACTIVE)session_regenerate_id(true);
- $_SESSION['user_id']=(int)$r['user'];$_SESSION['auth_epoch']=$r['epoch'];$_SESSION['csrf']=(string)($r['csrf']??bin2hex(random_bytes(32)));$_SESSION['interactive_at']=time();$_SESSION['trusted_id']=$id;$_SESSION['trust_opt_out']=false;
+ $_SESSION['wa_auth_version']=(int)($r['auth_version']??0);$_SESSION['user_id']=(int)$r['user'];$_SESSION['auth_epoch']=$r['epoch'];$_SESSION['csrf']=(string)($r['csrf']??bin2hex(random_bytes(32)));$_SESSION['interactive_at']=time();$_SESSION['trusted_id']=$id;$_SESSION['trust_opt_out']=false;
  app_trust_renew();return true;
 }
 function app_trust_renew(): void {

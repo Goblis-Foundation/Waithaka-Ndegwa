@@ -7,8 +7,11 @@ $recentDraft=null;foreach($posts as$working)if($working['status']==='draft'){$re
 $dashAttention=(int)($workspace['attention']??0);$dashOpen=(int)($dashReader['enquiries_open']??0);$dashOverdue=(int)($dashReader['enquiries_overdue']??0);
 ?>
 <main class="write-main writer-dashboard dashboard-home">
-  <div class="writer-head dashboard-heading"><div><span class="writer-kicker">Your private workspace</span><h1>Your day, in one place.</h1><p class="muted">Plan your time, keep conversations moving and bring your ideas to life.</p></div><a class="wbtn primary" href="<?=url('/write/capture')?>">＋ Capture an idea</a></div>
+  <div class="writer-head dashboard-heading"><div><span class="writer-kicker">Personal workspace</span><h1>Workspace overview</h1><p class="muted">Your schedule, conversations and publishing work, together.</p><span class="admin-day-label"><?=e((new DateTimeImmutable('now',new DateTimeZone('Africa/Nairobi')))->format('l, j F Y'))?> · Nairobi</span></div><a class="wbtn primary" href="<?=url('/write/capture')?>">＋ Capture an idea</a></div>
   <?php foreach(flashes() as $f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
+  <div class="admin-dashboard-metrics" aria-label="Workspace snapshot">
+    <?php foreach([['/write#library','Draft articles',(int)($counts['draft']??0),'Ready for your next edit'],['/write/publishing','Scheduled posts',(int)($workspace['scheduled']??0),'Saved publishing schedule'],['/write/communication','Open conversations',$dashCanCommunicate?$dashOpen:null,'Private correspondence'],['/write/connections','Connected platforms',(int)($workspace['connected']??0),'Saved account access']]as[$href,$label,$value,$note]):?><a class="admin-dashboard-metric" href="<?=url($href)?>"><span><?=e($label)?></span><strong><?=$value===null?'—':number_format($value)?></strong><small><?=e($note)?></small></a><?php endforeach;?>
+  </div>
   <nav class="dashboard-jump" aria-label="Dashboard sections"><a href="#day">Today</a><a href="#attention">Needs attention</a><a href="#create">Create & publish</a><a href="#library">Article library</a></nav>
 
   <div class="dashboard-day-grid" id="day">

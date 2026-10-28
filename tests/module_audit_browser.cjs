@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['login','login-error','program','desk-0','desk-1','impact','register']){
+ for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
   ok(await page.locator('h1').count()===1,key+' has one page heading');
