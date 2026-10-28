@@ -8,6 +8,8 @@ The existing canonical Foundation Microsoft account successfully returned a fres
 
 The site's existing PageSpeed/Lighthouse check was attempted for the public homepage with its Mobile strategy. The provider returned a rate-limit error. No performance score, Core Web Vitals pass, or physical-device acceptance is claimed. Google and Microsoft navigation was intermittently slow; the inspected initial page controllers make local reads and do not automatically request provider reports. No cause or resolved performance defect is inferred from browser navigation timeouts alone.
 
+The existing Search Console content-review grant was verified with a real on-demand read at 21:41 EAT. The finalized current period (28 September–25 October) returned six eligible page rows; the equal previous period (31 August–27 September) returned three. No review signals were found in the returned sample. This does not certify all site traffic or absence of SEO issues. No permission was widened and no content was published.
+
 ## Implemented setup improvements
 
 - Approved-address selection for security step-up, with server-side ownership validation and the existing password/code requirements.
