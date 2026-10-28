@@ -14,6 +14,12 @@ function wa_find_user(string $email): ?array {
     $q=db()->prepare('SELECT * FROM users WHERE email=? AND is_active=1 LIMIT 1');$q->execute([$email]);return $q->fetch()?:null;
 }
 function wa_addresses(array $user): array {return array_values(array_unique(array_merge([strtolower($user['email'])],(int)$user['id']===wa_owner_id()?wa_owner_aliases():[])));}
+function wa_stepup_email(array $user,mixed $value=null): string {
+    $allowed=wa_addresses($user);
+    if($value===null){$preferred=$_SESSION['login_email']??'';return is_string($preferred)&&in_array($preferred,$allowed,true)?$preferred:$allowed[0];}
+    if(!is_string($value)||strlen($value)>254)throw new WriterAuthException('Choose one of your approved sign-in addresses.');
+    $email=strtolower(trim($value));if(!in_array($email,$allowed,true))throw new WriterAuthException('Choose one of your approved sign-in addresses.');return $email;
+}
 function wa_factors(int $uid): array {return comm_get('auth.factors.'.$uid);}
 function wa_mac(string $value): string {return hash_hmac('sha256','writer-auth|'.$value,(string)app_config('app_key'));}
 function wa_mask(string $email): string {[$name,$domain]=explode('@',$email,2);return mb_substr($name,0,2).'•••@'.$domain;}
@@ -35,13 +41,13 @@ function wa_methods(array $challenge): array {
     $f=wa_factors((int)$challenge['uid']);$out=['email'=>'Email code'];if(!empty($f['totp']))$out['totp']='Authenticator app';if(!empty($f['phone'])&&wa_sms_ready())$out['sms']='Text message';if(!empty($f['recovery']))$out['recovery']='Recovery code';return $out;
 }
 function wa_challenge_current(array $c,?int $now=null): bool {
-    $now??=time();$u=wa_user((int)($c['uid']??0));return $u&&($c['expires']??0)>$now&&($c['attempts']??6)<6&&empty($c['used'])&&hash_equals((string)($c['session']??''),wa_mac(session_id()))&&hash_equals((string)($c['epoch']??''),app_trust_epoch((int)$u['id']))&&in_array($c['email']??'',wa_addresses($u),true);
+    $now??=time();$u=wa_user((int)($c['uid']??0));$purpose=$c['purpose']??'login';return in_array($purpose,['login','manage','link'],true)&&($purpose==='login'||(int)($_SESSION['user_id']??0)===(int)($c['uid']??0))&&$u&&($c['expires']??0)>$now&&($c['attempts']??6)<6&&empty($c['used'])&&hash_equals((string)($c['session']??''),wa_mac(session_id()))&&hash_equals((string)($c['epoch']??''),app_trust_epoch((int)$u['id']))&&in_array($c['email']??'',wa_addresses($u),true);
 }
 function wa_pending(): array {
     $id=$_SESSION['wa_pending']??'';if(!is_string($id)||!preg_match('/^[a-f0-9]{32}$/D',$id))throw new WriterAuthException('Start sign-in again.');$c=comm_get('auth.challenge.'.$id);if(!wa_challenge_current($c))throw new WriterAuthException('This verification expired or reached its attempt limit. Start sign-in again.');return $c;
 }
 function wa_begin(array $user,string $email,bool $trust,string $purpose='login',array $identity=[]): string {
-    if(!in_array($email,wa_addresses($user),true)||!in_array($purpose,['login','manage'],true))throw new WriterAuthException('This sign-in could not be verified.');
+    if(!in_array($email,wa_addresses($user),true)||!in_array($purpose,['login','manage','link'],true)||($purpose!=='login'&&(int)($_SESSION['user_id']??0)!==(int)$user['id'])||($purpose==='link'&&(!wa_stepup((int)$user['id'])||!$identity)))throw new WriterAuthException('This sign-in could not be verified.');
     $old=$_SESSION['wa_pending']??'';if(is_string($old)&&preg_match('/^[a-f0-9]{32}$/D',$old))comm_lock('wa-challenge-'.$old,static function()use($old){$c=comm_get('auth.challenge.'.$old);$c['used']=true;unset($c['code_hash']);comm_put('auth.challenge.'.$old,$c);});
     if(session_status()===PHP_SESSION_ACTIVE)session_regenerate_id(true);$id=bin2hex(random_bytes(16));
     $c=['id'=>$id,'uid'=>(int)$user['id'],'email'=>$email,'trust'=>$trust,'purpose'=>$purpose,'session'=>wa_mac(session_id()),'epoch'=>app_trust_epoch((int)$user['id']),'expires'=>time()+600,'attempts'=>0,'used'=>false,'method'=>'email','sent_at'=>0,'delivery'=>'not_sent','link_identity'=>$identity];
@@ -87,6 +93,10 @@ function wa_finish(array $c): string {
     $user=wa_user((int)$c['uid']);if(!$user||!hash_equals($c['epoch'],app_trust_epoch((int)$c['uid'])))throw new WriterAuthException('The account changed. Start sign-in again.');
     if(session_status()===PHP_SESSION_ACTIVE)session_regenerate_id(true);$_SESSION['wa_verified_at']=time();$_SESSION['wa_verified_uid']=(int)$c['uid'];$_SESSION['wa_auth_version']=1;$_SESSION['csrf']=bin2hex(random_bytes(32));
     if($c['purpose']==='manage')return '/write/security/sign-in';
+    if($c['purpose']==='link'){
+        if((int)($_SESSION['user_id']??0)!==(int)$c['uid'])throw new WriterAuthException('The signed-in account changed. Start again.');
+        wa_security_changed((int)$c['uid']);flash('success','Provider sign-in linked to your existing account. Other remembered sessions were invalidated.');return '/write/security/sign-in';
+    }
     $_SESSION['user_id']=(int)$c['uid'];$_SESSION['auth_epoch']=$c['epoch'];$_SESSION['interactive_at']=time();$_SESSION['login_email']=$c['email'];$_SESSION['trust_opt_out']=!$c['trust'];unset($_SESSION['login_form']);
     if($c['trust'])app_trust_issue((int)$c['uid']);else app_trust_forget();db()->prepare('UPDATE users SET last_login_at=NOW() WHERE id=?')->execute([$c['uid']]);return writer_login_return();
 }
