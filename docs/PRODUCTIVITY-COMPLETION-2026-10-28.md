@@ -28,3 +28,7 @@ Local tests cover immutable approval, owner and grant isolation, exact read-back
 - [Sheets spreadsheet creation](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/create)
 - [Sheets literal and formula cell values](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/cells)
 - [Google Tasks creation](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks/insert)
+
+## Release evidence
+
+PR #86 was deployed successfully on 28 October 2026. See [production acceptance](ADMIN-RELEASE-ACCEPTANCE-2026-10-28.md) for exact CI runs, live observations and remaining provider/device activation requirements.

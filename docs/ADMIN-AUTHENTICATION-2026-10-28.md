@@ -30,3 +30,7 @@ No authentication secret, live OTP, TOTP seed, recovery code, phone credential o
 The implementation follows [OpenID Connect token validation](https://openid.net/specs/openid-connect-core-1_0.html), [Microsoft stable identity guidance](https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference), [OWASP MFA and OTP handling guidance](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html), [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238), and [Twilio Verify confirmation](https://www.twilio.com/docs/verify/api/verification-check). Authenticator/passkey methods are preferable to SMS for stronger resistance to account takeover.
 
 Tests use actual RSA signatures, RFC TOTP vectors and isolated persistence/transport fixtures. They cover nonce/audience/issuer/algorithm mismatch, one-use state, mutable-email resistance, alias isolation, initial mailbox proof, duplicate binding, OTP expiry/attempt limits, replay, failure recovery and exact SMS acknowledgement. Browser checks include keyboard/no-JavaScript paths, ten responsive widths and pinned axe-core WCAG A/AA scans. Automated scanning is not a claim of full accessibility conformance; physical devices and screen readers remain in issue #76.
+
+## Release evidence
+
+PR #86 was deployed successfully on 28 October 2026. See [production acceptance](ADMIN-RELEASE-ACCEPTANCE-2026-10-28.md) for exact CI runs, live observations and remaining provider/device activation requirements.
