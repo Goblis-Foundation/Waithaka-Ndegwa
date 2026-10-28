@@ -433,3 +433,31 @@ body #main > .ux-page-outline.container select {
 @media print {
   body #main > .ux-page-outline.container { display: none; }
 }
+
+/* Responsive, semantic cards. Text and links remain server-rendered for SEO
+   and no-script readers; motion is progressive enhancement only. */
+body #main :is(.post-card,.experience-card,.editorial-card,.enterprise-card,.journey-season-card,.journey-story-card,.desk-feature-card,.ux-card){
+  min-width:0;overflow-wrap:anywhere;
+}
+body #main :is(.post-card,.experience-card,.editorial-card,.enterprise-card,.journey-season-card,.journey-story-card,.desk-feature-card,.ux-card) a{
+  text-underline-offset:3px;
+}
+body #main :is(.post-card,.experience-card,.editorial-card,.enterprise-card,.journey-season-card,.journey-story-card,.desk-feature-card,.ux-card):focus-within{
+  outline:2px solid #2f6f3e;outline-offset:3px;
+}
+body #main :is(.post-card,.editorial-card,.enterprise-card,.journey-story-card,.desk-feature-card) img{
+  max-width:100%;height:auto;object-fit:cover;
+}
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+ body #main :is(.post-card,.experience-card,.editorial-card,.enterprise-card,.journey-season-card,.journey-story-card,.desk-feature-card,.ux-card){
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+ }
+ body #main :is(.post-card,.experience-card,.editorial-card,.enterprise-card,.journey-season-card,.journey-story-card,.desk-feature-card,.ux-card):hover{
+  transform:translateY(-3px);box-shadow:0 14px 38px #073b6a10;border-color:#b8cfd4;
+ }
+}
+@media (prefers-reduced-motion:reduce) {
+ body #main :is(.post-card,.experience-card,.editorial-card,.enterprise-card,.journey-season-card,.journey-story-card,.desk-feature-card,.ux-card){
+  transition:none!important;transform:none!important;
+ }
+}

@@ -23,21 +23,34 @@ function wn_brand_build(string $directory): array {
  if(is_link($directory))throw new RuntimeException('Brand output must not be a symlink.');
  $root=dirname(__DIR__);$source=$root.'/assets/images/wn-approved-monogram.svg';$logo=$root.'/assets/images/brand-lockup.webp';
  if(hash_file('sha256',$logo)!=='f674df8d4a9f30df3ce663b7f001af8fd1b18984d251ff5924c9ff01bac77c0b')throw new RuntimeException('The approved horizontal logo bytes changed. Review the source before release.');
- $xml=new DOMDocument();if(!$xml->load($source,LIBXML_NONET))throw new RuntimeException('Approved monogram is missing.');$polygons=[];$paths=[];
- foreach($xml->getElementsByTagName('path')as$path){$d=$path->getAttribute('d');$paths[]=$d;array_push($polygons,...wn_brand_polygons($d));}
+ $xml=new DOMDocument();if(!$xml->load($source,LIBXML_NONET))throw new RuntimeException('Approved monogram is missing.');$polygons=[];$paths=[];$approvedPaints=['#073B6A','#2F6F3E'];$painted=[];
+ foreach($xml->getElementsByTagName('path')as$i=>$path){
+  $d=$path->getAttribute('d');$fill=strtoupper($path->getAttribute('fill'));
+  if(!isset($approvedPaints[$i])||$fill!==$approvedPaints[$i])throw new RuntimeException('Unexpected approved monogram colour or layer.');
+  $group=wn_brand_polygons($d);$paths[]=$d;$painted[]=$group;array_push($polygons,...$group);
+ }
  if(count($paths)!==2||count($polygons)<6)throw new RuntimeException('Unexpected monogram source.');
  $sizes=['icon.png'=>512,'icon-512.png'=>512,'icon-192.png'=>192,'maskable-icon-512.png'=>512,'apple-touch-icon.png'=>180,'favicon-32.png'=>32,'favicon-16.png'=>16,'favicon-48.png'=>48];$written=[];$pngs=[];
  foreach($sizes as$name=>$size){
-  $n=$size*4;$im=imagecreatetruecolor($n,$n);$bg=imagecolorallocate($im,7,59,106);$fg=imagecolorallocate($im,255,255,255);imagefill($im,0,0,$bg);
+  $n=$size*4;$im=imagecreatetruecolor($n,$n);$bg=imagecolorallocate($im,255,255,255);
+  $blue=imagecolorallocate($im,7,59,106);$green=imagecolorallocate($im,47,111,62);
+  imagefill($im,0,0,$bg);
+  // Preserve the EXACT approved outlined WN paths and original dual colours.
+  // The mark is centred without cropping, distortion or tiny wordmark text.
   $scale=$n*($size<=64?.88:.72)/915;$ox=($n-915*$scale)/2;$oy=($n-417*$scale)/2;
-  foreach($polygons as$polygon){$p=[];foreach($polygon as[$x,$y]){$p[]=(int)round($ox+$x*$scale);$p[]=(int)round($oy+$y*$scale);}if(count($p)>=6)imagefilledpolygon($im,$p,$fg);}
+  foreach($painted as$layer=>$group)foreach($group as$polygon){
+   $p=[];foreach($polygon as[$x,$y]){$p[]=(int)round($ox+$x*$scale);$p[]=(int)round($oy+$y*$scale);}
+   if(count($p)>=6)imagefilledpolygon($im,$p,$layer===0?$blue:$green);
+  }
   $out=imagecreatetruecolor($size,$size);imagecopyresampled($out,$im,0,0,0,0,$size,$size,$n,$n);ob_start();imagepng($out,null,9);$bytes=(string)ob_get_clean();imagedestroy($out);imagedestroy($im);
   if(file_put_contents($directory.'/'.$name,$bytes)===false)throw new RuntimeException('Cannot write compiled icon.');$written[]=$name;if($size<=48)$pngs[$size]=$bytes;
  }
  $header=imagecreatefromwebp($logo);if(!$header||imagesx($header)!==720||imagesy($header)!==160)throw new RuntimeException('Approved logo dimensions differ.');imagealphablending($header,false);imagesavealpha($header,true);
  if(!imagepng($header,$directory.'/brand-lockup.png',9))throw new RuntimeException('Cannot write PNG logo fallback.');imagedestroy($header);$written[]='brand-lockup.png';
  ksort($pngs);$offset=6+16*count($pngs);$ico=pack('vvv',0,1,count($pngs));$body='';foreach($pngs as$size=>$bytes){$ico.=pack('CCCCvvVV',$size,$size,0,0,1,32,strlen($bytes),$offset);$offset+=strlen($bytes);$body.=$bytes;}file_put_contents($directory.'/favicon.ico',$ico.$body);$written[]='favicon.ico';
- $svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><title>Waithaka Ndegwa</title><rect width="512" height="512" fill="#073B6A"/><g fill="white" fill-rule="evenodd" transform="translate(71.68 171.57) scale(.402885246)">';foreach($paths as$d)$svg.='<path d="'.htmlspecialchars($d,ENT_QUOTES|ENT_XML1,'UTF-8').'"/>';$svg.='</g></svg>';file_put_contents($directory.'/favicon.svg',$svg);$written[]='favicon.svg';
+ $svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><title>Waithaka Ndegwa</title><rect width="512" height="512" fill="#ffffff"/><g fill-rule="evenodd" transform="translate(71.68 171.57) scale(.402885246)">';
+ foreach($paths as$i=>$d)$svg.='<path fill="'.$approvedPaints[$i].'" d="'.htmlspecialchars($d,ENT_QUOTES|ENT_XML1,'UTF-8').'"/>';
+ $svg.='</g></svg>';file_put_contents($directory.'/favicon.svg',$svg);$written[]='favicon.svg';
  sort($written);return $written;
 }
 if(PHP_SAPI==='cli'&&realpath((string)($_SERVER['SCRIPT_FILENAME']??''))===__FILE__){

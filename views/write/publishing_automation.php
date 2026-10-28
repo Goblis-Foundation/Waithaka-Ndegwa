@@ -1,5 +1,5 @@
 <link rel="stylesheet" href="<?=asset('css/publishing.css')?>">
-<main class="write-main pub-main"><div class="writer-head"><div><span class="writer-kicker">Your publishing rhythm</span><h1>Weekly publishing schedule</h1><p>Choose the days and times for reviewed articles and approved social versions. These are editable starting points, not claims about your audience’s best times.</p></div><a class="wbtn" href="<?=url('/write/publishing')?>">Publishing centre</a></div>
+<main class="write-main pub-main"><div class="writer-head"><div><span class="writer-kicker">Your publishing rhythm</span><h1>Weekly publishing schedule</h1><p>Choose the days and times for reviewed articles and approved social versions. These are editable starting points, not claims about your audience’s best times.</p></div><a class="wbtn" href="<?=url('/write/publishing')?>">Publishing centre</a> <a class="wbtn" href="<?=url('/write/communication?tab=content')?>">Content calendar</a></div>
 <?php foreach(flashes()as$f):?><p class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></p><?php endforeach;?>
 
 <section class="pub-card pub-section publishing-automation-readiness" aria-labelledby="automation-readiness-title">

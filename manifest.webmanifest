@@ -1,21 +1,49 @@
 {
   "name": "Waithaka Ndegwa",
-  "short_name": "Waithaka Ndegwa",
-  "start_url": "/write/communication",
+  "short_name": "Waithaka",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#073b6a",
+  "description": "Personal writing, lived experience, social entrepreneurship, agribusiness, infrastructure, innovation and travel.",
   "icons": [
-    {"src":"/assets/images/icon-192.png?v=20261027","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"/assets/images/icon-512.png?v=20261027","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "/assets/images/icon-192.png?v=20261028b",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/icon-512.png?v=20261028b",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/maskable-icon-512.png?v=20261028b",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
-  "id":"/",
-  "scope":"/",
-  "description":"Private writing, communication and scheduling workspace for Waithaka Ndegwa",
-  "shortcuts":[
-    {"name":"Today","url":"/write/communication"},
-    {"name":"Bookings","url":"/write/communication?tab=bookings"},
-    {"name":"Capture idea","url":"/write/capture"},
-    {"name":"Publishing desk","url":"/write/desk"}
+  "shortcuts": [
+    {
+      "name": "Read My Thoughts",
+      "url": "/my-thoughts"
+    },
+    {
+      "name": "Search writing",
+      "url": "/search"
+    },
+    {
+      "name": "Start here",
+      "url": "/start-here"
+    },
+    {
+      "name": "Goal 2030",
+      "url": "/about#goals-2030"
+    }
   ]
 }
