@@ -7,7 +7,8 @@
 :root {
   --page-gutter: clamp(16px, 2.65vw, 32px);
 }
-body .container {
+body .container,
+body .site-header .container {
   width: min(var(--container), calc(100% - (var(--page-gutter) * 2)));
   margin-inline: auto;
 }
