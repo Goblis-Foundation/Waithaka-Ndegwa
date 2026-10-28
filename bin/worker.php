@@ -18,6 +18,9 @@ if ($APP_INSTALLED && app_config('app_env')==='production') {
     try { impact_sync(); } catch (Throwable $e) { error_log('Impact reporting refresh unavailable.'); }
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { communications_cycle_work(); } catch(Throwable $e) { error_log('Editorial calendar or safe newsletter draft requires review: '.get_class($e)); }
+}
+if($APP_INSTALLED && app_config('app_env')==='production'){
     try { visitor_statistics_refresh(); } catch(Throwable $e) { error_log('Footer visitor statistics unavailable.'); }
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){

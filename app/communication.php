@@ -150,6 +150,11 @@ function communication_dispatch(string $path): bool {
         if($path==='/write/communication/notification'){$signal=comm_get('signal');if(($signal['category']??'')==='planner')comm_json(['url'=>'/write/communication?tab=program','category'=>'planner']);$target=($signal['category']??'')==='bookings'?'/write/communication?tab=bookings':'/write/communication?tab=inbox';comm_json(['url'=>$target]);}
         if($path==='/write/communication/poll'){$signal=comm_get('signal');$summary=reader_operations_summary();comm_json(['signal'=>$signal['id']??'','category'=>$signal['category']??'bookings','open'=>(int)($summary['enquiries_open']??0),'overdue'=>(int)($summary['enquiries_overdue']??0),'at'=>time()]);}
         if(is_post()){verify_csrf();try{$action=$_POST['action']??'';
+            if($action==='editorial_cycle_config'){
+                comm_lock('editorial.cycle.config',static function(){comm_put('editorial.cycle.config',communications_cycle_input($_POST));});
+                flash('success','Editorial cadence saved. Only private briefs and eligible email drafts are prepared automatically. No post or email was sent.');
+                redirect(url('/write/communication?tab=content'));
+            }
             if($action==='config'){comm_lock('reservations',function()use($uid){comm_put('config',comm_config_input($_POST,$uid));});flash('success','Booking preferences saved.');redirect(url('/write/communication?tab=availability'));}
             if(in_array($action,['approve','decline','cancel','late'],true)){comm_change_booking(reader_text($_POST['id']??'','Booking',32,true),$action,null,reader_text($_POST['reason']??'','Reason',1000),(int)($_POST['late_minutes']??0),'owner');flash('success','Booking updated.');redirect(url('/write/communication?tab=bookings'));}
             if($action==='preferences'){comm_put('preferences.'.$uid,comm_preferences($_POST));flash('success','Notification preferences saved.');redirect(url('/write/app'));}
@@ -159,11 +164,11 @@ function communication_dispatch(string $path): bool {
         }catch(Throwable $e){$error=$e instanceof InvalidArgumentException||get_class($e)===RuntimeException::class?$e->getMessage():'The update could not be completed.';}}
         if($path==='/write/app'){comm_vapid();render_write('app',['writeTitle'=>'App & notifications','error'=>$error,'prefs'=>comm_get('preferences.'.$uid,comm_preferences([])),'devices'=>comm_user_devices($uid),'publicKey'=>comm_get('vapid')['public']??'']);return true;}
         if(($_GET['tab']??'')==='program')redirect(url('/write/program'));
-        $tab=is_string($_GET['tab']??null)?$_GET['tab']:'today';if(!in_array($tab,['today','inbox','trash','bookings','people','availability','insights'],true))$tab='today';
+        $tab=is_string($_GET['tab']??null)?$_GET['tab']:'today';if(!in_array($tab,['today','inbox','trash','bookings','people','availability','insights','content'],true))$tab='today';
         $bookings=comm_records('booking');usort($bookings,static fn($a,$b)=>$a['start']<=>$b['start']);$summary=reader_operations_summary();
         $trashSql=$tab==='trash'?'EXISTS':'NOT EXISTS';
         $search=reader_text($_GET['q']??'','Search',100);$enquiries=[];if(in_array($tab,['today','inbox','trash','people'],true)){$q=db()->prepare('SELECT e.*,c.first_name,c.last_name,c.email,c.message,c.reference FROM reader_enquiries e JOIN contact_messages c ON c.id=e.contact_id WHERE '.$trashSql.'(SELECT 1 FROM reader_enquiry_trash t WHERE t.enquiry_id=e.id) AND CONCAT(c.first_name," ",c.last_name," ",c.email," ",c.message) LIKE ? ORDER BY e.updated_at DESC LIMIT 60');$q->execute(['%'.$search.'%']);$enquiries=$q->fetchAll();}
-        render_write('communication',['writeTitle'=>'Communication Centre','tab'=>$tab,'cfg'=>$cfg,'error'=>$error,'bookings'=>$bookings,'summary'=>$summary,'enquiries'=>$enquiries,'search'=>$search,'accounts'=>google_calendar_accounts($uid)]);return true;
+        render_write('communication',['writeTitle'=>'Communication Centre','tab'=>$tab,'cfg'=>$cfg,'error'=>$error,'bookings'=>$bookings,'summary'=>$summary,'enquiries'=>$enquiries,'search'=>$search,'accounts'=>google_calendar_accounts($uid),'editorialCycle'=>communications_cycle_snapshot(time()),'editorialCycleConfig'=>communications_cycle_config(),'editorialCycleStored'=>comm_get('editorial.cycle.latest')]);return true;
     }
     $manage=null;$slots=[];$hostIdentity=['id'=>'','label'=>'Waithaka Ndegwa'];$type=is_string($_GET['type']??null)?$_GET['type']:'intro';$date=is_string($_GET['date']??null)?$_GET['date']:(new DateTimeImmutable('tomorrow',comm_zone($cfg['timezone'])))->format('Y-m-d');$zone=is_string($_GET['timezone']??null)?$_GET['timezone']:$cfg['timezone'];
     try{
