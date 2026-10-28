@@ -5,6 +5,29 @@ declare(strict_types=1);
 function impact_sources(): array {
     return ['goblis_group'=>'Goblis Group','ubunifu'=>'Ubunifu Institute','afritrace'=>'AfriTrace Link','goblis_foundation'=>'Goblis Foundation'];
 }
+
+/** Source registry is an integration contract, not live account activation. */
+function impact_source_exchange(): array {
+ return [
+  'goblis_group'=>['metric_keys'=>['startups','permanent_staff'],'ownership'=>'Goblis Group certifies cumulative qualifying startups and month-end permanent staff across its direct enterprise scope.','route'=>'/api/public/impact/waithaka/'],
+  'ubunifu'=>['metric_keys'=>['social_enterprises','ubunifu_permanent_staff (optional)'],'ownership'=>'Ubunifu Institute approves incubated social-enterprise outcomes and any verified employment aggregates. Its export code is distinct from partner learner referrals.','route'=>'/api/public/impact/waithaka/'],
+  'afritrace'=>['metric_keys'=>['market_access'],'ownership'=>'AfriTrace Link provides the primary verified distinct-enterprise market-access total under Goblis Foundation programme governance.','route'=>'/api/public/impact/waithaka/'],
+  'goblis_foundation'=>['metric_keys'=>['market_access (corroboration only)'],'ownership'=>'Goblis Foundation corroborates AfriTrace outcomes; its figures are not added to the AfriTrace headline goal.','route'=>'/api/public/impact/waithaka/']
+ ];
+}
+function impact_source_readiness(string $source,string $url,array $snapshot): array {
+ if(!isset(impact_source_exchange()[$source]))throw new InvalidArgumentException('Unknown reporting source.');
+ if($url==='')return ['label'=>'Endpoint not configured','detail'=>'Source approval, route and receiving URL remain unverified. No impact value is inferred.'];
+ if(($snapshot['status']??'')==='available'&&is_array($snapshot['data']??null)
+    &&($snapshot['data']['approved_for_publication']??null)===true)
+  return ['label'=>'Approved report accepted','detail'=>'Read the exact measurement and publication dates below. This is not a guarantee of continued source availability.'];
+ if(($snapshot['status']??'')==='withheld'||is_array($snapshot['withdrawn_report']??null))
+  return ['label'=>'Source withdrew publication','detail'=>'The source revision withholds metrics. This is not a measured zero.'];
+ if(($snapshot['status']??'')==='unavailable')
+  return ['label'=>'Connection check unavailable','detail'=>'The last accepted report, if any, is preserved separately. Recheck source route and approval; never replace with invented counts.'];
+ return ['label'=>'Configured · verification pending','detail'=>'A saved endpoint is not proof of authorized or approved data.'];
+}
+
 function impact_organisations(): array {
     return [
         ['name'=>'Goblis Group','url'=>'https://www.goblisgroup.com/','domain'=>'goblisgroup.com','logo'=>'goblis-group-approved.png'],

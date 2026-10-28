@@ -312,7 +312,14 @@ function publishing_work(int $limit=10, ?array $onlyJobIds=null): array {
     if ((int)db()->query("SELECT GET_LOCK('waithaka_publishing_worker',0)")->fetchColumn()!==1) return $result+['busy'=>true];
     try {
         db()->exec("UPDATE publishing_jobs SET status='ambiguous',last_error='A worker stopped before recording a confirmed result. Check the platform before creating another post.',locked_at=NULL WHERE status='processing' AND locked_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)".$plainScope);
-        $jobs=db()->query("SELECT j.*,r.snapshot_json,r.content_hash,r.package_id,p.created_by FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id WHERE j.status='scheduled' AND j.scheduled_at<=UTC_TIMESTAMP()".$scope." ORDER BY j.scheduled_at,j.id LIMIT ".$limit)->fetchAll();
+        $scheduledScope=$scope;
+        // The unscoped worker must honour a paused weekly queue, but may
+        // still reconcile provider-accepted jobs (the polling scope below).
+        if($onlyJobIds===null&&function_exists('publishing_weekly_paused_scope')){
+            $weekly=publishing_weekly_config();
+            $scheduledScope.=publishing_weekly_paused_scope(publishing_automation_ids(),!empty($weekly['run']));
+        }
+        $jobs=db()->query("SELECT j.*,r.snapshot_json,r.content_hash,r.package_id,p.created_by FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id WHERE j.status='scheduled' AND j.scheduled_at<=UTC_TIMESTAMP()".$scheduledScope." ORDER BY j.scheduled_at,j.id LIMIT ".$limit)->fetchAll();
         foreach($jobs as $job) {
             $claim=db()->prepare("UPDATE publishing_jobs SET status='processing',locked_at=UTC_TIMESTAMP(),attempts=attempts+1 WHERE id=? AND status='scheduled'");$claim->execute([$job['id']]);if($claim->rowCount()!==1)continue;
             $result['processed']++;

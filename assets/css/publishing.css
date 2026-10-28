@@ -7,3 +7,17 @@
 .integration-setup label{display:block;font-weight:650;margin-top:14px}.integration-setup input{box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #bdcbbf;border-radius:8px;background:#fff}.integration-setup form{display:block}.integration-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .pub-provider .pub-code{overflow-wrap:anywhere;white-space:pre-wrap;max-width:100%}.pub-provider{min-width:0}.integration-setup .pub-code{font-size:.73rem}
 @media(max-width:680px){.integration-groups{gap:6px}.integration-groups a{font-size:.8rem;padding:9px 10px}.integration-group .pub-grid{grid-template-columns:1fr}.integration-actions .wbtn{flex:1}.pub-provider dl dd{overflow-wrap:anywhere}}
+
+/* Private automation and source status should match the workspace spacing. */
+.publishing-automation-readiness{margin-bottom:24px;max-width:100%;min-width:0}
+.publishing-automation-readiness .posting-readiness-summary{display:grid;grid-template-columns:minmax(135px,220px) minmax(0,1fr);gap:0 16px;margin:16px 0 24px;max-width:780px}
+.publishing-automation-readiness .posting-readiness-summary dt,
+.publishing-automation-readiness .posting-readiness-summary dd{padding:12px 0;margin:0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.publishing-automation-readiness .posting-readiness-summary dt{font-weight:750;color:var(--ink)}
+.publishing-automation-readiness .pub-table-wrap{overflow-x:auto;max-width:100%;margin:16px 0}
+.publishing-automation-readiness .pub-table th,
+.publishing-automation-readiness .pub-table td{vertical-align:top;overflow-wrap:anywhere;min-width:120px}
+.publishing-automation-readiness .pub-table td small{display:block;margin-top:7px}
+@media(max-width:560px){.publishing-automation-readiness .posting-readiness-summary{grid-template-columns:1fr;gap:0}
+.publishing-automation-readiness .posting-readiness-summary dt{border-bottom:0;padding-bottom:0}
+.publishing-automation-readiness .posting-readiness-summary dd{padding-top:2px}}

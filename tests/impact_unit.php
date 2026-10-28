@@ -14,7 +14,16 @@ $stale=impact_display(['status'=>'available','data'=>$clean],'startups',$now+172
 $offline=impact_display(['status'=>'unavailable','data'=>$clean],'startups',$now);check($offline['value']===0&&$offline['status']==='Source-reported progress'&&$offline['connection_status']==='Source check pending','Failed refresh must retain and label last accepted data.');
 check(impact_metrics()['market_access']['source']==='afritrace','Foundation corroboration must not be added to the primary market count.');
 foreach(['http://example.com/report','https://127.0.0.1/report','https://example.com:8443/report','https://user:pass@example.com/report','https://example.com/report?token=secret','https://example.com/report#fragment']as$url){$rejected=false;try{impact_endpoint($url);}catch(InvalidArgumentException $e){$rejected=true;}check($rejected,'Unsafe feed URL was accepted.');}
-echo "PASS: reporting contracts, privacy, zero versus missing, stale snapshots and endpoint boundaries.\n";
+$sourceContracts=impact_source_exchange();
+check(count($sourceContracts)===4&&$sourceContracts['ubunifu']['metric_keys'][0]==='social_enterprises','Four source-owned reporting contracts retain separate metric authority');
+check($sourceContracts['goblis_foundation']['metric_keys'][0]==='market_access (corroboration only)','Foundation does not double-count AfriTrace enterprise market access');
+foreach(impact_sources()as$source=>$label){
+ check(impact_source_readiness($source,'',[])['label']==='Endpoint not configured','Absent endpoints show no fabricated published data for '.$source);
+}
+check(impact_source_readiness('ubunifu','https://www.example.org/approved',[])['label']==='Configured · verification pending','Configured URL is not a provider-verified public feed');
+check(impact_source_readiness('afritrace','https://www.example.org/approved',['status'=>'unavailable'])['label']==='Connection check unavailable','Connection failure is not zero');
+check(impact_source_readiness('goblis_group','https://www.example.org/approved',['status'=>'available','data'=>['approved_for_publication'=>true]])['label']==='Approved report accepted','Actual stored source confirmation has a distinct state');
+echo "PASS: reporting contracts, source authority, privacy, zero versus missing, stale snapshots and endpoint boundaries.\n";
 
 $ubunifu=$valid;$ubunifu['source']='ubunifu';$ubunifu['metrics']=['social_enterprises'=>2030];
 check(!isset(impact_validate($ubunifu,'ubunifu',$now)['metrics']['ubunifu_permanent_staff']),'Existing Ubunifu feeds remain compatible.');

@@ -10,6 +10,28 @@ $count=0;
 function check(bool $condition, string $label): void { global $count; if(!$condition)throw new RuntimeException('FAIL: '.$label);$count++; }
 function rejects(callable $action,string $label): void { try{$action();}catch(RuntimeException $e){check(true,$label);return;}check(false,$label); }
 
+
+$memberPost=publishing_linkedin_posts_payload('member_one-123','Approved personal insight.');
+check($memberPost['author']==='urn:li:person:member_one-123'&&$memberPost['commentary']==='Approved personal insight.'
+    &&$memberPost['visibility']==='PUBLIC'&&$memberPost['distribution']['feedDistribution']==='MAIN_FEED'
+    &&!isset($memberPost['specificContent']),'Member-owned LinkedIn Posts API payload uses the current schema, not legacy UGC.');
+check(publishing_linkedin_posts_headers()===['X-Restli-Protocol-Version: 2.0.0','Linkedin-Version: 202608'],
+    'Versioned LinkedIn Posts API headers are explicit.');
+try{publishing_linkedin_posts_payload('urn:li:organization:123','text');check(false,'Organisation URN accepted');}
+catch(InvalidArgumentException){check(true,'No organization URN can be substituted for personal member identity.');}
+try{publishing_linkedin_posts_payload('member',' ');check(false,'Empty LinkedIn publication accepted');}
+catch(InvalidArgumentException){check(true,'Empty LinkedIn publication rejected before provider mutation.');}
+$receipt=publishing_linkedin_posts_receipt(['status'=>201,'headers'=>['x-restli-id'=>'urn:li:share:6844785523593134080']]);
+check($receipt['status']==='published'&&$receipt['remote_id']==='urn:li:share:6844785523593134080'
+    &&str_contains($receipt['external_url'],'feed/update/'),'Only verified LinkedIn creation receipt becomes a published post.');
+try{publishing_linkedin_posts_receipt(['status'=>201,'headers'=>[]]);check(false,'Missing LinkedIn receipt must not count');}
+catch(PublishingRemoteException $e){check($e->ambiguous,'Unconfirmed LinkedIn mutation requires reconciliation before retry.');}
+try{publishing_linkedin_posts_receipt(['status'=>201,'headers'=>['x-restli-id'=>'urn:li:organization:123']]);check(false,'Organization result should not certify personal post');}
+catch(PublishingRemoteException $e){check($e->ambiguous,'Mismatched LinkedIn post result remains ambiguous.');}
+$directSource=file_get_contents(dirname(__DIR__).'/app/providers/direct.php');
+check(str_contains($directSource,"publishing_http('POST','https://api.linkedin.com/rest/posts'")&&!str_contains($directSource,"publishing_http('POST','https://api.linkedin.com/v2/ugcPosts'"),
+    'Direct LinkedIn delivery migrated away from the retired UGC route.');
+
 $identity=['status'=>'connected','external_id'=>'actual-returned-id','selected_resource'=>'actual-resource'];
 $facebook=['slug'=>'facebook','account_type'=>'professional_profile','delivery_method'=>'direct'];
 check(!publishing_capability($facebook,$identity)['usable'],'Facebook professional mode does not become a Page');
