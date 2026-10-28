@@ -44,7 +44,8 @@ function communications_cycle_input(array $input): array {
  return $out;
 }
 /** Validated source summary only. Missing, withdrawn, changed or stale data is not content. */
-function communications_cycle_source_preview(string $source,array $snapshot): array {
+function communications_cycle_source_preview(string $source,array $snapshot,?int $asOf=null): array {
+ $asOf??=time();
  $definition=communications_cycle_sources()[$source]??null;
  if(!$definition)throw new InvalidArgumentException('Unknown reviewed source.');
  $data=$snapshot['data']??null;
@@ -57,7 +58,7 @@ function communications_cycle_source_preview(string $source,array $snapshot): ar
     ||!is_string($data['published_at']??null))
   return ['ready'=>false,'note'=>'Awaiting a current, source-owned approved monthly report. Do not invent activity or figures.','copy'=>'','source_url'=>$definition['url'],'revision'=>null];
  $due=$data['next_report_due_at']??null;
- if(is_string($due)&&$due!==''&&(strtotime($due)?:0)<time())
+ if(is_string($due)&&$due!==''&&(strtotime($due)?:0)<$asOf)
   return ['ready'=>false,'note'=>'The last source report is overdue. Obtain current source confirmation before preparing a new daily claim.','copy'=>'','source_url'=>$definition['url'],'revision'=>$data['revision']??null];
  $period=$data['measurement_period_start'].' – '.$data['measurement_period_end'];
  $number=number_format($data['metrics'][$definition['metric']]);
@@ -78,7 +79,8 @@ function communications_cycle_schedule(int $now,array $cfg,array $snapshots): ar
   // UTC day number shifted to local calendar; stable over year boundaries.
   $index=((int)floor(($day->getTimestamp()+10800)/86400))%count($sources);
   $source=$sources[$index];$definition=communications_cycle_sources()[$source];
-  $preview=communications_cycle_source_preview($source,$snapshots[$source]??[]);
+  $slotTime=(new DateTimeImmutable($date.' '.$cfg['daily_time'], $tz))->getTimestamp();
+  $preview=communications_cycle_source_preview($source,$snapshots[$source]??[],$slotTime);
   $rows[]=['id'=>'daily-'.$date,'kind'=>'daily','date'=>$date,'when'=>$date.' '.$cfg['daily_time'],
     'label'=>'Daily organization update','source'=>$source,'title'=>$definition['name'].' · verified update',
     'status'=>$preview['ready']?'Evidence ready for editorial review':'Source evidence required',
@@ -146,9 +148,14 @@ function communications_cycle_weekly_draft(int $now,array $cfg): array {
   $q->execute([$title]);$existing=(int)$q->fetchColumn();
   if($existing>0)return ['state'=>'existing_draft_or_review','id'=>$existing];
   $monday=$local->modify('-'.((int)$local->format('N')-1).' days')->setTime(0,0);
-  $q=db()->prepare('SELECT p.id,p.title,p.slug,p.standfirst FROM posts p WHERE '.published_where().' AND p.published_at>=? AND p.published_at<=? ORDER BY p.published_at DESC,p.id DESC LIMIT 5');
+  $q=db()->prepare('SELECT p.id,p.title,p.slug,p.standfirst FROM posts p WHERE '.published_where().' AND p.published_at>=? AND p.published_at<=? ORDER BY p.published_at DESC,p.id DESC LIMIT 30');
   $q->execute([$monday->format('Y-m-d H:i:s'),$local->format('Y-m-d H:i:s')]);
-  $values=communications_cycle_email_values($local->format('Y-m-d'),$q->fetchAll());
+  // Sponsored/customer posts have their own contracted campaign and permissions.
+  // Never silently enroll them into the personal independent weekly digest.
+  $deskPosts=[];if(function_exists('desk_all'))foreach(desk_all()as$record)
+   if(!empty($record['post_id']))$deskPosts[(int)$record['post_id']]=true;
+  $public=array_values(array_filter($q->fetchAll(),static fn($row)=>!isset($deskPosts[(int)$row['id']])));
+  $values=communications_cycle_email_values($local->format('Y-m-d'),$public);
   if(!$values)return ['state'=>'no_published_articles'];
   $id=newsletter_save_campaign($values,$owner);
   return ['state'=>'draft_created_for_owner_review','id'=>$id];
