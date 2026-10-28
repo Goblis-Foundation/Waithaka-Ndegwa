@@ -22,7 +22,10 @@ file_put_contents($out.'/workspace.html',ef_page($body,true));
 $_SERVER['REQUEST_URI']='/';
 $publicHome='<section class="home-hero"><div class="container home-hero-grid">'
     .'<div class="home-hero-copy"><h1>Waithaka Ndegwa</h1><p>Public layout fixture</p></div>'
-    .'<div class="home-hero-media" aria-hidden="true"></div></div></section>';
+    .'<div class="home-hero-media" aria-hidden="true"></div></div></section>'
+    .'<section class="section"><div class="container"><h2>Experience</h2><p>Sample section</p>'
+    .'<h2>Lessons</h2><p>Sample section</p><h2>Next steps</h2><p>Sample section</p>'
+    .'</div></section>';
 file_put_contents($out.'/public-home.html',ef_render('layout',['page'=>'home','content'=>$publicHome,'suppressAnalytics'=>true]));
 $_SERVER['REQUEST_URI']='/explore';
 $publicPage='<article class="ux-page"><h1>Public page layout</h1><p>Equivalent public page gutters and content width.</p></article>';
