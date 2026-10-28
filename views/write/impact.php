@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="<?=asset('css/publishing.css')?>">
 <main class="write-main pub-main"><section class="pub-card"><h1>Goal 2030 · approved source reporting</h1><p>Each organisation publishes only its own authorized aggregate figures. The Group does not receive Ubunifu learner records, Foundation donor records or AfriTrace participant data for display here.</p><p>Four separate reports feed one public Goal 2030 section. The worker checks configured HTTPS endpoints every 15 minutes without modifying the source’s measurement or publication dates.</p><a class="wbtn" href="<?=url('/about#goals-2030')?>">View the public Goal 2030 section</a></section>
-<h1>2030 goals &amp; reporting</h1><p>Connect approved aggregate reports from the four source systems. Targets and definitions are published on the website; this area manages evidence feeds, not manual achievement counters.</p>
+<h2>Evidence feeds &amp; reporting</h2><p>Connect approved aggregate reports from the four source systems. Targets and definitions are published on the website; this area manages evidence feeds, not manual achievement counters.</p>
 <?php foreach(flashes()as$f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
 <form method="post" action="<?=url('/write/impact')?>"><?=csrf_field()?><input type="hidden" name="action" value="save">
 <?php foreach(impact_sources()as$source=>$label):$snapshot=impact_snapshot($source);?>

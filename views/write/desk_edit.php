@@ -1,6 +1,6 @@
 <?php $r=$record;$client=$r['client']??[];$values+=['client_name'=>$client['name']??'','client_email'=>$client['email']??''];$home=$r?'/write/desk/'.$r['id']:path_only(); ?>
 <link rel="stylesheet" href="<?=e(asset('css/publishing-desk.css'))?>">
-<section class="desk desk-workspace"><header class="desk-hero"><div><p class="desk-kicker"><?=e($kind==='opportunity'?'Opportunity editor':'Sponsored feature editor')?></p><h1><?=e($r?$r['fields']['title']:'Start with the facts.')?></h1><p>Verified facts → article draft → branded creatives → approval → publication → social delivery.</p></div><a href="<?=url('/write/desk')?>">All records</a></header>
+<main class="desk desk-workspace"><header class="desk-hero"><div><p class="desk-kicker"><?=e($kind==='opportunity'?'Opportunity editor':'Sponsored feature editor')?></p><h1><?=e($r?$r['fields']['title']:'Start with the facts.')?></h1><p>Verified facts → article draft → branded creatives → approval → publication → social delivery.</p></div><a href="<?=url('/write/desk')?>">All records</a></header>
 <?php if($error):?><p class="desk-alert" role="alert"><?=e($error)?></p><?php endif;?>
 <?php if($r&&!empty($r['fields']['sponsored'])):?><div class="ux-owner-workflow-link"><strong>Advertising review and paid repeat posting</strong><p>Assess suitability, review the complete campaign and control later automatic rounds after the first publication is confirmed.</p><a class="desk-button primary" href="<?=url('/write/desk/'.$r['id'].'/workflow')?>">Open suitability & repeat controls →</a></div><?php endif;?>
 <?php if($r):?><nav class="desk-tabs"><a href="#details">Details</a><a href="#article">Article & AI</a><a href="#creatives">Brand studio</a><a href="#approval">Approvals & release</a><a href="#billing">Client & billing</a><a href="#results">Delivery evidence</a></nav><p class="desk-note">State: <strong><?=e($r['state'])?></strong> · Revision <?=(int)$r['version']?><?=!empty($r['public'])?' · A reviewed public snapshot is retained until explicitly withdrawn.':''?></p><?php endif;?>
@@ -40,4 +40,4 @@
 <div id="results"><?php include __DIR__.'/../desk/report.php';?></div>
 <details class="desk-card"><summary>Audit history</summary><ol><?php foreach(array_reverse($r['audit'])as$entry):?><li><?=e(date('j M Y H:i',$entry['at']).' · '.$entry['event'].' · '.$entry['actor'])?></li><?php endforeach;?></ol></details>
 <script src="<?=e(asset('js/publishing-desk.js'))?>" defer></script>
-<?php endif;?></section>
+<?php endif;?></main>

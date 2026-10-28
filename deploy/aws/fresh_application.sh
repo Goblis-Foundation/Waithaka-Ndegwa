@@ -110,7 +110,18 @@ if [[ -f "$SOURCE_DIR/bin/message-trash-migrate.php" && -f "$TRASH_MIGRATION_FIL
     GOOGLE_MIGRATION_REQUIRED=1
   fi
 fi
-if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 || "$TRASH_MIGRATION_REQUIRED" == 1 ]]; then
+# Fixed 150/180 recovery uses the existing temporary migration access and recovery gate.
+AUDIT_MIGRATION_REQUIRED=0
+AUDIT_MIGRATION_RECEIPT=""
+if [[ -f "$SOURCE_DIR/bin/module-audit-migrate.php" ]]; then
+  AUDIT_MIGRATION_HASH="$(cat "$SOURCE_DIR/app/migrations/150_subscriber_names.sql" "$SOURCE_DIR/app/migrations/180_culture_topic.sql" | sha256sum | awk '{print $1}')"
+  AUDIT_MIGRATION_RECEIPT="schema-migrations/150-180-$AUDIT_MIGRATION_HASH.json"
+  if ! aws s3api head-object --bucket "$RELEASE_BUCKET" --key "$AUDIT_MIGRATION_RECEIPT" --region "$REGION" --no-cli-pager >/dev/null 2>&1; then
+    AUDIT_MIGRATION_REQUIRED=1
+    GOOGLE_MIGRATION_REQUIRED=1
+  fi
+fi
+if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 || "$TRASH_MIGRATION_REQUIRED" == 1 || "$AUDIT_MIGRATION_REQUIRED" == 1 ]]; then
   backup_metadata="$(mktemp)"
   FOUNDER_BACKUP_PROOF="$(mktemp)"
   # Resolve the one database from the owned stack; never enumerate account databases.
@@ -286,8 +297,18 @@ import json,sys,datetime
 json.dump({'account_id':'466401734428','migration':'170_founder_story_approval.sql','sha256':sys.argv[2],'release':sys.argv[3],'verified_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'recovery':json.load(open(sys.argv[4]))},open(sys.argv[1],'w'))
 PYFOUNDER
     aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$FOUNDER_MIGRATION_RECEIPT" --body "$founder_receipt" --region "$REGION" --no-cli-pager >/dev/null
-    rm -f "$founder_receipt" "$FOUNDER_BACKUP_PROOF"
+    rm -f "$founder_receipt"
   fi
+  if [[ "$AUDIT_MIGRATION_REQUIRED" == 1 ]]; then
+    audit_receipt="$(mktemp)"
+    python3 - "$audit_receipt" "$AUDIT_MIGRATION_HASH" "$VERSION" "$FOUNDER_BACKUP_PROOF" <<'PYAUDIT'
+import json,sys,datetime
+json.dump({'account_id':'466401734428','migrations':['150_subscriber_names.sql','180_culture_topic.sql'],'sha256':sys.argv[2],'release':sys.argv[3],'verified_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'recovery':json.load(open(sys.argv[4]))},open(sys.argv[1],'w'))
+PYAUDIT
+    aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$AUDIT_MIGRATION_RECEIPT" --body "$audit_receipt" --region "$REGION" --no-cli-pager >/dev/null
+    rm -f "$audit_receipt"
+  fi
+  [[ -z "${FOUNDER_BACKUP_PROOF:-}" ]] || rm -f "$FOUNDER_BACKUP_PROOF"
   cleanup_google_migration_access
 fi
 

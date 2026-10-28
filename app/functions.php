@@ -130,7 +130,16 @@ function current_user(): ?array {
     if(function_exists('app_device_check')&&!app_device_check($row)){unset($_SESSION['user_id'],$_SESSION['auth_epoch']);return null;}
     return $user=$row;
 }
-function require_auth(): void { if (!current_user()) redirect(url('/write/login')); }
+/** Resume a known workspace only; never replay action URLs or OAuth tokens. */
+function writer_login_destination(mixed $value): string {
+    $allowed=['/write','/write/control-centre','/write/notes','/write/voice','/write/program','/write/communication','/write/correspondence','/write/meetings','/write/booking-mailboxes','/write/studio','/write/capture','/write/new','/write/media-centre','/write/publishing','/write/media','/write/desk','/write/desk/orders','/write/desk/settings','/write/newsletter','/write/monthly-roundup','/write/readers','/write/contact-controls','/write/campaigns','/write/seo-checks','/write/discovery','/write/visitor-statistics','/write/enterprises','/write/opportunities','/write/journeys','/write/journeys/founders','/write/editorial','/write/releases','/write/impact','/write/connections','/write/google','/write/microsoft','/write/app','/write/security','/write/operations','/write/reconciliation','/write/settings','/write/account'];
+    if(!is_string($value)||strlen($value)>250)return '/write';
+    $path=explode('?',$value,2)[0];if(!in_array($path,$allowed,true))return '/write';
+    if($path==='/write/communication'&&$value==='/write/communication?tab=content')return $value;
+    return $path;
+}
+function writer_login_return(): string {$next=writer_login_destination($_SESSION['writer_return_to']??'/write');unset($_SESSION['writer_return_to']);return $next;}
+function require_auth(): void { if (!current_user()) {if(($_SERVER['REQUEST_METHOD']??'GET')==='GET')$_SESSION['writer_return_to']=writer_login_destination($_SERVER['REQUEST_URI']??'/write');redirect(url('/write/login'));} }
 
 function ip_hash(): string {
     $ip = function_exists('wk_client_ip') ? wk_client_ip() : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
