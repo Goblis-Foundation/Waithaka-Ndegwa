@@ -36,3 +36,12 @@ The canonical implementation register remains `/write/reconciliation`, with all 
 **Not changed:** owner access aliases, already deployed authentication, branded logo/favicon, Google Workspace mail, monthly roundup schedule (first of each month at 00:00 Kenya time beginning 1 November 2026), daily organizational source brief, weekly original article research and weekly draft-only newsletter. The editorial worker and queued outbound email backlog remain separately gated; social/personal channels do not acquire publishing rights from a monitoring deployment.
 
 This addition provides ongoing evidence and does not close issues #70–76 or claim that account-dependent features are live.
+
+## Confirmed release and post-merge acceptance — 28 October 2026
+
+- Recovery and implementation: [PR #91](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/pull/91), merged application commit `ffaa9bda9f2ad4642ea61c8fa163fe2d8f429f17` on production branch `main`.
+- The exact PR head `3053e1ece60f167aa4e85be9dd9964604b3a381d` passed all seven checks (PHP 8.3/8.4 on MySQL 8.4, Actions/CodeQL analysis, and the standalone live sentinel).
+- The initial standalone browser evidence [run 40765036098](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40765036098) passed all 10 anonymous public/login probes at mobile/desktop widths, with zero structural failures and zero reported axe WCAG A/AA violation rules in the covered samples. Artifact `waithaka-live-site-sentinel` contains JSON and screenshots. Not a physical-device/field-CWV audit.
+- The post-merge sentinel [run 40765440482](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40765440482) also succeeded.
+- [Production deployment workflow 40765440434](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40765440434) completed **successfully** for the merged commit: **Validate application — success; Deploy to AWS account 466401734428 — success; Verify centered public section selectors on the live website — success**. The workflow reports completion at 20:51:46 UTC (23:51:46 Africa/Nairobi).
+- This is evidence of a successfully deployed read-only monitor and existing production regression tests. It is **not** evidence that owner OAuth identity, SMS enrollment, real payouts, inbox deliveries, monthly sender details, approved source metrics or genuine device acceptance have been finished. The existing register and issues #70–76 remain open without status inflation.
