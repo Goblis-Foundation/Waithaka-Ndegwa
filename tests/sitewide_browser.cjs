@@ -7,7 +7,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
 (async()=>{
  const browser=await chromium.launch({headless:true});
  const context=await browser.newContext({viewport:{width:1440,height:900}});
- await context.route('**/*',route=>route.request().url.startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
+ await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage();
  const errors=[];let checks=0;
  page.on('pageerror',e=>errors.push(e.message));
