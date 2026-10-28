@@ -124,7 +124,15 @@ try {
     $msCsrf=rh_request('/write/microsoft',['action'=>'connect','account'=>'personal'],true);rh_check($msCsrf['status']===419,'Microsoft OAuth start requires CSRF protection.');
     $actionHome=rh_request('/write/microsoft/actions',null,true);rh_check($actionHome['status']===200&&str_contains($actionHome['body'],'Action history'),'The Microsoft action studio renders for the owner.');rh_private($actionHome,'Action access and history stay private.');
     foreach(['/write/google/actions'=>'Google action studio','/write/google/actions/new'=>'Prepare your content','/write/google/sync'=>'Private calendar refresh','/write/security/sign-in'=>'Sign-in & verification']as$route=>$heading){$r=rh_request($route,null,true);rh_check($r['status']===200&&str_contains($r['body'],$heading),'Google owner page renders: '.$route);rh_private($r,'Google workspace response is private');rh_check(!str_contains($r['body'],'googletagmanager.com'),'Google private content has no analytics');rh_check(rh_request($route,['action'=>'settings'],true)['status']===419,'Google POST requires CSRF');}
-    set_setting('communication.config',json_encode(['owner'=>$actor+1000000],JSON_THROW_ON_ERROR),true);foreach(['/write/google/actions','/write/google/sync','/write/security/sign-in']as$route)rh_check(rh_request($route,null,true)['status']===403,'A signed-in non-owner cannot access Google actions');set_setting('communication.config',json_encode(['owner'=>$actor],JSON_THROW_ON_ERROR),true);
+    set_setting('communication.config',json_encode(['owner'=>$actor+1000000],JSON_THROW_ON_ERROR),true);
+    try {
+        foreach(['/write/google/actions','/write/google/sync']as$route)rh_check(rh_request($route,null,true)['status']===403,'A signed-in non-owner cannot access Google actions: '.$route);
+        $ownSecurity=rh_request('/write/security/sign-in',null,true);
+        rh_check($ownSecurity['status']===200&&str_contains($ownSecurity['body'],'Sign-in & verification'),'Each signed-in user can manage their own verification settings');
+        rh_private($ownSecurity,'Personal verification settings remain private');
+    } finally {
+        set_setting('communication.config',json_encode(['owner'=>$actor],JSON_THROW_ON_ERROR),true);
+    }
     set_setting('communication.microsoft.workspace.personal',json_encode(['owner'=>$actor,'status'=>'connected','identity'=>['id'=>'http-fixture','email'=>'iwaithakaw@gmail.com']],JSON_THROW_ON_ERROR),true);
     $newAction=rh_request('/write/microsoft/actions/new',null,true);$actionForm=rh_form($newAction,'/write/microsoft/actions/new');$outboxBefore=rh_count('SELECT COUNT(*) FROM email_outbox');
     $prepared=rh_request('/write/microsoft/actions/new',$actionForm+['action'=>'prepare','kind'=>'email_draft','account'=>'personal','subject'=>'Private action fixture','body'=>'PRIVATE ACTION '.$suffix,'recipients'=>'fixture@example.invalid','recipient_name'=>'Fixture'],true);$actionPath=(string)parse_url($prepared['headers']['location']??'',PHP_URL_PATH);rh_check($prepared['status']===302&&preg_match('~^/write/microsoft/actions/([a-f0-9]{32})$~D',$actionPath,$actionMatch)===1,'A private plan can be prepared before write consent.');
