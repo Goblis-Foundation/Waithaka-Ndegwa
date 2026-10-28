@@ -366,3 +366,27 @@ body #main .founder-related-actions a {
 @media (max-width: 520px) {
   body #main .founder-related-actions a { flex: 1 1 auto; }
 }
+
+/* Sponsored features have three filters, not the six-column opportunities grid.
+   Keep the search control on the shared line instead of leaving phantom columns. */
+body #main .desk-filter.desk-filter-sponsored {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(165px,230px) auto;
+  gap: 12px;
+  align-items: end;
+}
+body #main .desk-filter.desk-filter-sponsored > * { min-width: 0; }
+body #main .desk-filter.desk-filter-sponsored button { min-height: 45px; }
+@media (max-width: 740px) {
+  body #main .desk-filter.desk-filter-sponsored {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  body #main .desk-filter.desk-filter-sponsored > label:first-child { grid-column: 1 / -1; }
+  body #main .desk-filter.desk-filter-sponsored button { width: 100%; }
+}
+@media (max-width: 520px) {
+  body #main .desk-filter.desk-filter-sponsored {
+    grid-template-columns: minmax(0,1fr);
+  }
+  body #main .desk-filter.desk-filter-sponsored > label:first-child { grid-column: auto; }
+}
