@@ -164,6 +164,9 @@ jobs:
       - name: Verify public search and Kenya-first journeys
         run: python3 -B deploy/aws/verify_public_journeys.py
 
+      - name: Audit site-wide public navigation and entry-point journeys
+        run: python3 -B deploy/aws/verify_sitewide_journeys.py
+
       - name: Verify Goal 2030 section navigation
         run: python3 -B deploy/aws/verify_goal_section_navigation.py
       - name: Verify protected impact and posting workspaces
