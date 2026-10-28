@@ -16,6 +16,7 @@ function location_fields(array $input): array {
  $kenya=$country==='Kenya';$county=$kenya?location_text($input['county']??'','County'):'';
  if($county!==''&&!in_array($county,location_kenya_counties(),true))throw new InvalidArgumentException('Choose a Kenyan county from the list.');
  return ['country'=>$country,'county'=>$county,'sub_county'=>$kenya?location_text($input['sub_county']??'','Sub-County'):'',
+ 'ward'=>$kenya?location_text($input['ward']??'','Ward'):'',
  'region'=>$kenya?'':location_text($input['region']??'','State, province or region'),
  'district'=>$kenya?'':location_text($input['district']??'','District or area'),
  'city'=>location_text($input['city']??'','Town or location')];
@@ -39,5 +40,5 @@ function location_record(string $kind,int $id): array {
  return json_decode(decrypt_secret((string)$row['setting_value']),true,16,JSON_THROW_ON_ERROR);
 }
 function location_label(array $record): string {
- return implode(', ',array_filter([$record['city']??'',($record['sub_county']??'')?:($record['district']??''),($record['county']??'')?:($record['region']??''),$record['country']??''],static fn($v)=>$v!==''));
+ return implode(', ',array_filter([$record['city']??'',$record['ward']??'',($record['sub_county']??'')?:($record['district']??''),($record['county']??'')?:($record['region']??''),$record['country']??''],static fn($v)=>$v!==''));
 }

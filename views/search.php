@@ -1,10 +1,10 @@
 <section class="section page-intro"><div class="container narrow"><span class="eyebrow">Search</span><h1>Find a thought, a lesson or a useful next step.</h1><p class="lead">Search published writing, Startup Journeys, founder stories, resources and videos.</p>
-  <form class="search-page-form" method="get" action="<?=url('/search')?>" role="search">
-    <label class="sr-only" for="public-search">Search published content</label><input id="public-search" type="search" name="q" value="<?=e($q)?>" placeholder="What would you like to explore?" maxlength="200" required>
-    <label class="sr-only" for="search-type">Content type</label><select id="search-type" name="type"><?php foreach(discovery_types() as $key=>$label):?><option value="<?=e($key)?>" <?=$type===$key?'selected':''?>><?=e($label)?></option><?php endforeach;?></select>
-    <button class="button" type="submit">Search</button>
+  <form class="search-page-form" method="get" action="<?=url('/search')?>" role="search" aria-label="Search public writing and resources">
+    <div class="search-control search-control-query"><label for="public-search">Search words or topics</label><input id="public-search" type="search" name="q" value="<?=e($q)?>" placeholder="What would you like to explore?" maxlength="200" aria-describedby="search-form-help" required></div>
+    <div class="search-control search-control-type"><label for="search-type">Look in</label><select id="search-type" name="type"><?php foreach(discovery_types() as $key=>$label):?><option value="<?=e($key)?>" <?=$type===$key?'selected':''?>><?=e($label)?></option><?php endforeach;?></select></div>
+    <button class="button button-primary search-submit" type="submit">Search</button>
   </form>
-  <p class="form-help">Matches the phrase you enter, ignoring letter case. Newest publications appear first.</p>
+  <p class="form-help" id="search-form-help">Search published content only. Matches ignore letter case; the newest publications appear first.</p>
   <?php if($q===''):?><div class="topic-pills"><?php foreach($categories as $category):?><a href="<?=e(url('/topic/'.$category['slug']))?>"><?=e($category['name'])?></a><?php endforeach;?></div><?php else:?><nav class="topic-pills" aria-label="Search result types"><?php foreach(discovery_types()as$key=>$label):?><a href="<?=e(url('/search?'.http_build_query(['q'=>$q]+($key==='all'?[]:['type'=>$key]),'','&',PHP_QUERY_RFC3986)))?>" <?=$key===$type?'aria-current="page"':''?>><?=e($label)?> (<?=intval($counts[$key])?>)</a><?php endforeach;?></nav><?php endif;?>
 </div></section>
 <?php if($q!==''):?><section class="section surface"><div class="container"><div class="archive-label"><h2><?=intval($pagination['total'])?> <?=$pagination['total']===1?'result':'results'?> for “<?=e($q)?>”</h2><small><?php if($pagination['total']):?>Showing <?=intval($pagination['start'])?>–<?=intval($pagination['end'])?><?php else:?>No matching published content<?php endif;?></small></div>

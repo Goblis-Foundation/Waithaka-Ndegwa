@@ -5,15 +5,20 @@ function lc_check(bool $ok,string $label):void{if(!$ok)throw new RuntimeExceptio
 function lc_reject(callable $work):void{try{$work();}catch(InvalidArgumentException){return;}throw new RuntimeException('Invalid location accepted.');}
 lc_check(count(location_kenya_counties())===47,'All 47 counties available.');
 lc_check(location_fields([])['country']==='Kenya','Kenya is the default.');
-$ke=location_fields(['country'=>' kenya ','county'=>'Nyeri','sub_county'=>'Kieni West','city'=>'Endarasha','region'=>'ignored','district'=>['ignored']]);
+$ke=location_fields(['country'=>' kenya ','county'=>'Nyeri','sub_county'=>'Kieni West','ward'=>'Mweiga','city'=>'Endarasha','region'=>'ignored','district'=>['ignored']]);
 lc_check($ke['country']==='Kenya'&&$ke['county']==='Nyeri'&&$ke['region']===''&&$ke['district']==='','Kenyan fields are kept without foreign fields.');
-lc_check(location_label($ke)==='Endarasha, Kieni West, Nyeri, Kenya','Kenyan location review label.');
-$gb=location_fields(['country'=>'United Kingdom','county'=>['ignored'],'sub_county'=>['ignored'],'region'=>'England','district'=>'Westminster','city'=>'London']);
-lc_check($gb['county']===''&&$gb['sub_county']===''&&location_label($gb)==='London, Westminster, England, United Kingdom','International structure excludes stale Kenyan fields.');
+lc_check(location_label($ke)==='Endarasha, Mweiga, Kieni West, Nyeri, Kenya','Kenyan location review label.');
+$gb=location_fields(['country'=>'United Kingdom','county'=>['ignored'],'sub_county'=>['ignored'],'ward'=>'Old Ward','region'=>'England','district'=>'Westminster','city'=>'London']);
+lc_check($gb['county']===''&&$gb['sub_county']===''&&$gb['ward']===''&&location_label($gb)==='London, Westminster, England, United Kingdom','International structure excludes stale Kenyan fields.');
 lc_check(location_phone(['phone'=>'0712 345 678'])['phone']==='+254712345678','Kenyan local phone normalized.');
 lc_check(location_phone(['phone'=>'+44 20 7946 0958'])['phone']==='+442079460958','Full foreign number overrides default prefix.');
 lc_check(location_phone(['phone_code'=>'+1','phone'=>'2025550123'])['phone']==='+12025550123','Editable country code retained.');
 lc_check(location_phone([])['phone']==='','Phone stays optional.');
-foreach([['country'=>[]],['country'=>"Kenya\0"],['county'=>'Made up county'],['sub_county'=>[]],['city'=>str_repeat('x',121)]]as$bad)lc_reject(fn()=>location_fields($bad));
+lc_check(location_fields([])['ward']===''&&location_label(location_fields(['country'=>'Kenya','county'=>'Nyeri']))==='Nyeri, Kenya','Older optional location records remain readable without Ward.');
+foreach([['country'=>[]],['country'=>"Kenya\0"],['county'=>'Made up county'],['sub_county'=>[]],['ward'=>[]],['ward'=>str_repeat('x',121)],['city'=>str_repeat('x',121)]]as$bad)lc_reject(fn()=>location_fields($bad));
 foreach([['phone_code'=>[]],['phone_code'=>'+0'],['phone'=>'abc'],['phone'=>str_repeat('9',30)]]as$bad)lc_reject(fn()=>location_phone($bad));
-echo "PASS: Kenya defaults, county validation, international fields, phones and malformed input.\n";
+foreach(['views/contact.php','views/booking.php','views/founders/submit.php','views/consent.php','views/desk/promote.php','views/opportunities/fields.php','views/desk/client_contact.php'] as $view){
+ $source=file_get_contents(__DIR__.'/../'.$view);
+ lc_check($source!==false&&str_contains($source,'partials_location_fields.php'),'Shared location fields included in '.$view);
+}
+echo "PASS: Kenya defaults, Ward, seven journey components, international fields, phones and malformed input.\n";

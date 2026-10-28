@@ -41,6 +41,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
       <a href="<?=url('/')?>" <?=path_only()==='/'?'aria-current="page"':''?>>Home</a>
       <a href="<?=url('/start-here')?>" <?=path_only()==='/start-here'?'aria-current="page"':''?>>Start here</a>
       <a href="<?=url('/my-thoughts')?>" <?=$page==='thoughts'||$page==='post'?'aria-current="page"':''?>>My Thoughts</a>
+      <a class="nav-mobile-search" href="<?=url('/search')?>" <?=path_only()==='/search'?'aria-current="page"':''?>>Search</a>
       <a href="<?=url('/opportunities')?>" <?=str_starts_with(path_only(),'/opportunities')?'aria-current="page"':''?>>Opportunities</a>
       <a href="<?=url('/about')?>" <?=$page==='about'?'aria-current="page"':''?>>About</a>
       <a href="<?=url('/about#goals-2030')?>">Goal 2030</a>

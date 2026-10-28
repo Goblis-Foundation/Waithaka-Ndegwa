@@ -45,7 +45,7 @@ function commercial_review_save(string $id,array $in,int $uid): void {
  });
 }
 function commercial_client_profile(array $in): ?array {
- foreach(['country','phone_code','phone','county','sub_county','city','region','district']as$key)if(array_key_exists($key,$in))return location_fields($in)+location_phone($in);
+ foreach(['country','phone_code','phone','county','sub_county','ward','city','region','district']as$key)if(array_key_exists($key,$in))return location_fields($in)+location_phone($in);
  return null;
 }
 function commercial_preserve_client(array $old,array $new): array {

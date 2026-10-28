@@ -14,11 +14,13 @@ $selectedCountry=$lv('country','Kenya');if($selectedCountry==='')$selectedCountr
 <div class="location-grid location-country-specific" data-location-kenya>
 <label for="<?=e($locationPrefix)?>-county">County<select id="<?=e($locationPrefix)?>-county" name="county" autocomplete="address-level1"><option value="">Choose county · optional</option><?php foreach(location_kenya_counties()as$county):?><option value="<?=e($county)?>" <?=$county===$lv('county')?'selected':''?>><?=e($county)?></option><?php endforeach;?></select></label>
 <label for="<?=e($locationPrefix)?>-sub-county">Sub-County<input id="<?=e($locationPrefix)?>-sub-county" name="sub_county" autocomplete="address-level2" maxlength="120" value="<?=e($lv('sub_county'))?>" placeholder="Your sub-county · optional"></label>
+<label for="<?=e($locationPrefix)?>-ward">Ward · optional<input id="<?=e($locationPrefix)?>-ward" name="ward" autocomplete="address-level3" maxlength="120" value="<?=e($lv('ward'))?>" placeholder="Your ward, if known"></label>
+<p class="location-help location-kenya-help">Select one of Kenya’s 47 counties. Enter your Sub-County and Ward as applicable; neither field is a constituency list.</p>
 </div>
 <div class="location-grid location-country-specific" data-location-international>
 <label for="<?=e($locationPrefix)?>-region">State / Province / Region<input id="<?=e($locationPrefix)?>-region" name="region" autocomplete="address-level1" maxlength="120" value="<?=e($lv('region'))?>" placeholder="Outside Kenya · if applicable"></label>
 <label for="<?=e($locationPrefix)?>-district">District / Area<input id="<?=e($locationPrefix)?>-district" name="district" autocomplete="address-level2" maxlength="120" value="<?=e($lv('district'))?>" placeholder="Outside Kenya · if applicable"></label>
 </div>
-<label for="<?=e($locationPrefix)?>-city"><span data-location-city-label><?=$selectedCountry==='Kenya'?'Town / Area':'City / Town / Locality'?></span><input id="<?=e($locationPrefix)?>-city" name="city" autocomplete="address-level3" maxlength="120" value="<?=e($lv('city'))?>" placeholder="Where you are based · optional"></label>
+<label for="<?=e($locationPrefix)?>-city"><span data-location-city-label><?=$selectedCountry==='Kenya'?'Town / Area':'City / Town / Locality'?></span><input id="<?=e($locationPrefix)?>-city" name="city" autocomplete="address-level4" maxlength="120" value="<?=e($lv('city'))?>" placeholder="Where you are based · optional"></label>
 </fieldset>
 <script src="<?=asset('js/location-fields.js')?>" defer></script>

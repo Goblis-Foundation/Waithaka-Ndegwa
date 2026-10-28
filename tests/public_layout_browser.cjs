@@ -65,6 +65,66 @@ const fs=require('node:fs');
   check(widths.left<=2&&widths.right<=2&&widths.overflow<=2,'New public pages match site container gutters at '+width+'px');
   check(await page.locator('.public-explore-all[aria-current="page"]').count()===1,'Current section is signalled in discovery navigation at '+width+'px');
  }
+ // Public search: its live PHP view, not the obsolete .search-form selector.
+ for(const width of [320,360,390,600,740,768,1024,1180,1440]){
+  await page.setViewportSize({width,height:900});
+  await page.goto(host+'public-search.html');
+  check(await page.locator('.search-page-form [name="q"]').count()===1,'Search input exists at '+width+'px');
+  check(await page.locator('.search-page-form [name="type"]').count()===1,'Search type remains selectable at '+width+'px');
+  const rects=await page.evaluate(()=>{
+   const take=el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
+   const form=document.querySelector('.search-page-form'),query=document.querySelector('#public-search'),type=document.querySelector('#search-type'),button=document.querySelector('.search-submit');
+   const head=document.querySelector('.site-header .container'),section=document.querySelector('.page-intro > .container');
+   return{form:take(form),query:take(query),type:take(type),button:take(button),head:take(head),section:take(section),overflow:document.documentElement.scrollWidth-innerWidth};
+  });
+  check(rects.overflow<=2,'Public search has no viewport overflow at '+width+'px');
+  check(Math.abs(rects.head.left-rects.section.left)<=2&&Math.abs(rects.head.right-rects.section.right)<=2,'Search page margins match site header at '+width+'px');
+  check([rects.query,rects.type,rects.button].every(r=>r.width>=44&&r.height>=44&&r.left>=rects.form.left-1&&r.right<=rects.form.right+1),'All search controls fit inside form at '+width+'px');
+  const forms=[rects.query,rects.type,rects.button],overlaps=[];
+  for(let i=0;i<forms.length;i++)for(let j=i+1;j<forms.length;j++){
+   const x=Math.min(forms[i].right,forms[j].right)-Math.max(forms[i].left,forms[j].left);
+   const y=Math.min(forms[i].bottom,forms[j].bottom)-Math.max(forms[i].top,forms[j].top);
+   if(x>1&&y>1)overlaps.push([i,j]);
+  }
+  check(overlaps.length===0,'Search controls do not overlap at '+width+'px');
+  if(width<=1180){
+   await page.locator('[data-menu]').click();
+   check(await page.locator('.nav-mobile-search').isVisible(),'Search remains reachable from mobile menu at '+width+'px');
+   await page.keyboard.press('Escape');
+  }
+ }
+ await page.goto(host+'public-search-results.html');
+ check(await page.locator('.topic-pills [aria-current="page"]').count()===1,'Current search-result filter is marked');
+ check((await page.locator('#public-search').inputValue())==='enterprise','Search query retained for editing');
+ // Repeatable location hierarchy from actual shared PHP partials for every eligible journey.
+ for(const prefix of ['contact','booking','founder','consent','promote','opportunity','client-contact']){
+  await page.setViewportSize({width:390,height:900});
+  await page.goto(host+'location-'+prefix+'.html');
+  const f=page.locator('[data-location-fields]');
+  check((await f.locator('[name="country"]').inputValue())==='Kenya','Kenya residence default in '+prefix);
+  check(await f.locator('[name="ward"]').isVisible(),'Ward available for Kenya in '+prefix);
+  check(await f.locator('[name="county"] option').count()===48,'47 county choices and empty choice in '+prefix);
+  if(prefix!=='opportunity')check((await f.locator('[name="phone_code"]').inputValue())==='+254','Independent +254 phone default in '+prefix);
+  await f.locator('[name="county"]').selectOption('Nyeri');
+  await f.locator('[name="sub_county"]').fill('Kieni West');
+  await f.locator('[name="ward"]').fill('Mweiga');
+  await f.locator('[name="city"]').fill('Endarasha');
+  await f.locator('[name="country"]').selectOption('United Kingdom');
+  check(await f.locator('[name="ward"]').isHidden()&&await f.locator('[name="ward"]').isDisabled(),'Kenyan Ward is inactive outside Kenya in '+prefix);
+  check(await f.locator('[name="region"]').isVisible(),'International region is active in '+prefix);
+  if(prefix!=='opportunity')check((await f.locator('[name="phone_code"]').inputValue())==='+254','Residence switch does not alter calling code in '+prefix);
+  await f.locator('[name="region"]').fill('England');
+  await f.locator('[name="country"]').selectOption('Kenya');
+  check((await f.locator('[name="ward"]').inputValue())==='Mweiga'&&(await f.locator('[name="county"]').inputValue())==='Nyeri','Kenya location is retained on country switch in '+prefix);
+  check(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=2),'No narrow-screen overflow in '+prefix+' form');
+ }
+ // No-JavaScript forms keep both labelled alternatives, with server choice controlling parsing.
+ const noJS=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:800}});
+ const fallback=await noJS.newPage();
+ await fallback.goto(host+'location-founder.html');
+ check(await fallback.locator('[name="ward"]').isVisible()&&await fallback.locator('[name="region"]').isVisible(),'No-script fallback retains both explicit structures');
+ await noJS.close();
+
  const evidence=process.env.EXPERIENCE_EVIDENCE_DIR;
  if(evidence){
   fs.mkdirSync(evidence,{recursive:true});
