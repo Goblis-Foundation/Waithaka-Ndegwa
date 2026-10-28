@@ -1,0 +1,62 @@
+name: Live-site experience sentinel
+
+on:
+  schedule:
+    # Daily 06:20 Africa/Nairobi (UTC+03), subject to GitHub schedule delays.
+    - cron: '20 3 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tests/live_site_sentinel.cjs'
+      - '.github/workflows/live-site-sentinel.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tests/live_site_sentinel.cjs'
+      - '.github/workflows/live-site-sentinel.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: waithaka-live-sentinel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-read-only-acceptance:
+    name: Public HTTPS, mobile layout, accessibility & lab timing
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Install isolated browser and audit dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/live-sentinel" --no-package-lock --no-save --ignore-scripts playwright@1.56.1 axe-core@4.11.4
+          "$RUNNER_TEMP/live-sentinel/node_modules/.bin/playwright" install --with-deps chromium
+
+      - name: Run read-only public production probes
+        env:
+          NODE_PATH: ${{ runner.temp }}/live-sentinel/node_modules
+          SENTINEL_EVIDENCE_DIR: ${{ runner.temp }}/live-sentinel-evidence
+        run: |
+          node --check tests/live_site_sentinel.cjs
+          node tests/live_site_sentinel.cjs
+
+      - name: Retain dated synthetic evidence even if a probe fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waithaka-live-site-sentinel
+          path: ${{ runner.temp }}/live-sentinel-evidence
+          if-no-files-found: ignore
+          retention-days: 14
