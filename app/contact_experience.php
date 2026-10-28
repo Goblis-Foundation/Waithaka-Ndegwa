@@ -11,7 +11,7 @@ function contact_guides(): array {return [
 ];}
 function contact_current_types(): array {return array_intersect_key(reader_enquiry_types(),contact_guides());}
 function contact_draft_values(array $in): array {
- $out=[];foreach(['first_name'=>120,'last_name'=>120,'email'=>190,'phone_code'=>12,'phone'=>60,'country'=>120,'county'=>120,'sub_county'=>120,'region'=>120,'district'=>120,'city'=>120,'message'=>10000]as$key=>$max){$v=$in[$key]??'';$out[$key]=is_string($v)&&mb_check_encoding($v,'UTF-8')?mb_substr(trim($v),0,$max):'';}
+ $out=[];foreach(['first_name'=>120,'last_name'=>120,'email'=>190,'phone_code'=>12,'phone'=>60,'country'=>120,'county'=>120,'sub_county'=>120,'ward'=>120,'region'=>120,'district'=>120,'city'=>120,'message'=>10000]as$key=>$max){$v=$in[$key]??'';$out[$key]=is_string($v)&&mb_check_encoding($v,'UTF-8')?mb_substr(trim($v),0,$max):'';}
  $type=$in['enquiry_type']??'general';$out['enquiry_type']=is_string($type)&&isset(contact_guides()[$type])?$type:'general';return $out;
 }
 function contact_form_nonce(mixed $value): string {return is_string($value)&&preg_match('/^[a-f0-9]{32}$/D',$value)?$value:'';}

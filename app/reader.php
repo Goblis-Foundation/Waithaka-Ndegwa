@@ -216,7 +216,7 @@ function reader_contact_values(array $message, array $input = []): array {
 /** Save the contact and work item atomically, commit, then attempt notification. */
 function reader_contact_submit(array $message, array $input = [], bool $notify = true): int {
     $values = reader_contact_values($message, $input);
-    $profile=null;if(array_intersect(['county','sub_county','region','district'],array_keys($input))){try{$profile=location_fields($input+['country'=>$values['country'],'city'=>$values['city']]);}catch(InvalidArgumentException $e){throw new ReaderValidationException($e->getMessage());}$values['country']=$profile['country'];$values['city']=$profile['city'];}
+    $profile=null;if(array_intersect(['county','sub_county','ward','region','district'],array_keys($input))){try{$profile=location_fields($input+['country'=>$values['country'],'city'=>$values['city']]);}catch(InvalidArgumentException $e){throw new ReaderValidationException($e->getMessage());}$values['country']=$profile['country'];$values['city']=$profile['city'];}
     $pdo = db(); $pdo->beginTransaction();
     try {
         $query = $pdo->prepare('INSERT INTO contact_messages(reference,first_name,last_name,email,phone_code,phone,country,city,message,ip_hash,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?)');

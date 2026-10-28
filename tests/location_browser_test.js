@@ -1,13 +1,13 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-let update;const county={value:'Nyeri'},sub={value:'Kieni West'},region={value:'England'},district={value:'Westminster'};
-const kenya={hidden:false,querySelectorAll:()=>[county,sub]},other={hidden:false,querySelectorAll:()=>[region,district]},label={};
+let update;const county={value:'Nyeri'},sub={value:'Kieni West'},ward={value:'Mweiga'},region={value:'England'},district={value:'Westminster'};
+const kenya={hidden:false,querySelectorAll:()=>[county,sub,ward]},other={hidden:false,querySelectorAll:()=>[region,district]},label={};
 const country={value:'Kenya',addEventListener(name,fn){assert.equal(name,'change');update=fn;}};
 const root={dataset:{},querySelector:s=>({'[data-location-country]':country,'[data-location-kenya]':kenya,'[data-location-international]':other,'[data-location-city-label]':label})[s]};
 const code=fs.readFileSync(path.join(__dirname,'../assets/js/location-fields.js'),'utf8'),context={document:{querySelectorAll:()=>[root]}};
 vm.runInNewContext(code,context);
-assert.equal(kenya.hidden,false);assert.equal(other.hidden,true);assert.equal(region.disabled,true);assert.equal(county.disabled,false);
-country.value='United Kingdom';update();assert.equal(kenya.hidden,true);assert.equal(county.disabled,true);assert.equal(other.hidden,false);assert.equal(region.disabled,false);assert.equal(label.textContent,'City / Town / Locality');
-country.value='Kenya';update();assert.equal(county.value,'Nyeri');assert.equal(sub.value,'Kieni West');assert.equal(county.disabled,false);assert.equal(label.textContent,'Town / Area');
+assert.equal(kenya.hidden,false);assert.equal(other.hidden,true);assert.equal(region.disabled,true);assert.equal(county.disabled,false);assert.equal(ward.disabled,false);
+country.value='United Kingdom';update();assert.equal(kenya.hidden,true);assert.equal(county.disabled,true);assert.equal(ward.disabled,true);assert.equal(other.hidden,false);assert.equal(region.disabled,false);assert.equal(label.textContent,'City / Town / Locality');
+country.value='Kenya';update();assert.equal(county.value,'Nyeri');assert.equal(sub.value,'Kieni West');assert.equal(ward.value,'Mweiga');assert.equal(ward.disabled,false);assert.equal(county.disabled,false);assert.equal(label.textContent,'Town / Area');
 vm.runInNewContext(code,context);assert.equal(root.dataset.locationReady,'1');
 console.log('PASS: country switching, inactive field exclusion, preserved edits and repeated script safety.');

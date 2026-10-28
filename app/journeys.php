@@ -229,7 +229,7 @@ function founders_submission_values(array $input): array {
         'country'=>journeys_text($input['country']??'','Country',120,true),'story_summary'=>journeys_text($input['story_summary']??'','Story',6000,true),
         'claimed_metrics'=>$metrics,'metric_basis'=>$basis,'private_evidence_notes'=>journeys_text($input['private_evidence_notes']??'','Private evidence notes',5000),
         'founder_publication_permission'=>($type==='founder'&&journeys_checked($input['founder_publication_permission']??null))?1:0];
-    if(array_intersect(['county','sub_county','region','district','city','phone'],array_keys($input))){try{$values['_location']=location_fields($input)+location_phone($input);}catch(InvalidArgumentException $e){throw new JourneyValidationException($e->getMessage());}}
+    if(array_intersect(['county','sub_county','ward','region','district','city','phone','phone_code'],array_keys($input))){try{$values['_location']=location_fields($input)+location_phone($input);}catch(InvalidArgumentException $e){throw new JourneyValidationException($e->getMessage());}}
     return $values;
 }
 function founders_submit(array $values): string {
