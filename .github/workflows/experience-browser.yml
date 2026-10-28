@@ -1,9 +1,9 @@
 name: Experience browser checks
 on:
   push:
-    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', '.github/workflows/experience-browser.yml']
+    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/public_layout_browser.cjs', '.github/workflows/experience-browser.yml']
   pull_request:
-    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', '.github/workflows/experience-browser.yml']
+    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/public_layout_browser.cjs', '.github/workflows/experience-browser.yml']
 permissions:
   contents: read
 concurrency:
@@ -47,6 +47,7 @@ jobs:
           export EXPERIENCE_EVIDENCE_DIR="$RUNNER_TEMP/experience-evidence"
           node tests/experience_browser.cjs
           node tests/experience_review_browser.cjs
+          node tests/public_layout_browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
