@@ -27,7 +27,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
 <link rel="icon" href="<?=asset('images/favicon.ico?v=20261027')?>"><link rel="icon" type="image/svg+xml" href="<?=asset('images/favicon.svg?v=20261027')?>"><link rel="icon" type="image/png" sizes="32x32" href="<?=asset('images/favicon-32.png?v=20261027')?>"><link rel="apple-touch-icon" href="<?=asset('images/apple-touch-icon.png?v=20261027')?>"><link rel="manifest" href="<?=url('/manifest.webmanifest')?>"><link rel="alternate" type="application/rss+xml" title="Waithaka Ndegwa — My Thoughts" href="<?=url('/feed.xml')?>">
 <link rel="stylesheet" href="<?=asset('css/site.css')?>"><link rel="stylesheet" href="<?=asset('css/experience.css')?>"><link rel="stylesheet" href="<?=asset('css/impact.css')?>"><link rel="stylesheet" href="<?=asset('css/journeys.css')?>">
 <?php foreach(['editorial','reader','discovery']as$style)if(is_file(__DIR__.'/../assets/css/'.$style.'.css')):?><link rel="stylesheet" href="<?=asset('css/'.$style.'.css')?>"><?php endif;?>
-<link rel="stylesheet" href="<?=asset('css/personal-refresh.css')?>"><link rel="stylesheet" href="<?=asset('css/brand-refresh.css')?>"><link rel="stylesheet" href="<?=asset('css/unified-experience.css')?>">
+<link rel="stylesheet" href="<?=asset('css/personal-refresh.css')?>"><link rel="stylesheet" href="<?=asset('css/brand-refresh.css')?>"><link rel="stylesheet" href="<?=asset('css/unified-experience.css')?>"><link rel="stylesheet" href="<?=asset('css/layout-refinement.css')?>">
 <?php foreach((array)$schema as $s):?><script type="application/ld+json"><?=json_encode($s,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?></script><?php endforeach;?>
 <?php if($recaptchaSite && in_array($page,['contact','booking'],true)):?><script src="https://www.google.com/recaptcha/api.js" async defer></script><?php endif;?>
 </head>
@@ -45,6 +45,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
       <a href="<?=url('/about')?>" <?=$page==='about'?'aria-current="page"':''?>>About</a>
       <a href="<?=url('/about#goals-2030')?>">Goal 2030</a>
       <a href="<?=url('/contact')?>" <?=$page==='contact'?'aria-current="page"':''?>>Contact</a>
+      <a class="nav-mobile-book" href="<?=url('/book')?>">Book time</a>
       <a class="nav-mobile-support" href="<?=url('/contribute')?>">Support the writing</a>
     </nav>
     <div class="header-actions">

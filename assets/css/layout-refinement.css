@@ -1,0 +1,198 @@
+/*
+ * Unified public page layout and compact secondary navigation.
+ * The same content edges are used by main sections, breadcrumbs and public UX pages.
+ * An explicit, wrapping list prevents the previously crowded eleven-tab rail
+ * from shrinking text into its neighbours. This file loads after legacy CSS.
+ */
+:root {
+  --page-gutter: clamp(16px, 2.65vw, 32px);
+}
+body .container {
+  width: min(var(--container), calc(100% - (var(--page-gutter) * 2)));
+  margin-inline: auto;
+}
+body :is(.reading-width, .article-reading) {
+  width: min(var(--reading), calc(100% - (var(--page-gutter) * 2)));
+  margin-inline: auto;
+}
+body .ux-page {
+  box-sizing: border-box;
+  width: min(var(--container), calc(100% - (var(--page-gutter) * 2)));
+  max-width: none;
+  margin-inline: auto;
+  padding: clamp(30px, 4vw, 52px) 0 clamp(52px, 6vw, 80px);
+}
+body .ux-page.ux-reading {
+  width: min(920px, calc(100% - (var(--page-gutter) * 2)));
+}
+body #main :is(.container, .ux-page) > * { min-width: 0; }
+body #main :is(.ux-page, .container) :is(img, video, iframe) { max-width: 100%; }
+body #main :is(.ux-page, .container) :is(pre, table) { max-width: 100%; }
+body #main :is(.ux-page, .container) :is(h1, h2, h3) { overflow-wrap: break-word; }
+body .ux-breadcrumbs { padding-block: 18px 12px; }
+
+/* Each quick link has its own hit area. No shrinking, text collision or clipped labels. */
+.public-explore-strip {
+  background: #f3f8fa;
+  border-bottom: 1px solid #d3e1e8;
+}
+.public-explore-strip nav.public-explore-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding-block: 11px;
+  overflow: visible;
+  white-space: normal;
+  scrollbar-width: auto;
+}
+.public-explore-strip .public-explore-label {
+  flex: 0 0 auto;
+  margin-right: 2px;
+  color: #526b7c;
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: none;
+}
+.public-explore-strip .public-explore-links {
+  display: flex;
+  flex: 1 1 530px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.public-explore-strip .public-explore-links a,
+.public-explore-strip a.public-explore-all {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #294d64;
+  background: transparent;
+  font-size: .83rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.public-explore-strip .public-explore-links a:hover,
+.public-explore-strip a.public-explore-all:hover {
+  background: #fff;
+  border-color: #b8cdd8;
+}
+.public-explore-strip .public-explore-links a[aria-current="page"],
+.public-explore-strip a.public-explore-all[aria-current="page"] {
+  color: #073b6a;
+  background: #fff;
+  border-color: #afc8d6;
+  box-shadow: inset 0 -2px 0 #2f6f3e;
+}
+.public-explore-strip a.public-explore-all {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #073b6a;
+  font-weight: 700;
+}
+.public-explore-strip a.public-explore-all span {
+  margin-left: 7px;
+  font-size: .95rem;
+}
+.public-explore-strip a:focus-visible {
+  outline: 3px solid #2f6f3e;
+  outline-offset: 2px;
+}
+
+/* Keep main navigation consistent across legacy 820/1150px breakpoints. */
+.site-header .header-actions { flex: 0 0 auto; }
+.site-header .main-nav a { flex: 0 0 auto; }
+.site-header .nav-mobile-book { display: none; }
+@media (min-width: 1181px) {
+  body .site-header .header-inner { flex-wrap: nowrap; gap: clamp(10px, 1.2vw, 18px); }
+  body .site-header .main-nav { gap: clamp(10px, 1.25vw, 20px); }
+  body .site-header .main-nav a { font-size: .82rem; }
+}
+@media (max-width: 1180px) {
+  body .site-header .header-inner {
+    flex-wrap: nowrap;
+    height: 76px;
+    min-height: 76px;
+    padding-block: 0;
+  }
+  body .site-header .main-nav.open {
+    display: flex;
+    position: absolute;
+    z-index: 12;
+    top: 100%;
+    left: var(--page-gutter);
+    right: var(--page-gutter);
+    width: auto;
+    max-height: calc(100dvh - 90px);
+    margin: 0;
+    padding: 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    background: #fff;
+    border: 1px solid #cedfe8;
+    border-radius: 0 0 14px 14px;
+    box-shadow: 0 14px 36px #073b6a20;
+  }
+  body .site-header .main-nav.open a {
+    min-height: 44px;
+    padding: 10px 12px;
+    white-space: normal;
+  }
+  body .site-header .menu-button { display: inline-flex !important; align-items: center; justify-content: center; gap: 6px; width: auto; min-width: 72px; }
+}
+@media (max-width: 740px) {
+  .public-explore-strip nav.public-explore-nav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding-block: 12px;
+  }
+  .public-explore-strip .public-explore-label { display: none; }
+  .public-explore-strip .public-explore-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .public-explore-strip .public-explore-links a {
+    flex: initial;
+    padding-inline: 9px;
+    background: #fff;
+    border-color: #dae6ed;
+  }
+  .public-explore-strip a.public-explore-all {
+    justify-self: end;
+    min-height: 34px;
+    margin-left: 0;
+    padding: 5px 9px;
+  }
+}
+@media (max-width: 600px) {
+  body .site-header .header-inner { height: 72px; min-height: 72px; }
+  body .site-header .brand.brand-approved img { max-width: 100%; }
+}
+@media (max-width: 440px) {
+  body .site-header .header-book-button { display: none; }
+  body .site-header .main-nav.open a.nav-mobile-book { display: block; }
+}
+@media (max-width: 360px) {
+  body .site-header .brand.brand-approved img { width: 178px !important; }
+  body .site-header .menu-button { min-width: 62px; }
+}
+@media print {
+  .public-explore-strip { display: none; }
+}

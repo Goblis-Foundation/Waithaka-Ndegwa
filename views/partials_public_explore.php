@@ -1,5 +1,19 @@
 <?php
-$explorePath=path_only();$showExplore=empty($privatePage)&&($explorePath==='/'||preg_match('~^/(?:explore|advertise|advertising-policy|start-here|my-thoughts|topic|startup-journeys|enterprises|founders|resources|watch|opportunities|partner-stories|promote|monthly-roundup)(?:/|$)~',$explorePath))&&!preg_match('~^/(?:founders/(?:submit|follow-up|story-review)|opportunities/(?:submit|review|evidence))(?:/|$)~',$explorePath);
-if($showExplore):?>
-<div class="public-explore-strip"><nav class="container" aria-label="Explore writing and practical work"><span>Explore</span><?php foreach(['/explore'=>'Explore journeys','/my-thoughts'=>'My Thoughts','/opportunities'=>'Opportunities','/monthly-roundup'=>'Monthly roundups','/partner-stories'=>'Partner stories','/promote'=>'Promote your business','/startup-journeys'=>'Startup Journeys','/enterprises'=>'Enterprise areas','/founders'=>'Founder Stories','/resources'=>'Resources','/watch'=>'Watch']as$destination=>$label):?><a href="<?=url($destination)?>" <?=($explorePath===$destination||str_starts_with($explorePath,$destination.'/'))?'aria-current="page"':''?>><?=e($label)?></a><?php endforeach;?></nav></div>
-<?php endif;?>
+/* A short, predictable secondary navigation. The complete index remains at /explore. */
+$explorePath=path_only();
+$showExplore=empty($privatePage)&&($explorePath==='/'||preg_match('~^/(?:explore|advertise|advertising-policy|start-here|my-thoughts|topic|startup-journeys|enterprises|founders|resources|watch|opportunities|partner-stories|promote|monthly-roundup)(?:/|$)~',$explorePath))&&!preg_match('~^/(?:founders/(?:submit|follow-up|story-review)|opportunities/(?:submit|review|evidence))(?:/|$)~',$explorePath);
+if($showExplore):
+$quickExplore=['/my-thoughts'=>'My Thoughts','/startup-journeys'=>'Startup Journeys','/resources'=>'Resources','/opportunities'=>'Opportunities'];
+?>
+<div class="public-explore-strip">
+  <nav class="container public-explore-nav" aria-label="Explore Waithaka Ndegwa">
+    <span class="public-explore-label" aria-hidden="true">Discover</span>
+    <div class="public-explore-links">
+    <?php foreach($quickExplore as $destination=>$label): ?>
+      <a href="<?=url($destination)?>" <?=($explorePath===$destination||str_starts_with($explorePath,$destination.'/'))?'aria-current="page"':''?>><?=e($label)?></a>
+    <?php endforeach; ?>
+    </div>
+    <a class="public-explore-all" href="<?=url('/explore')?>" <?=($explorePath==='/explore'||str_starts_with($explorePath,'/explore/'))?'aria-current="page"':''?>>All sections <span aria-hidden="true">↗</span></a>
+  </nav>
+</div>
+<?php endif; ?>
