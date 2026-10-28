@@ -108,23 +108,45 @@ function gcs_commit(array $a,string $calendar,array $cfg,string $key,array $snap
 function gcs_preferences(int $uid,bool $enabled,bool $push): void {
     comm_lock('gcs-owner-'.$uid,static function()use($uid,$enabled,$push){comm_put('google.calendar.sync.'.$uid,['enabled'=>$enabled,'push'=>$enabled&&$push,'generation'=>bin2hex(random_bytes(16))]);if(!$enabled)gcs_purge($uid,[],time());});
 }
+function gcs_due(array $a,array $old,array $cfg,array $notice,int $now): bool {
+    // A reviewed account/selection change may recover immediately. Notifications cannot bypass backoff.
+    if(($old['revision']??'')!==gcs_revision($a))return true;
+    if(($old['attempted']??0)>$now-60||($old['retry_at']??0)>$now)return false;
+    return ($old['observed']??0)<=$now-900||($notice&&hash('sha256',publishing_json($notice))!==($old['notice_seen']??''))||(!empty($cfg['push'])&&($old['channel']['expires']??0)<=$now+3600);
+}
+/** Persist only classified status, never exception bodies, credentials or provider response data. */
+function gcs_failure(Throwable $error,string $phase,int $failures,int $now): array {
+    $status=$error instanceof PublishingRemoteException?$error->httpStatus:0;
+    $failures=max(1,min(10,$failures));$delay=min(3600,300*(2**min(4,$failures-1)));
+    if(in_array($status,[400,401,404],true))$delay=max(1800,$delay);
+    $message=match($status){
+        400,401=>$phase==='access'?'Google rejected access renewal (HTTP '.$status.'). Review this account\'s Google authorization and application settings.':'Google rejected calendar refresh (HTTP '.$status.'). Review this calendar and application settings.',
+        403=>'Google restricted access or quota (HTTP 403). Review account permissions and Google API limits.',
+        404=>'Google could not return the selected calendar (HTTP 404). Review its availability and account access.',
+        429=>'Google reached a request limit (HTTP 429). Automatic retries will slow down.',
+        default=>$status>=500&&$status<=599?'Google is temporarily unavailable (HTTP '.$status.'). Automatic retries will slow down.':'The refresh did not return a complete, usable response. Review the connection if this continues.',
+    };
+    return ['error'=>$message.' Any previous snapshot remains stale.','failures'=>$failures,'retry_at'=>$now+min(3600,$delay+random_int(0,60))];
+}
 function gcs_work(?int $now=null,?callable $http=null): array {
     $now??=time();$http??='publishing_http';$uid=(int)(comm_config()['owner']??0);$cfg=gcs_config($uid);
     if(!$uid||empty($cfg['enabled']))return ['enabled'=>false,'checked'=>0];
-    $queue=[];$active=[];foreach(google_calendar_accounts($uid)as$a)if($a['status']==='connected')foreach(publishing_decode($a['selected_json'])as$id){$key=gcs_key((int)$a['id'],$id);$active[$key]=true;$old=comm_get($key);$notice=comm_get($key.'.notice');$due=($old['observed']??0)<=$now-900||($notice&&hash('sha256',publishing_json($notice))!==($old['notice_seen']??''))||($old['revision']??'')!==gcs_revision($a)||(!empty($cfg['push'])&&($old['channel']['expires']??0)<=$now+3600);if($due&&($old['attempted']??0)<=$now-60)$queue[]=['a'=>$a,'id'=>$id,'key'=>$key,'attempted'=>$old['attempted']??0];}
+    $queue=[];$active=[];foreach(google_calendar_accounts($uid)as$a)if($a['status']==='connected')foreach(publishing_decode($a['selected_json'])as$id){$key=gcs_key((int)$a['id'],$id);$active[$key]=true;$old=comm_get($key);if(gcs_due($a,$old,$cfg,comm_get($key.'.notice'),$now))$queue[]=['a'=>$a,'id'=>$id,'key'=>$key,'attempted'=>$old['attempted']??0];}
     comm_lock('gcs-owner-'.$uid,static fn()=>gcs_purge($uid,$active,$now));if(count($active)>30)throw new RuntimeException('Select at most 30 calendars for background refresh.');
     usort($queue,static fn($a,$b)=>$a['attempted']<=>$b['attempted']);$result=['enabled'=>true,'checked'=>0,'failed'=>0];
     foreach(array_slice($queue,0,4)as$item)try{comm_lock($item['key'],static function()use($item,$cfg,$now,$http,&$result){
         $a=google_calendar_owned((int)$item['a']['id'],(int)$item['a']['user_id']);if(!gcs_context_current($a,$item['id'],$cfg))return;
-        $old=comm_get($item['key']);$revision=gcs_revision($a);if(($old['revision']??'')!==$revision)$old=[];
-        $old['attempted']=$now;$old['owner']=(int)$a['user_id'];$old['key']=$item['key'];if(!gcs_commit($a,$item['id'],$cfg,$item['key'],$old))return;$noticeBefore=comm_get($item['key'].'.notice');
+        $old=comm_get($item['key']);$noticeBefore=comm_get($item['key'].'.notice');if(!gcs_due($a,$old,$cfg,$noticeBefore,$now))return;
+        $revision=gcs_revision($a);if(($old['revision']??'')!==$revision)$old=[];
+        $old['attempted']=$now;$old['revision']=$revision;$old['owner']=(int)$a['user_id'];$old['key']=$item['key'];if(!gcs_commit($a,$item['id'],$cfg,$item['key'],$old))return;
+        $phase='access';
         try{
-            $headers=publishing_bearer(google_calendar_token($a));$new=gcs_fetch($item['id'],$old,$now,$headers,$http);
+            $headers=publishing_bearer(google_calendar_token($a));$phase='events';$new=gcs_fetch($item['id'],$old,$now,$headers,$http);
             if(!gcs_context_current($a,$item['id'],$cfg))return;
             $new['revision']=$revision;$new['owner']=(int)$a['user_id'];$new['key']=$item['key'];$new['calendar']=$item['id'];$new['channel']=$old['channel']??[];$new['notice_seen']=hash('sha256',publishing_json($noticeBefore));
             if(!empty($cfg['push']))try{$new['channel']=gcs_watch($a,$item['id'],$item['key'],$old,$headers,$http,$now);$new['push_error']='';}catch(Throwable){$new['push_error']='Channel registration needs review; polling continues.';}
             if(gcs_commit($a,$item['id'],$cfg,$item['key'],$new))$result['checked']++;
-        }catch(Throwable){$old['error']='Refresh incomplete. The previous snapshot is retained as stale.';$old['attempted']=$now;if(gcs_commit($a,$item['id'],$cfg,$item['key'],$old))$result['failed']++;}
+        }catch(Throwable $e){$old=array_replace($old,gcs_failure($e,$phase,(int)($old['failures']??0)+1,$now));if(gcs_commit($a,$item['id'],$cfg,$item['key'],$old))$result['failed']++;}
     });}catch(Throwable){$result['failed']++;}
     comm_put('google.calendar.sync.status.'.$uid,$result+['at'=>$now]);return $result;
 }
@@ -142,6 +164,6 @@ function gcs_dispatch(string $path): bool {
         if($action==='settings'){$enabled=($_POST['enabled']??'')==='1';$push=($_POST['push']??'')==='1';$count=0;foreach(google_calendar_accounts($uid)as$a)if($a['status']==='connected')$count+=count(publishing_decode($a['selected_json']));if($enabled&&($count===0||$count>30))throw new RuntimeException('Select between 1 and 30 calendars across your confirmed accounts.');gcs_preferences($uid,$enabled,$push);flash('success','Private refresh preferences saved. Public booking checks still query live availability.');}
         elseif($action==='refresh'){gcs_work();flash('success','Up to four due calendars checked. Review the status below.');}else throw new RuntimeException('Choose a supported action.');redirect(url('/write/google/sync'));}
     }catch(Throwable $e){$error=$e instanceof PDOException?'The preference could not be saved.':$e->getMessage();}
-    $rows=[];foreach(google_calendar_accounts($uid)as$a)if($a['status']==='connected'){$names=array_column(publishing_decode($a['calendars_json']),'name','id');foreach(publishing_decode($a['selected_json'])as$id){$cache=comm_get(gcs_key((int)$a['id'],$id));$rows[]=['account'=>$a['display_name'],'calendar'=>$names[$id]??'Selected calendar','observed'=>$cache['observed']??0,'mode'=>$cache['mode']??'Not checked','count'=>count($cache['events']??[]),'error'=>$cache['error']??'','push_error'=>$cache['push_error']??'','expires'=>$cache['channel']['expires']??0];}}
+    $rows=[];foreach(google_calendar_accounts($uid)as$a)if($a['status']==='connected'){$names=array_column(publishing_decode($a['calendars_json']),'name','id');foreach(publishing_decode($a['selected_json'])as$id){$cache=comm_get(gcs_key((int)$a['id'],$id));$rows[]=['account'=>$a['display_name'],'calendar'=>$names[$id]??'Selected calendar','observed'=>$cache['observed']??0,'attempted'=>$cache['attempted']??0,'retry_at'=>$cache['retry_at']??0,'mode'=>$cache['mode']??'Not checked','count'=>count($cache['events']??[]),'error'=>$cache['error']??'','push_error'=>$cache['push_error']??'','expires'=>$cache['channel']['expires']??0];}}
     render_write('google_calendar_sync',['writeTitle'=>'Private calendar refresh','config'=>gcs_config($uid),'rows'=>$rows,'error'=>$error]);return true;
 }
