@@ -1,9 +1,9 @@
 name: Experience browser checks
 on:
   push:
-    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/public_layout_browser.cjs', '.github/workflows/experience-browser.yml']
+    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/public_layout_browser.cjs', 'tests/sitewide_css_contract_test.py', 'deploy/aws/public_css_contract.py', 'deploy/aws/verify_public_journeys.py', '.github/workflows/experience-browser.yml']
   pull_request:
-    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/public_layout_browser.cjs', '.github/workflows/experience-browser.yml']
+    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/public_layout_browser.cjs', 'tests/sitewide_css_contract_test.py', 'deploy/aws/public_css_contract.py', 'deploy/aws/verify_public_journeys.py', '.github/workflows/experience-browser.yml']
 permissions:
   contents: read
 concurrency:
