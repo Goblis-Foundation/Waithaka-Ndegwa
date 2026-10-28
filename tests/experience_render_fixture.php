@@ -3,7 +3,7 @@ declare(strict_types=1);
 if(PHP_SAPI!=='cli'||count($argv)!==2)exit(2);
 $out=realpath($argv[1]);if(!$out||!str_starts_with($out,sys_get_temp_dir().'/')&&!str_starts_with($out,(string)getenv('RUNNER_TEMP').'/'))throw new RuntimeException('Use a disposable fixture directory.');
 $CONFIG=['app_env'=>'testing','base_url'=>'http://127.0.0.1:8125','timezone'=>'Africa/Nairobi','app_key'=>'local-only-fixture-'.str_repeat('x',40)];$APP_INSTALLED=false;$_SESSION=[];$_GET=[];
-foreach(['functions','location','publishing_desk_policy','commercial_control','experience_workflows','promotion_experience','analytics','discovery']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
+foreach(['functions','location','publishing_desk_policy','commercial_control','experience_workflows','promotion_experience','analytics','discovery','journeys','enterprises']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
 function ef_render(string $view,array $data=[]):string{extract($data,EXTR_SKIP);ob_start();include dirname(__DIR__).'/views/'.$view.'.php';return (string)ob_get_clean();}
 function ef_page(string $body,bool $workspace=false):string{
  $styles=$workspace?['write','workspace','workspace-polish','unified-experience']:['site','experience','personal-refresh','brand-refresh','unified-experience'];$head='';foreach($styles as$s)$head.='<link rel="stylesheet" href="/assets/css/'.$s.'.css">';
@@ -60,6 +60,45 @@ foreach(['contact','booking','founder','consent','promote','opportunity','client
      'locationLegend'=>'Contact and location'
    ]).'<button type="button">No submission</button></form></main>';
   file_put_contents($out.'/location-'.$prefix.'.html',ef_page($form));
+}
+/* Broader flow acceptance: render real static public templates with empty or
+ * synthetic data. No production connection, real client or external service.
+ * The page layout and its body-loaded CSS are retained, so alignment checks
+ * can compare actual public surfaces against the same header gutters. */
+$emptyPage=['total'=>0,'start'=>0,'end'=>0,'page'=>1,'pages'=>0,'previous'=>'','next'=>''];
+$fixtures=[
+  'start-here'=>['/start-here','editorial','editorial/start',['seasons'=>[]]],
+  'startup-journeys'=>['/startup-journeys','journeys','journeys/index',['seasons'=>[]]],
+  'founder-stories'=>['/founders','founders','founders/index',['stories'=>[],'pagination'=>$emptyPage]],
+  'resources'=>['/resources','editorial','editorial/collection',['type'=>'resource','items'=>[],'pagination'=>$emptyPage]],
+  'watch'=>['/watch','editorial','editorial/collection',['type'=>'watch','items'=>[],'pagination'=>$emptyPage]],
+  'enterprises'=>['/enterprises','enterprises','enterprises/index',[
+    'filters'=>['q'=>'','country'=>'','sector'=>'','stage'=>''],'countries'=>[],'sectors'=>[],'profiles'=>[]
+  ]],
+  'employment'=>['/opportunities/jobs','founders','opportunities/index',['q'=>'','items'=>[]]],
+  'opportunities'=>['/opportunities','experience','desk/index',[
+    'kind'=>'opportunity','items'=>[],'filters'=>['q'=>'','type'=>'','country'=>'','sector'=>'','status'=>''],
+    'pageNumber'=>1,'total'=>0,'jobs'=>[]
+  ]],
+  'partner-stories'=>['/partner-stories','experience','desk/index',[
+    'kind'=>'sponsored','items'=>[],'filters'=>['q'=>'','type'=>'','country'=>'','sector'=>'','status'=>''],
+    'pageNumber'=>1,'total'=>0,'jobs'=>[]
+  ]],
+  'monthly-roundup'=>['/monthly-roundup','newsletter','roundup/index',['editions'=>[]]],
+  'newsletter'=>['/newsletter','newsletter','journeys/newsletter',['values'=>[]]],
+  'explore'=>['/explore','experience','experience/hub',[]],
+  'advertise'=>['/advertise','experience','experience/advertise',[]],
+  'advertising-policy'=>['/advertising-policy','experience','experience/advertising_policy',[]],
+  'promotion-intake'=>['/promote','experience','desk/promote',[
+    'values'=>[],'nonce'=>$nonce,'received'=>false,'error'=>''
+  ]],
+];
+foreach($fixtures as$key=>[$path,$page,$view,$values]){
+    $_SERVER['REQUEST_URI']=$path;
+    $body=ef_render($view,$values);
+    file_put_contents($out.'/sitewide-'.$key.'.html',
+        ef_render('layout',['page'=>$page,'content'=>$body,'suppressAnalytics'=>true,
+            'privatePage'=>in_array($key,['newsletter','promotion-intake'],true)]));
 }
 $_SERVER['REQUEST_URI']='/';
 

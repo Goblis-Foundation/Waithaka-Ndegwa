@@ -33,8 +33,8 @@ print("PASS: Public search page and current labelled responsive controls.")
 css = read("/assets/css/layout-refinement.css")
 if ".page-search .search-page-form" not in css or "grid-template-columns" not in css:
     raise RuntimeError("Current search layout CSS is unavailable.")
-form_rule = re.search(r"\\.page-search\\s+\\.search-page-form\\s*\\{([^}]*)\\}", css, re.S)
-if form_rule is None or re.search(r"max-width:\\s*none\\s*;", form_rule.group(1)) is None:
+form_rule = re.search(r"\.page-search\s+\.search-page-form\s*\{([^}]*)\}", css, re.S)
+if form_rule is None or re.search(r"max-width:\s*none\s*;", form_rule.group(1)) is None:
     raise RuntimeError("The current search form still has a narrower width cap.")
 search_results = read("/search?q=enterprise&type=post")
 for expected in ('class="container search-results-container"', 'class="search-page-form"',

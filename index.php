@@ -140,7 +140,7 @@ if ($path === '/contact') {
         flash('success','Thank you. Your message has been received. Reference: '.$m['reference']);redirect(url('/contact#contact-receipt')); 
     }
     $contactDraft=$_SESSION['contact_form']??[];$contactReceipt=$_SESSION['contact_receipt']??null;unset($_SESSION['contact_form'],$_SESSION['contact_receipt']);if($contactDraft||$contactReceipt)header('X-Robots-Tag: noindex, nofollow, noarchive');$queryType=is_string($_GET['type']??null)&&isset(contact_guides()[$_GET['type']])?$_GET['type']:'general';$contactValues=$contactDraft+['enquiry_type'=>$queryType,'phone_code'=>'+254','country'=>'Kenya'];
-    render('contact',['contactValues'=>$contactValues,'contactReceipt'=>$contactReceipt,'page'=>'contact','seo'=>['title'=>'Contact · Waithaka Ndegwa','description'=>'Contact Waithaka Ndegwa for thoughtful questions, speaking invitations, collaborations, media enquiries or responses to My Thoughts.','canonical'=>url('/contact')]]);exit;
+    render('contact',['contactValues'=>$contactValues,'contactReceipt'=>$contactReceipt,'page'=>'contact','seo'=>['title'=>'Contact · Waithaka Ndegwa','description'=>'Contact Waithaka Ndegwa for thoughtful questions, collaborations, media enquiries or responses to My Thoughts.','canonical'=>url('/contact')]]);exit;
 }
 
 if ($path === '/contribute') {

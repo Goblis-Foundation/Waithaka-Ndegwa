@@ -9,8 +9,8 @@ function opportunity_error(Throwable $e): string {if($e instanceof InvalidArgume
 function opportunity_dispatch(string $path): bool {
  if(desk_dispatch($path))return true;
  if(opportunity_webhook_dispatch($path))return true;
- if($path==='/opportunities'){
-  journeys_method(['GET','HEAD']);$items=opportunity_public_list();$q=is_string($_GET['q']??null)&&mb_check_encoding($_GET['q'],'UTF-8')?mb_substr(trim($_GET['q']),0,120):'';$items=array_values(array_filter($items,static fn($p)=>$q===''||mb_stripos($p['title'].' '.$p['organisation'].' '.location_label($p),$q)!==false));opportunity_render('index',compact('items','q'),'Opportunities','/opportunities');return true;
+ if($path==='/opportunities/jobs'){
+  journeys_method(['GET','HEAD']);$items=opportunity_public_list();$q=is_string($_GET['q']??null)&&mb_check_encoding($_GET['q'],'UTF-8')?mb_substr(trim($_GET['q']),0,120):'';$items=array_values(array_filter($items,static fn($p)=>$q===''||mb_stripos($p['title'].' '.$p['organisation'].' '.location_label($p),$q)!==false));opportunity_render('index',compact('items','q'),'Employment opportunities','/opportunities/jobs');return true;
  }
  if($path==='/opportunities/submit'){
   journeys_method(['GET','POST']);private_response_headers();$error='';$values=['country'=>'Kenya','phone_code'=>'+254','timezone'=>'Africa/Nairobi'];

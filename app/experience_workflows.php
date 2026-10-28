@@ -4,7 +4,7 @@ declare(strict_types=1);
 function ux_journeys(): array {
  return [
   ['key'=>'read','title'=>'Read and explore','intro'=>'Follow first-hand ideas, practical resources and the public record.','links'=>['/my-thoughts'=>'Read My Thoughts','/startup-journeys'=>'Follow Startup Journeys','/founders'=>'Read Founder Stories','/resources'=>'Use a practical resource','/watch'=>'Watch published videos','/monthly-roundup'=>'Read the monthly roundup']],
-  ['key'=>'opportunities','title'=>'Find or share an opportunity','intro'=>'Check the source, eligibility and dates before taking the next step.','links'=>['/opportunities'=>'Find funding, programmes and roles','/opportunities/submit'=>'Submit an employment opportunity','/enterprises'=>'Explore enterprise areas']],
+  ['key'=>'opportunities','title'=>'Find or share an opportunity','intro'=>'Check the source, eligibility and dates before taking the next step.','links'=>['/opportunities'=>'Find funding, programmes and roles','/opportunities/jobs'=>'Browse employment roles','/opportunities/submit'=>'Submit an employment opportunity','/enterprises'=>'Explore enterprise areas']],
   ['key'=>'participate','title'=>'Share an experience','intro'=>'Submit privately, review the facts and choose what may become public.','links'=>['/founders/submit'=>'Submit a founder story','/contact?type=correction'=>'Suggest a factual correction','/contact?type=reader_question'=>'Continue a conversation']],
   ['key'=>'promote','title'=>'Propose a sponsored feature','intro'=>'Check suitability, build a brief, agree the scope and follow verified delivery.','links'=>['/advertise'=>'Explore the publishing service','/advertising-policy'=>'Check advertising suitability','/promote'=>'Build an interactive brief','/partner-stories'=>'Read published partner stories']],
   ['key'=>'connect','title'=>'Connect and keep in touch','intro'=>'Choose a purposeful conversation or subscribe with control over your preferences.','links'=>['/book'=>'Request a meeting','/contact'=>'Send an enquiry','/professional-information'=>'Media and professional information','/newsletter'=>'Subscribe to My Thoughts','/newsletter/preferences/request'=>'Manage email preferences']],
@@ -27,6 +27,7 @@ function ux_public_metadata(): array {
   '/advertise'=>['Sponsored articles and social promotion · Waithaka Ndegwa','Explore reviewed sponsored articles and agreed social promotion. Compare publishing packages, check suitability and build a private business brief.'],
   '/advertising-policy'=>['Advertising suitability and editorial standards · Waithaka Ndegwa','Understand what is reviewed before a sponsored feature is accepted: relevance, truthful claims, safety, evidence, permissions and clear disclosure.'],
   '/opportunities'=>['Grants, funding and opportunities · Waithaka Ndegwa','Discover published grants, fellowships, conferences, programmes and enterprise opportunities. Check eligibility, deadlines and official application links.'],
+  '/opportunities/jobs'=>['Employment opportunities · Waithaka Ndegwa','Browse founder-approved employment and volunteer roles. Apply through each employer, with no CV collection on this website.'],
   '/partner-stories'=>['Sponsored partner stories · Waithaka Ndegwa','Read clearly disclosed sponsored features about businesses, products and services, with information and links to the responsible providers.'],
   '/monthly-roundup'=>['Monthly roundups · Waithaka Ndegwa','Explore the monthly public record of writing, opportunities and practical updates, with a welcome to each new month.']
  ];
@@ -52,7 +53,7 @@ function ux_breadcrumb_schema(array $crumbs): array {
  $items=[];foreach($crumbs as$i=>$crumb)$items[]=['@type'=>'ListItem','position'=>$i+1,'name'=>$crumb['name'],'item'=>$crumb['url']];return ['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>$items];
 }
 function ux_sitemap_entries(): array {
- $entries=desk_sitemap();$extra=['/explore','/advertise','/advertising-policy','/monthly-roundup'];foreach($extra as$path)$entries[]=['loc'=>url($path)];
+ $entries=desk_sitemap();$extra=['/explore','/advertise','/advertising-policy','/monthly-roundup','/opportunities/jobs'];foreach($extra as$path)$entries[]=['loc'=>url($path)];
  foreach(comm_records('roundup.edition',240)as$r)if(!empty($r['public'])&&is_int($r['published_at']??null)&&$r['published_at']<=time()&&preg_match('/^[0-9]{4}-(0[1-9]|1[0-2])$/D',$r['key']??''))$entries[]=['loc'=>url('/monthly-roundup/'.$r['key']),'lastmod'=>gmdate(DATE_ATOM,$r['published_at'])];
  $out=[];foreach($entries as$entry){$path=(string)parse_url($entry['loc']??'',PHP_URL_PATH);if($path==='/promote'||str_starts_with($path,'/client')||str_starts_with($path,'/write')||str_contains($entry['loc']??'','?'))continue;$out[$entry['loc']]=$entry;}
  return array_values($out);
