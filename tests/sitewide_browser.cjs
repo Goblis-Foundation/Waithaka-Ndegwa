@@ -41,6 +41,15 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
   await page.goto(host+'sitewide-'+key+'.html');
   const urls=await page.locator('main#main a[href]').evaluateAll(els=>els.map(el=>new URL(el.href).pathname+new URL(el.href).hash));
   for(const path of requiredLinks[key]||[])ok(urls.includes(path),key+' links to '+path+' without a dead-end');
+
+  // This is shared runtime behavior: any template with three or more visible
+  // section headings receives it unless a dedicated page navigator exists.
+  const outline=page.locator('#main > nav.ux-page-outline');
+  const allOutlines=page.locator('#main nav.ux-page-outline');
+  ok(await allOutlines.count()<=1,key+' never duplicates generated section navigation');
+  if(await allOutlines.count()){
+   ok(await outline.count()===1,key+' generated section navigation is a direct child of the main landmark');
+  }
   if(key==='resources')ok(await page.locator('.editorial-empty h2').innerText()==='No resources are published yet.','Resource-specific empty state');
   if(key==='watch')ok(await page.locator('.editorial-empty h2').innerText()==='No videos have been published yet.','Video-specific empty state');
   if(key==='partner-stories'){

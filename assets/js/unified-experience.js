@@ -41,7 +41,12 @@
  // In-page navigation, not another menu full of actions. Content remains visible and printable.
  const content=document.querySelector('#writer-content')||document.querySelector('#main');
  if(content){const headings=Array.from(content.querySelectorAll('h2')).filter(h=>shown(h)&&!h.closest('.promote-experience,.ux-page-heading,.ux-stat-grid,dialog,[data-no-outline]'));
-  if(headings.length>=3&&!content.querySelector('.personal-page-nav,[data-page-outline]')){const nav=make('nav',undefined,'ux-page-outline');nav.setAttribute('aria-label','On this page');const label=make('label','On this page'),select=make('select');select.setAttribute('aria-label','Jump to a section');select.append(new Option('Choose a section…',''));headings.slice(0,30).forEach((h,i)=>{if(!h.id){let id='ux-section-'+i;while(document.getElementById(id))id+='x';h.id=id;}select.append(new Option(h.textContent.trim().slice(0,100),h.id));});label.append(select);nav.append(label);select.addEventListener('change',()=>{const target=document.getElementById(select.value);if(target){target.tabIndex=-1;reveal(target);}});const top=content.querySelector('main,article,section');(top||content).prepend(nav);}
+  if(headings.length>=3&&!content.querySelector('.personal-page-nav,[data-page-outline]')){const nav=make('nav',undefined,'ux-page-outline');nav.setAttribute('aria-label','On this page');const label=make('label','On this page'),select=make('select');select.setAttribute('aria-label','Jump to a section');select.append(new Option('Choose a section…',''));headings.slice(0,30).forEach((h,i)=>{if(!h.id){let id='ux-section-'+i;while(document.getElementById(id))id+='x';h.id=id;}select.append(new Option(h.textContent.trim().slice(0,100),h.id));});label.append(select);nav.append(label);select.addEventListener('change',()=>{const target=document.getElementById(select.value);if(target){target.tabIndex=-1;reveal(target);}});// A full-bleed section is not a layout container. Insert the outline as a
+   // sibling before the first content section, after the public discovery and
+   // breadcrumb strips. CSS owns the shared centered horizontal gutters.
+   const top=content.querySelector('main,article,section');
+   if(content.id==='main'&&top&&top.parentElement===content)content.insertBefore(nav,top);
+   else (top||content).prepend(nav);}
  }
  // Long forms get local completion and review assistance. We leave original submit buttons,
  // names, server validation, consent, draft saves and existing specialised wizards untouched.

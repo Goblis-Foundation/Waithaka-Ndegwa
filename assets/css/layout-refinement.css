@@ -390,3 +390,32 @@ body #main .desk-filter.desk-filter-sponsored button { min-height: 45px; }
   }
   body #main .desk-filter.desk-filter-sponsored > label:first-child { grid-column: auto; }
 }
+
+/* Shared, JS-generated section chooser: centered within the SAME site-wide
+   content gutters as the logo, Discover links and page text. It is a content
+   component, never a full-bleed secondary navigation bar. */
+body #main > nav.ux-page-outline {
+  box-sizing: border-box;
+  width: min(var(--container), calc(100% - (var(--page-gutter) * 2)));
+  max-width: none;
+  margin: clamp(18px, 2.6vw, 28px) auto clamp(18px, 2.6vw, 28px);
+  padding: clamp(12px, 1.5vw, 18px);
+  border-radius: 12px;
+}
+body #main > nav.ux-page-outline label {
+  display: grid;
+  grid-template-columns: minmax(105px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(10px, 2vw, 20px);
+  min-width: 0;
+}
+body #main > nav.ux-page-outline select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 48px;
+}
+@media (max-width: 600px) {
+  body #main > nav.ux-page-outline label { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}

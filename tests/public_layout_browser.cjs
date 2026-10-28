@@ -19,6 +19,26 @@ const fs=require('node:fs');
  check(await page.locator('#site-main-nav a[href*="#goals-2030"]').count()===0,'Goal 2030 is not a standalone primary menu destination');
  check(await page.locator('.site-footer a[href*="#goals-2030"]').count()===1,'Goal 2030 remains discoverable as a content section from footer');
  check((await page.locator('link[href*="layout-refinement.css"]').count())===1,'Shared refinement stylesheet loads once');
+ // The automatic "On this page" selector is created at runtime; it must sit
+ // BETWEEN Discover and the hero, rather than inside a full-bleed hero section.
+ await page.waitForSelector('#main > nav.ux-page-outline');
+ check(await page.locator('#main > nav.ux-page-outline').count()===1,'Homepage uses one top-level generated section chooser');
+ for(const width of sizes){
+  await page.setViewportSize({width,height:900});
+  const navAlignment=await page.evaluate(()=>{
+   const rectangle=el=>el.getBoundingClientRect();
+   const frame=rectangle(document.querySelector('.site-header .container'));
+   const outline=rectangle(document.querySelector('#main > nav.ux-page-outline'));
+   const strip=rectangle(document.querySelector('.public-explore-strip'));
+   const hero=rectangle(document.querySelector('.home-hero'));
+   return {left:Math.abs(frame.left-outline.left),right:Math.abs(frame.right-outline.right),
+           sequence:strip.bottom<=outline.top+1&&outline.bottom<=hero.top+1,
+           overflow:document.documentElement.scrollWidth-innerWidth};
+  });
+  check(navAlignment.left<=2&&navAlignment.right<=2&&navAlignment.sequence&&navAlignment.overflow<=2,
+    'Homepage generated section selector centered in shared gutters at '+width+'px: '+JSON.stringify(navAlignment));
+ }
+
  for(const width of sizes){
   await page.setViewportSize({width,height:900});
   await page.evaluate(()=>window.scrollTo(0,0));
