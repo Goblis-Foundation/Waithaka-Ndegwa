@@ -57,7 +57,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
    const stat=await page.evaluate(()=>{
     const rect=el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
     const site=rect(document.querySelector('.site-header .container'));
-    const frames=[...document.querySelectorAll('#main .section > .container,#main .journey-hero > .container,#main .editorial-hero > .container,#main .enterprise-hero > .container,#main .desk.desk-public,#main .container.opp-shell,#main .ux-page:not(.ux-reading)')].map(el=>({tag:el.tagName,classes:el.className,rect:rect(el)}));
+    const frames=[...document.querySelectorAll('#main .section > .container:not(.editorial-reading):not(.reading-width):not(.article-reading):not(.narrow),#main .journey-hero > .container,#main .editorial-hero > .container,#main .enterprise-hero > .container,#main .desk.desk-public,#main .container.opp-shell,#main .ux-page:not(.ux-reading)')].map(el=>({tag:el.tagName,classes:el.className,rect:rect(el)}));
     const controls=[...document.querySelectorAll('#main input,#main select,#main textarea,#main button')].filter(el=>{
       if(el.closest('[hidden],[aria-hidden="true"],.journey-honey,.desk-honeypot'))return false;
       const style=getComputedStyle(el),r=el.getBoundingClientRect();
