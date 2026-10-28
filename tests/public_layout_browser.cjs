@@ -36,6 +36,7 @@ const fs=require('node:fs');
    }
    return {overflow:document.documentElement.scrollWidth-innerWidth,header,headerContent,strip,hero,heroContent,items,linkOverlaps};
   });
+  if(info.overflow>2){const offenders=await page.evaluate(()=>[...document.body.querySelectorAll('*')].map(el=>({tag:el.tagName,cls:(el.className?.baseVal||el.className||'').toString().slice(0,90),rect:el.getBoundingClientRect().toJSON()})).filter(x=>x.rect.right>innerWidth+3||x.rect.left< -3).slice(0,18));console.log('OVERFLOW DIAGNOSTIC',width,JSON.stringify(offenders));}
   check(info.overflow<=2,'No horizontal document overflow at '+width+'px (overflow '+info.overflow+')');
   check(info.linkOverlaps.length===0,'Secondary navigation links never collide at '+width+'px: '+JSON.stringify(info.linkOverlaps));
   check(info.items.every(r=>r.width>=60&&r.height>=34&&r.left>=-1&&r.right<=width+1),'Discover links fit and remain clickable at '+width+'px');
