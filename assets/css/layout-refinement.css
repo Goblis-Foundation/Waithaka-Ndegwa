@@ -186,7 +186,12 @@ body .ux-breadcrumbs { padding-block: 18px 12px; }
   body .site-header .brand.brand-approved img { max-width: 100%; }
 }
 @media (max-width: 440px) {
-  body .site-header .header-book-button { display: none; }
+  /* The legacy 380px rule uses !important to force a Support pill back into
+     the header. Override that only for Book time: its link moves into Menu. */
+  body .site-header .header-actions a.header-book-button { display: none !important; }
+  body .site-header .header-actions a.header-support-link,
+  body .site-header .header-actions a.icon-button { display: none !important; }
+  body .site-header .header-actions { min-width: 0; }
   body .site-header .main-nav.open a.nav-mobile-book { display: block; }
 }
 @media (max-width: 360px) {
