@@ -335,3 +335,34 @@ body .ux-breadcrumbs { padding-block: 18px 12px; }
   .page-search .search-page-form { padding: 12px; }
   .page-search .search-page-form :is(input,select) { padding: 10px; font-size: 16px; }
 }
+
+/* Site-wide content-frame reconciliation — all major public layouts.
+ * Route-specific CSS may load within the body after these rules, so selectors
+ * intentionally outrank legacy one-class width declarations without !important.
+ * Editorial reading columns remain deliberately narrower. */
+body #main .desk.desk-public,
+body #main .booking-shell {
+  box-sizing: border-box;
+  width: min(var(--container), calc(100% - (var(--page-gutter) * 2)));
+  max-width: none;
+  margin-inline: auto;
+}
+body #main .booking-shell { padding-inline: 0; }
+body #main .container.opp-shell {
+  max-width: none;
+  padding-inline: 0;
+}
+body #main .founder-related-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+body #main .founder-related-actions a {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+@media (max-width: 520px) {
+  body #main .founder-related-actions a { flex: 1 1 auto; }
+}
