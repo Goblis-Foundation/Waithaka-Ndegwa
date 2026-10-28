@@ -1,0 +1,10 @@
+(()=>{'use strict';
+ const root=document.querySelector('[data-writer-login]');if(!root)return;
+ const form=root.querySelector('[data-login-form]'),password=root.querySelector('#writer-password'),toggle=root.querySelector('[data-password-toggle]'),caps=root.querySelector('#caps-lock'),submit=root.querySelector('[data-login-submit]'),status=root.querySelector('[data-security-status]');
+ toggle.hidden=false;toggle.addEventListener('click',()=>{const visible=password.type==='password';password.type=visible?'text':'password';toggle.textContent=visible?'Hide':'Show';toggle.setAttribute('aria-pressed',String(visible));});
+ for(const event of ['keydown','keyup'])password.addEventListener(event,e=>{caps.hidden=!e.getModifierState?.('CapsLock');});
+ password.addEventListener('blur',()=>{caps.hidden=true;});
+ const label=submit.innerHTML;let submitting=false;
+ form.addEventListener('submit',e=>{if(submitting||root.dataset.authBusy==='1'){e.preventDefault();return;}submitting=true;root.dataset.authBusy='1';form.setAttribute('aria-busy','true');submit.disabled=true;submit.textContent='Signing in…';status.textContent='Checking your details…';});
+ addEventListener('pageshow',()=>{submitting=false;delete root.dataset.authBusy;form.removeAttribute('aria-busy');submit.disabled=false;submit.innerHTML=label;status.textContent='';password.type='password';toggle.textContent='Show';toggle.setAttribute('aria-pressed','false');});
+})();

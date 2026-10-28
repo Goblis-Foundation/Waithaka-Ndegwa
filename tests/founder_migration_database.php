@@ -37,3 +37,18 @@ $temp=tempnam(sys_get_temp_dir(),'founder-schema-test-');if($temp===false)throw 
 try{file_put_contents($temp,file_get_contents($file)."\nDELETE FROM posts;\n");$rejected=false;try{founder_story_apply_migration($pdo,$temp);}catch(RuntimeException){$rejected=true;}fm_check($rejected,'A non-allowlisted extra statement must reject.');}finally{unlink($temp);}
 fm_check((int)$pdo->query('SELECT COUNT(*) FROM posts')->fetchColumn()===$before+1,'Rejected plans must not change application rows.');
 echo 'PASS: additive schema creation, repeated deployment, partial-completion recovery, retained private rows and fixed-statement/checksum boundaries.'.PHP_EOL;
+
+require __DIR__.'/../app/module_audit_migration.php';
+fm_check(module_audit_verified($pdo),'Fresh install has both required receipts and columns.');
+$pdo->exec("INSERT INTO newsletter_subscribers(email,name,first_name,last_name,status,consent_version,requested_at,created_at,updated_at) VALUES('module-fixture@example.invalid','Original Display','Amina','','pending','fixture',NOW(),NOW(),NOW())");
+$pdo->exec("UPDATE categories SET description='Preserved editorial category' WHERE slug='culture'");
+$pdo->exec("DELETE FROM schema_migrations WHERE name IN ('150_subscriber_names.sql','180_culture_topic.sql')");
+$pdo->exec('ALTER TABLE newsletter_subscribers DROP COLUMN last_name');
+module_audit_apply_migrations($pdo);module_audit_apply_migrations($pdo);
+fm_check(module_audit_verified($pdo),'Partial module recovery is complete and idempotent.');
+$kept=$pdo->query("SELECT name,first_name,last_name,status FROM newsletter_subscribers WHERE email='module-fixture@example.invalid'")->fetch();
+fm_check($kept===['name'=>'Original Display','first_name'=>'Amina','last_name'=>'','status'=>'pending'],'Migration preserves names and subscription status without guessing missing data.');
+fm_check($pdo->query("SELECT description FROM categories WHERE slug='culture'")->fetchColumn()==='Preserved editorial category','Existing Culture edits preserved.');
+$pdo->exec("UPDATE schema_migrations SET sha256=REPEAT('0',64) WHERE name='150_subscriber_names.sql'");
+$rejected=false;try{module_audit_apply_migrations($pdo);}catch(RuntimeException){$rejected=true;}fm_check($rejected,'Changed module checksum must reject.');
+echo "PASS: module migration partial recovery, idempotency, name/consent preservation and checksum rejection.\n";

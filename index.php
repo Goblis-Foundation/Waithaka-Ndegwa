@@ -429,8 +429,8 @@ if(isset($policies[$path])){render('policy',['page'=>'policy','policy'=>$policie
 // Private writer routes
 if ($path === '/write/login') {
     if(current_user())redirect(url('/write'));
-    if(is_post()){verify_csrf();$email=trim((string)($_POST['email']??''));$password=(string)($_POST['password']??'');if(attempt_login($email,$password))redirect(url('/write'));flash('error',login_rate_limited($email)?'Too many failed attempts. Please wait before trying again.':'Email or password is incorrect.');redirect(url('/write/login'));}
-    render_write('login',['writeTitle'=>'Sign in']);exit;
+    if(is_post()){verify_csrf();$email=trim((string)($_POST['email']??''));$password=(string)($_POST['password']??'');if(attempt_login($email,$password)){unset($_SESSION['login_form']);redirect(url(writer_login_return()));}$_SESSION['login_form']=['email'=>mb_substr($email,0,254),'trust'=>app_trust_choice($_POST['trust_device']??null)];flash('error',login_rate_limited($email)?'Too many failed attempts. Please wait before trying again.':'Email or password is incorrect.');redirect(url('/write/login'));}
+    $form=$_SESSION['login_form']??[];unset($_SESSION['login_form']);render_write('login',['writeTitle'=>'Sign in','loginEmail'=>$form['email']??'','trustDevice'=>$form['trust']??true]);exit;
 }
 if ($path === '/write/logout') {
     require_auth();

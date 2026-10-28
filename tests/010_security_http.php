@@ -40,7 +40,12 @@ try{
     http_check(!str_contains($r['body'],'PRIVATE_PREVIEW_MARKER'),'Anonymous preview leaked private content.');
     $r=request_local('/write/login',['email'=>$email,'password'=>$password],false);http_check($r['status']===419,'Missing CSRF token must fail before login.');
     $r=request_local('/write/login');$csrf=response_csrf($r);http_check($r['status']===200,'Login page must render.');
-    $r=request_local('/write/login',['csrf'=>$csrf,'email'=>$email,'password'=>$password]);http_check($r['status']===302,'Valid fixture login failed.');
+    $r=request_local('/write/login',['csrf'=>$csrf,'email'=>$email,'password'=>'incorrect-fixture-password']);
+    $r=request_local('/write/login');$csrf=response_csrf($r);
+    http_check(str_contains($r['body'],'value="'.$email.'"')&&!str_contains($r['body'],'incorrect-fixture-password'),'Rejected login retains email but never password.');
+    http_check(!preg_match('/name="trust_device"[^>]*checked/',$r['body']),'Shared-device choice survives rejection.');
+    $r=request_local('/write/communication?tab=content');http_check($r['status']===302,'Workspace requires sign-in.');
+    $r=request_local('/write/login',['csrf'=>$csrf,'email'=>$email,'password'=>$password]);http_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/communication?tab=content'),'Valid login resumes the intended safe workspace.');
     $r=request_local('/write/preview/'.$postId);http_check($r['status']===200&&str_contains($r['body'],'PRIVATE_PREVIEW_MARKER'),'Authenticated preview must show private saved draft.');
     http_check(str_contains($r['headers']['cache-control']??'','no-store')&&str_contains($r['headers']['x-robots-tag']??'','noindex'),'Preview must be private, no-store and noindex.');
     http_check(!str_contains($r['body'],'PRIVATE_PLAN_DO_NOT_RENDER')&&!str_contains($r['body'],'googletagmanager.com')&&!str_contains($r['body'],'application/ld+json'),'Preview must exclude private planning notes, analytics and public structured data.');

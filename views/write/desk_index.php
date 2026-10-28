@@ -1,5 +1,5 @@
 <link rel="stylesheet" href="<?=e(asset('css/publishing-desk.css'))?>">
-<section class="desk desk-workspace"><header class="desk-hero"><div><p class="desk-kicker">Publishing desk</p><h1>Opportunities & partner features</h1><p>Turn verified information into useful articles, branded creatives and accountable campaigns.</p></div><a class="desk-button" href="<?=url('/write/desk/settings')?>">Commercial settings</a></header>
+<main class="desk desk-workspace"><header class="desk-hero"><div><p class="desk-kicker">Publishing desk</p><h1>Opportunities & partner features</h1><p>Turn verified information into useful articles, branded creatives and accountable campaigns.</p></div><a class="desk-button" href="<?=url('/write/desk/settings')?>">Commercial settings</a></header>
 <nav class="desk-tabs" aria-label="Publishing desk"><a href="<?=url('/write/desk')?>" <?=!$billing?'aria-current="page"':''?>>Content & approvals</a><a href="<?=url('/write/desk/orders')?>" <?=$billing?'aria-current="page"':''?>>Clients & billing</a><a href="<?=url('/write/publishing')?>">Posting & calendar</a><a href="<?=url('/write/opportunities')?>">Employment reviews</a></nav>
 <div class="desk-actions"><a class="desk-button primary" href="<?=url('/write/desk/opportunity/new')?>">New opportunity</a><a class="desk-button" href="<?=url('/write/desk/sponsored/new')?>">New sponsored feature</a><a href="<?=url('/promote')?>">View client intake ↗</a></div>
 <?php if(!$billing):?>
@@ -11,4 +11,4 @@
 <div class="desk-table-wrap"><table><thead><tr><th>Invoice</th><th>Client</th><th>Package</th><th>Total</th><th>State</th><th>Campaign</th></tr></thead><tbody>
 <?php foreach($orders as$o):?><tr><td><a href="<?=url('/write/desk/'.$o['record'].'#billing')?>">WN-<?=e(strtoupper(substr($o['id'],0,12)))?></a></td><td><?=e($o['client_email'])?></td><td><?=e($o['quote']['name'])?></td><td><?=e($o['quote']['currency'].' '.desk_decimal($o['quote']['minor']))?></td><td><?=e(str_replace('_',' ',$o['state']))?><?=!empty($o['paused'])?' · paused':''?></td><td><?=(int)$o['quote']['rounds']?> rounds · <?=(int)$o['quote']['posts']?> posts</td></tr><?php endforeach;?>
 </tbody></table></div><?php if(!$orders):?><div class="desk-empty"><h2>No commercial orders yet.</h2><p>Review a client brief and create an exact quotation with two named accounts.</p></div><?php endif;?>
-<?php endif;?></section>
+<?php endif;?></main>
