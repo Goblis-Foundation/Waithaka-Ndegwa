@@ -67,37 +67,71 @@ const fs=require('node:fs');
   check(widths.left<=2&&widths.right<=2&&widths.overflow<=2,'New public pages match site container gutters at '+width+'px');
   check(await page.locator('.public-explore-all[aria-current="page"]').count()===1,'Current section is signalled in discovery navigation at '+width+'px');
  }
- // Public search: its live PHP view, not the obsolete .search-form selector.
- for(const width of [320,360,390,600,740,768,1024,1180,1440]){
+ // Search is the public CONTENT area immediately after the menu, not a menu item.
+ // The former 1100px search form cap left a visible 80px right-edge mismatch
+ // against the site's 1180px header and results containers.
+ const searchWidths=[320,360,390,440,600,740,768,820,1024,1180,1181,1280,1440];
+ for(const width of searchWidths){
   await page.setViewportSize({width,height:900});
   await page.goto(host+'public-search.html');
   check(await page.locator('.search-page-form [name="q"]').count()===1,'Search input exists at '+width+'px');
   check(await page.locator('.search-page-form [name="type"]').count()===1,'Search type remains selectable at '+width+'px');
   const rects=await page.evaluate(()=>{
    const take=el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
-   const form=document.querySelector('.search-page-form'),query=document.querySelector('#public-search'),type=document.querySelector('#search-type'),button=document.querySelector('.search-submit');
-   const head=document.querySelector('.site-header .container'),section=document.querySelector('.page-intro > .container');
-   return{form:take(form),query:take(query),type:take(type),button:take(button),head:take(head),section:take(section),overflow:document.documentElement.scrollWidth-innerWidth};
+   const read=selector=>take(document.querySelector(selector));
+   const form=document.querySelector('.search-page-form');
+   const inputs=['#public-search','#search-type','.search-submit'].map(read);
+   return {
+    header:read('.site-header .container'),
+    intro:read('.page-intro > .search-intro-container'),
+    form:read('.search-page-form'),help:read('#search-form-help'),filters:read('.topic-pills'),
+    heading:read('.page-intro h1'),inputs,
+    formDisplay:getComputedStyle(form).display,
+    formMax:getComputedStyle(form).maxWidth,
+    overflow:document.documentElement.scrollWidth-innerWidth
+   };
   });
-  check(rects.overflow<=2,'Public search has no viewport overflow at '+width+'px');
-  check(Math.abs(rects.head.left-rects.section.left)<=2&&Math.abs(rects.head.right-rects.section.right)<=2,'Search page margins match site header at '+width+'px');
-  check([rects.query,rects.type,rects.button].every(r=>r.width>=44&&r.height>=44&&r.left>=rects.form.left-1&&r.right<=rects.form.right+1),'All search controls fit inside form at '+width+'px');
-  const forms=[rects.query,rects.type,rects.button],overlaps=[];
-  for(let i=0;i<forms.length;i++)for(let j=i+1;j<forms.length;j++){
-   const x=Math.min(forms[i].right,forms[j].right)-Math.max(forms[i].left,forms[j].left);
-   const y=Math.min(forms[i].bottom,forms[j].bottom)-Math.max(forms[i].top,forms[j].top);
-   if(x>1&&y>1)overlaps.push([i,j]);
+  const near=(a,b)=>Math.abs(a-b)<=2;
+  check(rects.overflow<=2,'Search area has no horizontal overflow at '+width+'px');
+  check(near(rects.header.left,rects.intro.left)&&near(rects.header.right,rects.intro.right),
+   'Search intro uses both shared header edges at '+width+'px');
+  check(near(rects.intro.left,rects.form.left)&&near(rects.intro.right,rects.form.right),
+   'Search panel aligns on BOTH edges with page container at '+width+'px');
+  check(near(rects.intro.left,rects.filters.left)&&near(rects.intro.right,rects.filters.right)
+   &&near(rects.intro.left,rects.help.left),'Topic filters and help text align with search at '+width+'px');
+  check(near(rects.intro.left,rects.heading.left),'Search heading begins on the shared page edge at '+width+'px');
+  check(rects.formDisplay==='grid'&&rects.formMax==='none','Search has active responsive grid without a standalone max-width at '+width+'px');
+  check(rects.inputs.every(v=>v.width>=44&&v.height>=44&&v.left>=rects.form.left-1&&v.right<=rects.form.right+1),
+   'Search controls fit the form at '+width+'px');
+  const overlap=[];
+  for(let i=0;i<rects.inputs.length;i++)for(let j=i+1;j<rects.inputs.length;j++){
+   const a=rects.inputs[i],b=rects.inputs[j];
+   if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1
+       &&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)overlap.push([i,j]);
   }
-  check(overlaps.length===0,'Search controls do not overlap at '+width+'px');
+  check(overlap.length===0,'Search controls never overlap at '+width+'px');
   if(width<=1180){
    await page.locator('[data-menu]').click();
-   check(await page.locator('.nav-mobile-search').isVisible(),'Search remains reachable from mobile menu at '+width+'px');
+   check(await page.locator('.nav-mobile-search').isVisible(),'Existing mobile search navigation preserved at '+width+'px');
    await page.keyboard.press('Escape');
   }
+  // A search with results must use exactly the same edges as the search area.
+  await page.goto(host+'public-search-results.html');
+  const found=await page.evaluate(()=>{
+   const edges=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right};};
+   return {header:edges('.site-header .container'),intro:edges('.search-intro-container'),
+    form:edges('.search-page-form'),filters:edges('.topic-pills'),
+    results:edges('.search-results-container'),heading:edges('.search-results-container .archive-label'),
+    grid:edges('.search-results-container .post-grid'),overflow:document.documentElement.scrollWidth-innerWidth};
+  });
+  check([found.intro,found.form,found.filters,found.results,found.heading,found.grid].every(v=>
+   near(v.left,found.header.left)&&near(v.right,found.header.right)),
+   'Search RESULTS, filters and search input align with header on both sides at '+width+'px');
+  check(found.overflow<=2,'Search with results has no horizontal overflow at '+width+'px');
  }
- await page.goto(host+'public-search-results.html');
- check(await page.locator('.topic-pills [aria-current="page"]').count()===1,'Current search-result filter is marked');
+ check(await page.locator('.topic-pills [aria-current="page"]').count()===1,'Current result type is marked');
  check((await page.locator('#public-search').inputValue())==='enterprise','Search query retained for editing');
+ check(await page.locator('.post-grid .post-card').count()===1,'Results grid is exercised using synthetic public content');
  // Repeatable location hierarchy from actual shared PHP partials for every eligible journey.
  for(const prefix of ['contact','booking','founder','consent','promote','opportunity','client-contact']){
   await page.setViewportSize({width:390,height:900});
@@ -134,6 +168,10 @@ const fs=require('node:fs');
   for(const width of [390,1440]){
    await page.setViewportSize({width,height:900});
    await page.screenshot({path:evidence+'/public-navigation-'+width+'.png',fullPage:true});
+   await page.goto(host+'public-search.html');
+   await page.screenshot({path:evidence+'/search-section-alignment-'+width+'.png',fullPage:true});
+   await page.goto(host+'public-search-results.html');
+   await page.screenshot({path:evidence+'/search-results-alignment-'+width+'.png',fullPage:true});
   }
  }
  check(errors.length===0,'No browser errors: '+errors.join('; '));
