@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 if(PHP_SAPI!=='cli'||count($argv)!==2)exit(2);
+set_error_handler(static function(int $severity,string $message,string $file,int $line):never{throw new ErrorException($message,0,$severity,$file,$line);});
 $out=realpath($argv[1]);if(!$out||!str_starts_with($out,sys_get_temp_dir().'/')&&!str_starts_with($out,(string)getenv('RUNNER_TEMP').'/'))throw new RuntimeException('Use a disposable fixture directory.');
 $CONFIG=['app_env'=>'testing','base_url'=>'http://127.0.0.1:8125','timezone'=>'Africa/Nairobi','app_key'=>'isolated-fixture-only'];$APP_INSTALLED=false;$_SESSION=[];$_GET=[];$_SERVER['REQUEST_URI']='/write/login';
 foreach(['functions','reader','planner','workspace_reports','impact','reconciliation_register']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
@@ -16,7 +17,7 @@ file_put_contents($out.'/module-login.html',ma_page('login',[],false));
 $_SESSION['flash']=[['type'=>'error','message'=>'Email or password is incorrect.']];
 file_put_contents($out.'/module-login-error.html',ma_page('login',['loginEmail'=>'fixture@example.invalid','trustDevice'=>false],false));
 $_SERVER['REQUEST_URI']='/write/program';
-file_put_contents($out.'/module-program.html',ma_page('program',['uid'=>1,'prefs'=>['timezone'=>'Africa/Nairobi'],'date'=>'2026-10-28','calendar'=>[],'rows'=>[],'error'=>'','edit'=>null,'stage'=>null]));
+file_put_contents($out.'/module-program.html',ma_page('program',['uid'=>1,'prefs'=>['timezone'=>'Africa/Nairobi'],'date'=>'2026-10-28','calendar'=>[],'rows'=>[],'mail'=>[],'error'=>'','edit'=>null,'stage'=>null]));
 $_SERVER['REQUEST_URI']='/write/desk';
 foreach([false,true]as$billing)file_put_contents($out.'/module-desk-'.(int)$billing.'.html',ma_page('desk_index',['billing'=>$billing,'items'=>[],'orders'=>[]]));
 $_SERVER['REQUEST_URI']='/write/impact';file_put_contents($out.'/module-impact.html',ma_page('impact'));
