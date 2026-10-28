@@ -17,4 +17,8 @@ lc_check(location_phone([])['phone']==='','Phone stays optional.');
 lc_check(location_fields([])['ward']===''&&location_label(location_fields(['country'=>'Kenya','county'=>'Nyeri']))==='Nyeri, Kenya','Older optional location records remain readable without Ward.');
 foreach([['country'=>[]],['country'=>"Kenya\0"],['county'=>'Made up county'],['sub_county'=>[]],['ward'=>[]],['ward'=>str_repeat('x',121)],['city'=>str_repeat('x',121)]]as$bad)lc_reject(fn()=>location_fields($bad));
 foreach([['phone_code'=>[]],['phone_code'=>'+0'],['phone'=>'abc'],['phone'=>str_repeat('9',30)]]as$bad)lc_reject(fn()=>location_phone($bad));
-echo "PASS: Kenya defaults, county validation, international fields, phones and malformed input.\n";
+foreach(['views/contact.php','views/booking.php','views/founders/submit.php','views/consent.php','views/desk/promote.php','views/opportunities/fields.php','views/desk/client_contact.php'] as $view){
+ $source=file_get_contents(__DIR__.'/../'.$view);
+ lc_check($source!==false&&str_contains($source,'partials_location_fields.php'),'Shared location fields included in '.$view);
+}
+echo "PASS: Kenya defaults, Ward, seven journey components, international fields, phones and malformed input.\n";

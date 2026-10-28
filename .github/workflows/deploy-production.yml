@@ -161,5 +161,8 @@ jobs:
                   time.sleep(10)
           PY
 
+      - name: Verify public search and Kenya-first journeys
+        run: python3 -B deploy/aws/verify_public_journeys.py
+
       - name: Verify publishing, approved branding and automatic visitor refresh
         run: python3 -B deploy/aws/verify_publishing_release.py
