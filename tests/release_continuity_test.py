@@ -4,7 +4,10 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
@@ -79,6 +82,20 @@ class ContinuityTests(unittest.TestCase):
         config = (ROOT / ".github/workflows/deploy-production.yml").read_text()
         self.assertEqual(config.count('deploy/aws/release_continuity.py'), 2)
         self.assertIn('Retain public outage evidence', config)
+
+    def test_release_scripts_have_valid_bash_and_monitor_refuses_bad_preflight(self):
+        for path in ("deploy/aws/fresh_application.sh", "deploy/aws/fresh_hosting.sh"):
+            subprocess.run(["bash", "-n", str(ROOT / path)], check=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        with tempfile.TemporaryDirectory() as temporary:
+            report = Path(temporary) / "outage.json"
+            unhealthy = {"at": "synthetic", "ok": False,
+                "checks": {"/start-here": {"status": 502, "ok": False, "failure": "http_502"}}}
+            with patch.object(m, "sample", return_value=unhealthy), patch.object(
+                m.subprocess, "Popen", side_effect=AssertionError("No deploy after bad preflight")):
+                self.assertEqual(m.monitor(["bash", "deploy/aws/fresh_hosting.sh"],
+                                           2.0, report), 1)
+            self.assertEqual(json.loads(report.read_text())["samples"][0]["ok"], False)
 
     def test_start_here_is_a_real_website_page_not_a_placeholder(self):
         page_source = (ROOT / "views/editorial/start.php").read_text()
