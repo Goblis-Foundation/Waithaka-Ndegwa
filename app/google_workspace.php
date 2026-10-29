@@ -29,9 +29,9 @@ function google_calendar_discover(array $headers): array {
     throw new RuntimeException('More calendars were returned than can be safely reviewed. Use an account with a smaller subscribed calendar list.');
 }
 function google_calendar_observed(array $credentials,array $scopes,array $observed,int $userId): void {
-    // Separate rows preserve every previously connected Google account.
+    // Reauthorization reuses the same (user, Google subject) row, retaining prior calendar choices solely as pending review prefill.\n    // A changed Google subject creates a different row. Pending accounts cannot read calendars until their returned list is explicitly confirmed.
     $q=db()->prepare("SELECT COUNT(*) FROM google_calendar_accounts WHERE user_id=? AND status<>'disconnected' AND google_sub<>?");$q->execute([$userId,$observed['id']]);if((int)$q->fetchColumn()>=20)throw new RuntimeException('Up to 20 Google calendar accounts can be connected. Remove an unused account before adding another.');
-    db()->prepare("INSERT INTO google_calendar_accounts(user_id,google_sub,display_name,status,credentials_encrypted,scopes_json,calendars_json,selected_json,verified_at) VALUES(?,?,?,'pending_confirmation',?,?,?,'[]',UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),status='pending_confirmation',credentials_encrypted=VALUES(credentials_encrypted),scopes_json=VALUES(scopes_json),calendars_json=VALUES(calendars_json),selected_json='[]',verified_at=UTC_TIMESTAMP()")
+    db()->prepare("INSERT INTO google_calendar_accounts(user_id,google_sub,display_name,status,credentials_encrypted,scopes_json,calendars_json,selected_json,verified_at) VALUES(?,?,?,'pending_confirmation',?,?,?,'[]',UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),status='pending_confirmation',credentials_encrypted=VALUES(credentials_encrypted),scopes_json=VALUES(scopes_json),calendars_json=VALUES(calendars_json),verified_at=UTC_TIMESTAMP()")
         ->execute([$userId,$observed['id'],$observed['name'],encrypt_secret(publishing_json($credentials)),publishing_json($scopes),publishing_json($observed['resources'])]);
 }
 function google_calendar_accounts(int $userId): array {
