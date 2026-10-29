@@ -1,0 +1,6 @@
+<link rel="stylesheet" href="<?=asset('css/publishing.css')?>">
+<main class="write-main pub-main">
+  <header class="writer-head"><div><span class="writer-kicker">Workspace access · read-only</span><h1>Site settings</h1><p>Shared website configuration is managed by the verified site owner. You can continue working on your own drafts, account and personal workspace without access to provider credentials.</p></div><a class="wbtn" href="<?=url('/write/account')?>">My account</a></header>
+  <section class="pub-card"><h2>Protected configuration</h2><p>Site-wide Google Analytics and Search Console defaults, email sender addresses, anti-spam controls, AI keys and payment services may affect every visitor or initiate external activity. Only the owner can review or change those settings.</p><p>No secret value or payment account identifier is included in this read-only view. A saved provider credential is not a confirmed external receiving or delivery capability.</p></section>
+  <section class="pub-card"><h2>Continue your work</h2><p>Manage your own password, drafts, programme and other delegated Writer areas. Account-specific permissions and external publishing remain subject to their respective approval controls.</p><a class="wbtn primary" href="<?=url('/write')?>">Back to workspace</a></section>
+</main>
