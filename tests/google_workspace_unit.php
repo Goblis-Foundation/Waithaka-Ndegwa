@@ -2,12 +2,15 @@
 declare(strict_types=1);
 function base_url():string{return 'https://www.waithakandegwa.com';}
 function url(string $p=''):string{return base_url().'/'.ltrim($p,'/');}
-function publishing_connection(string $service):array{return ['status'=>'connected','selected_resource'=>$service==='google_analytics'?'properties/123':($service==='google_search_console'?'sc-domain:waithakandegwa.com':'channel-fixture')];}
+function publishing_connection(string $service):array{return ['status'=>'connected','connected_by'=>7,'selected_resource'=>$service==='google_analytics'?'properties/123':($service==='google_search_console'?'sc-domain:waithakandegwa.com':'channel-fixture')];}
 function publishing_access_token(array $c):string{return 'fixture';}
 require dirname(__DIR__).'/app/providers/http.php';require dirname(__DIR__).'/app/google_workspace.php';require dirname(__DIR__).'/app/google_mcp.php';
 $checks=0;function gw_check(bool $ok,string $label):void{if(!$ok)throw new RuntimeException($label);$GLOBALS['checks']++;}
 function gw_reject(callable $f,string $label):void{try{$f();}catch(InvalidArgumentException){gw_check(true,$label);return;}throw new RuntimeException($label);}
 gw_check(google_workspace_date('2028-02-29','')==='2028-02-29','Leap dates valid');
+gw_check(google_workspace_connection('google_analytics',7)['selected_resource']==='properties/123','Selected Google property is available to its connected Writer.');
+gw_reject(fn()=>google_workspace_connection('google_analytics',8),'Another Writer cannot acquire a saved provider connection.');
+gw_reject(fn()=>google_workspace_connection('google_drive',0),'Unknown user cannot acquire saved Drive access.');
 foreach(['2026-02-29','2026-13-01','yesterday',[],"2026-01-01\n"]as$v)gw_reject(fn()=>google_workspace_date($v,''),'Reject invalid date');
 $available=[['id'=>'mine'],['id'=>'shared']];gw_check(google_calendar_selection($available,['mine','mine'])===['mine'],'Deduplicate selection');
 foreach([['other-account'],[[]],str_repeat('x',20)]as$v)gw_reject(fn()=>google_calendar_selection($available,$v),'Reject foreign calendar selection');
@@ -15,7 +18,8 @@ foreach(['https://other.invalid/','https://www.waithakandegwa.com/write','https:
 gw_check(google_workspace_public_url(base_url().'/resources/test')===base_url().'/resources/test','Public content permitted');
 gw_reject(fn()=>google_workspace_link('https://calendar.google.com.evil.invalid/x',['calendar.google.com']),'Booking host exact');
 $calls=[];$transport=function($method,$url,$headers,$body=null)use(&$calls){$calls[]=[$method,$url,$body];return ['data'=>['rows'=>[['dimensionValues'=>[['value'=>'Kenya']],'metricValues'=>[['value'=>'0'],['value'=>'2'],['value'=>'3'],['value'=>'0.5']]]]]];};
-$r=google_workspace_report('ga4-countries','2026-01-01','2026-01-28',$transport);gw_check($r['rows'][0]===['Kenya','0','2','3','0.5'],'Zero and metric ordering preserved');gw_check(str_contains($calls[0][1],'/properties/123:runReport')&&$calls[0][2]['dimensions'][0]['name']==='country','Read only approved property and fixed dimension');
+$r=google_workspace_report('ga4-countries','2026-01-01','2026-01-28',$transport,7);
+gw_reject(fn()=>google_workspace_report('ga4-countries','2026-01-01','2026-01-28',$transport,8),'Another Writer cannot run reports using the owner connection.');gw_check($r['rows'][0]===['Kenya','0','2','3','0.5'],'Zero and metric ordering preserved');gw_check(str_contains($calls[0][1],'/properties/123:runReport')&&$calls[0][2]['dimensions'][0]['name']==='country','Read only approved property and fixed dimension');
 // Exact 28-day Search Console read-only review, paired by public canonical URL.
 $public=base_url();
 $searchRows=function($kind)use($public):array {
