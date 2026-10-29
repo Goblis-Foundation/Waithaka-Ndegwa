@@ -18,7 +18,7 @@ function ux_workspace_groups(): array {
   'Plan and document'=>['/write/program'=>'Daily & weekly programme','/write/notes'=>'Notes & reports','/write/voice'=>'Voice notes & ideas','/write/journeys'=>'Startup Journeys','/write/enterprises'=>'Enterprise portfolio'],
   'Audience and discovery'=>['/write/monthly-roundup'=>'Automatic monthly newsletter','/write/newsletter'=>'Newsletter editions','/write/seo-checks'=>'SEO publishing checks','/write/discovery'=>'Search performance','/write/visitor-statistics'=>'Visitor statistics'],
   'Review and manage'=>['/write/desk/orders'=>'Commercial orders','/write/desk/settings'=>'Commercial configuration','/write/opportunities'=>'Employment reviews','/write/impact'=>'Impact reporting','/write/reconciliation'=>'Implementation register'],
-  'Connections and security'=>['/write/connections'=>'Integration directory','/write/google'=>'Google Workspace','/write/microsoft'=>'Microsoft 365','/write/security'=>'Devices & passkeys','/write/security/sign-in'=>'Sign-in & verification','/write/operations'=>'Operations & delivery','/write/account'=>'My account']
+  'Connections and security'=>['/write/connections'=>'Integration directory','/write/google'=>'Google Workspace','/write/microsoft'=>'Microsoft 365','/write/security'=>'Devices & passkeys','/write/security/sign-in'=>'Sign-in & verification','/write/operations'=>'Operations & delivery','/write/activation'=>'Activation & launch readiness','/write/account'=>'My account']
  ];
 }
 function ux_public_metadata(): array {
