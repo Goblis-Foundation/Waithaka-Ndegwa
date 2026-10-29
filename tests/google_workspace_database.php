@@ -12,10 +12,26 @@ gwd_check(count(google_calendar_accounts($ids[0]))===2,'A second Google account 
 $accounts=google_calendar_accounts($ids[0]);$a=$accounts[0];gwd_check(!str_contains($a['credentials_encrypted'],'fixture-secret'),'Calendar credentials encrypted.');
 try{google_calendar_owned((int)$a['id'],$ids[1]);throw new LogicException('Foreign access accepted');}catch(InvalidArgumentException){}
 try{google_calendar_token($a);throw new LogicException('Pending token accepted');}catch(RuntimeException $e){gwd_check(str_contains($e->getMessage(),'Confirm'),'Pending calendars do not expose token');}
-google_calendar_observed($token,$scopes,['id'=>'google-one','name'=>'Reconnected','resources'=>[['id'=>'replacement','name'=>'New calendar']]],$ids[0]);gwd_check(count(google_calendar_accounts($ids[0]))===2,'Reconnect same identity updates one row.');
-$q=db()->prepare("SELECT * FROM google_calendar_accounts WHERE user_id=? AND google_sub='google-one'");$q->execute([$ids[0]]);$updated=$q->fetch();gwd_check($updated['status']==='pending_confirmation'&&publishing_decode($updated['selected_json'])===[],'Reconnect requires destination reconfirmation.');
+// A previously confirmed Google subject retains its reviewed selections as prechecked
+// choices, but pending reauthorization must not silently restore calendar API access.
+$dbSet=db()->prepare("UPDATE google_calendar_accounts SET status='connected',selected_json=? WHERE user_id=? AND google_sub='google-one'");
+$dbSet->execute([publishing_json(['calendar-google-one']),$ids[0]]);
+google_calendar_observed($token,$scopes,['id'=>'google-one','name'=>'Reconnected','resources'=>[['id'=>'calendar-google-one','name'=>'Still available'],['id'=>'replacement','name'=>'New calendar']]],$ids[0]);
+gwd_check(count(google_calendar_accounts($ids[0]))===2,'Reconnect same Google subject updates one row without dropping another account.');
+$q=db()->prepare("SELECT * FROM google_calendar_accounts WHERE user_id=? AND google_sub='google-one'");$q->execute([$ids[0]]);$updated=$q->fetch();
+gwd_check($updated['status']==='pending_confirmation','Reconnection requires explicit destination reconfirmation.');
+gwd_check(publishing_decode($updated['selected_json'])===['calendar-google-one'],'Same-subject reauthorization must preserve the selected calendar as review prefill.');
+gwd_check(google_calendar_selection(publishing_decode($updated['calendars_json']),publishing_decode($updated['selected_json']))===['calendar-google-one'],'Retained selection must be present in the fresh returned inventory.');
+try{google_calendar_token($updated);throw new LogicException('Unconfirmed reauthorized token accepted');}catch(RuntimeException $e){gwd_check(str_contains($e->getMessage(),'Confirm'),'Reauthorization does not silently enable access');}
+google_calendar_observed($token,$scopes,['id'=>'google-one','name'=>'Reconnected again','resources'=>[['id'=>'replacement','name'=>'New calendar']]],$ids[0]);
+$q->execute([$ids[0]]);$updated=$q->fetch();
+gwd_check(publishing_decode($updated['selected_json'])===['calendar-google-one'],'Keep previous selection for audit until explicit reconfirmation.');
+try{google_calendar_selection(publishing_decode($updated['calendars_json']),publishing_decode($updated['selected_json']));throw new LogicException('Stale selection was accepted');}
+catch(InvalidArgumentException){}
+gwd_check(google_calendar_selection(publishing_decode($updated['calendars_json']),['replacement'])===['replacement'],'Only freshly returned calendars may be confirmed.');
+gwd_check(count(google_calendar_accounts($ids[0]))===2&&google_calendar_accounts($ids[1])===[],'Reconnect must preserve other accounts and cross-user isolation.');
 $r=['key'=>'ga4-countries','destination_hash'=>hash('sha256','properties/123'),'rows'=>[['Kenya','1']]];google_workspace_save_report($r,$ids[0]);gwd_check((int)db()->query('SELECT COUNT(*) FROM google_report_snapshots')->fetchColumn()===1,'Private report snapshot saved.');
-echo "PASS: multi-account retention, ownership, encryption, reconnect confirmation and report storage.\n";
+echo "PASS: multi-account retention, saved selection prefill, stale exclusion, reconnection confirmation, encrypted access and report storage.\n";
 
 // The already-applied migration must verify using runtime SELECT only, without an admin ARN.
 $env=getenv();unset($env['DB_ADMIN_SECRET_ARN']);$pipes=[];

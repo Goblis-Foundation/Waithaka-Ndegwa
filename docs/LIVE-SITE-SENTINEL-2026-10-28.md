@@ -7,9 +7,9 @@ The existing production workflow runs real public acceptance immediately after a
 ## Scope and safety
 
 - **Target:** canonical `https://www.waithakandegwa.com`, with no credentials, tokens, cookies carried between visits, authentication attempts, form submissions, publishing, emails, messages, payments or edits.
-- **Paths:** homepage, Start Here, Explore, Search, and anonymous Writer login.
-- **Views:** 390px mobile and 1366px desktop.
-- **Enforced conditions:** HTTP 200, same canonical HTTPS origin, single main/H1, no horizontal overflow, login noindex and private/no-store cache controls; canonical host when a public canonical link is present.
+- **Paths:** homepage, Start Here, Explore, Search, Contact, Book, Contribute, Newsletter, founder submissions, opportunity submissions, Opportunities and anonymous Writer login (12 paths). These routes are rendered anonymously; no form is submitted.
+- **Views:** 320px narrow mobile, 390px mobile, 768px tablet and 1366px desktop (48 read-only route/viewport checks).
+- **Enforced conditions:** HTTP 200, same canonical HTTPS origin, single main/H1, no horizontal overflow, login noindex and private/no-store cache controls; canonical host when a public canonical link is present. Form counts are recorded but submissions, login attempts and checkout actions are blocked.
 - **Recorded rather than falsely certified:** Chromium synthetic navigation and rendering timings (TTFB, DOM content loaded, FCP, LCP, CLS), bounded JavaScript errors, axe-core WCAG A/AA findings and representative viewport screenshots. Axe findings appear in the JSON artifact for triage and do not yet form a pass/fail gate; they are not a manual screen-reader or WCAG certification.
 - **Output:** `report.json` and screenshots in the GitHub Actions artifact, retained 14 days. Structural failures fail the run and are visible through the repository's normal Actions notification controls. No third-party monitoring subscription is introduced.
 
@@ -45,3 +45,9 @@ This addition provides ongoing evidence and does not close issues #70–76 or cl
 - The post-merge sentinel [run 40765440482](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40765440482) also succeeded.
 - [Production deployment workflow 40765440434](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40765440434) completed **successfully** for the merged commit: **Validate application — success; Deploy to AWS account 466401734428 — success; Verify centered public section selectors on the live website — success**. The workflow reports completion at 20:51:46 UTC (23:51:46 Africa/Nairobi).
 - This is evidence of a successfully deployed read-only monitor and existing production regression tests. It is **not** evidence that owner OAuth identity, SMS enrollment, real payouts, inbox deliveries, monthly sender details, approved source metrics or genuine device acceptance have been finished. The existing register and issues #70–76 remain open without status inflation.
+
+## 29 October extension (separate release candidate)
+
+The next change expands the monitoring script from the original ten browser probes to 48 and adds form-entry-point coverage without submitting data. The original ten-check evidence in the 28 October release record remains historically accurate; the expanded candidate must earn its own CI and live-deployment acceptance.
+
+The Google Calendar owner recovery change preserves a previous selection **only** for the same returned Google subject as a prechecked choice pending explicit confirmation. A different subject remains a different account. Stale or unavailable calendar IDs are not offered for confirmation, and pending authorization cannot read the old calendar. The owner can reauthorize access from Google workspace, review the returned calendar list, and confirm it. Existing event content, OAuth secrets and contacts are not copied to the report. These code changes do not fix a provider's HTTP 400 themselves or grant a missing OAuth scope.
