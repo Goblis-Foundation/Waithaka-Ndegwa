@@ -1,0 +1,29 @@
+<link rel="stylesheet" href="<?=asset('css/publishing.css')?>"><link rel="stylesheet" href="<?=asset('css/google-workspace.css')?>">
+<main class="write-main pub-main google-workspace" data-google-meet>
+<header class="writer-head"><div><span class="writer-kicker">Read · select · keep privately</span><h1>Google Meet artifacts</h1><p>Find existing recordings and keep selected transcripts in your private workspace.</p></div><a class="wbtn" href="<?=url('/write/google')?>">Google workspace</a></header>
+<?php if($error!==''):?><p class="pub-card" role="alert"><?=e($error)?></p><?php endif;?>
+<?php if($record):?>
+<section class="pub-card"><h2>Saved private transcript</h2><p><?=e($record['account'])?> · Imported <?=e(gmdate('Y-m-d H:i',$record['imported_at']))?> UTC</p>
+<p class="google-action-text"><?=e($record['artifact']['name'])?></p>
+<p>This is a snapshot of the Meet API transcript. Later edits to the Google Doc are not reflected here. Speaker numbers distinguish voices without importing the participant directory.</p>
+<?php if($record['artifact']['url']!==''):?><p><a href="<?=e($record['artifact']['url'])?>" target="_blank" rel="noopener noreferrer">Open original Google transcript</a></p><?php endif;?>
+<?php foreach($record['entries']as$entry):?><article><h3>Speaker <?=(int)$entry['speaker']?></h3><p><?=e($entry['start'])?> – <?=e($entry['end'])?></p><pre class="google-action-text"><?=e($entry['text'])?></pre></article><?php endforeach;?>
+<form method="post"><?=csrf_field()?><input type="hidden" name="action" value="remove"><label class="pub-check"><input type="checkbox" name="confirm" value="1" required> Remove this local copy. The original in Google is retained.</label><button class="wbtn">Remove local copy</button></form><p><a href="<?=url('/write/google/meet')?>">Back to Meet artifacts</a></p></section>
+<?php else:?>
+<section class="pub-card"><h2>Read existing meeting artifacts</h2>
+<p>Connect the Google account entitled to read these meetings. Recording and transcription must already have been enabled in Google Meet. This workspace requests a separate read permission and does not change meeting settings.</p>
+<?php if($connected):?><p>Confirmed account: <strong><?=e($connected['display_name'])?></strong></p><form method="post"><?=csrf_field()?><input type="hidden" name="action" value="discover"><button class="wbtn primary">Read meetings ended in the last 7 days</button></form><?php endif;?>
+<form method="post" action="<?=url('/write/connections/google_meet/start')?>"><?=csrf_field()?><button class="wbtn"><?=$connected?'Reconnect':'Connect'?> Google Meet read access</button></form>
+<p>Google’s account permissions, Workspace edition and artifact availability still apply. Meet API transcript entries are available for 30 days after the meeting ends and can differ from an edited Google Doc. Recordings remain in Google Drive.</p></section>
+<?php if($discovery):?><section class="pub-card"><h2>Select a meeting</h2><p><?=e($discovery['account'])?> · <?=e($discovery['since'])?> through <?=e($discovery['until'])?></p>
+<?php if(!$discovery['records']):?><p>No ended meetings were returned for this account and period. This does not establish that no meetings occurred.</p><?php endif;?>
+<?php foreach($discovery['records']as$meeting):?><article><h3><?=e($meeting['start'])?></h3><p class="google-action-text"><?=e($meeting['name'])?></p><form method="post"><?=csrf_field()?><input type="hidden" name="action" value="artifacts"><input type="hidden" name="conference" value="<?=e($meeting['name'])?>"><input type="hidden" name="fingerprint" value="<?=e($discovery['fingerprint'])?>"><button class="wbtn">Read this meeting’s artifacts</button></form></article><?php endforeach;?></section><?php endif;?>
+<?php if($selection):?><section class="pub-card"><h2>Choose an existing artifact</h2><p><?=e($selection['account'])?></p><p class="google-action-text"><?=e($selection['conference'])?></p>
+<?php if(!$selection['artifacts']):?><p>No artifacts were returned. They may not have been created or may be unavailable to this account.</p><?php endif;?>
+<?php foreach($selection['artifacts']as$artifact):?><article><h3><?=e(ucfirst($artifact['kind']))?> · <?=e($artifact['start'])?></h3><p class="google-action-text"><?=e($artifact['name'])?></p><p>Status: <?=e(str_replace('_',' ',strtolower($artifact['state'])))?></p>
+<?php if($artifact['url']!==''):?><p><a href="<?=e($artifact['url'])?>" target="_blank" rel="noopener noreferrer">Open original in Google</a></p><?php endif;?>
+<?php if($artifact['kind']==='transcript'&&$artifact['state']==='FILE_GENERATED'&&$artifact['end']!==''):?><form method="post"><?=csrf_field()?><input type="hidden" name="action" value="import"><input type="hidden" name="transcript" value="<?=e($artifact['name'])?>"><input type="hidden" name="fingerprint" value="<?=e($selection['fingerprint'])?>"><label class="pub-check"><input type="checkbox" name="confirm" value="1" required> I may retain this selected transcript as an encrypted private copy. It will remain here until I remove it.</label><button class="wbtn primary">Import selected transcript privately</button></form><?php endif;?></article><?php endforeach;?></section><?php endif;?>
+<section class="pub-card"><h2>Saved private transcripts</h2><p>Saved copies are available only to the workspace owner. Importing does not create a public article or send content to AI. Each import supports up to 500 entries and 250,000 bytes of text; at most 100 copies may be kept.</p>
+<?php if(!$records):?><p>No transcripts have been imported.</p><?php else:?><ul><?php foreach(array_reverse($records)as$saved):?><li><a href="<?=url('/write/google/meet/'.$saved['id'])?>"><?=e($saved['artifact']['start'])?> · <?=e($saved['account'])?></a></li><?php endforeach;?></ul><?php endif;?></section>
+<?php endif;?>
+</main>

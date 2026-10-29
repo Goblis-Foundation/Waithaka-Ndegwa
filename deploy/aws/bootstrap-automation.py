@@ -90,6 +90,7 @@ def bootstrap():
         statement('PublicMediaDistributionPolicy', ['s3:PutBucketPolicy'], 'arn:aws:s3:::'+outputs['PublicMedia']),
         statement('RuntimeSecretCreation', ['secretsmanager:CreateSecret','secretsmanager:DescribeSecret','secretsmanager:TagResource'], f'arn:aws:secretsmanager:{REGION}:{ACCOUNT}:secret:waithaka-ndegwa-production-runtime-*', regional),
         statement('PassExistingBeanstalkRoles', ['iam:GetRole','iam:PassRole'], [f'arn:aws:iam::{ACCOUNT}:role/waithaka-eb-service-role',f'arn:aws:iam::{ACCOUNT}:role/waithaka-eb-instance-role']),
+        statement('ReadOwnDeploymentPolicy', ['iam:GetRolePolicy'], f'arn:aws:iam::{ACCOUNT}:role/WaithakaGitHubDeployRole'),
         statement('RuntimeBootstrapPolicy', ['iam:GetRolePolicy','iam:PutRolePolicy'], f'arn:aws:iam::{ACCOUNT}:role/waithaka-eb-instance-role'),
         statement('RuntimeSsmOnly', ['iam:AttachRolePolicy'], f'arn:aws:iam::{ACCOUNT}:role/waithaka-eb-instance-role', {'ArnEquals':{'iam:PolicyARN':'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'}}),
         statement('ExistingZoneRecords', ['route53:ChangeResourceRecordSets'], zone_arns),

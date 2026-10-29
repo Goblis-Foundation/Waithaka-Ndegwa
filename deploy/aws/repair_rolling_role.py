@@ -7,6 +7,8 @@ ACCOUNT='466401734428'
 REGION='af-south-1'
 ASG=f'arn:aws:autoscaling:{REGION}:{ACCOUNT}:autoScalingGroup:*:autoScalingGroupName/awseb-e-8sjvpauytq-stack-*'
 SID='RetireHealthyEnvironmentBatch'
+READ_SID='ReadOwnDeploymentPolicy'
+READ_TARGET={'Sid':READ_SID,'Effect':'Allow','Action':['iam:GetRolePolicy'],'Resource':f'arn:aws:iam::{ACCOUNT}:role/{ROLE}'}
 def aws(*args):
     p=subprocess.run(['aws',*args,'--output','json','--no-cli-pager'],capture_output=True,text=True)
     if p.returncode: raise RuntimeError('AWS request failed: '+p.stderr[:500])
@@ -16,14 +18,17 @@ def patch(policy):
         raise ValueError('Unexpected IAM policy structure; review manually.')
     if any(not isinstance(x,dict) for x in policy['Statement']):
         raise ValueError('Unexpected IAM statement; review manually.')
-    existing=[x for x in policy['Statement'] if x.get('Sid')==SID]
     target={'Sid':SID,'Effect':'Allow','Action':['autoscaling:TerminateInstanceInAutoScalingGroup'],'Resource':ASG,'Condition':{'StringEquals':{'aws:RequestedRegion':REGION}}}
-    if existing:
-        if len(existing)!=1 or existing[0]!=target: raise ValueError('Conflicting existing permission; refusing overwrite.')
-        return policy,False
     out=json.loads(json.dumps(policy))
-    out['Statement'].append(target)
-    return out,True
+    changed=False
+    for required in [target,READ_TARGET]:
+        existing=[x for x in policy['Statement'] if x.get('Sid')==required['Sid']]
+        if existing:
+            if len(existing)!=1 or existing[0]!=required: raise ValueError('Conflicting existing permission; refusing overwrite.')
+        else:
+            out['Statement'].append(required)
+            changed=True
+    return out,changed
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     mode=parser.add_mutually_exclusive_group()
@@ -38,10 +43,10 @@ def main(argv=None):
     if not isinstance(current,dict): raise RuntimeError('Unexpected inline IAM policy response.')
     revised,changed=patch(current)
     target=next(x for x in revised['Statement'] if x.get('Sid')==SID)
-    print(json.dumps({'account':ACCOUNT,'role':ROLE,'policy':POLICY,'statement':target,'changed':changed,'apply_requested':args.apply},indent=2))
+    print(json.dumps({'account':ACCOUNT,'role':ROLE,'policy':POLICY,'statement':target,'read_only_preflight':READ_TARGET,'changed':changed,'apply_requested':args.apply},indent=2))
     if args.verify_only:
         if changed: raise RuntimeError('Required scoped permission is missing; no change made.')
-        print('PASS: exact scoped inline statement exists. Effective access and deployment health still require independent verification.')
+        print('PASS: exact scoped termination and read-only preflight statements exist. Explicit denies can still override them; deployment health still requires independent verification.')
         return
     if args.apply and changed:
         import tempfile,os
@@ -54,7 +59,7 @@ def main(argv=None):
             aws('iam','put-role-policy','--role-name',ROLE,'--policy-name',POLICY,'--policy-document','file://'+name)
             saved=aws('iam','get-role-policy','--role-name',ROLE,'--policy-name',POLICY)['PolicyDocument']
             if saved!=revised: raise RuntimeError('Policy read-back did not match; investigate before deployment.')
-            print('PASS: exact existing policy retained and the single scoped action was read back.')
+            print('PASS: existing policy retained; exact termination and read-only preflight statements read back.')
         finally:os.unlink(name)
     elif not args.apply:print('DRY RUN ONLY: no IAM change has been made.')
     else:print('PASS: exact scoped action already configured; no change needed.')

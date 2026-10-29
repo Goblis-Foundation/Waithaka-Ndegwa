@@ -10,9 +10,9 @@ At **29 October 2026 23:53 Africa/Nairobi / 20:53 UTC**, fresh anonymous checks 
 
 ## Implemented recovery correction
 
-PR #103's bootstrap permission and the adjacent launch-template permission were swallowed by literal backslash-n characters in a Python comment. Real line breaks are restored. Thirteen offline policy/CLI tests now verify the generated policy and the admin repair, and the standard PHP/MySQL test runner includes this suite. The admin repair retains dry-run default, prints the exact action/resource/condition, refuses deployment-role self-grant, detects intervening policy edits, verifies exact read-back and offers `--verify-only`. Seven existing release-continuity regressions pass locally.
+PR #103's bootstrap permission and the adjacent launch-template permission were swallowed by literal backslash-n characters in a Python comment. Real line breaks are restored. Sixteen offline policy/CLI tests now verify the generated policy and the admin repair, and the standard PHP/MySQL test runner includes this suite. The admin repair retains dry-run default, prints the exact action/resource/condition, refuses deployment-role self-grant, detects intervening policy edits, verifies exact read-back and offers `--verify-only`. Seven existing release-continuity regressions pass locally.
 
-Production remains gated on an authorized AWS administrator applying this one permission and obtaining independent verification. This workspace has no configured AWS session; GitHub's deployment role cannot grant itself this permission. The repair remains in the existing PR until the deployment prerequisite is satisfied. Do not bypass health checks or use all-at-once releases to avoid the missing permission.
+Production remains gated on an authorized AWS administrator applying the scoped termination and own-policy read permissions and obtaining independent verification. This workspace has no configured AWS session; GitHub's deployment role cannot grant itself this permission. The repair is reviewed through the existing PR; its new read-only preflight allows a tested Git merge to record the missing prerequisite before infrastructure changes. Do not bypass health checks or use all-at-once releases to avoid the missing permission.
 
 ## Reconciliation of all 33 recorded work areas
 
@@ -46,7 +46,7 @@ The IDs below exactly preserve `app/reconciliation_register.php`; no item is del
 | socials | LinkedIn/X/TikTok credentials/products and real receipts remain #71; preserve supported Instagram/YouTube routes and assisted personal Facebook workflow. |
 | planner | Daily/weekly program and trusted-device controls preserved; real calendar writes require their own reviewed event and acceptance. |
 | impact | Four source exporters/consumer contract implemented; approved dated reports, corrections/withdrawals and consumer read-back remain #74. |
-| google-expansion | GSC review and reviewed Docs/Sheets/Tasks/calendar code implemented; Meet artifact import, optional BigQuery/Looker and YouTube captions/playlists/moderation remain explicitly unfinished. |
+| google-expansion | GSC review and reviewed Docs/Sheets/Tasks/calendar code implemented. The follow-up adds selected read-only Meet artifact discovery and encrypted private transcript imports; deployment, the separate Google consent and genuine artifact acceptance remain pending. Optional BigQuery/Looker and YouTube captions/playlists/moderation remain explicitly unfinished. |
 | google-actions | Selected-content Docs/Sheets/Tasks approval/read-back implemented; correct scoped grants and genuine per-account verification remain #75. |
 | calendar-refresh | Register text “opt-in pending” is stale: 28 October acceptance records show seven successful selected-account refreshes and one renewal HTTP 400. Reauthorization/reselection and live verification of the remaining account still required. |
 | private-preparation | Private preparation stages historically verified independently from outbound delivery; source/heartbeat/runtime evidence must remain current. |
@@ -92,3 +92,11 @@ Further fresh public checks passed the circular WN icons and independent public/
 A bounded anonymous impact-source probe observed Goblis Group HTTP 403, Ubunifu HTTP 503, Goblis Foundation HTTP 503, and an unreachable AfriTrace response from this environment. These are point-in-time transport observations, not inferred causes or numerical impact results.
 
 The candidate also corrects three stale register statements without removing any of the 33 IDs: icon assets are verified while device installation remains pending; selected-calendar refresh has prior verified activation with a remaining renewal failure; and the UI labels #70–76 as tracked acceptance streams rather than claiming all seven GitHub issues are open. These wording changes are in the pending PR and are **not yet deployed**.
+
+## Git-based continuation
+
+The follow-up implements `/write/google/meet` and retains all 33 register IDs. See `GOOGLE-MEET-ARTIFACTS.md` for privacy boundaries, official API references and pending live acceptance. This changes a previously unfinished software feature; it does not claim the Google grant or live feature is activated.
+
+Production now performs `repair_rolling_role.py --verify-only` through the existing GitHub OIDC role before Route 53 recovery or any environment update. The administrator repair also adds `iam:GetRolePolicy` on **only** `WaithakaGitHubDeployRole`, enabling this read-only gate. It never grants the deployment role IAM write access to itself. An absent statement or failed policy read stops the workflow before infrastructure mutation. Successful inline-policy inspection does not prove the absence of SCPs, permission boundaries or other explicit denies.
+
+The user requested Git instead of console access. Source changes and release execution therefore use Git/GitHub Actions. Missing AWS grants remain external prerequisites; Git repository access cannot manufacture them. A tested merge can safely run this new gate and record the actual blocker without attempting a known-unready environment update. Keep the incident open until a new live version and continuity evidence are confirmed.

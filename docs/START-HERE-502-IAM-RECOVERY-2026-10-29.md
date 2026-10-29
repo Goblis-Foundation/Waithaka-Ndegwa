@@ -9,7 +9,7 @@ The release uses the `RollingWithAdditionalBatch` policy to retain the existing 
 ## Code remediation
 
 - `bootstrap-automation.py` now includes precisely `autoscaling:TerminateInstanceInAutoScalingGroup` for the existing environment ASG `arn:aws:autoscaling:af-south-1:466401734428:autoScalingGroup:*:autoScalingGroupName/awseb-e-8sjvpauytq-stack-*`, restricted to `aws:RequestedRegion=af-south-1`. It does not give `autoscaling:*` or access to unrelated ASGs.
-- `repair_rolling_role.py` provides a smaller **one-time, admin-operated** update to the existing `WaithakaScopedAutomation` inline policy on role `WaithakaGitHubDeployRole`. It retains all other statements, refuses conflicts, defaults to **dry run**, checks account `466401734428`, and verifies an exact policy read-back after applying.
+- `repair_rolling_role.py` provides a smaller **one-time, admin-operated** update to the existing `WaithakaScopedAutomation` inline policy on role `WaithakaGitHubDeployRole`. It also permits `iam:GetRolePolicy` on only the deployment role for the GitHub release preflight, retains all other statements, refuses conflicts, defaults to **dry run**, checks account `466401734428`, and verifies an exact policy read-back after applying.
 - Offline tests validate scope, idempotence, preservation of existing grants and rejection of a conflicting broader statement. No AWS policy was changed by this repository PR.
 
 ## Controlled privileged handoff
@@ -41,4 +41,8 @@ After the dry run and authorized apply, use:
 python3 -B deploy/aws/repair_rolling_role.py --verify-only
 ```
 
-This verifies the exact stored statement, not the effect of an SCP, permissions boundary or other deny. It does not trigger an instance termination or deployment. All live acceptance and continuity requirements above still apply. The 13 offline tests cover policy generation, preservation, scope, idempotence, wrong-account rejection, deployment-role self-grant refusal, concurrent edits, mismatched read-back, temporary-file cleanup and CI wiring.
+This verifies the exact stored statement, not the effect of an SCP, permissions boundary or other deny. It does not trigger an instance termination or deployment. All live acceptance and continuity requirements above still apply. The 16 offline tests cover policy generation, preservation, scope, idempotence, wrong-account rejection, deployment-role self-grant refusal, concurrent edits, mismatched read-back, temporary-file cleanup and CI wiring.
+
+## GitHub Actions preflight
+
+The production workflow runs `python3 -B deploy/aws/repair_rolling_role.py --verify-only` immediately after verifying the AWS target, before DNS recovery and deployment changes. This performs only STS identity and IAM policy reads. It fails closed if either exact required statement is absent, conflicts, or cannot be read. The bootstrap and administrator repair include the matching own-role read permission. Deployment-role self-grants remain prohibited. The user requested Git-only operation; do not use a console as a substitute for this release path.

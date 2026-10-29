@@ -103,6 +103,21 @@ jobs:
           test "$(aws sts get-caller-identity --query Account --output text --no-cli-pager)" = "466401734428"
           aws sts get-caller-identity --no-cli-pager
 
+      - name: Verify required deployment permissions before any infrastructure change
+        id: release_permissions
+        run: python3 -B deploy/aws/repair_rolling_role.py --verify-only
+
+      - name: Record blocked release prerequisite
+        if: failure() && steps.release_permissions.outcome == 'failure'
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### Release stopped before infrastructure changes
+
+          The required deployment policy could not be verified. This job did not run DNS recovery or update the environment.
+
+          The authorized IAM administrator must apply the reviewed `deploy/aws/repair_rolling_role.py` using an administrator identity, then rerun this GitHub release. The deployment role cannot grant itself rights. The repair includes environment-scoped Auto Scaling termination and read-only access to its own inline policy; it adds no IAM self-write permission.
+          EOF
+
       - name: Reconstruct Route 53 deployment state
         run: python3 deploy/aws/fresh_dns.py recover
 
@@ -149,7 +164,7 @@ jobs:
           aws cloudformation describe-stacks --stack-name waithaka-edge --region af-south-1 --no-cli-pager || true
 
       - name: Read scoped migration diagnostics on failure
-        if: failure()
+        if: failure() && steps.release_permissions.outcome == 'success'
         run: python3 -B deploy/aws/migration_log_diagnostics.py
 
       - name: Production smoke test

@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','verify','auth-settings','directory']){
+ for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
   ok(await page.locator('h1').count()===1,key+' has one page heading');
@@ -17,6 +17,11 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   }
  }
  ok(layoutFailures.length===0,'Module layouts: '+JSON.stringify(layoutFailures));
+ await page.goto(host+'module-google-meet-select.html');
+ ok(await page.locator('input[name=confirm][required]').count()===1,'Meet import requires explicit retention consent');
+ ok(await page.locator('form:has(input[value=import]) input[name=fingerprint]').count()===1,'Meet import binds the reviewed account');
+ await page.goto(host+'module-google-meet-saved.html');
+ ok(await page.locator('pre').innerText().then(t=>t.includes('<script>Literal untrusted transcript content</script>')),'Meet transcript is rendered as literal text');
  await page.goto(host+'module-login-error.html');
  ok(await page.getByLabel('Writer email',{exact:true}).inputValue()==='fixture@example.invalid','Email retained after rejection');
  ok(!await page.locator('[name=trust_device]').isChecked(),'Shared-device choice retained after rejection');

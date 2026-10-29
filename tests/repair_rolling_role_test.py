@@ -19,6 +19,8 @@ BASE = {'Version':'2012-10-17','Statement':[
 TARGET = {'Sid':m.SID,'Effect':'Allow',
           'Action':['autoscaling:TerminateInstanceInAutoScalingGroup'],
           'Resource':m.ASG,'Condition':{'StringEquals':{'aws:RequestedRegion':'af-south-1'}}}
+READ_TARGET = {'Sid':'ReadOwnDeploymentPolicy','Effect':'Allow','Action':['iam:GetRolePolicy'],
+               'Resource':'arn:aws:iam::466401734428:role/WaithakaGitHubDeployRole'}
 
 
 def bootstrap_policy():
@@ -77,7 +79,7 @@ class RepairTests(unittest.TestCase):
         result, changed = m.patch(source)
         self.assertTrue(changed)
         self.assertEqual(source, BASE)
-        self.assertEqual(result['Statement'], BASE['Statement']+[TARGET])
+        self.assertEqual(result['Statement'], BASE['Statement']+[TARGET,READ_TARGET])
 
     def test_idempotence(self):
         result, _ = m.patch(copy.deepcopy(BASE))
@@ -90,6 +92,8 @@ class RepairTests(unittest.TestCase):
             {'Version':'2012-10-17','Statement':[dict(TARGET, Resource='*')]},
             {'Version':'2012-10-17','Statement':[dict(TARGET, Action=['autoscaling:*'])]},
             {'Version':'2012-10-17','Statement':[TARGET,TARGET]},
+            {'Version':'2012-10-17','Statement':[dict(READ_TARGET,Resource='*')]},
+            {'Version':'2012-10-17','Statement':[dict(READ_TARGET,Action=['iam:PutRolePolicy'])]},
         ]:
             with self.subTest(policy=policy), self.assertRaises(ValueError): m.patch(policy)
 
@@ -97,6 +101,7 @@ class RepairTests(unittest.TestCase):
         policy = bootstrap_policy()
         statements = {x['Sid']:x for x in policy['Statement']}
         self.assertEqual(statements.get(m.SID), TARGET)
+        self.assertEqual(statements.get(m.READ_SID), READ_TARGET)
         self.assertEqual(statements['DeploymentLaunchTemplates'], {
             'Sid':'DeploymentLaunchTemplates','Effect':'Allow',
             'Action':['ec2:CreateLaunchTemplate','ec2:CreateLaunchTemplateVersion',
@@ -154,6 +159,25 @@ class RepairTests(unittest.TestCase):
 
     def test_standard_ci_runner_includes_this_suite(self):
         self.assertIn("'repair_rolling_role_test.py'=>", (ROOT/'tests/run.php').read_text())
+
+    def test_deploy_role_can_verify_but_cannot_change_iam(self):
+        configured, _ = m.patch(copy.deepcopy(BASE))
+        calls, _ = self.run_cli(['--verify-only'], current=configured, deploy_role=True)
+        self.assertEqual([x[:2] for x in calls], [('sts','get-caller-identity'),('iam','get-role-policy')])
+
+    def test_partial_existing_fix_adds_only_read_permission(self):
+        partial = copy.deepcopy(BASE)
+        partial['Statement'].append(TARGET)
+        configured, changed = m.patch(partial)
+        self.assertTrue(changed)
+        self.assertEqual(configured['Statement'], partial['Statement']+[READ_TARGET])
+
+    def test_production_gate_precedes_infrastructure_changes(self):
+        workflow = (ROOT/'.github/workflows/deploy-production.yml').read_text()
+        gate = workflow.index('repair_rolling_role.py --verify-only')
+        for operation in ['fresh_dns.py recover','fresh_hosting.sh --after-registrar','google_workspace.sh --enable']:
+            self.assertLess(gate, workflow.index(operation))
+        self.assertNotIn('repair_rolling_role.py --apply', workflow)
 
 
 if __name__ == '__main__':

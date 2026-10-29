@@ -300,6 +300,7 @@ try {
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',
                   'writer_auth_unit.php'=>'Writer authentication and verification',
+                  'google_meet_unit.php'=>'Selected private Meet imports and account boundaries',
                   'google_actions_unit.php'=>'Reviewed Google actions and independent results',
                   'google_calendar_sync_unit.php'=>'Incremental calendar snapshots and notification authentication',
                   'preparation_status_unit.php'=>'Private preparation monitoring and privacy',

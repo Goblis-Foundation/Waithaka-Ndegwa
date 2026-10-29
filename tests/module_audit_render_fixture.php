@@ -32,9 +32,17 @@ file_put_contents($out.'/module-google-new.html',ma_page('google_actions',array_
 $record=['id'=>str_repeat('a',32),'state'=>'reviewed','kind'=>'sheet','title'=>'Selected table','text'=>"Name\tValue\nReviewed source\t=literal text",'account_name'=>'Synthetic fixture account','destination'=>'My Drive','due'=>'','version'=>2,'audit'=>[['state'=>'draft','at'=>1793193600]]];
 file_put_contents($out.'/module-google-review.html',ma_page('google_actions',array_replace($base,['part'=>$record['id'],'record'=>$record])));
 file_put_contents($out.'/module-google-sync.html',ma_page('google_calendar_sync',['config'=>['enabled'=>true,'push'=>false],'rows'=>[['account'=>'Verified owner · owner@example.invalid','calendar'=>'Owner calendar','observed'=>1793188800,'attempted'=>1793188800,'retry_at'=>0,'mode'=>'full','count'=>2,'error'=>'','push_error'=>'','expires'=>0],['account'=>'Second account · second@example.invalid','calendar'=>'Calendar awaiting review','observed'=>0,'attempted'=>1793188800,'retry_at'=>1793190600,'mode'=>'Not checked','count'=>0,'error'=>'Google rejected access renewal (HTTP 400). Review this account’s Google authorization and application settings. Any previous snapshot remains stale.','push_error'=>'','expires'=>0]],'error'=>'']));
+$_SERVER['REQUEST_URI']='/write/google/meet';
+$meetBase=['record'=>null,'discovery'=>null,'selection'=>null,'error'=>'','connected'=>null,'records'=>[]];
+file_put_contents($out.'/module-google-meet.html',ma_page('google_meet',$meetBase));
+$meetArtifact=['name'=>'conferenceRecords/synthetic-meeting/transcripts/synthetic-transcript','kind'=>'transcript','state'=>'FILE_GENERATED','start'=>'2026-10-29T10:00:00Z','end'=>'2026-10-29T11:00:00Z','url'=>'https://docs.google.com/document/d/synthetic-doc/edit'];
+$meetSelection=['account'=>'Synthetic account · owner@example.invalid','conference'=>'conferenceRecords/synthetic-meeting','fingerprint'=>str_repeat('f',64),'artifacts'=>[$meetArtifact]];
+file_put_contents($out.'/module-google-meet-select.html',ma_page('google_meet',array_replace($meetBase,['selection'=>$meetSelection])));
+$meetRecord=['id'=>str_repeat('c',64),'owner'=>7,'account'=>'Synthetic account · owner@example.invalid','imported_at'=>1793268000,'artifact'=>$meetArtifact,'entries'=>[['speaker'=>1,'text'=>'<script>Literal untrusted transcript content</script> '.str_repeat('longunbrokenword',30),'start'=>'2026-10-29T10:00:00Z','end'=>'2026-10-29T10:00:10Z']]];
+file_put_contents($out.'/module-google-meet-saved.html',ma_page('google_meet',array_replace($meetBase,['record'=>$meetRecord,'records'=>[$meetRecord]])));
 $_SERVER['REQUEST_URI']='/write/verify';
 file_put_contents($out.'/module-verify.html',ma_page('verify_login',['challenge'=>['uid'=>7,'email'=>'fixture@example.invalid','method'=>'email','delivery'=>'accepted','link_identity'=>[]],'error'=>''],false));
 $_SERVER['REQUEST_URI']='/write/security/sign-in';
 file_put_contents($out.'/module-auth-settings.html',ma_page('sign_in_security',['user'=>['id'=>7,'email'=>'fixture@example.invalid'],'uid'=>7,'error'=>'','factors'=>[],'setup'=>[],'phoneSetup'=>[],'codes'=>[],'identities'=>[]]));
 $_SERVER['REQUEST_URI']='/write/control-centre';file_put_contents($out.'/module-directory.html',ma_page('control_centre',['counts'=>['Draft articles'=>3,'Open conversations'=>2,'Awaiting review'=>null,'Published articles'=>12]]));
-echo "Rendered fourteen isolated module fixtures with no database or provider access.\n";
+echo "Rendered seventeen isolated module fixtures with no database or provider access.\n";
