@@ -28,3 +28,17 @@ The script is intentionally not run by untrusted pull requests or a deployment w
 After an administrator applies the permission, run one controlled production deployment with the release continuity guard. Confirm before changing code that `/healthz`, `/` and `/start-here` each return HTTP 200 and Start Here contains all five required source-content markers. During the update, retain the external monitor's timestamped 5-second GET-only samples and raw failure count. Afterward, confirm Elastic Beanstalk Ready/Green at the **new** version, both frontend and origin targets, no 502/blank responses, independent browser acceptance and the correct live Start Here content. Review ALB/instance/proxy logs for the cause if symptoms persist.
 
 The existing workflow deliberately refuses to start new deployment operations if its initial health/Start Here sample is not already valid. Do not bypass the guard, start a competing deploy or reactivate the outbound worker/email queue. Preserve the full 33-area register and open issues #70–76 and #100. A successful IAM policy patch **does not by itself certify website restoration**.
+
+## Recovery audit correction
+
+The initial PR contained literal `\n` characters inside a Python comment. This commented out both the new ASG permission and the adjacent `DeploymentLaunchTemplates` statement while still passing Python syntax checks. The recovery revision restores real line breaks and tests the **evaluated policy expression**, so missing or widened permissions fail the suite. The previously standalone repair test was not in the standard application test runner; it is now included in both PHP/MySQL jobs and production validation.
+
+The repair also prints the exact proposed statement, rejects self-grant by the deployment role, checks for intervening policy changes before writing, preserves every existing statement, and adds a read-only verification mode. IAM has no compare-and-swap for inline policies: the immediate reread reduces the race window but is not a transaction; avoid concurrent IAM edits during application.
+
+After the dry run and authorized apply, use:
+
+```bash
+python3 -B deploy/aws/repair_rolling_role.py --verify-only
+```
+
+This verifies the exact stored statement, not the effect of an SCP, permissions boundary or other deny. It does not trigger an instance termination or deployment. All live acceptance and continuity requirements above still apply. The 13 offline tests cover policy generation, preservation, scope, idempotence, wrong-account rejection, deployment-role self-grant refusal, concurrent edits, mismatched read-back, temporary-file cleanup and CI wiring.

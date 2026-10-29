@@ -14,6 +14,8 @@ def aws(*args):
 def patch(policy):
     if policy.get('Version')!='2012-10-17' or not isinstance(policy.get('Statement'),list):
         raise ValueError('Unexpected IAM policy structure; review manually.')
+    if any(not isinstance(x,dict) for x in policy['Statement']):
+        raise ValueError('Unexpected IAM statement; review manually.')
     existing=[x for x in policy['Statement'] if x.get('Sid')==SID]
     target={'Sid':SID,'Effect':'Allow','Action':['autoscaling:TerminateInstanceInAutoScalingGroup'],'Resource':ASG,'Condition':{'StringEquals':{'aws:RequestedRegion':REGION}}}
     if existing:
@@ -22,22 +24,33 @@ def patch(policy):
     out=json.loads(json.dumps(policy))
     out['Statement'].append(target)
     return out,True
-def main():
+def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--apply',action='store_true',help='Apply only after reviewing the exact scoped permission')
-    args=parser.parse_args()
+    mode=parser.add_mutually_exclusive_group()
+    mode.add_argument('--apply',action='store_true',help='Apply only after reviewing the exact scoped permission')
+    mode.add_argument('--verify-only',action='store_true',help='Read back the exact statement; fail if missing, without writing')
+    args=parser.parse_args(argv)
     identity=aws('sts','get-caller-identity')
     if identity.get('Account')!=ACCOUNT: raise RuntimeError('Wrong AWS account; no change made.')
+    if args.apply and (':assumed-role/'+ROLE+'/' in identity.get('Arn','') or identity.get('Arn')==f'arn:aws:iam::{ACCOUNT}:role/{ROLE}'):
+        raise RuntimeError('The deployment role cannot grant itself permissions; use the authorized IAM administrator session.')
     current=aws('iam','get-role-policy','--role-name',ROLE,'--policy-name',POLICY)['PolicyDocument']
     if not isinstance(current,dict): raise RuntimeError('Unexpected inline IAM policy response.')
     revised,changed=patch(current)
-    print(json.dumps({'account':ACCOUNT,'role':ROLE,'policy':POLICY,'new_statement':SID,'resource':ASG,'changed':changed,'apply_requested':args.apply},indent=2))
+    target=next(x for x in revised['Statement'] if x.get('Sid')==SID)
+    print(json.dumps({'account':ACCOUNT,'role':ROLE,'policy':POLICY,'statement':target,'changed':changed,'apply_requested':args.apply},indent=2))
+    if args.verify_only:
+        if changed: raise RuntimeError('Required scoped permission is missing; no change made.')
+        print('PASS: exact scoped inline statement exists. Effective access and deployment health still require independent verification.')
+        return
     if args.apply and changed:
         import tempfile,os
         fd,name=tempfile.mkstemp(prefix='wn-scoped-iam-',suffix='.json')
         try:
             with os.fdopen(fd,'w') as f:json.dump(revised,f)
             os.chmod(name,0o600)
+            fresh=aws('iam','get-role-policy','--role-name',ROLE,'--policy-name',POLICY)['PolicyDocument']
+            if fresh!=current: raise RuntimeError('Policy changed since review; refusing to replace concurrent edits. Rerun the dry run.')
             aws('iam','put-role-policy','--role-name',ROLE,'--policy-name',POLICY,'--policy-document','file://'+name)
             saved=aws('iam','get-role-policy','--role-name',ROLE,'--policy-name',POLICY)['PolicyDocument']
             if saved!=revised: raise RuntimeError('Policy read-back did not match; investigate before deployment.')
@@ -47,5 +60,5 @@ def main():
     else:print('PASS: exact scoped action already configured; no change needed.')
 if __name__=='__main__':
     try:main()
-    except (RuntimeError,ValueError,KeyError) as exc:
+    except (RuntimeError,ValueError,KeyError,OSError) as exc:
         print('FAIL:',str(exc),file=sys.stderr);sys.exit(1)
