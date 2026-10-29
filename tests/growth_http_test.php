@@ -101,9 +101,10 @@ try{
     $r=growth_request('/media-centre');growth_check($r['status']===301&&str_ends_with($r['headers']['location']??'','/contact'),'Former public media URL redirects to contact; media centre belongs to Writer.');
     growth_check(!in_array($base.'/media-centre',$locations,true),'Private media centre is not advertised in sitemap.');
     $r=growth_request('/write/impact');growth_check($r['status']===200&&str_contains($r['headers']['cache-control']??'','no-store')&&str_contains($r['headers']['x-robots-tag']??'','noindex')&&!str_contains($r['body'],'googletagmanager.com'),'Reporting controls are private and render without analytics.');
-    $impactCsrf=growth_csrf($r);
+    growth_check(!str_contains($r['body'],'Approved reporting URL')&&!str_contains($r['body'],'goblis_group_token'),'Non-owner overview omits source connection and token controls.');
+    $impactCsrf=$studioCsrf;
     $r=growth_request('/write/impact',['action'=>'save','csrf'=>'invalid']);growth_check($r['status']===419,'Reporting writes require CSRF.');
-    $r=growth_request('/write/impact',['action'=>'save','csrf'=>$impactCsrf,'goblis_group_url'=>'http://127.0.0.1/internal']);growth_check($r['status']===302,'Unsafe reporting connection is rejected through the form.');
+    $r=growth_request('/write/impact',['action'=>'save','csrf'=>$impactCsrf,'goblis_group_url'=>'http://127.0.0.1/internal']);growth_check($r['status']===403,'Other Writers cannot submit a source endpoint even when its URL is unsafe.');
     growth_check(!setting('impact.url.goblis_group',''),'Unsafe reporting URL was not persisted.');
     foreach(['/','/about'] as $goalRoute){$r=growth_request($goalRoute);growth_check($r['status']===200&&str_contains($r['body'],'goals-2030')&&str_contains($r['body'],'30,000')&&str_contains($r['body'],'2,030')&&str_contains($r['body'],'Awaiting source data'),'Goals distinguish targets and unavailable progress: '.$goalRoute);}
     foreach(['/','/about'] as $logoRoute){
