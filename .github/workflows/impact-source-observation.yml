@@ -1,0 +1,54 @@
+name: Approved-impact source availability
+
+on:
+  schedule:
+    # 07:05 Africa/Nairobi (UTC+03); GitHub scheduled runs may be delayed.
+    - cron: '5 4 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'deploy/aws/observe_impact_sources.py'
+      - 'tests/observe_impact_sources_test.py'
+      - '.github/workflows/impact-source-observation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/aws/observe_impact_sources.py'
+      - 'tests/observe_impact_sources_test.py'
+      - '.github/workflows/impact-source-observation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: waithaka-impact-source-observation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observe:
+    name: Test and inspect source-owned public reporting endpoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run offline no-network privacy and protocol tests
+        run: |
+          python3 -B -m py_compile deploy/aws/observe_impact_sources.py tests/observe_impact_sources_test.py
+          python3 -B tests/observe_impact_sources_test.py
+      - name: Observe anonymous public source availability only
+        env:
+          IMPACT_SOURCE_PROBE_OUT: ${{ runner.temp }}/impact-source-observation/report.json
+        run: python3 -B deploy/aws/observe_impact_sources.py
+      - name: Retain bounded status evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waithaka-impact-source-availability
+          path: ${{ runner.temp }}/impact-source-observation/report.json
+          retention-days: 14
+          if-no-files-found: ignore
