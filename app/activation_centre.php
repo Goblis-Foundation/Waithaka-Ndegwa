@@ -92,7 +92,7 @@ function activation_assess(array $facts): array {
         : (($services['facebook_profile']??'unknown')==='unknown'?'Personal Meta authorization could not be checked locally.':'Personal Facebook identity is not confirmed in Writer.');
     $network=$knownSocial===count($social)
         ? $socialLinked.'/3 personal service connections are saved; live posting permissions still need verification.'
-        : 'Personal service inventory incomplete; '.$socialLinked.' saved LinkedIn/X/TikTok read connections observed.';
+        : 'Personal service inventory unavailable or incomplete; confirm all three exact accounts.';
     $money=$knownFinance===3
         ? $financeLive.'/3 payment providers have credentials marked for live use; settlement remains unverified.'
         : 'Payment configuration inventory incomplete. Never treat an unknown merchant status as active.';
