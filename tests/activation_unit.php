@@ -6,6 +6,7 @@ function impact_sources():array{return ['goblis_group'=>'Goblis Group','ubunifu'
 function url(string $path=''):string{return 'https://www.example.org/'.ltrim($path,'/');}
 function asset(string $path):string{return '/assets/'.$path;}
 function csrf_token():string{return 'fixture-csrf';}
+function csrf_field():string{return '<input type="hidden" name="csrf" value="fixture-csrf">';}
 function path_only():string{return '/write/activation';}
 function e(string $value):string{return htmlspecialchars($value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function app_config(string $key,mixed $default=null):mixed{return $key==='worker_enabled'?false:$default;}
