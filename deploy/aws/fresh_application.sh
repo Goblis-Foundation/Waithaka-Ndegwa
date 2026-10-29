@@ -220,6 +220,11 @@ if '$BOOTSTRAP_REQUIRED' == '0':
 json.dump(a,open(out,'w'),indent=2)
 PY
 
+# Routine release must preserve the existing application environment options. Reapplying
+# the bootstrap template would reset the approved SMTP relay and restart the sole instance.
+ROUTINE_RELEASE=0
+if [[ "$BOOTSTRAP_REQUIRED" == 0 && "$GOOGLE_MIGRATION_REQUIRED" == 0 ]]; then ROUTINE_RELEASE=1; fi
+
 environment_snapshot(){
   aws elasticbeanstalk describe-environments \
     --application-name "$APP_NAME" \
@@ -252,8 +257,33 @@ else
     echo "Waiting for the existing environment operation to settle before applying the reviewed configuration..."
     wait_environment_ready || fail "Existing Elastic Beanstalk environment did not become Ready."
   fi
-  echo "Updating existing Elastic Beanstalk environment to application version $VERSION..."
-  aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --version-label "$VERSION" --option-settings "file://$OPTIONS" --region "$REGION" --no-cli-pager >/dev/null
+  if [[ "$ROUTINE_RELEASE" != 1 ]]; then
+    # Never silently mix a schema/bootstrap reconfiguration with an ordinary
+    # application release. Such changes need their own reviewed recovery plan.
+    [[ "${APPROVED_MIGRATION_DEPLOYMENT:-0}" == 1 ]] || fail "Existing environment requires a separately approved schema/bootstrap release. Refusing a potentially disruptive in-place update."
+  fi
+  if [[ "$ROUTINE_RELEASE" == 1 ]]; then
+    # Preserve current mail, worker, owner, access and environment secret settings.
+    [[ "$existing_health" == Green ]] || fail "Refusing a routine release while the existing environment is not Green."
+    cfg_query(){ aws elasticbeanstalk describe-configuration-settings --application-name "$APP_NAME" --environment-name "$ENV_NAME" --region "$REGION" --query "$1" --output text --no-cli-pager; }
+    MAIL_BEFORE="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='MAIL_TRANSPORT'].Value | [0]")"
+    WORKER_BEFORE="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='WORKER_ENABLED'].Value | [0]")"
+    CURRENT_POLICY="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='DeploymentPolicy'].Value | [0]")"
+    if [[ "$CURRENT_POLICY" != Immutable ]]; then
+      echo "Configuring immutable deployment policy before the application rollout; existing version stays serving."
+      aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --option-settings Namespace=aws:elasticbeanstalk:command,OptionName=DeploymentPolicy,Value=Immutable --region "$REGION" --no-cli-pager >/dev/null
+      aws elasticbeanstalk wait environment-updated --environment-names "$ENV_NAME" --region "$REGION" --no-cli-pager
+      wait_environment_ready || fail "Could not verify deployment-policy update completion."
+    fi
+    [[ "$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='DeploymentPolicy'].Value | [0]")" == Immutable ]] || fail "Immutable deployment policy was not independently confirmed."
+    read -r _ _ verified_health verified_version <<<"$(environment_snapshot)"
+    [[ "$verified_health" == Green && "$verified_version" == "$existing_version" ]] || fail "Existing application must remain Ready/Green before immutable deployment."
+    echo "Deploying application version only. Existing mail, worker, identity and other environment settings remain unchanged."
+    aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --version-label "$VERSION" --region "$REGION" --no-cli-pager >/dev/null
+  else
+    echo "Initial or schema-migration deployment; applying separately reviewed bootstrap settings."
+    aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --version-label "$VERSION" --option-settings "file://$OPTIONS" --region "$REGION" --no-cli-pager >/dev/null
+  fi
 fi
 
 STATUS=""; HEALTH=""; READY_UNHEALTHY=0
@@ -312,6 +342,9 @@ PYAUDIT
   cleanup_google_migration_access
 fi
 
+# Never republish origin DNS or reset bootstrap configuration on a routine code release.
+# The prior green environment, its ALB and routing records must remain stable during rollout.
+if [[ "$ROUTINE_RELEASE" == 0 ]]; then
 # Add origin DNS alias to the actual ALB now that the environment exists.
 ENV_ID="$(aws elasticbeanstalk describe-environments --environment-names "$ENV_NAME" --region "$REGION" --query 'Environments[0].EnvironmentId' --output text --no-cli-pager)"
 LB_NAME="$(aws elasticbeanstalk describe-environment-resources --environment-id "$ENV_ID" --region "$REGION" --query 'EnvironmentResources.LoadBalancers[0].Name' --output text --no-cli-pager)"
@@ -335,6 +368,14 @@ aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --region 
   --options-to-remove Namespace=aws:elasticbeanstalk:application:environmentsecrets,OptionName=WRITER_INITIAL_PASSWORD Namespace=aws:elasticbeanstalk:application:environment,OptionName=DB_ADMIN_SECRET_ARN \
   --no-cli-pager >/dev/null
 for i in $(seq 1 80); do STATUS="$(aws elasticbeanstalk describe-environments --environment-names "$ENV_NAME" --region "$REGION" --query 'Environments[0].Status' --output text --no-cli-pager)"; [[ "$STATUS" == Ready ]] && break; sleep 10; done
+
+fi
+if [[ "$ROUTINE_RELEASE" == 1 ]]; then
+  MAIL_AFTER="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='MAIL_TRANSPORT'].Value | [0]")"
+  WORKER_AFTER="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='WORKER_ENABLED'].Value | [0]")"
+  [[ "$MAIL_AFTER" == "$MAIL_BEFORE" && "$WORKER_AFTER" == "$WORKER_BEFORE" ]] || fail "Existing mail or worker configuration changed across a code-only release."
+  echo "PASS: release preserved sender and worker configuration without extra environment restarts or DNS changes."
+fi
 
 # Remove the bootstrap-only database administrator secret permission.
 POLICY_FILE="$(mktemp)"

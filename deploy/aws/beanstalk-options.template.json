@@ -15,6 +15,16 @@
     "Value": "application"
   },
   {
+    "Namespace": "aws:elasticbeanstalk:command",
+    "OptionName": "DeploymentPolicy",
+    "Value": "Immutable"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:command",
+    "OptionName": "HealthCheckSuccessThreshold",
+    "Value": "Ok"
+  },
+  {
     "Namespace": "aws:elasticbeanstalk:environment",
     "OptionName": "ServiceRole",
     "Value": "REPLACE_EB_SERVICE_ROLE"

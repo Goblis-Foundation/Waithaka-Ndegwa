@@ -99,6 +99,8 @@ async function inspect(browser, target, screen) {
         mainCount: main.length,
         h1Count: headings.length,
         formCount: document.querySelectorAll('form').length,
+        mainTextLength: main[0] ? (main[0].innerText || '').trim().length : 0,
+        visibleLinks: main[0] ? [...main[0].querySelectorAll('a[href]')].filter(a => a.getClientRects().length > 0).map(a => { try { return new URL(a.href).pathname; } catch (_) { return ''; } }) : [],
         scrollWidth: width,
         canonical: canonical ? canonical.href : '',
         robots: robots ? robots.content : '',
@@ -118,8 +120,15 @@ async function inspect(browser, target, screen) {
       cls: observed.cls === null ? null : Math.round(observed.cls * 10000) / 10000
     };
     result.formCount = observed.formCount;
+    result.mainTextLength = observed.mainTextLength;
     if (observed.mainCount !== 1) result.failures.push('Expected exactly one main landmark.');
     if (observed.h1Count !== 1) result.failures.push('Expected exactly one H1.');
+    if (target.slug === 'start-here') {
+      if (observed.mainTextLength < 600) result.failures.push('Start Here is empty or missing its substantive public content.');
+      for (const path of ['/my-thoughts', '/startup-journeys', '/resources', '/founders', '/contact']) {
+        if (!observed.visibleLinks.includes(path)) result.failures.push('Start Here is missing the visible journey link ' + path + '.');
+      }
+    }
     if (observed.scrollWidth > screen.width + 2) {
       result.failures.push('Horizontal overflow: ' + observed.scrollWidth + 'px in ' + screen.width + 'px viewport.');
     }

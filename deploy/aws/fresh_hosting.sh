@@ -30,8 +30,19 @@ PY
      if [[ "$i" == 120 ]]; then echo "Delegation/certificate validation is not complete. Review $HOME/waithaka-aws-bootstrap/fresh-dns-status.json" >&2; exit 1; fi
      sleep 15
    done
+   # Code-only releases must not continuously update CloudFront or Route 53.
+   # DNS and edge cutover are one-time infrastructure operations, not per-release work.
+   edge_state="$(aws cloudformation describe-stacks --stack-name waithaka-edge --region "${AWS_REGION:-af-south-1}" --query 'Stacks[0].StackStatus' --output text --no-cli-pager 2>/dev/null || true)"
    bash "$SOURCE_DIR/deploy/aws/fresh_application.sh"
-   bash "$SOURCE_DIR/deploy/aws/fresh_edge.sh"
+   if [[ "$edge_state" == CREATE_COMPLETE || "$edge_state" == UPDATE_COMPLETE ]]; then
+     echo "PASS: existing CloudFront edge preserved; no routing or DNS cutover for this application release."
+   elif [[ -z "$edge_state" || "$edge_state" == None ]]; then
+     echo "Initial edge stack is absent; invoking reviewed one-time edge provisioning."
+     bash "$SOURCE_DIR/deploy/aws/fresh_edge.sh"
+   else
+     echo "Existing edge stack is in state $edge_state; refusing an unreviewed replacement or update." >&2
+     exit 1
+   fi
    echo
    bash "$SOURCE_DIR/deploy/aws/google_workspace.sh" status
    echo

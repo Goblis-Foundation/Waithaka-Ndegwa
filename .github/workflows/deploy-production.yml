@@ -117,11 +117,26 @@ jobs:
           unzip -p "$OUTER" deployment/application.zip > ../deployment/application.zip
           unzip -t ../deployment/application.zip >/dev/null
 
-      - name: Continue production deployment
-        run: bash deploy/aws/fresh_hosting.sh --after-registrar
+      - name: Continue production deployment with live availability guard
+        run: |
+          python3 -B deploy/aws/release_continuity.py \
+            --report "$RUNNER_TEMP/live-continuity/deployment.json" \
+            --interval 5 -- bash deploy/aws/fresh_hosting.sh --after-registrar
 
-      - name: Apply confirmed Workspace mail relay
-        run: bash deploy/aws/google_workspace.sh --enable
+      - name: Apply confirmed Workspace mail relay without a blind restart
+        run: |
+          python3 -B deploy/aws/release_continuity.py \
+            --report "$RUNNER_TEMP/live-continuity/mail-config.json" \
+            --interval 5 -- bash deploy/aws/google_workspace.sh --enable
+
+      - name: Retain public outage evidence, including failed releases
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waithaka-release-public-continuity
+          path: ${{ runner.temp }}/live-continuity/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Deployment diagnostics on failure
         if: failure()
