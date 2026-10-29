@@ -5,7 +5,8 @@ declare(strict_types=1);
  * Collaborators can still prepare/review drafts without gaining provider privileges.
  */
 function publishing_owner_control(string $path,string $method): bool {
-    if(str_starts_with($path,'/write/connections'))return true;
+    if($path==='/write/connections')return $method==='POST';
+    if(str_starts_with($path,'/write/connections/'))return true;
     if($method!=='POST')return false;
     if($path==='/write/publishing/automation')return true;
     return preg_match('~^/write/publishing/(?:[0-9]+/(?:approve|schedule)|jobs/[0-9]+/(?:complete|retry|cancel))$~D',$path)===1;
@@ -27,6 +28,9 @@ function publishing_dispatch(string $path): bool {
     try {
         if (is_post()) verify_csrf();
         if ($path==='/write/connections'&&!is_post()) {
+            if(!publishing_writer_owner($userId,(int)(comm_config()['owner']??0))){
+                render_write('connections_observer',['writeTitle'=>'Integrations · read-only']);return true;
+            }
             $connections=[];foreach(db()->query('SELECT * FROM publishing_connections')->fetchAll() as $connection)$connections[$connection['service']]=$connection;
             render_write('connections',['writeTitle'=>'Integrations','connections'=>$connections,'services'=>publishing_services(),'channels'=>publishing_channels()]);return true;
         }
