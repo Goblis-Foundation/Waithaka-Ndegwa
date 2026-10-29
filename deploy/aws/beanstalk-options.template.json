@@ -17,7 +17,17 @@
   {
     "Namespace": "aws:elasticbeanstalk:command",
     "OptionName": "DeploymentPolicy",
-    "Value": "Immutable"
+    "Value": "RollingWithAdditionalBatch"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:command",
+    "OptionName": "BatchSizeType",
+    "Value": "Fixed"
+  },
+  {
+    "Namespace": "aws:elasticbeanstalk:command",
+    "OptionName": "BatchSize",
+    "Value": "1"
   },
   {
     "Namespace": "aws:elasticbeanstalk:command",
