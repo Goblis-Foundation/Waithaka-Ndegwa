@@ -80,3 +80,15 @@ python3 -B deploy/aws/repair_rolling_role.py --verify-only
 After independent effective-access verification, merge only the tested revision and run one guarded production release. Require Ready/Green at the new version, uninterrupted sampled public content during rollout, all post-deployment checks and independent live browser acceptance. Keep #100 open until that evidence exists. Do not restart a failed deployment blindly or release paused communication/payment queues.
 
 Sources: October 23 requirements audit; October 24 remaining acceptance; October 27 reconciliation; October 28 recovery/module/admin/productivity/communications audits; October 29 activation and continuity records; current register, GitHub issue/PR metadata and production job logs. This is a reconciliation of recovered authoritative records, not a claim to have accessed every historical conversation or completed every external account action.
+
+## Additional live acceptance and register corrections
+
+The existing authenticated Writer session was available. A fresh, read-only browser sweep visited all **47 distinct sidebar destinations** (excluding the duplicate article-library anchor), spanning daily work, creation/media, publishing desk, audience, journeys/impact and administration. Every inspected destination rendered one main landmark and one H1, with no viewport-level horizontal overflow or visible server-error marker at the tested desktop viewport. No forms were submitted. This is live structural acceptance, not exhaustive testing of every record/action, mobile device, assistive technology or external integration.
+
+The owner-only activation page independently reported unconfirmed personal Facebook identity, no saved LinkedIn/X/TikTok connection, two of three merchants marked live in configuration, no locally accepted approved impact snapshot, eight saved calendar connections, incomplete sender readiness and paused outbound delivery. Saved configuration does not prove current provider access, payment settlement or delivery.
+
+Further fresh public checks passed the circular WN icons and independent public/Writer manifests, the approved wordmark hash, Search CSS/HTML consistency, Kenya-first form contracts, Goal 2030 section navigation, anonymous private-workspace rejection, promotion/reconciliation journeys and current visitor-source refresh with an advancing source timestamp. No posting, charge or message occurred.
+
+A bounded anonymous impact-source probe observed Goblis Group HTTP 403, Ubunifu HTTP 503, Goblis Foundation HTTP 503, and an unreachable AfriTrace response from this environment. These are point-in-time transport observations, not inferred causes or numerical impact results.
+
+The candidate also corrects three stale register statements without removing any of the 33 IDs: icon assets are verified while device installation remains pending; selected-calendar refresh has prior verified activation with a remaining renewal failure; and the UI labels #70–76 as tracked acceptance streams rather than claiming all seven GitHub issues are open. These wording changes are in the pending PR and are **not yet deployed**.
