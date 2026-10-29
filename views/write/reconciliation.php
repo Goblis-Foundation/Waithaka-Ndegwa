@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="<?=e(asset('css/publishing-desk.css'))?>">
 <main class="desk desk-workspace" data-implementation-register>
-<header class="desk-hero"><div><p class="desk-kicker">Requirements and release evidence</p><h1>Implementation register</h1><p>Find every recorded commitment, its implementation evidence and the next step needed to finish it.</p></div><a class="desk-button" href="<?=url('/write/operations')?>">Live operations</a></header>
+<header class="desk-hero"><div><p class="desk-kicker">Requirements and release evidence</p><h1>Implementation register</h1><p>Find every recorded commitment, its implementation evidence and the next step needed to finish it.</p></div><div class="desk-actions"><a class="desk-button" href="<?=url('/write/activation')?>">Activation & launch readiness</a><a class="desk-button" href="<?=url('/write/operations')?>">Live operations</a></div></header>
 <p class="desk-note">This register combines available instructions, repository history and live inspection. Earlier transcripts that are unavailable cannot be certified as exhaustively reviewed. A deployed feature and an activated external account have separate completion evidence.</p>
 <?php $issueLinks=reconciliation_issue_links();$followup=count(array_filter($items,'reconciliation_followup')); ?>
 <div class="desk-metrics"><div><strong><?=count($items)?></strong><span>Tracked work areas</span></div><div><strong><?=$followup?></strong><span>Follow-up or verification</span></div><div><strong>7</strong><span>Open acceptance issues · #70–76</span></div></div>

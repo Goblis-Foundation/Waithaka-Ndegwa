@@ -11,7 +11,7 @@ if(wa_dispatch($path)||gcs_webhook($path)||gcs_dispatch($path)||gwa_dispatch($pa
 if(opportunity_dispatch($path)||enterprise_dispatch($path))exit;
 if(monthly_dispatch($path))exit;
 if($path==='/webhooks/paypal')paypal_notifications_webhook();
-if (workspace_reports_dispatch($path) || planner_dispatch($path) || communication_mail_dispatch($path) || app_security_dispatch($path) || communication_dispatch($path) || meetings_dispatch($path) || google_workspace_dispatch($path) || impact_writer_route($path) || writer_account_route($path) || studio_dispatch($path) || media_centre_dispatch($path)) exit;
+if (activation_dispatch($path) || workspace_reports_dispatch($path) || planner_dispatch($path) || communication_mail_dispatch($path) || app_security_dispatch($path) || communication_dispatch($path) || meetings_dispatch($path) || google_workspace_dispatch($path) || impact_writer_route($path) || writer_account_route($path) || studio_dispatch($path) || media_centre_dispatch($path)) exit;
 if (str_starts_with($path,'/write') || str_starts_with($path,'/consent/') || str_starts_with($path,'/payments/')) private_response_headers();
 // Optional modules may handle additional routes without changing legacy URLs.
 if (function_exists('app_extension_route') && app_extension_route($path)) exit;
