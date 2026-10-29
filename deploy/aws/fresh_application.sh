@@ -269,15 +269,24 @@ else
     MAIL_BEFORE="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='MAIL_TRANSPORT'].Value | [0]")"
     WORKER_BEFORE="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:application:environment' && OptionName=='WORKER_ENABLED'].Value | [0]")"
     CURRENT_POLICY="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='DeploymentPolicy'].Value | [0]")"
-    if [[ "$CURRENT_POLICY" != Immutable ]]; then
-      echo "Configuring immutable deployment policy before the application rollout; existing version stays serving."
-      aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --option-settings Namespace=aws:elasticbeanstalk:command,OptionName=DeploymentPolicy,Value=Immutable --region "$REGION" --no-cli-pager >/dev/null
+    CURRENT_BATCH_TYPE="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='BatchSizeType'].Value | [0]")"
+    CURRENT_BATCH_SIZE="$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='BatchSize'].Value | [0]")"
+    if [[ "$CURRENT_POLICY" != RollingWithAdditionalBatch || "$CURRENT_BATCH_TYPE" != Fixed || "$CURRENT_BATCH_SIZE" != 1 ]]; then
+      echo "Configuring rolling deployment with one additional EC2 batch; old serving instance remains available."
+      # Unlike Immutable this requires no new temporary CloudFormation stack.
+      aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --option-settings \
+        Namespace=aws:elasticbeanstalk:command,OptionName=DeploymentPolicy,Value=RollingWithAdditionalBatch \
+        Namespace=aws:elasticbeanstalk:command,OptionName=BatchSizeType,Value=Fixed \
+        Namespace=aws:elasticbeanstalk:command,OptionName=BatchSize,Value=1 \
+        --region "$REGION" --no-cli-pager >/dev/null
       aws elasticbeanstalk wait environment-updated --environment-names "$ENV_NAME" --region "$REGION" --no-cli-pager
       wait_environment_ready || fail "Could not verify deployment-policy update completion."
     fi
-    [[ "$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='DeploymentPolicy'].Value | [0]")" == Immutable ]] || fail "Immutable deployment policy was not independently confirmed."
+    [[ "$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='DeploymentPolicy'].Value | [0]")" == RollingWithAdditionalBatch ]] || fail "Rolling-additional deployment policy was not independently confirmed."
+    [[ "$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='BatchSizeType'].Value | [0]")" == Fixed ]] || fail "Fixed batch type was not confirmed."
+    [[ "$(cfg_query "ConfigurationSettings[0].OptionSettings[?Namespace=='aws:elasticbeanstalk:command' && OptionName=='BatchSize'].Value | [0]")" == 1 ]] || fail "One-instance additional batch was not confirmed."
     read -r _ _ verified_health verified_version <<<"$(environment_snapshot)"
-    [[ "$verified_health" == Green && "$verified_version" == "$existing_version" ]] || fail "Existing application must remain Ready/Green before immutable deployment."
+    [[ "$verified_health" == Green && "$verified_version" == "$existing_version" ]] || fail "Existing application must remain Ready/Green before the rolling additional-batch deployment."
     echo "Deploying application version only. Existing mail, worker, identity and other environment settings remain unchanged."
     aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --version-label "$VERSION" --region "$REGION" --no-cli-pager >/dev/null
   else

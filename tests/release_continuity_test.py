@@ -56,22 +56,24 @@ class ContinuityTests(unittest.TestCase):
         self.assertEqual(observed["checks"]["/start-here"]["failure"], "http_502")
         self.assertEqual(observed["checks"]["/"]["status"], 200)
 
-    def test_immutable_policy_with_unchanged_permanent_capacity(self):
+    def test_rolling_additional_batch_policy_with_unchanged_permanent_capacity(self):
         options = json.loads((ROOT / "deploy/aws/beanstalk-options.template.json").read_text())
         selected = {(x["Namespace"], x["OptionName"]): x["Value"] for x in options}
         self.assertEqual(selected[("aws:elasticbeanstalk:command", "DeploymentPolicy")],
-                         "Immutable")
+                         "RollingWithAdditionalBatch")
+        self.assertEqual(selected[("aws:elasticbeanstalk:command", "BatchSizeType")], "Fixed")
+        self.assertEqual(selected[("aws:elasticbeanstalk:command", "BatchSize")], "1")
         self.assertEqual(selected[("aws:autoscaling:asg", "MinSize")], "1")
         self.assertEqual(selected[("aws:autoscaling:asg", "MaxSize")], "2")
         self.assertEqual(selected[("aws:elasticbeanstalk:environment", "EnvironmentType")],
                          "LoadBalanced")
 
-    def test_routine_release_does_not_reapply_bootstrap_or_dns(self):
+    def test_routine_additional_batch_release_does_not_reapply_bootstrap_or_dns(self):
         application = (ROOT / "deploy/aws/fresh_application.sh").read_text()
         self.assertIn('if [[ "$ROUTINE_RELEASE" == 1 ]]; then', application)
         self.assertIn('aws elasticbeanstalk update-environment --environment-name "$ENV_NAME" --version-label "$VERSION" --region', application)
         self.assertIn('CURRENT_POLICY', application)
-        self.assertIn('[[ "$CURRENT_POLICY" != Immutable ]]', application)
+        self.assertIn('CURRENT_POLICY" != RollingWithAdditionalBatch', application)
         self.assertIn('MAIL_AFTER', application)
         self.assertIn('WORKER_AFTER', application)
         self.assertIn('if [[ "$ROUTINE_RELEASE" == 0 ]]; then\n# Add origin DNS alias', application)
