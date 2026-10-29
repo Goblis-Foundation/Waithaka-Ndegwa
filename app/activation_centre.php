@@ -102,7 +102,7 @@ function activation_assess(array $facts): array {
           : 'Sender, mailing-address or transport prerequisites need review; do not release subscriber mail.');
     $impactText=$knownImpact===count(impact_sources())&&$knownImpact>0
         ? $approved.'/4 sources have a locally accepted approved snapshot; freshness and publication still require verification.'
-        : $approved.' approved source snapshots recorded locally; at least one source state is unavailable or unverified.';
+        : 'Source-report inventory incomplete; no public progress is inferred from missing status.';
     $cal=$calendar===null?'Selected calendar inventory unavailable. Reauthorization and scoped Microsoft access still require review.'
         : max(0,(int)($calendar['connected']??0)).' saved connected Google calendar account(s), '.max(0,(int)($calendar['pending']??0)).' awaiting confirmation; actual token renewal and Microsoft permissions are separate.';
     $messages=[
