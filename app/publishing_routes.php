@@ -1,12 +1,27 @@
 <?php
 declare(strict_types=1);
 
+/** Personal OAuth grants and external publication are owner decisions.
+ * Collaborators can still prepare/review drafts without gaining provider privileges.
+ */
+function publishing_owner_control(string $path,string $method): bool {
+    if(str_starts_with($path,'/write/connections'))return true;
+    if($method!=='POST')return false;
+    if($path==='/write/publishing/automation')return true;
+    return preg_match('~^/write/publishing/(?:[0-9]+/(?:approve|schedule)|jobs/[0-9]+/(?:complete|retry|cancel))$~D',$path)===1;
+}
+function publishing_writer_owner(int $uid,int $owner): bool {return $uid>0&&$owner>0&&$uid===$owner;}
+
 function publishing_dispatch(string $path): bool {
     if (!preg_match('~^/write/(publishing|connections)(/|$)~',$path)) return false;
     require_auth();
     header('Cache-Control: no-store, private');
     header('Referrer-Policy: no-referrer');
     $userId=(int)current_user()['id'];
+    if(publishing_owner_control($path,strtoupper((string)($_SERVER['REQUEST_METHOD']??'GET')))
+        &&!publishing_writer_owner($userId,(int)(comm_config()['owner']??0))){
+        http_response_code(403);echo 'Owner access required for personal account integrations and publishing approvals.';return true;
+    }
     $back=str_starts_with($path,'/write/connections')?'/write/connections':'/write/publishing';
     if(preg_match('~^/write/connections/(?:callback/)?(meetings_[a-z]+)(?:/(?:start|confirm|disconnect))?$~',$path,$meetingMatch)&&($meetingDefinition=meetings_definition($meetingMatch[1])))$back='/write/meetings#'.$meetingDefinition['provider'];
     try {
