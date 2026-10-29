@@ -27,7 +27,7 @@ for label,item in [("public",public),("writer",writer)]:
     icons=item.get("icons",[])
     if len(icons)!=3 or {i.get("purpose") for i in icons}!={"any","maskable"}:
         raise RuntimeError(label+" icon purposes missing")
-    if any("20261028b" not in i.get("src","") for i in icons):
+    if any("20261029c" not in i.get("src","") for i in icons):
         raise RuntimeError(label+" app icon cache version mismatch")
     for icon in icons:
         data=read(icon["src"])
@@ -37,14 +37,14 @@ for label,item in [("public",public),("writer",writer)]:
         size=int(icon["sizes"].split("x")[0])
         if (w,h)!=(size,size):raise RuntimeError("Wrong app icon dimensions")
 print("PASS: separate public and Writer app installs, approved WN-sized PNG and maskable paths.")
-svg=read("/assets/images/favicon.svg?v=20261028b").decode("utf-8")
+svg=read("/assets/images/favicon.svg?v=20261029c").decode("utf-8")
 if not all(t in svg for t in ["Waithaka Ndegwa","#073B6A","#2F6F3E","<path"]) or "<text" in svg:
     raise RuntimeError("Favicon must contain both original WN vector colors without tiny text")
 for p in ["/","/about","/start-here"]:
     html=read(p).decode("utf-8")
-    if "favicon.svg?v=20261028b" not in html:
+    if "favicon.svg?v=20261029c" not in html:
         raise RuntimeError("Outdated website icon reference on "+p)
 writerHTML=read("/write/login").decode("utf-8")
 if "writer.webmanifest" not in writerHTML:
     raise RuntimeError("Writer app does not load its own install manifest")
-print("PASS: WN logo favicon is the actual approved blue/green source, served consistently on website and Writer.")
+print("PASS: Circular favicon retains the approved blue/green WN vector, served consistently on website and Writer.")
