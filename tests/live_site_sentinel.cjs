@@ -97,7 +97,8 @@ async function inspect(browser, target, screen) {
       return {
         title: document.title || '',
         mainCount: main.length,
-        h1Count: headings.length,\n        formCount: document.querySelectorAll('form').length,
+        h1Count: headings.length,
+        formCount: document.querySelectorAll('form').length,
         scrollWidth: width,
         canonical: canonical ? canonical.href : '',
         robots: robots ? robots.content : '',
@@ -116,7 +117,8 @@ async function inspect(browser, target, screen) {
       lcpMs: observed.lcpMs === null ? null : Math.round(observed.lcpMs),
       cls: observed.cls === null ? null : Math.round(observed.cls * 10000) / 10000
     };
-    result.formCount = observed.formCount;\n    if (observed.mainCount !== 1) result.failures.push('Expected exactly one main landmark.');
+    result.formCount = observed.formCount;
+    if (observed.mainCount !== 1) result.failures.push('Expected exactly one main landmark.');
     if (observed.h1Count !== 1) result.failures.push('Expected exactly one H1.');
     if (observed.scrollWidth > screen.width + 2) {
       result.failures.push('Horizontal overflow: ' + observed.scrollWidth + 'px in ' + screen.width + 'px viewport.');
