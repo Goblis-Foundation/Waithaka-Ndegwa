@@ -4,6 +4,8 @@ require dirname(__DIR__).'/app/impact.php';
 $now=strtotime('2026-10-23T10:00:00Z');
 $valid=['schema_version'=>1,'source'=>'goblis_group','period_start'=>'2026-07-01','period_end'=>'2030-06-30','definition_version'=>'2030-v1','approved_for_publication'=>true,'as_of'=>'2026-10-23T09:00:00Z','metrics'=>['startups'=>0,'permanent_staff'=>12],'names'=>['PRIVATE']];
 function check(bool $ok,string $message):void{if(!$ok)throw new RuntimeException($message);}
+check(impact_writer_access(9,9),'The reporting owner can manage source endpoints.');
+foreach([[0,0],[9,0],[0,9],[8,9]]as[$actor,$owner])check(!impact_writer_access($actor,$owner),'Other Writers and unconfigured owners cannot edit approved reporting sources.');
 $clean=impact_validate($valid,'goblis_group',$now);check($clean['metrics']['startups']===0,'A reported zero must be preserved.');check(!isset($clean['names']),'Private fields must be stripped.');
 foreach([
     ['source'=>'ubunifu'],['approved_for_publication'=>false],['schema_version'=>2],['definition_version'=>'other'],['period_start'=>'2025-07-01'],['period_end'=>'2031-06-30'],['as_of'=>'2030-01-01T00:00:00Z'],['as_of'=>'2026-06-30T00:00:00Z'],['as_of'=>'invalid'],['metrics'=>['startups'=>-1,'permanent_staff'=>0]],['metrics'=>['startups'=>1.5,'permanent_staff'=>0]],['metrics'=>['startups'=>'2','permanent_staff'=>0]],['metrics'=>['startups'=>2]],
