@@ -17,10 +17,19 @@ const targets = [
   { slug: 'start-here', path: '/start-here', public: true },
   { slug: 'explore', path: '/explore', public: true },
   { slug: 'search', path: '/search', public: true },
+  { slug: 'contact', path: '/contact', public: true },
+  { slug: 'book', path: '/book', public: true },
+  { slug: 'contribute', path: '/contribute', public: true },
+  { slug: 'newsletter', path: '/newsletter', public: true },
+  { slug: 'founder-submit', path: '/founders/submit', public: true },
+  { slug: 'opportunity-submit', path: '/opportunities/submit', public: true },
+  { slug: 'opportunities', path: '/opportunities', public: true },
   { slug: 'login', path: '/write/login', public: false }
 ];
 const screens = [
+  { name: 'small-mobile', width: 320, height: 700 },
   { name: 'mobile', width: 390, height: 844 },
+  { name: 'tablet', width: 768, height: 1024 },
   { name: 'desktop', width: 1366, height: 768 }
 ];
 
@@ -88,7 +97,7 @@ async function inspect(browser, target, screen) {
       return {
         title: document.title || '',
         mainCount: main.length,
-        h1Count: headings.length,
+        h1Count: headings.length,\n        formCount: document.querySelectorAll('form').length,
         scrollWidth: width,
         canonical: canonical ? canonical.href : '',
         robots: robots ? robots.content : '',
@@ -107,7 +116,7 @@ async function inspect(browser, target, screen) {
       lcpMs: observed.lcpMs === null ? null : Math.round(observed.lcpMs),
       cls: observed.cls === null ? null : Math.round(observed.cls * 10000) / 10000
     };
-    if (observed.mainCount !== 1) result.failures.push('Expected exactly one main landmark.');
+    result.formCount = observed.formCount;\n    if (observed.mainCount !== 1) result.failures.push('Expected exactly one main landmark.');
     if (observed.h1Count !== 1) result.failures.push('Expected exactly one H1.');
     if (observed.scrollWidth > screen.width + 2) {
       result.failures.push('Horizontal overflow: ' + observed.scrollWidth + 'px in ' + screen.width + 'px viewport.');
@@ -165,7 +174,7 @@ async function main() {
     timestampUtc: new Date().toISOString(),
     origin: ORIGIN,
     commit: process.env.GITHUB_SHA || '',
-    note: 'Browser lab timings are not CrUX field Core Web Vitals. Axe rules require manual review; a clean scan is not an accessibility certification.',
+    note: 'Browser lab timings are not CrUX field Core Web Vitals. Form pages were rendered only; no form was submitted. Axe rules require manual review; a clean scan is not an accessibility certification.',
     checks: [], summary: {}
   };
   let browser;
