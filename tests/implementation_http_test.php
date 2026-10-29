@@ -35,13 +35,13 @@ try{
 // The synthetic Writer may edit its own drafts, but not the owner's protected source
 // endpoints or sitewide Google billing/API preferences.
 $forbiddenImpact=impl_request('/write/impact');
-impl_check($forbiddenImpact['status']===403&&!str_contains($forbiddenImpact['body'],'Approved reporting URL'),'Other Writers cannot read or edit source reporting tokens and URLs.');
+impl_check($forbiddenImpact['status']===200&&!str_contains($forbiddenImpact['body'],'Approved reporting URL')&&!str_contains($forbiddenImpact['body'],'_token'),'Other Writers receive high-level impact status without source token or URL controls.');
 $forbiddenSync=impl_request('/write/impact',['csrf'=>$csrf,'action'=>'sync']);
 impl_check($forbiddenSync['status']===403,'Other Writers cannot initiate the source feed check.');
 $forbiddenGoogle=impl_request('/write/google',['csrf'=>$csrf,'action'=>'settings']);
 impl_check($forbiddenGoogle['status']===403,'Other Writers cannot rewrite sitewide Google credentials or defaults.');
 $connectionPage=impl_request('/write/connections');
-impl_check($connectionPage['status']===403&&!str_contains($connectionPage['body'],'Client / app secret'),'Other Writers cannot inspect or configure the owner’s personal social OAuth grants.');
+impl_check($connectionPage['status']===200&&!str_contains($connectionPage['body'],'Client / app secret')&&!str_contains($connectionPage['body'],'facebook_profile_client_id'),'Other Writers receive a safe Connections overview without shared OAuth credentials.');
 $forbiddenConnection=impl_request('/write/connections/settings',['csrf'=>$csrf,'setup_service'=>'instagram']);
 impl_check($forbiddenConnection['status']===403,'Other Writers cannot overwrite shared provider application credentials.');
 $forbiddenRelease=impl_request('/write/publishing/1/approve',['csrf'=>$csrf,'approve_content'=>'1','media_rights'=>'1']);
