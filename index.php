@@ -543,7 +543,15 @@ if (preg_match('~^/write/releases/proof/(\d+)$~',$path,$m)) {
 }
 
 if ($path === '/write/settings') {
-    require_auth();
+    require_auth();private_response_headers();
+    // Legacy global settings contain payment API keys, mail sender, site analytics
+    // and AI credentials: authentication alone must never grant write/read access.
+    $settingsActor=(int)(current_user()['id']??0);
+    $settingsOwner=(int)(comm_config()['owner']??0);
+    if($settingsActor<1||$settingsOwner<1||$settingsActor!==$settingsOwner){
+        if(is_post()){verify_csrf();http_response_code(403);exit('Site-wide configuration requires owner access.');}
+        render_write('settings_observer',['writeTitle'=>'Site settings · read-only']);exit;
+    }
     if(is_post()){
         verify_csrf();
         $measurementId=trim((string)($_POST['google_ga4']??''));
