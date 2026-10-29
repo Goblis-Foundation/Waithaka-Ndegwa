@@ -71,14 +71,14 @@ function google_search_review_compare(array $current, array $prior): array {
         'previous_sample'=>count($before),'signals_in_sample'=>count($signals)];
 }
 
-function google_search_review(int $days, ?callable $transport=null, ?string $asOf=null): array {
+function google_search_review(int $days, ?callable $transport=null, ?string $asOf=null, ?int $actorId=null): array {
     if (!in_array($days,[28,90],true)) throw new InvalidArgumentException('Choose 28 or 90 completed days.');
     $today=google_workspace_date($asOf ?? gmdate('Y-m-d'),'');
     $end=google_workspace_shift_date($today,-3);
     $start=google_workspace_shift_date($end,-($days-1));
     $previous=google_workspace_previous_period($start,$end);
-    $now=google_workspace_report('gsc-pages',$start,$end,$transport);
-    $old=google_workspace_report('gsc-pages',$previous['start'],$previous['end'],$transport);
+    $now=google_workspace_report('gsc-pages',$start,$end,$transport,$actorId);
+    $old=google_workspace_report('gsc-pages',$previous['start'],$previous['end'],$transport,$actorId);
     $summary=google_search_review_compare($now,$old);
     return ['title'=>'Search Console · content review','days'=>$days,
         'current'=>['start'=>$start,'end'=>$end], 'previous'=>$previous,
