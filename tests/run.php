@@ -353,6 +353,9 @@ try {
         $suiteCount++;
         if(wk_test_process(['python3','-B',__DIR__.'/release_continuity_test.py'],$environment,'Immutable production release and Start Here availability gates'))$passedCount++;
         else $failed[]='Immutable production release and Start Here availability gates';
+        $suiteCount++;
+        if(wk_test_process(['python3','-B',__DIR__.'/rolling_cleanup_policy_test.py'],$environment,'Exact Beanstalk rolling cleanup IAM scope and OIDC identity'))$passedCount++;
+        else $failed[]='Exact Beanstalk rolling cleanup IAM scope and OIDC identity';
         foreach (['branded_dns_test.py'=>'Offline branded DNS preparation and recovery',
                   'dns_probe_test.py'=>'Offline authoritative, parent and recursive DNS checks',
                   'google_migration_deployment_test.py'=>'Temporary migration access cleanup boundaries',
