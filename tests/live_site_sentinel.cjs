@@ -150,8 +150,12 @@ async function inspect(browser, target, screen) {
         violations: audit.violations.map(v => ({ rule: v.id, impact: v.impact, elements: v.nodes.length })),
         incomplete: audit.incomplete.length
       };
+      for (const violation of result.accessibility.violations) {
+        result.failures.push('Automated WCAG A/AA rule violation: ' + violation.rule +
+          ' (' + violation.elements + ' elements; ' + (violation.impact || 'impact not returned') + ').');
+      }
     } catch (error) {
-      result.warnings.push('Accessibility scan unavailable: ' + limited(error.message));
+      result.failures.push('Accessibility scan did not complete: ' + limited(error.message));
     }
     try {
       await page.screenshot({ path: path.join(output, label + '.png'), animations: 'disabled' });
@@ -164,7 +168,7 @@ async function inspect(browser, target, screen) {
     await context.close();
   }
   console.log((result.failures.length ? 'FAIL ' : 'PASS ') + label +
-    ' · HTTP ' + result.status + ' · ' + result.failures.length + ' structural errors · ' +
+    ' · HTTP ' + result.status + ' · ' + result.failures.length + ' acceptance failures · ' +
     result.accessibility.violations.length + ' axe rules for review');
   return result;
 }
