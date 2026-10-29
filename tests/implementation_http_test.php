@@ -40,6 +40,14 @@ $forbiddenSync=impl_request('/write/impact',['csrf'=>$csrf,'action'=>'sync']);
 impl_check($forbiddenSync['status']===403,'Other Writers cannot initiate the source feed check.');
 $forbiddenGoogle=impl_request('/write/google',['csrf'=>$csrf,'action'=>'settings']);
 impl_check($forbiddenGoogle['status']===403,'Other Writers cannot rewrite sitewide Google credentials or defaults.');
+$settingsOverview=impl_request('/write/settings');
+impl_check($settingsOverview['status']===200&&str_contains($settingsOverview['body'],'Shared website configuration is managed by the verified site owner')
+    &&!str_contains($settingsOverview['body'],'name="mpesa_consumer_key"')
+    &&!str_contains($settingsOverview['body'],'name="recaptcha_secret"'),'Non-owner settings overview contains no global provider-secret controls.');
+$forbiddenSettings=impl_request('/write/settings',['csrf'=>$csrf,'google_ga4'=>'G-TESTONLY123','mail_from'=>'fixture@example.invalid','mpesa_environment'=>'live']);
+impl_check($forbiddenSettings['status']===403,'Other Writers cannot mutate global analytics, mail or payment configuration.');
+$invalidSettingsCsrf=impl_request('/write/settings',['csrf'=>'invalid','mail_from'=>'fixture@example.invalid']);
+impl_check($invalidSettingsCsrf['status']===419,'Settings submissions reject bad CSRF before owner checks.');
 $connectionPage=impl_request('/write/connections');
 impl_check($connectionPage['status']===200&&!str_contains($connectionPage['body'],'Client / app secret')&&!str_contains($connectionPage['body'],'facebook_profile_client_id'),'Other Writers receive a safe Connections overview without shared OAuth credentials.');
 $forbiddenConnection=impl_request('/write/connections/settings',['csrf'=>$csrf,'setup_service'=>'instagram']);
