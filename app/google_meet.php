@@ -50,7 +50,7 @@ function gmeet_headers(array $c,?callable $tokenProvider): array {
 function gmeet_discover(int $uid,?callable $http=null,?callable $tokenProvider=null): array {
     $c=gmeet_ready($uid);$fingerprint=gmeet_fingerprint($c);$until=gmdate('Y-m-d\TH:i:s\Z');$since=gmdate('Y-m-d\TH:i:s\Z',time()-7*86400);
     $rows=gmeet_list('conferenceRecords','conferenceRecords',gmeet_headers($c,$tokenProvider),$http??'publishing_http',['filter'=>'end_time >= "'.$since.'" AND end_time <= "'.$until.'"']);
-    $records=[];foreach($rows as$r){$name=gmeet_name($r['name']??null);if(empty($r['endTime']))continue;$records[]=['name'=>$name,'start'=>gmeet_timestamp($r['startTime']??''),'end'=>gmeet_timestamp($r['endTime'])];}
+    $records=[];$seen=[];foreach($rows as$r){$name=gmeet_name($r['name']??null);if(isset($seen[$name]))throw new GoogleMeetException('Google repeated a meeting. Read the list again.');$seen[$name]=true;$records[]=['name'=>$name,'start'=>gmeet_timestamp($r['startTime']??''),'end'=>gmeet_timestamp($r['endTime']??'')];}
     gmeet_bound($uid,$fingerprint);
     return ['records'=>$records,'fingerprint'=>$fingerprint,'account'=>$c['display_name'],'since'=>$since,'until'=>$until];
 }

@@ -13,5 +13,5 @@ const {chromium}=require('playwright'),axe=require('axe-core'),assert=require('n
   }
  }
  await browser.close();const dir=process.env.EXPERIENCE_EVIDENCE_DIR||'/tmp/experience-evidence';fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(dir+'/accessibility.json',JSON.stringify({engine:axe.version,results},null,2));
- assert.equal(violations.length,0,JSON.stringify(violations,null,2));console.log('PASS: 38 automated accessibility scans. Manual screen-reader and physical-device acceptance remains separate.');
+ assert.equal(violations.length,0,JSON.stringify(violations,null,2));console.log('PASS: '+results.length+' automated accessibility scans. Manual screen-reader and physical-device acceptance remains separate.');
 })().catch(e=>{console.error(e);process.exit(1);});
