@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowOnlyWaithakaBeanstalkRollingInstanceCleanup",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:TerminateInstanceInAutoScalingGroup"
+      ],
+      "Resource": "arn:aws:autoscaling:af-south-1:466401734428:autoScalingGroup:*:autoScalingGroupName/awseb-e-8sjvpauytq-stack-AWSEBAutoScalingGroup-*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "af-south-1"
+        }
+      }
+    }
+  ]
+}
