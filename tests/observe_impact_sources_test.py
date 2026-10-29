@@ -128,7 +128,7 @@ class ProbeTests(unittest.TestCase):
                 self.assertEqual(probe.main(), 0)
             report = json.loads(output.read_text())
             self.assertEqual(len(report["checks"]), 4)
-            self.assertNotIn("metrics", output.read_text())
+            self.assertTrue(all(set(item)=={"source","http_status","state"} for item in report["checks"]), "The artifact may store only status fields, no metric values or source records.")
             self.assertNotIn("PRIVATE_MARKER", output.read_text())
             self.assertEqual({x["state"] for x in report["checks"]}, {"publication_not_available"})
 
