@@ -5,6 +5,8 @@ function ac_check(bool $ok,string $message):void{if(!$ok)throw new RuntimeExcept
 function impact_sources():array{return ['goblis_group'=>'Goblis Group','ubunifu'=>'Ubunifu','afritrace'=>'AfriTrace','goblis_foundation'=>'Foundation'];}
 function url(string $path=''):string{return 'https://www.example.org/'.ltrim($path,'/');}
 function asset(string $path):string{return '/assets/'.$path;}
+function csrf_token():string{return 'fixture-csrf';}
+function path_only():string{return '/write/activation';}
 function e(string $value):string{return htmlspecialchars($value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function app_config(string $key,mixed $default=null):mixed{return $key==='worker_enabled'?false:$default;}
 function comm_config():array{return ['owner'=>42];}
@@ -57,4 +59,9 @@ ac_check(!activation_dispatch('/write/unrelated'),'Other routes remain unchanged
 $handled=activation_dispatch('/write/activation');
 ac_check($handled&&($GLOBALS['rendered_view']??'')==='activation'&&count($GLOBALS['rendered_data']['activationRows']??[])===7,'Owner can view read-only source-safe local activation status.');
 ac_check(!empty($GLOBALS['did_auth'])&&!empty($GLOBALS['did_private_headers']),'Protected route enforces authentication and private headers.');
+$writeTitle='Private workspace';$content='<main id="synthetic">Fixture</main>';
+$writerShellUser=['id'=>9,'name'=>'Other writer'];ob_start();include dirname(__DIR__).'/views/write/layout.php';$otherMenu=(string)ob_get_clean();
+ac_check(!str_contains($otherMenu,'href="https://www.example.org/write/activation"'),'Non-owner navigation must not link to an owner-only activation route.');
+$writerShellUser=['id'=>42,'name'=>'Configured owner'];ob_start();include dirname(__DIR__).'/views/write/layout.php';$ownerMenu=(string)ob_get_clean();
+ac_check(str_contains($ownerMenu,'href="https://www.example.org/write/activation"'),'Owner navigation must retain activation access.');
 echo "PASS: seven source-aware acceptance gates, output privacy, rendered layout, no-drop count and owner-only GET boundaries.\n";
