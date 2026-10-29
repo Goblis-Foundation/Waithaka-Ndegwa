@@ -32,23 +32,31 @@ function wn_brand_build(string $directory): array {
  if(count($paths)!==2||count($polygons)<6)throw new RuntimeException('Unexpected monogram source.');
  $sizes=['icon.png'=>512,'icon-512.png'=>512,'icon-192.png'=>192,'maskable-icon-512.png'=>512,'apple-touch-icon.png'=>180,'favicon-32.png'=>32,'favicon-16.png'=>16,'favicon-48.png'=>48];$written=[];$pngs=[];
  foreach($sizes as$name=>$size){
-  $n=$size*4;$im=imagecreatetruecolor($n,$n);$bg=imagecolorallocate($im,255,255,255);
+  $n=$size*4;$im=imagecreatetruecolor($n,$n);
+  $transparent=imagecolorallocatealpha($im,0,0,0,127);
+  $white=imagecolorallocate($im,255,255,255);
   $blue=imagecolorallocate($im,7,59,106);$green=imagecolorallocate($im,47,111,62);
-  imagefill($im,0,0,$bg);
-  // Preserve the EXACT approved outlined WN paths and original dual colours.
-  // The mark is centred without cropping, distortion or tiny wordmark text.
-  $scale=$n*($size<=64?.88:.72)/915;$ox=($n-915*$scale)/2;$oy=($n-417*$scale)/2;
+  imagealphablending($im,false);imagesavealpha($im,true);
+  // Browser tabs and home-screen icons get a circular silhouette, not a square tile.
+  // Maskable icons retain a solid background so launcher clipping is deterministic.
+  imagefill($im,0,0,$name==='maskable-icon-512.png'?$white:$transparent);
+  imagefilledellipse($im,intdiv($n,2),intdiv($n,2),(int)round($n*.94),(int)round($n*.94),$blue);
+  imagefilledellipse($im,intdiv($n,2),intdiv($n,2),(int)round($n*.89),(int)round($n*.89),$white);
+  imagealphablending($im,true);
+  // Preserve EXACT approved outlined WN paths and both original brand colours.
+  // The wider silhouette scales up at browser-tab sizes without introducing text.
+  $scale=$n*($size<=48?.78:.68)/915;$ox=($n-915*$scale)/2;$oy=($n-417*$scale)/2;
   foreach($painted as$layer=>$group)foreach($group as$polygon){
    $p=[];foreach($polygon as[$x,$y]){$p[]=(int)round($ox+$x*$scale);$p[]=(int)round($oy+$y*$scale);}
    if(count($p)>=6)imagefilledpolygon($im,$p,$layer===0?$blue:$green);
   }
-  $out=imagecreatetruecolor($size,$size);imagecopyresampled($out,$im,0,0,0,0,$size,$size,$n,$n);ob_start();imagepng($out,null,9);$bytes=(string)ob_get_clean();imagedestroy($out);imagedestroy($im);
+  $out=imagecreatetruecolor($size,$size);imagealphablending($out,false);imagesavealpha($out,true);imagecopyresampled($out,$im,0,0,0,0,$size,$size,$n,$n);ob_start();imagepng($out,null,9);$bytes=(string)ob_get_clean();imagedestroy($out);imagedestroy($im);
   if(file_put_contents($directory.'/'.$name,$bytes)===false)throw new RuntimeException('Cannot write compiled icon.');$written[]=$name;if($size<=48)$pngs[$size]=$bytes;
  }
  $header=imagecreatefromwebp($logo);if(!$header||imagesx($header)!==720||imagesy($header)!==160)throw new RuntimeException('Approved logo dimensions differ.');imagealphablending($header,false);imagesavealpha($header,true);
  if(!imagepng($header,$directory.'/brand-lockup.png',9))throw new RuntimeException('Cannot write PNG logo fallback.');imagedestroy($header);$written[]='brand-lockup.png';
  ksort($pngs);$offset=6+16*count($pngs);$ico=pack('vvv',0,1,count($pngs));$body='';foreach($pngs as$size=>$bytes){$ico.=pack('CCCCvvVV',$size,$size,0,0,1,32,strlen($bytes),$offset);$offset+=strlen($bytes);$body.=$bytes;}file_put_contents($directory.'/favicon.ico',$ico.$body);$written[]='favicon.ico';
- $svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><title>Waithaka Ndegwa</title><rect width="512" height="512" fill="#ffffff"/><g fill-rule="evenodd" transform="translate(71.68 171.57) scale(.402885246)">';
+ $svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img"><title>Waithaka Ndegwa</title><circle cx="256" cy="256" r="240" fill="#073B6A"/><circle cx="256" cy="256" r="227" fill="#ffffff"/><g fill-rule="evenodd" transform="translate(81.11 184.64) scale(.3805)">';
  foreach($paths as$i=>$d)$svg.='<path fill="'.$approvedPaints[$i].'" d="'.htmlspecialchars($d,ENT_QUOTES|ENT_XML1,'UTF-8').'"/>';
  $svg.='</g></svg>';file_put_contents($directory.'/favicon.svg',$svg);$written[]='favicon.svg';
  sort($written);return $written;
