@@ -257,6 +257,11 @@ else
     echo "Waiting for the existing environment operation to settle before applying the reviewed configuration..."
     wait_environment_ready || fail "Existing Elastic Beanstalk environment did not become Ready."
   fi
+  if [[ "$ROUTINE_RELEASE" != 1 ]]; then
+    # Never silently mix a schema/bootstrap reconfiguration with an ordinary
+    # application release. Such changes need their own reviewed recovery plan.
+    [[ "${APPROVED_MIGRATION_DEPLOYMENT:-0}" == 1 ]] || fail "Existing environment requires a separately approved schema/bootstrap release. Refusing a potentially disruptive in-place update."
+  fi
   if [[ "$ROUTINE_RELEASE" == 1 ]]; then
     # Preserve current mail, worker, owner, access and environment secret settings.
     [[ "$existing_health" == Green ]] || fail "Refusing a routine release while the existing environment is not Green."
