@@ -27,3 +27,23 @@ The permanent `/write/reconciliation` register remains authoritative for 33 reco
 Require the exact-head PHP 8.3/8.4 MySQL 8.4 suites, branch security/CodeQL checks, read-only public-site accessibility monitor and AWS deployment followed by independent live browser acceptance. A successful application release is not provider/account acceptance. To close any issue #70–76, attach direct provider evidence and separate operator approval to that issue.
 
 The new dashboard intentionally does not show a green 'live' label based on a saved token. It is a handoff for account-holder actions and immutable receipts; all external activity must use the existing purpose-scoped route and its approval requirements.
+
+## Verified production release evidence — 29 October 2026
+
+### Owner launch workspace (PR #97)
+
+- Candidate reviewed: `493ff69a501d24b528cdcc55b250e3a7924b3624`; merged on main as `6a9b957fd05d7943fd32783a45520a5dc301092a`.
+- The exact PR head passed all seven checks: PHP 8.3 and 8.4 with MySQL 8.4 on push/PR, CodeQL and Actions analysis, plus the responsive browser suite.
+- [Production workflow 40827574739](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40827574739) completed successfully at **29 October 2026 06:20:43 UTC / 09:20:43 Africa/Nairobi**. Its three jobs — application validation, AWS deployment and independent live section-selector acceptance — all succeeded. The final browser job reported **445 live read-only selector checks across 25 pages**.
+- The private owner-only route is `/write/activation`. Its isolated authorization/evidence unit test passed. This does not prove a real owner login on a separate physical device, third-party account activation, email inbox delivery or settled payment.
+
+### Hide owner-only navigation from collaborators (PR #98)
+
+- After detecting that the link was visible to non-owner Writers, PR #98 added identity-based navigation filtering and regression tests. An initial test fixture failed due to its missing `csrf_field()` stub; this was corrected and the exact revised head `43ae9d0fc912af99f9835ab30e8744ca27784b00` passed all seven checks.
+- Merged main application commit: `666613a258d9826b6782868bdc05dbe7497873a7`.
+- [Production workflow 40828922652](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40828922652) completed successfully at **29 October 2026 06:34:07 UTC / 09:34:07 Africa/Nairobi** with application validation, AWS deployment and the independent live browser job all passing. The live browser job again reported **445 read-only selector checks across 25 pages**.
+- Other Writers do not see the privileged activation link in the navigation or implementation register. The server-side exact-owner 403 gate remains mandatory even when a user knows the route.
+
+### Completion boundaries
+
+The software changes above are live. The **seven acceptance issues #70–76 remain open**, with the complete **33-area implementation register** preserved. Stored connection flags are not current provider receipts; real financial settlement, official creator/direct posting entitlement, verified WhatsApp identity, newsletter sender postal/inbox proof, certified source-owned impact artifacts, device enrollment and field performance still require their own authoritative evidence. The existing outbound worker/bulk backlog is not released by these two deployments. The public monthly roundup schedule remains separate from email delivery.
