@@ -19,7 +19,7 @@
     <a href="<?=url('/write/operations')?>">Worker and outbox evidence</a>
   </nav>
   <section class="activation-section" aria-labelledby="activation-gates-title">
-    <div class="activation-section-heading"><div><h2 id="activation-gates-title">External acceptance gates</h2><p>Each row states what the system can currently establish and the next verifiable action. All seven GitHub issues stay open until their separate criteria are evidenced.</p></div></div>
+    <div class="activation-section-heading"><div><h2 id="activation-gates-title">External acceptance gates</h2><p>Each row states what the system can currently establish and the next verifiable action. These seven acceptance streams remain tracked until their separate criteria are evidenced. A GitHub issue closure alone does not establish activation.</p></div></div>
     <div class="activation-grid">
       <?php foreach($activationRows as $gate):?>
         <article class="activation-card" aria-labelledby="activation-issue-<?=intval($gate['issue'])?>">

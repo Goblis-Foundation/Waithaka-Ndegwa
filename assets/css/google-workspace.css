@@ -1,4 +1,5 @@
 /* Search review uses real provider rows, never artificial estimates. */
+.google-workspace .google-action-text{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;font:inherit}
 .google-search-review .google-search-review-summary{padding:14px 18px;border:1px solid #cedfe8;border-radius:12px;background:#f2f7fa;margin:18px 0}
 .google-search-review .google-search-review-summary p{margin:5px 0;line-height:1.6;overflow-wrap:anywhere}
 .google-search-review .google-search-review-table td{vertical-align:top;min-width:85px}

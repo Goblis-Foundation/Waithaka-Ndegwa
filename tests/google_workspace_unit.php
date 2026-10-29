@@ -7,6 +7,7 @@ function publishing_access_token(array $c):string{return 'fixture';}
 require dirname(__DIR__).'/app/providers/http.php';require dirname(__DIR__).'/app/google_workspace.php';require dirname(__DIR__).'/app/google_mcp.php';
 $checks=0;function gw_check(bool $ok,string $label):void{if(!$ok)throw new RuntimeException($label);$GLOBALS['checks']++;}
 function gw_reject(callable $f,string $label):void{try{$f();}catch(InvalidArgumentException){gw_check(true,$label);return;}throw new RuntimeException($label);}
+gw_check(google_workspace_identity('google_meet',['sub'=>'account-7','email'=>'fixture@example.invalid'],[])===[['id'=>'account-7','name'=>'fixture@example.invalid','type'=>'meet_account']],'Meet confirmation uses the authenticated Google subject without listing meetings');
 gw_check(google_workspace_date('2028-02-29','')==='2028-02-29','Leap dates valid');
 gw_check(google_workspace_connection('google_analytics',7)['selected_resource']==='properties/123','Selected Google property is available to its connected Writer.');
 gw_reject(fn()=>google_workspace_connection('google_analytics',8),'Another Writer cannot acquire a saved provider connection.');
