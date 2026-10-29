@@ -32,6 +32,14 @@ try{
     impl_check($response['status']===302,'The synthetic Writer must authenticate through the real form.');
     $response=impl_request('/write/media');$csrf=impl_csrf($response);
     impl_check($response['status']===200&&str_contains($response['body'],'Upload an asset'),'Media library must render the upload workflow.');
+// The synthetic Writer may edit its own drafts, but not the owner's protected source
+// endpoints or sitewide Google billing/API preferences.
+$forbiddenImpact=impl_request('/write/impact');
+impl_check($forbiddenImpact['status']===403&&!str_contains($forbiddenImpact['body'],'Approved reporting URL'),'Other Writers cannot read or edit source reporting tokens and URLs.');
+$forbiddenSync=impl_request('/write/impact',['csrf'=>$csrf,'action'=>'sync']);
+impl_check($forbiddenSync['status']===403,'Other Writers cannot initiate the source feed check.');
+$forbiddenGoogle=impl_request('/write/google',['csrf'=>$csrf,'action'=>'settings']);
+impl_check($forbiddenGoogle['status']===403,'Other Writers cannot rewrite sitewide Google credentials or defaults.');
     impl_check(str_contains($response['headers']['cache-control']??'','no-store')&&str_contains($response['headers']['x-robots-tag']??'','noindex'),'Private media tools must be uncacheable and non-indexable.');
     $image=imagecreatetruecolor(2,2);imagepng($image,$source);imagedestroy($image);$original=(string)file_get_contents($source);
     $form=['csrf'=>'invalid','title'=>'Private HTTP image','visibility'=>'private','media'=>new CURLFile($source,'image/png','unsafe-original.php')];
