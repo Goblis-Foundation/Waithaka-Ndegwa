@@ -14,8 +14,9 @@ function rejects(callable $action,string $label): void { try{$action();}catch(Ru
 
 check(publishing_writer_owner(12,12),'The verified publication owner can approve content.');
 check(!publishing_writer_owner(13,12)&&!publishing_writer_owner(0,0),'A Writer cannot inherit owner rights.');
-foreach(['/write/connections','/write/connections/settings','/write/connections/instagram/report']as$ownerRoute)
-    check(publishing_owner_control($ownerRoute,'GET'),'Personal provider account routes require owner access.');
+check(!publishing_owner_control('/write/connections','GET')&&publishing_owner_control('/write/connections','POST'),'Collaborators can read a restricted connection overview but cannot alter it.');
+foreach(['/write/connections/settings','/write/connections/instagram/report']as$ownerRoute)
+    check(publishing_owner_control($ownerRoute,'GET'),'Personal provider actions require owner access.');
 foreach(['/write/publishing/1/approve','/write/publishing/1/schedule','/write/publishing/jobs/2/complete','/write/publishing/jobs/2/retry','/write/publishing/jobs/2/cancel']as$releaseRoute)
     check(publishing_owner_control($releaseRoute,'POST'),'Approval and delivery changes are owner-only.');
 check(publishing_owner_control('/write/publishing/automation','POST')&&!publishing_owner_control('/write/publishing/automation','GET'),'Shared social cadence may be read but only owner can update it.');
