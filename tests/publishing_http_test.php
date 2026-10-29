@@ -46,8 +46,9 @@ $APP_INSTALLED=true;
 date_default_timezone_set('Africa/Nairobi');
 require_once __DIR__.'/../app/functions.php';
 require_once __DIR__.'/../app/publishing.php';
+require_once __DIR__.'/../app/communication.php';
 
-$checks=0;$userId=0;$packageId=0;$sessionIds=[];
+$checks=0;$userId=0;$packageId=0;$sessionIds=[];$previousOwnerConfigRow=null;
 $suffix=bin2hex(random_bytes(8));
 $email='publishing-http-'.$suffix.'@example.test';
 $password=bin2hex(random_bytes(20));
@@ -129,6 +130,11 @@ try {
     db()->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')
         ->execute(['Publishing HTTP fixture '.$suffix,$email,password_hash($password,PASSWORD_DEFAULT)]);
     $userId=(int)db()->lastInsertId();
+    // This suite exercises the original approved publication workflow; appoint only
+    // this disposable fixture account as owner, restoring the exact prior row on exit.
+    $q=db()->prepare("SELECT setting_value,is_secret FROM settings WHERE setting_key='communication.config'");
+    $q->execute();$previousOwnerConfigRow=$q->fetch()?:null;
+    comm_put('config',array_replace(comm_config(),['owner'=>$userId]));
     $facebook=pub_http_row("SELECT * FROM publishing_channels WHERE slug='facebook'");
     pub_http_check($facebook&&$facebook['delivery_method']==='manual'&&$facebook['account_type']==='professional_profile',
         'The disposable fixture must start with Facebook professional-profile assisted delivery.');
@@ -331,6 +337,11 @@ try {
     pub_http_check(pub_http_redirect($response,'/write/login'),'Publication details must become private again after logout.');
     echo "PASS: {$checks} publishing HTTP workflow assertions\n";
 } finally {
+    // Restore the original encrypted owner configuration before fixture cleanup.
+    if($previousOwnerConfigRow!==null){
+        db()->prepare("INSERT INTO settings(setting_key,setting_value,is_secret) VALUES('communication.config',?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),is_secret=VALUES(is_secret)")
+            ->execute([$previousOwnerConfigRow['setting_value'],$previousOwnerConfigRow['is_secret']]);
+    }else db()->exec("DELETE FROM settings WHERE setting_key='communication.config'");
     // Delete only rows owned by this random fixture user, respecting FK order.
     if($userId) {
         $query=db()->prepare('SELECT j.job_key FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id WHERE p.created_by=?');$query->execute([$userId]);
