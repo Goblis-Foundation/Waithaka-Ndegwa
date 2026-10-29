@@ -159,12 +159,19 @@ function impact_display(array $snapshot,string $key,?int $now=null): array {
     $stale=$monthly?(!empty($data['next_report_due_at'])&&$now>(strtotime($data['next_report_due_at'])?:0)):($now-(strtotime((string)($data['as_of']??''))?:0)>172800);
     return array_replace($base,['value'=>$data['metrics'][$key],'status'=>$stale?($monthly?'Last reported · monthly update overdue':'Last reported · update pending'):'Source-reported progress','as_of'=>$data['as_of'],'published_at'=>$data['published_at']??null,'measurement_period_start'=>$data['measurement_period_start']??null,'measurement_period_end'=>$data['measurement_period_end']??null,'measurement_timezone'=>$data['measurement_timezone']??null,'next_report_due_at'=>$data['next_report_due_at']??null]);
 }
+/** Feed configuration and approved-source checks are super-administrator actions. */
+function impact_writer_access(int $userId,int $ownerId): bool {return $userId>0&&$ownerId>0&&$userId===$ownerId;}
 function impact_writer_route(string $path): bool {
     if($path!=='/write/impact')return false;
     require_auth();private_response_headers();
     if(!in_array($_SERVER['REQUEST_METHOD']??'GET',['GET','HEAD','POST'],true)){http_response_code(405);return true;}
+    // Reject invalid CSRF even for a Writer without publication authority.
+    if(is_post())verify_csrf();
+    if(!impact_writer_access((int)(current_user()['id']??0),(int)(comm_config()['owner']??0))){
+        if(is_post()){http_response_code(403);echo 'Owner access required to edit reporting sources.';return true;}
+        render_write('impact_observer',['writeTitle'=>'Goal 2030 · source status']);return true;
+    }
     if(is_post()){
-        verify_csrf();
         try{
             if(($_POST['action']??'')==='sync'){$result=impact_sync(true);flash('success',$result?'Source checks complete. Review the connection status below.':'No reporting feeds are configured.');}
             else{

@@ -134,14 +134,17 @@ function google_workspace_reports(): array {
         'youtube-videos'=>['YouTube Analytics','google_youtube_analytics','video','Individual video performance'],
     ];
 }
-function google_workspace_connection(string $service): array {
+function google_workspace_connection(string $service,?int $actorId=null): array {
     $c=publishing_connection($service);
-    if(!$c||$c['status']!=='connected'||empty($c['selected_resource']))throw new RuntimeException('Connect and confirm '.(publishing_services()[$service]['name']??$service).' first.');return $c;
+    if(!$c||$c['status']!=='connected'||empty($c['selected_resource']))throw new RuntimeException('Connect and confirm '.(publishing_services()[$service]['name']??$service).' first.');
+    // Explicit HTTP actor isolation; trusted CLI preparation retains its existing server-owned grant.
+    if($actorId!==null&&($actorId<1||(int)($c['connected_by']??0)!==$actorId))throw new InvalidArgumentException('This Google connection belongs to another Writer. Connect and confirm your own account.');
+    return $c;
 }
-function google_workspace_report(string $key,string $start,string $end,?callable $transport=null): array {
+function google_workspace_report(string $key,string $start,string $end,?callable $transport=null,?int $actorId=null): array {
     $spec=google_workspace_reports()[$key]??null;if(!$spec)throw new InvalidArgumentException('Choose an available report.');
     if($end<$start||strtotime($end)-strtotime($start)>366*86400||$end>gmdate('Y-m-d'))throw new InvalidArgumentException('Choose a past reporting range of up to one year.');
-    $c=google_workspace_connection($spec[1]);$h=publishing_bearer(publishing_access_token($c));$id=$c['selected_resource'];$send=$transport??'publishing_http';
+    $c=google_workspace_connection($spec[1],$actorId);$h=publishing_bearer(publishing_access_token($c));$id=$c['selected_resource'];$send=$transport??'publishing_http';
     $rows=[];$columns=[];
     if(str_starts_with($key,'ga4-')){
         if(!preg_match('~^properties/\d+$~D',$id))throw new RuntimeException('Invalid GA4 property.');
@@ -162,15 +165,15 @@ function google_workspace_save_report(array $r,int $uid): void {
     // Keep a small rolling history; private account content is never included.
     db()->prepare('DELETE FROM google_report_snapshots WHERE user_id=? AND observed_at < UTC_TIMESTAMP() - INTERVAL 30 DAY')->execute([$uid]);
 }
-function google_workspace_diagnostics(string $action,string $input=''): array {
+function google_workspace_diagnostics(string $action,string $input='',?int $actorId=null): array {
     if($action==='ga4-diagnostics'){
-        $c=google_workspace_connection('google_analytics');$id=$c['selected_resource'];if(!preg_match('~^properties/\d+$~D',$id))throw new RuntimeException('Invalid property.');$h=publishing_bearer(publishing_access_token($c));
+        $c=google_workspace_connection('google_analytics',$actorId);$id=$c['selected_resource'];if(!preg_match('~^properties/\d+$~D',$id))throw new RuntimeException('Invalid property.');$h=publishing_bearer(publishing_access_token($c));
         $streams=publishing_http('GET','https://analyticsadmin.googleapis.com/v1beta/'.$id.'/dataStreams?pageSize=200',$h)['data'];$rows=[];$match=false;$tag=(string)setting('google.ga4','G-RN0YXC2WCH');
         foreach($streams['dataStreams']??[]as$s){$web=$s['webStreamData']??null;if(!$web)continue;$same=hash_equals($tag,(string)($web['measurementId']??''));$match=$match||$same;$rows[]=[$s['displayName']??'', $web['defaultUri']??'', $web['measurementId']??'',$same?'Matches deployed tag':'Different tag'];}
         $r=publishing_http('POST','https://analyticsdata.googleapis.com/v1beta/'.$id.':runRealtimeReport',$h,['metrics'=>[['name'=>'activeUsers']]])['data'];
         return ['title'=>'GA4 collection diagnostics','columns'=>['Web stream','Website','Measurement ID','Match'],'rows'=>$rows,'note'=>($match?'The deployed tag matches a stream in this property.':'The deployed tag was not found in this property. Check property selection and tag settings.').' Realtime active users returned: '.($r['rows'][0]['metricValues'][0]['value']??'No rows').'. Reader consent, blockers and processing affect collection. No consent or settings were changed.'];
     }
-    $c=google_workspace_connection('google_search_console');$h=publishing_bearer(publishing_access_token($c));
+    $c=google_workspace_connection('google_search_console',$actorId);$h=publishing_bearer(publishing_access_token($c));
     if($action==='sitemaps'){
         $r=publishing_http('GET','https://www.googleapis.com/webmasters/v3/sites/'.rawurlencode($c['selected_resource']).'/sitemaps',$h)['data'];$rows=[];
         foreach($r['sitemap']??[]as$s)$rows[]=[$s['path']??'',$s['lastDownloaded']??'Not returned',$s['warnings']??'Not returned',$s['errors']??'Not returned'];
@@ -200,8 +203,8 @@ function google_workspace_performance(string $action,string $input,string $strat
     foreach(['largest-contentful-paint','total-blocking-time','cumulative-layout-shift','speed-index']as$id){$a=$r['lighthouseResult']['audits'][$id]??[];$rows[]=[$a['title']??$id,$a['displayValue']??'Not returned'];}
     return ['title'=>'PageSpeed · '.$params['strategy'],'columns'=>['Check','Result'],'rows'=>$rows,'note'=>'Lighthouse laboratory test, not real-user field performance. Test time: '.($r['analysisUTCTimestamp']??'Not returned').'.'];
 }
-function google_workspace_postmaster(): array {
-    $c=google_workspace_connection('google_postmaster');$id=$c['selected_resource'];
+function google_workspace_postmaster(?int $actorId=null): array {
+    $c=google_workspace_connection('google_postmaster',$actorId);$id=$c['selected_resource'];
     if(!preg_match('~^domains/[a-z0-9.-]+$~iD',$id))throw new RuntimeException('Invalid verified domain.');
     $r=publishing_http('GET','https://gmailpostmastertools.googleapis.com/v1/'.$id.'/trafficStats?startDate.year='.gmdate('Y',strtotime('-28 days')).'&startDate.month='.gmdate('n',strtotime('-28 days')).'&startDate.day='.gmdate('j',strtotime('-28 days')).'&endDate.year='.gmdate('Y').'&endDate.month='.gmdate('n').'&endDate.day='.gmdate('j').'&pageSize=100',publishing_bearer(publishing_access_token($c)))['data'];$rows=[];
     foreach($r['trafficStats']??[]as$d)$rows[]=[basename($d['name']??''),$d['domainReputation']??'Not returned',$d['userReportedSpamRatio']??'Not returned',$d['spfSuccessRatio']??'Not returned',$d['dkimSuccessRatio']??'Not returned',$d['dmarcSuccessRatio']??'Not returned'];
@@ -235,8 +238,8 @@ function google_drive_text(string $id,array $connection): array {
     if($ok===false||$code!==200||!mb_check_encoding($raw,'UTF-8'))throw new RuntimeException('The document could not be exported within the 60 KB limit. No draft was saved.');
     return ['title'=>mb_substr((string)($m['name']??'Imported Google Doc'),0,240),'text'=>$raw];
 }
-function google_workspace_health(): array {
-    $rows=[];foreach(['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','google_youtube_analytics','google_drive','google_tasks','google_postmaster']as$s){$c=publishing_connection($s);$credentials=$c?publishing_credentials($c):[];$expiry=(int)($credentials['expires_at']??0);$refresh=(int)($credentials['refresh_token_expires_in']??0);
+function google_workspace_health(?int $actorId=null): array {
+    $rows=[];foreach(['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','google_youtube_analytics','google_drive','google_tasks','google_postmaster']as$s){$c=publishing_connection($s);if($c&&$actorId!==null&&($actorId<1||(int)($c['connected_by']??0)!==$actorId))$c=null;$credentials=$c?publishing_credentials($c):[];$expiry=(int)($credentials['expires_at']??0);$refresh=(int)($credentials['refresh_token_expires_in']??0);
         $rows[]=['name'=>publishing_services()[$s]['name'],'status'=>$c['status']??'not_connected','verified'=>$c['verified_at']??'Not connected','refresh'=>!empty($credentials['refresh_token'])?'Refresh credential saved':'Reconnect if token expires','expiry'=>$expiry?gmdate('Y-m-d H:i',$expiry).' UTC':'Not returned','duration'=>$refresh>0?round($refresh/86400,1).' days reported at grant':'Not returned'];}
     return $rows;
 }
@@ -245,11 +248,13 @@ function google_workspace_dispatch(string $path): bool {
     require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$result=null;$error='';$draft=null;$agenda=null;$searchReview=null;$input='';$mode='outline';
     try{
         if($path==='/write/google/picker-token'){
-            journeys_method(['POST']);verify_csrf();$c=google_workspace_connection('google_drive');
+            journeys_method(['POST']);verify_csrf();$c=google_workspace_connection('google_drive',$uid);
             header('Content-Type: application/json');echo json_encode(['token'=>publishing_access_token($c),'key'=>(string)setting('google.picker_key',''),'appId'=>explode('-',publishing_client('google')['client_id'])[0]],JSON_THROW_ON_ERROR|JSON_HEX_TAG);return true;
         }
         if(is_post()){
             verify_csrf();$action=$_POST['action']??'';if(!is_string($action))throw new InvalidArgumentException('Choose an action.');
+            // API keys, application-wide defaults and chargeable diagnostics belong to the site owner.
+            if(in_array($action,['settings','gemini-models','gemini','pagespeed','crux'],true)&&($uid<1||$uid!==(int)(comm_config()['owner']??0))){http_response_code(403);echo 'Owner access required.';return true;}
             if($action==='gemini-models'){if(!journeys_rate_limit('gemini-model-catalog',(string)$uid,12,3600))throw new RuntimeException('Please wait before checking available models again.');google_gemini_catalog();flash('success','Available Gemini models refreshed. This check did not generate content.');redirect(url('/write/google#settings'));}
             elseif($action==='settings'){
                 foreach(['pagespeed_key','crux_key','picker_key','gemini_key']as$key){$v=$_POST[$key]??'';if(!is_string($v)||strlen($v)>1000||preg_match('/[\x00-\x20\x7f]/',$v))throw new InvalidArgumentException('A key has invalid characters.');if($v!=='')set_setting('google.'.$key,$v,true);}
@@ -261,6 +266,7 @@ function google_workspace_dispatch(string $path): bool {
                 if(!is_string($_POST['revision']??null)||!hash_equals(hash('sha256',$a['credentials_encrypted'].$a['calendars_json']),$_POST['revision']))throw new InvalidArgumentException('The account changed. Reload and review the returned calendars.');
                 $selected=google_calendar_selection(publishing_decode($a['calendars_json']),$_POST['calendars']??[]);
                 $q=db()->prepare("UPDATE google_calendar_accounts SET status='connected',selected_json=? WHERE id=? AND user_id=? AND verified_at=? AND credentials_encrypted=? AND calendars_json=?");$q->execute([publishing_json($selected),$a['id'],$uid,$a['verified_at'],$a['credentials_encrypted'],$a['calendars_json']]);
+                if($q->rowCount()!==1)throw new RuntimeException('Calendar authorization changed while saving. Reload and confirm again.');
                 flash('success','Calendar selection saved privately. Other connected accounts were retained.');redirect(url('/write/google#calendars'));
             }elseif($action==='calendar-remove'){
                 $a=google_calendar_owned((int)($_POST['account_id']??0),$uid);db()->prepare("UPDATE google_calendar_accounts SET status='disconnected',credentials_encrypted=NULL,selected_json='[]',calendars_json='[]' WHERE id=? AND user_id=?")->execute([$a['id'],$uid]);flash('success','Saved calendar access removed. You can also revoke the app in your Google account.');redirect(url('/write/google#calendars'));
@@ -268,17 +274,17 @@ function google_workspace_dispatch(string $path): bool {
                 $a=google_calendar_owned((int)($_POST['account_id']??0),$uid);$available=google_calendar_discover(publishing_bearer(google_calendar_token($a)));$old=publishing_decode($a['selected_json']);$selected=array_values(array_intersect($old,array_column($available,'id')));db()->prepare('UPDATE google_calendar_accounts SET calendars_json=?,selected_json=?,verified_at=UTC_TIMESTAMP() WHERE id=? AND user_id=?')->execute([publishing_json($available),publishing_json($selected),$a['id'],$uid]);flash('success','Calendar list refreshed. Newly discovered calendars remain unselected.');redirect(url('/write/google#calendars'));
             }else{
                 if(!journeys_rate_limit('google-workspace-'.$action,(string)$uid,$action==='gemini'?8:($action==='search-review'?6:20),3600))throw new RuntimeException('Please wait before requesting another report.');
-                if($action==='search-review'){$days=filter_var($_POST['review_days']??null,FILTER_VALIDATE_INT);if(!in_array($days,[28,90],true))throw new InvalidArgumentException('Choose a 28-day or 90-day review.');$searchReview=google_search_review($days);}
+                if($action==='search-review'){$days=filter_var($_POST['review_days']??null,FILTER_VALIDATE_INT);if(!in_array($days,[28,90],true))throw new InvalidArgumentException('Choose a 28-day or 90-day review.');$searchReview=google_search_review($days,null,null,$uid);}
                 elseif($action==='agenda')$agenda=google_calendar_agenda($uid,google_workspace_date($_POST['start']??null,gmdate('Y-m-d')),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('+7 days'))));
-                elseif($action==='report'){$key=is_string($_POST['report']??null)?$_POST['report']:'';$result=google_workspace_report($key,google_workspace_date($_POST['start']??null,gmdate('Y-m-d',strtotime('-30 days'))),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('-3 days'))));google_workspace_save_report($result,$uid);if(($_POST['compare']??'')==='1'){$previous=google_workspace_previous_period($result['start'],$result['end']);$result['comparison']=google_workspace_report($key,$previous['start'],$previous['end']);}}
-                elseif(in_array($action,['ga4-diagnostics','sitemaps','inspect'],true))$result=google_workspace_diagnostics($action,is_string($_POST['url']??null)?$_POST['url']:'');
+                elseif($action==='report'){$key=is_string($_POST['report']??null)?$_POST['report']:'';$result=google_workspace_report($key,google_workspace_date($_POST['start']??null,gmdate('Y-m-d',strtotime('-30 days'))),google_workspace_date($_POST['end']??null,gmdate('Y-m-d',strtotime('-3 days'))),null,$uid);google_workspace_save_report($result,$uid);if(($_POST['compare']??'')==='1'){$previous=google_workspace_previous_period($result['start'],$result['end']);$result['comparison']=google_workspace_report($key,$previous['start'],$previous['end'],null,$uid);}}
+                elseif(in_array($action,['ga4-diagnostics','sitemaps','inspect'],true))$result=google_workspace_diagnostics($action,is_string($_POST['url']??null)?$_POST['url']:'',$uid);
                 elseif(in_array($action,['pagespeed','crux'],true))$result=google_workspace_performance($action,is_string($_POST['url']??null)?$_POST['url']:'',($_POST['strategy']??'')==='desktop'?'desktop':'mobile');
-                elseif($action==='postmaster')$result=google_workspace_postmaster();
+                elseif($action==='postmaster')$result=google_workspace_postmaster($uid);
                 elseif($action==='gemini'){$input=studio_input($_POST['selected_text']??null);$mode=is_string($_POST['mode']??null)?$_POST['mode']:'';if(($_POST['ai_consent']??'')!=='1')throw new InvalidArgumentException('Confirm that this selected text may be sent to Google Gemini.');$draft=google_workspace_gemini($input,$mode,($_POST['grounded']??'')==='1');}
-                elseif($action==='drive-import'){if(($_POST['confirm_import']??'')!=='1')throw new InvalidArgumentException('Confirm importing the chosen document as a private draft.');$c=google_workspace_connection('google_drive');$d=google_drive_text(is_string($_POST['file_id']??null)?$_POST['file_id']:'',$c);$saved=writer_save_post(['id'=>0,'title'=>$d['title'],'content_html'=>'<p>'.nl2br(e($d['text']),false).'</p>','writer_note'=>'Imported from a selected Google Doc. Review content and permissions before publication.'],$uid,false);flash('success','Google Doc imported as a private draft.');redirect(url('/write/edit/'.$saved['id']));}
+                elseif($action==='drive-import'){if(($_POST['confirm_import']??'')!=='1')throw new InvalidArgumentException('Confirm importing the chosen document as a private draft.');$c=google_workspace_connection('google_drive',$uid);$d=google_drive_text(is_string($_POST['file_id']??null)?$_POST['file_id']:'',$c);$saved=writer_save_post(['id'=>0,'title'=>$d['title'],'content_html'=>'<p>'.nl2br(e($d['text']),false).'</p>','writer_note'=>'Imported from a selected Google Doc. Review content and permissions before publication.'],$uid,false);flash('success','Google Doc imported as a private draft.');redirect(url('/write/edit/'.$saved['id']));}
                 else throw new InvalidArgumentException('Choose a supported Google action.');
             }
         }
     }catch(Throwable $e){$error=!($e instanceof PDOException)&&($e instanceof InvalidArgumentException||$e instanceof RuntimeException)?$e->getMessage():'This request could not be completed. Your saved content is unchanged.';if($path==='/write/google/picker-token'){http_response_code(400);header('Content-Type: application/json');echo '{"error":"Reconnect Drive or check Picker settings."}';return true;}}
-    render_write('google_workspace',['writeTitle'=>'Google workspace','accounts'=>google_calendar_accounts($uid),'health'=>google_workspace_health(),'result'=>$result,'agenda'=>$agenda,'searchReview'=>$searchReview,'draft'=>$draft,'error'=>$error,'input'=>$input,'mode'=>$mode]);return true;
+    render_write('google_workspace',['writeTitle'=>'Google workspace','accounts'=>google_calendar_accounts($uid),'health'=>google_workspace_health($uid),'result'=>$result,'agenda'=>$agenda,'searchReview'=>$searchReview,'draft'=>$draft,'error'=>$error,'input'=>$input,'mode'=>$mode]);return true;
 }

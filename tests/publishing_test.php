@@ -5,12 +5,22 @@ declare(strict_types=1);
 function app_config(?string $key=null, mixed $default=null): mixed { return ['timezone'=>'Africa/Nairobi','app_env'=>'test','base_url'=>'https://www.waithakandegwa.com'][$key]??$default; }
 function url(string $path=''): string { return 'https://www.waithakandegwa.com/'.ltrim($path,'/'); }
 require_once __DIR__.'/../app/publishing.php';
+require_once __DIR__.'/../app/publishing_routes.php';
 
 $count=0;
 function check(bool $condition, string $label): void { global $count; if(!$condition)throw new RuntimeException('FAIL: '.$label);$count++; }
 function rejects(callable $action,string $label): void { try{$action();}catch(RuntimeException $e){check(true,$label);return;}check(false,$label); }
 
 
+check(publishing_writer_owner(12,12),'The verified publication owner can approve content.');
+check(!publishing_writer_owner(13,12)&&!publishing_writer_owner(0,0),'A Writer cannot inherit owner rights.');
+check(!publishing_owner_control('/write/connections','GET')&&publishing_owner_control('/write/connections','POST'),'Collaborators can read a restricted connection overview but cannot alter it.');
+foreach(['/write/connections/settings','/write/connections/instagram/report']as$ownerRoute)
+    check(publishing_owner_control($ownerRoute,'GET'),'Personal provider actions require owner access.');
+foreach(['/write/publishing/1/approve','/write/publishing/1/schedule','/write/publishing/jobs/2/complete','/write/publishing/jobs/2/retry','/write/publishing/jobs/2/cancel']as$releaseRoute)
+    check(publishing_owner_control($releaseRoute,'POST'),'Approval and delivery changes are owner-only.');
+check(publishing_owner_control('/write/publishing/automation','POST')&&!publishing_owner_control('/write/publishing/automation','GET'),'Shared social cadence may be read but only owner can update it.');
+check(!publishing_owner_control('/write/publishing/new','GET')&&!publishing_owner_control('/write/publishing/save','POST'),'Collaborators retain draft preparation without provider approval.');
 $memberPost=publishing_linkedin_posts_payload('member_one-123','Approved personal insight.');
 check($memberPost['author']==='urn:li:person:member_one-123'&&$memberPost['commentary']==='Approved personal insight.'
     &&$memberPost['visibility']==='PUBLIC'&&$memberPost['distribution']['feedDistribution']==='MAIN_FEED'
