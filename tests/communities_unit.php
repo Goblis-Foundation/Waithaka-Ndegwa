@@ -10,6 +10,7 @@ function publishing_decode(?string $v):array{return json_decode($v??'',true)?:[]
 function publishing_bearer(string $v):array{if($v===''||preg_match('/[\r\n]/',$v))throw new RuntimeException('Bad token');return ['Authorization: Bearer '.$v];}
 function publishing_public_url(string $url):bool{return str_starts_with($url,'https://media.example.com/');}
 function publishing_job_url_valid(string $url,string $slug):bool{return preg_match($slug==='threads'?'~^https://www\.threads\.net/@fixture/post/[A-Za-z0-9]+$~D':'~^https://t\.me/(?:fixture|c/[0-9]+)/[0-9]+$~D',$url)===1;}
+function media_library_approved_asset(int $id):array{ck($id===9,'Exact owned Telegram media selected');return $GLOBALS['asset'];}
 function publishing_job_update(int $id,array $f):void{ck($id===11,'Selected job only');$GLOBALS['saved']=array_replace($GLOBALS['saved'],$f);}
 function setup(string $slug):array{
  $GLOBALS['calls']=[];$GLOBALS['mode']='ok';$GLOBALS['posts']=0;
@@ -31,7 +32,7 @@ function transport(string $slug,string $method,string $path,array $creds,?array 
   if($path==='/12345/threads')return ['id'=>'44444'];$posts++;
   if($path==='/12345/threads_publish')return ['id'=>'77777'];
   if($slug==='discord'){ck($path==='?wait=true'&&$body['allowed_mentions']===['parse'=>[]]&&$body['flags']===4,'Discord waits for receipt and suppresses mentions/embeds');return ['id'=>'77777'];}
-  if($slug==='telegram'){ck(!isset($body['parse_mode'])&&$body['chat_id']==='-10077777','Telegram sends literal reviewed text to exact channel');return ['message_id'=>77,'chat'=>['id'=>-10077777],'text'=>$mode==='wrong-receipt'?'other':$body['text']];}
+  if($slug==='telegram'){ck(!isset($body['parse_mode'])&&$body['chat_id']==='-10077777','Telegram sends literal reviewed text to exact channel');return ['message_id'=>77,'chat'=>['id'=>-10077777]]+ (isset($body['caption'])?['caption'=>$body['caption']]:['text'=>$mode==='wrong-receipt'?'other':$body['text']])+($path==='sendPhoto'?['photo'=>[['file_id'=>'fixture-photo']]]:($path==='sendVideo'?['video'=>['file_id'=>'fixture-video']]:[]));}
  }
  if($slug==='discord'&&$path==='/messages/77777')return ['id'=>'77777','webhook_id'=>'12345','channel_id'=>'66666','content'=>$mode==='wrong-receipt'?'other':'Approved message @everyone','mention_everyone'=>$mode==='mentions'];
  if(str_starts_with($path,'/77777?'))return ['id'=>'77777','text'=>$mode==='wrong-receipt'?'other':'Approved message @everyone','media_type'=>'TEXT_POST','permalink'=>'https://www.threads.net/@fixture/post/AbCd'];
@@ -53,4 +54,9 @@ foreach(['https://evil.invalid','/messages/1?redirect=evil','/messages/1#x']as$p
 foreach(['x','',[],'subscribers ']as$a)denied(fn()=>publishing_audience_input($a),'Invalid audience never becomes public');
 ck(count(publishing_networks())===10&&count(publishing_network_limits())===10,'Ten networks in one inventory');
 foreach(['threads','discord','signal']as$slug){$v=publishing_empty_variant($slug);$v['text']='Approved';$v['media_url']='https://media.example.com/image.jpg';denied(fn()=>publishing_community_validate_variant($slug,$v,['method'=>'direct']),'Unsupported native format not dropped');publishing_community_validate_variant($slug,$v,['method'=>'manual']);ck(true,'Assisted media retained');}
+foreach(['image/jpeg','video/mp4']as$mime){
+ [$j,$snap,$c,$v]=setup('telegram');$asset=['id'=>9,'mime'=>$mime,'bytes'=>100,'visibility'=>'public','public_url'=>'https://media.example.com/owned','sha256'=>str_repeat('a',64)];$GLOBALS['asset']=$asset;$v['media_asset_id']=9;$v['media_asset']=$asset;$v['media_url']=$asset['public_url'];$v['media_type']=$mime==='video/mp4'?'video':'image';$snap['variants']['telegram']=$v;$j['snapshot_json']=publishing_json($snap);$j['content_hash']=hash('sha256',$j['snapshot_json']);$GLOBALS['saved']=$j;
+ $r=publishing_community_deliver($j,$snap,$c,'transport',$credentials);ck($r['status']==='published'&&$posts===1,'Owned Telegram photo/video receipt checked');
+ $v['text']=str_repeat('x',1025);denied(fn()=>publishing_community_validate_variant('telegram',$v,['method'=>'direct']),'Long media caption rejected');$v['text']='Approved';$v['media_asset']['bytes']=60000000;denied(fn()=>publishing_community_validate_variant('telegram',$v,['method'=>'direct']),'Oversized media rejected');
+}
 echo 'Passed '.$n." community delivery/recovery checks.\n";
