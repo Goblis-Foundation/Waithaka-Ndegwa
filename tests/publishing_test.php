@@ -21,6 +21,13 @@ foreach(['/write/publishing/1/approve','/write/publishing/1/schedule','/write/pu
     check(publishing_owner_control($releaseRoute,'POST'),'Approval and delivery changes are owner-only.');
 check(publishing_owner_control('/write/publishing/automation','POST')&&!publishing_owner_control('/write/publishing/automation','GET'),'Shared social cadence may be read but only owner can update it.');
 check(!publishing_owner_control('/write/publishing/new','GET')&&!publishing_owner_control('/write/publishing/save','POST'),'Collaborators retain draft preparation without provider approval.');
+foreach(['delivered','processing']as$state)check(publishing_delivery_group($state)==='processing','Accepted/in-flight deliveries must stay visible without claiming publication.');
+foreach(['ambiguous','unexpected_new_state']as$state)check(publishing_delivery_group($state)==='attention','Unknown or uncertain outcomes require follow-up.');
+$filterChannels=[['slug'=>'facebook'],['slug'=>'x']];
+check(publishing_delivery_filters(['delivery'=>['published'],'channel'=>['x'],'page'=>['2']],$filterChannels)===['delivery'=>'all','channel'=>'','page'=>1],'Malformed query arrays reset safely.');
+check(publishing_delivery_filters(['delivery'=>"published' OR 1=1",'channel'=>'not-a-channel','page'=>'-1'],$filterChannels)===['delivery'=>'all','channel'=>'','page'=>1],'Unrecognized filter inputs cannot become SQL or pagination offsets.');
+check(publishing_delivery_filters(['delivery'=>'processing','channel'=>'x','page'=>'2'],$filterChannels)===['delivery'=>'processing','channel'=>'x','page'=>2],'Explicit status/channel/page survive parsing.');
+check(str_contains(publishing_delivery_url(['delivery'=>'processing','channel'=>'x'],2),'delivery=processing&channel=x&page=2#delivery-calendar'),'Pagination retains the selected delivery view.');
 $memberPost=publishing_linkedin_posts_payload('member_one-123','Approved personal insight.');
 check($memberPost['author']==='urn:li:person:member_one-123'&&$memberPost['commentary']==='Approved personal insight.'
     &&$memberPost['visibility']==='PUBLIC'&&$memberPost['distribution']['feedDistribution']==='MAIN_FEED'

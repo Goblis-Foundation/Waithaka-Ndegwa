@@ -39,3 +39,50 @@ function publishing_studio_route_status(array $channel): string {
     if($channel['slug']==='x'&&$channel['delivery_method']==='direct'){$media=publishing_connection('x_media');$text.=$media&&($media['status']??'')==='connected'&&!empty($media['selected_resource'])?' · media connection saved':' · separate video connection required';}
     return $text;
 }
+
+/** Every stored outcome belongs to a visible follow-up bucket. */
+function publishing_delivery_groups(): array {
+    return ['attention'=>['label'=>'Need a step','states'=>['assisted','reminder_queued','reminder_sent','failed','reconnect','ambiguous']],
+        'processing'=>['label'=>'Awaiting publication','states'=>['processing','delivered']],
+        'scheduled'=>['label'=>'Scheduled','states'=>['scheduled']],
+        'published'=>['label'=>'Completed in platform','states'=>['published']],
+        'cancelled'=>['label'=>'Cancelled','states'=>['cancelled']]];
+}
+function publishing_delivery_group(string $state): string {
+    foreach(publishing_delivery_groups() as $key=>$group)if(in_array($state,$group['states'],true))return $key;
+    return 'attention';
+}
+function publishing_delivery_filters(array $query,array $channels): array {
+    $group=is_string($query['delivery']??null)?$query['delivery']:'all';
+    if($group!=='all'&&!isset(publishing_delivery_groups()[$group]))$group='all';
+    $channel=is_string($query['channel']??null)?$query['channel']:'';
+    if(!in_array($channel,array_column($channels,'slug'),true))$channel='';
+    $page=is_string($query['page']??null)&&preg_match('/^[1-9][0-9]{0,5}$/D',$query['page'])?(int)$query['page']:1;
+    return ['delivery'=>$group,'channel'=>$channel,'page'=>$page];
+}
+function publishing_delivery_url(array $filters,int $page=1): string {
+    return url('/write/publishing').'?'.http_build_query(['delivery'=>$filters['delivery'],'channel'=>$filters['channel'],'page'=>$page],'','&',PHP_QUERY_RFC3986).'#delivery-calendar';
+}
+function publishing_delivery_overview(array $query,array $channels): array {
+    $filters=publishing_delivery_filters($query,$channels);$counts=array_fill_keys(array_keys(publishing_delivery_groups()),0);
+    foreach(db()->query('SELECT status,COUNT(*) total FROM publishing_jobs GROUP BY status')->fetchAll() as $row)$counts[publishing_delivery_group((string)$row['status'])]+=(int)$row['total'];
+    $where=[];$params=[];
+    if($filters['channel']!==''){$where[]='c.slug=?';$params[]=$filters['channel'];}
+    if($filters['delivery']!=='all') {
+        $groups=publishing_delivery_groups();$states=$groups[$filters['delivery']]['states'];
+        if($filters['delivery']==='attention'){
+            $states=[];foreach($groups as$key=>$group)if($key!=='attention')$states=array_merge($states,$group['states']);
+            $where[]='j.status NOT IN ('.implode(',',array_fill(0,count($states),'?')).')';
+        }else $where[]='j.status IN ('.implode(',',array_fill(0,count($states),'?')).')';
+        $params=array_merge($params,$states);
+    }
+    $from=' FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id JOIN publishing_channels c ON c.id=j.channel_id';
+    $condition=$where?' WHERE '.implode(' AND ',$where):'';
+    $st=db()->prepare('SELECT COUNT(*)'.$from.$condition);$st->execute($params);$total=(int)$st->fetchColumn();
+    $pages=max(1,(int)ceil($total/50));$filters['page']=min($filters['page'],$pages);$offset=($filters['page']-1)*50;
+    // Unfinished deliveries stay ahead of history; scheduled work is earliest first.
+    $st=db()->prepare('SELECT j.*,p.title,p.id package_id,c.name channel_name'.$from.$condition.
+        " ORDER BY CASE WHEN j.status IN ('published','cancelled') THEN 3 WHEN j.status='scheduled' THEN 2 WHEN j.status IN ('processing','delivered') THEN 1 ELSE 0 END, CASE WHEN j.status='scheduled' THEN j.scheduled_at END ASC,j.scheduled_at DESC,j.id DESC LIMIT 50 OFFSET ".$offset);
+    $st->execute($params);
+    return ['jobs'=>$st->fetchAll(),'deliveryCounts'=>$counts,'deliveryFilters'=>$filters,'deliveryTotal'=>$total,'deliveryPages'=>$pages];
+}

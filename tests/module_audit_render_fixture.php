@@ -79,6 +79,11 @@ foreach(array_keys(publishing_networks())as$slug){
 $_SERVER['REQUEST_URI']='/write/publishing/new';
 file_put_contents($out.'/module-publishing-studio.html',ma_page('publishing_editor',['package'=>null,'draft'=>$draft,'channels'=>$channels,'jobs'=>[],'revision'=>null,'events'=>[]]));
 
+$_SERVER['REQUEST_URI']='/write/publishing';
+file_put_contents($out.'/module-publishing-overview.html',ma_page('publishing',['packages'=>[],'channels'=>$channels,'jobs'=>[],
+ 'deliveryCounts'=>['attention'=>0,'processing'=>0,'scheduled'=>0,'published'=>0,'cancelled'=>0],
+ 'deliveryFilters'=>['delivery'=>'processing','channel'=>'x','page'=>1],'deliveryTotal'=>0,'deliveryPages'=>1]));
+
 $content='<link rel="stylesheet" href="/assets/css/publishing.css"><main class="write-main pub-main"><h1>Community destinations</h1><div class="pub-grid">';
 foreach(['telegram','discord','signal']as$service){
  $connection=['display_name'=>'Synthetic destination','credentials_encrypted'=>'NEVER_RENDER_SECRET'];$status='pending_confirmation';$metadata=$service==='signal'?['owner_declared'=>true]:[];$resources=[['id'=>'fixture-destination','name'=>'Synthetic exact destination']];$definition=['name'=>ucfirst($service),'description'=>'Isolated setup fixture. No provider request.'];
