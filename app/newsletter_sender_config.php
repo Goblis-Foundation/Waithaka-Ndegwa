@@ -20,7 +20,7 @@ function newsletter_postal_save(array $input,int $actor): void {
 }
 function newsletter_sender_config_dispatch(string $path): bool {
     if($path!=='/write/newsletter/sender')return false;
-    require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);$actor=(int)(current_user()['id']??0);$owner=(int)(comm_config()['owner']??0);
+    private_response_headers();require_auth();journeys_method(['GET','HEAD','POST']);$actor=(int)(current_user()['id']??0);$owner=(int)(comm_config()['owner']??0);
     if($actor<1||$owner<1||$actor!==$owner){http_response_code(403);echo 'Newsletter sender setup requires owner access.';return true;}
     if(($_SERVER['REQUEST_METHOD']??'GET')==='HEAD')return true;
     $error=null;$state=newsletter_postal_configuration();$value=$state['postal_address'];
