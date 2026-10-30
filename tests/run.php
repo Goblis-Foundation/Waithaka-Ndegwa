@@ -326,7 +326,7 @@ try {
                   'editorial_unit.php'=>'Editorial content and evidence privacy',
                   'reader_unit.php'=>'Reader preferences and private-link policy',
                   'discovery_test.php'=>'Search, report and image contracts',
-                  'opportunities_unit.php'=>'Opportunity exact-copy approval, privacy, expiry and transaction boundaries','microsoft_actions_unit.php'=>'Microsoft reviewed action, grant isolation and ambiguous delivery boundaries','microsoft_workspace_unit.php'=>'Microsoft 365 identity, OAuth, read and conflict boundaries','enterprise_unit.php'=>'Enterprise profile privacy and publication policy','pesapal_connection_unit.php'=>'Pesapal IPN connection policy','location_unit.php'=>'Country, location and phone policy','readiness_unit.php'=>'Pure operations diagnostics','activity_unit.php'=>'Private fitness connections, targets and reports','workspace_home_unit.php'=>'Dashboard local-state privacy and journey boundaries','activation_unit.php'=>'Owner-only activation control and evidence boundaries','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
+                  'opportunities_unit.php'=>'Opportunity exact-copy approval, privacy, expiry and transaction boundaries','microsoft_actions_unit.php'=>'Microsoft reviewed action, grant isolation and ambiguous delivery boundaries','microsoft_workspace_unit.php'=>'Microsoft 365 identity, OAuth, read and conflict boundaries','enterprise_unit.php'=>'Enterprise profile privacy and publication policy','pesapal_connection_unit.php'=>'Pesapal IPN connection policy','location_unit.php'=>'Country, location and phone policy','readiness_unit.php'=>'Pure operations diagnostics','owner_identity_unit.php'=>'Owner alias canonical identity boundaries','activity_unit.php'=>'Private fitness connections, targets and reports','workspace_home_unit.php'=>'Dashboard local-state privacy and journey boundaries','activation_unit.php'=>'Owner-only activation control and evidence boundaries','mail_feedback_unit.php'=>'Signed SNS and email contracts'] as $file => $label) {
             $suiteCount++;
             if (wk_test_process([PHP_BINARY, __DIR__.'/'.$file], $environment, $label)) $passedCount++;
             else $failed[] = $label;
@@ -391,6 +391,7 @@ try {
                 'founder_migration' => 'founder_migration_database.php',
                 'discovery' => 'discovery_database_test.php',
                 'campaign' => 'campaign_database_test.php',
+                'owner_alias' => 'owner_identity_database.php',
                 'google' => 'google_workspace_database.php',
                 'communication' => 'communication_database.php',
                 'planner' => 'planner_database.php',

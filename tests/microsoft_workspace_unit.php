@@ -40,4 +40,5 @@ $record['booking_conflicts']=true;comm_put(ms_key('personal'),$record);$response
 $response=['value'=>[],'@odata.nextLink'=>'https://example.invalid'];rejected(fn()=>ms_booking_busy(7,'2026-10-25T00:00:00Z','2026-10-26T00:00:00Z'),'Selected incomplete account blocks availability.');
 $record['status']='pending_confirmation';comm_put(ms_key('personal'),$record);rejected(fn()=>ms_booking_busy(7,'2026-10-25T00:00:00Z','2026-10-26T00:00:00Z'),'Selected reconnecting account does not become silently free.');
 check(ms_revision(['token'=>'a'])!==ms_revision(['token'=>'b']),'Grant revisions invalidate stale confirmation.');
+$alias=ms_identity(['id'=>'alias-afritrace','mail'=>'isaac@afritracelink.com'],'group');check($alias['canonical_email']==='isaac@goblisfoundation.org','AfriTrace is an owner-confirmed Foundation alias, not another Microsoft slot');
 echo "Microsoft identity, OAuth state, refresh, projection and booking conflict checks passed.\n";

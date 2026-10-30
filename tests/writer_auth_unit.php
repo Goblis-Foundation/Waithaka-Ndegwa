@@ -74,4 +74,5 @@ check($epochs[7]!==$epochBefore&&!isset($trusted)&&$_SESSION['auth_epoch']===$ep
 denied(fn()=>$completeLink('isaac@goblisfoundation.org','setup-subject'),'An already linked provider identity is not silently rebound');
 denied(fn()=>$completeLink('owner@example.invalid','late-subject',static function(){$GLOBALS['epochs'][7]='changed-during-token';}),'Security change during token exchange prevents linking');
 check(!comm_get('auth.identity.'.wa_identity_key('google','https://accounts.google.com','late-subject')),'Interrupted exchange stores no provider binding');
+check(wa_find_user(' ISAAC@AFRITRACELINK.COM ')['id']===7&&!in_array('isaac@afritracelink.com',wa_addresses($users[7]),true),'AfriTrace sign-in resolves to canonical owner without a standalone verification identity');check(wa_stepup_email($users[7],'isaac@afritracelink.com')==='isaac@goblisfoundation.org','Alias verification uses the Foundation mailbox');
 echo 'PASS: '.$checks." authentication, signed OIDC, alias ownership, OTP, TOTP, recovery, rate-limit and SMS checks. No external delivery.\n";

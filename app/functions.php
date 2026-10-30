@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/owner_identity_aliases.php';
 require_once __DIR__.'/location.php';
 require_once __DIR__.'/email_design.php';
 
@@ -158,7 +159,7 @@ function login_rate_limited(string $email): bool {
 }
 
 function attempt_login(string $email, string $password): bool {
-    $email = strtolower(trim($email));
+    $email = owner_identity_email($email);
     if (login_rate_limited($email)) return false;
     if(function_exists('wa_find_user'))$user=wa_find_user($email);else{$st = db()->prepare('SELECT * FROM users WHERE email=? AND is_active=1 LIMIT 1');$st->execute([$email]);$user=$st->fetch();}
     $ok = $user && password_verify($password, $user['password_hash']);
