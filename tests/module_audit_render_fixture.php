@@ -4,7 +4,7 @@ if(PHP_SAPI!=='cli'||count($argv)!==2)exit(2);
 set_error_handler(static function(int $severity,string $message,string $file,int $line):never{throw new ErrorException($message,0,$severity,$file,$line);});
 $out=realpath($argv[1]);if(!$out||!str_starts_with($out,sys_get_temp_dir().'/')&&!str_starts_with($out,(string)getenv('RUNNER_TEMP').'/'))throw new RuntimeException('Use a disposable fixture directory.');
 $CONFIG=['app_env'=>'testing','base_url'=>'http://127.0.0.1:8125','timezone'=>'Africa/Nairobi','app_key'=>'isolated-fixture-only'];$APP_INSTALLED=false;$_SESSION=[];$_GET=[];$_SERVER['REQUEST_URI']='/write/login';
-foreach(['functions','reader','planner','workspace_reports','impact','reconciliation_register','google_actions','writer_auth','writer_auth_providers','experience_workflows']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
+foreach(['functions','reader','planner','workspace_reports','impact','reconciliation_register','google_actions','youtube_actions','writer_auth','writer_auth_providers','experience_workflows']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
 // Replace only persistence in this isolated renderer. All templates and CSS are production files.
 function comm_get(string $key,array $default=[]):array{return $default;}
 function comm_records(string $key,int $limit=2000):array{return [];}
@@ -46,3 +46,16 @@ $_SERVER['REQUEST_URI']='/write/security/sign-in';
 file_put_contents($out.'/module-auth-settings.html',ma_page('sign_in_security',['user'=>['id'=>7,'email'=>'fixture@example.invalid'],'uid'=>7,'error'=>'','factors'=>[],'setup'=>[],'phoneSetup'=>[],'codes'=>[],'identities'=>[]]));
 $_SERVER['REQUEST_URI']='/write/control-centre';file_put_contents($out.'/module-directory.html',ma_page('control_centre',['counts'=>['Draft articles'=>3,'Open conversations'=>2,'Awaiting review'=>null,'Published articles'=>12]]));
 echo "Rendered seventeen isolated module fixtures with no database or provider access.\n";
+
+// Production YouTube templates with synthetic channel/content only. No provider calls.
+$ytaBase=['uid'=>7,'part'=>'','record'=>null,'records'=>[],'values'=>[],'assets'=>[],'error'=>''];
+file_put_contents($out.'/module-youtube.html',ma_page('youtube_actions',$ytaBase));
+foreach(array_keys(yta_types())as$kind){
+ $values=['kind'=>$kind,'privacy'=>'private','draft'=>'1'];
+ $assets=[['id'=>9,'title'=>'Synthetic thumbnail','mime'=>'image/png','bytes'=>100]];
+ file_put_contents($out.'/module-youtube-'.$kind.'.html',ma_page('youtube_actions',array_replace($ytaBase,['part'=>'new','values'=>$values,'assets'=>$assets])));
+}
+$ytaRecord=['id'=>str_repeat('b',32),'owner'=>7,'kind'=>'moderate','title'=>'Review comment','account'=>'fixture@example.invalid','channel'=>'UC'.str_repeat('a',22),'state'=>'reviewed','version'=>2,'created_at'=>time(),'source'=>['comment'=>['id'=>'Ug.fixture','text'=>'<script>Literal untrusted comment</script>','moderation'=>'heldForReview']],'payload'=>['comment'=>'Ug.fixture','moderation'=>'rejected'],'audit'=>[['at'=>time(),'state'=>'draft'],['at'=>time(),'state'=>'reviewed']]];
+file_put_contents($out.'/module-youtube-review.html',ma_page('youtube_actions',array_replace($ytaBase,['part'=>$ytaRecord['id'],'record'=>$ytaRecord])));
+$ytaRecord['kind']='caption';$ytaRecord['source']=['video'=>['id'=>'video_12345','title'=>'Synthetic video','privacy'=>'private']];$ytaRecord['payload']=['video'=>'video_12345','name'=>'English','language'=>'en-KE','draft'=>true,'text'=>"1\n00:00:01,000 --> 00:00:03,000\nLiteral <caption> text."];$ytaRecord['state']='unknown';$ytaRecord['remote_id']='known-caption';$ytaRecord['outcome']='Processing is not yet verified. Recheck this known track; do not upload another.';
+file_put_contents($out.'/module-youtube-pending.html',ma_page('youtube_actions',array_replace($ytaBase,['part'=>$ytaRecord['id'],'record'=>$ytaRecord])));

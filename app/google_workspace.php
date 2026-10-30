@@ -240,7 +240,7 @@ function google_drive_text(string $id,array $connection): array {
     return ['title'=>mb_substr((string)($m['name']??'Imported Google Doc'),0,240),'text'=>$raw];
 }
 function google_workspace_health(?int $actorId=null): array {
-    $rows=[];foreach(['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','google_youtube_analytics','google_drive','google_meet','google_tasks','google_postmaster']as$s){$c=publishing_connection($s);if($c&&$actorId!==null&&($actorId<1||(int)($c['connected_by']??0)!==$actorId))$c=null;$credentials=$c?publishing_credentials($c):[];$expiry=(int)($credentials['expires_at']??0);$refresh=(int)($credentials['refresh_token_expires_in']??0);
+    $rows=[];foreach(['google_search_console','google_analytics','google_youtube_read','google_youtube_upload','google_youtube_manage','google_youtube_analytics','google_drive','google_meet','google_tasks','google_postmaster']as$s){$c=publishing_connection($s);if($c&&$actorId!==null&&($actorId<1||(int)($c['connected_by']??0)!==$actorId))$c=null;$credentials=$c?publishing_credentials($c):[];$expiry=(int)($credentials['expires_at']??0);$refresh=(int)($credentials['refresh_token_expires_in']??0);
         $rows[]=['name'=>publishing_services()[$s]['name'],'status'=>$c['status']??'not_connected','verified'=>$c['verified_at']??'Not connected','refresh'=>!empty($credentials['refresh_token'])?'Refresh credential saved':'Reconnect if token expires','expiry'=>$expiry?gmdate('Y-m-d H:i',$expiry).' UTC':'Not returned','duration'=>$refresh>0?round($refresh/86400,1).' days reported at grant':'Not returned'];}
     return $rows;
 }
