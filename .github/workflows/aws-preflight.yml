@@ -47,6 +47,31 @@ jobs:
           test "$(aws sts get-caller-identity --query Account --output text)" = 466401734428
           aws elasticbeanstalk describe-environments --environment-names waithaka-ndegwa-production --region af-south-1
           aws elasticbeanstalk describe-events --environment-name waithaka-ndegwa-production --region af-south-1 --max-records 25
+      - name: Diagnose application version mismatch and environment scaling membership
+        shell: bash
+        run: |
+          python3 - <<'PYDIAG'
+          import json, subprocess
+          def inspect(label, *args):
+              result = subprocess.run(['aws', *args, '--region', 'af-south-1', '--output', 'json', '--no-cli-pager'], capture_output=True, text=True)
+              print(label)
+              if result.returncode:
+                  print(result.stderr[:2000])
+                  return {}
+              value = json.loads(result.stdout or '{}')
+              print(json.dumps(value, indent=2))
+              return value
+          environment = 'waithaka-ndegwa-production'
+          inspect('Environment enhanced health', 'elasticbeanstalk', 'describe-environment-health', '--environment-name', environment, '--attribute-names', 'All')
+          inspect('Per-instance health and deployed versions', 'elasticbeanstalk', 'describe-instances-health', '--environment-name', environment, '--attribute-names', 'All')
+          resources = inspect('Environment-owned resources', 'elasticbeanstalk', 'describe-environment-resources', '--environment-name', environment).get('EnvironmentResources', {})
+          for group in resources.get('AutoScalingGroups', []):
+              name = group['Name']
+              if not name.startswith('awseb-e-8sjvpauytq-stack-'):
+                  raise RuntimeError('Unexpected scaling group; refusing unrelated inventory')
+              inspect('Scaling group capacity and member lifecycle', 'autoscaling', 'describe-auto-scaling-groups', '--auto-scaling-group-names', name, '--query', 'AutoScalingGroups[].{Name:AutoScalingGroupName,Min:MinSize,Max:MaxSize,Desired:DesiredCapacity,Instances:Instances[].{Id:InstanceId,State:LifecycleState,Health:HealthStatus,Protected:ProtectedFromScaleIn},Suspended:SuspendedProcesses}')
+              inspect('Recent scaling activities', 'autoscaling', 'describe-scaling-activities', '--auto-scaling-group-name', name, '--max-records', '10', '--no-paginate', '--query', 'Activities[].{Time:StartTime,Description:Description,Status:StatusCode,Cause:Cause,Message:StatusMessage}')
+          PYDIAG
       - name: Inventory fixed-cost resources against accepted USD 113.22 monthly baseline
         shell: bash
         run: |
