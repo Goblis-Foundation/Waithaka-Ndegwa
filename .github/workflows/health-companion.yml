@@ -1,0 +1,43 @@
+name: Android activity companion
+on:
+  push:
+    paths: ['android/health-companion/**', '.github/workflows/health-companion.yml']
+  pull_request:
+    paths: ['android/health-companion/**', '.github/workflows/health-companion.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: health-companion-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Build and lint the read-only test companion
+        run: gradle --no-daemon -p android/health-companion assembleDebug lintDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: waithaka-health-companion-test-apk
+          path: android/health-companion/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: health-companion-lint
+          path: android/health-companion/app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+          retention-days: 7
