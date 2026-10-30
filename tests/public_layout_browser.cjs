@@ -13,6 +13,21 @@ const fs=require('node:fs');
  function check(value,msg){if(!value)throw new Error(msg);checks++;}
  const host='http://127.0.0.1:8125/';
  const sizes=[320,360,390,440,600,740,768,820,1024,1180,1181,1280,1440];
+ // Delay enhancement until after first paint: the existing selector must not push either hero down.
+ for(const [file,hero] of [['public-home.html','.home-hero'],['sitewide-start-here.html','.editorial-hero']]){
+  await page.setViewportSize({width:390,height:844});
+  let release;const ready=new Promise(resolve=>{release=resolve;});
+  const pattern='**/assets/js/unified-experience.js*';
+  await page.route(pattern,async route=>{await ready;await route.continue();});
+  await page.goto(host+file,{waitUntil:'commit'});
+  await page.locator('[data-page-outline-pending]').waitFor({state:'visible'});
+  const before=await page.locator(hero).evaluate(el=>el.getBoundingClientRect().top);
+  check(await page.locator('[data-page-outline-pending] select').isDisabled(),'Server reserves disabled section selector before enhancement: '+file);
+  release();await page.waitForLoadState('load');await page.unroute(pattern);
+  const after=await page.locator(hero).evaluate(el=>el.getBoundingClientRect().top);
+  check(Math.abs(after-before)<=1,'Section selector does not move the painted hero: '+file+' ('+before+' → '+after+')');
+  check(await page.locator('[data-page-outline]').count()===1&&await page.locator('[data-page-outline] option').count()>3,'Server selector is hydrated once with real section targets: '+file);
+ }
  await page.goto(host+'public-home.html');
  check(await page.locator('.public-explore-links a').count()===4,'Four featured discovery destinations');
  check(await page.locator('.public-explore-all').count()===1,'Complete destination index remains linked');

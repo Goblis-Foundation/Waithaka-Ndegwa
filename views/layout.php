@@ -8,6 +8,7 @@ $ga4 = analytics_measurement_id($seo, !empty($suppressAnalytics) || !empty($priv
 $verification = (string)setting('google.search_verification','');
 $recaptchaSite = (string)setting('recaptcha.site_key','');
 $isArticle = ($seo['type'] ?? '') === 'article';
+$stablePageOutline=empty($privatePage)&&in_array(path_only(),['/','/start-here'],true);
 ?>
 <!doctype html>
 <html lang="en">
@@ -28,6 +29,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
 <link rel="stylesheet" href="<?=asset('css/site.css')?>"><link rel="stylesheet" href="<?=asset('css/experience.css')?>"><link rel="stylesheet" href="<?=asset('css/impact.css')?>"><link rel="stylesheet" href="<?=asset('css/journeys.css')?>">
 <?php foreach(['editorial','reader','discovery']as$style)if(is_file(__DIR__.'/../assets/css/'.$style.'.css')):?><link rel="stylesheet" href="<?=asset('css/'.$style.'.css')?>"><?php endif;?>
 <link rel="stylesheet" href="<?=asset('css/personal-refresh.css')?>"><link rel="stylesheet" href="<?=asset('css/brand-refresh.css')?>"><link rel="stylesheet" href="<?=asset('css/unified-experience.css')?>"><link rel="stylesheet" href="<?=asset('css/layout-refinement.css')?>">
+<?php if($stablePageOutline):?><noscript><style>[data-page-outline-pending]{display:none!important}</style></noscript><?php endif;?>
 <?php foreach((array)$schema as $s):?><script type="application/ld+json"><?=json_encode($s,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?></script><?php endforeach;?>
 <?php if($recaptchaSite && in_array($page,['contact','booking'],true)):?><script src="https://www.google.com/recaptcha/api.js" async defer></script><?php endif;?>
 </head>
@@ -55,7 +57,7 @@ $isArticle = ($seo['type'] ?? '') === 'article';
     </div>
   </div>
 </header>
-<main id="main"><?php include __DIR__.'/partials_public_explore.php';include __DIR__.'/partials_experience_navigation.php';?><?=$content?></main>
+<main id="main"><?php include __DIR__.'/partials_public_explore.php';include __DIR__.'/partials_experience_navigation.php';?><?php if($stablePageOutline):?><nav class="ux-page-outline container" aria-label="On this page" data-page-outline data-page-outline-pending><label>On this page<select aria-label="Jump to a section" disabled><option>Choose a section…</option></select></label></nav><?php endif;?><?=$content?></main>
 <footer class="site-footer">
   <div class="container footer-main">
     <div class="footer-about"><a class="footer-brand brand-approved" href="<?=url('/')?>"><picture><source type="image/webp" srcset="<?=asset('images/brand-lockup.webp')?>"><img src="<?=asset('images/brand-lockup.png')?>" alt="Waithaka Ndegwa" width="720" height="160" loading="lazy"></picture></a><p>My experience and views on social entrepreneurship, agribusiness, infrastructure, innovation, and the world I encounter along the way.</p></div>

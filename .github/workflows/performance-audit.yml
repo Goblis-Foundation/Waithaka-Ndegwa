@@ -1,0 +1,63 @@
+name: Public performance audit
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['tests/performance_audit*.js', '.github/workflows/performance-audit.yml']
+  push:
+    paths: ['tests/performance_audit*.js', '.github/workflows/performance-audit.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: waithaka-performance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: |
+          node --check tests/performance_audit.js
+          node tests/performance_audit_test.js
+
+  measure:
+    name: Anonymous mobile and desktop Lighthouse measurements
+    if: github.event_name != 'pull_request'
+    needs: contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install isolated pinned audit tools
+        run: |
+          npm install --prefix "$RUNNER_TEMP/performance-tools" --no-package-lock --no-save --ignore-scripts lighthouse@13.6.0 playwright@1.56.1
+          "$RUNNER_TEMP/performance-tools/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Measure fixed public pages without credentials or submissions
+        env:
+          NODE_PATH: ${{ runner.temp }}/performance-tools/node_modules
+          PERFORMANCE_EVIDENCE_DIR: ${{ runner.temp }}/performance-evidence
+        run: node tests/performance_audit.js
+      - name: Retain complete and incomplete audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-performance-evidence
+          path: ${{ runner.temp }}/performance-evidence
+          if-no-files-found: warn
+          retention-days: 14

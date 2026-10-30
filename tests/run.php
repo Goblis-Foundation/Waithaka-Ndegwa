@@ -351,6 +351,9 @@ try {
         if(wk_test_process(['node',__DIR__.'/workspace_navigation_test.js'],$environment,'Workspace tabs, validation and horizontal navigation'))$passedCount++;
         else $failed[]='Workspace tabs, validation and horizontal navigation';
         $suiteCount++;
+        if(wk_test_process(['node',__DIR__.'/performance_audit_test.js'],$environment,'Public performance completeness and no-write boundaries'))$passedCount++;
+        else $failed[]='Public performance completeness and no-write boundaries';
+        $suiteCount++;
         if(wk_test_process(['node',__DIR__.'/location_browser_test.js'],$environment,'Country-dependent location fields'))$passedCount++;
         else $failed[]='Country-dependent location fields';
         $suiteCount++;
