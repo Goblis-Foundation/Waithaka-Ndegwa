@@ -11,7 +11,7 @@ function impact_source_exchange(): array {
  return [
   'goblis_group'=>['metric_keys'=>['startups','permanent_staff'],'ownership'=>'Goblis Group certifies cumulative qualifying startups and month-end permanent staff across its direct enterprise scope.','route'=>'/api/public/impact/waithaka/'],
   'ubunifu'=>['metric_keys'=>['social_enterprises','ubunifu_permanent_staff (optional)'],'ownership'=>'Ubunifu Institute approves incubated social-enterprise outcomes and any verified employment aggregates. Its export code is distinct from partner learner referrals.','route'=>'/api/public/impact/waithaka/'],
-  'afritrace'=>['metric_keys'=>['market_access'],'ownership'=>'AfriTrace Link provides the primary verified distinct-enterprise market-access total under Goblis Foundation programme governance.','route'=>'/api/public/impact/waithaka/'],
+  'afritrace'=>['metric_keys'=>['market_access'],'ownership'=>'AfriTrace Link provides the primary verified distinct-enterprise market-access total under Goblis Foundation programme governance.','route'=>'/api/public/impact/waithaka'],
   'goblis_foundation'=>['metric_keys'=>['market_access (corroboration only)'],'ownership'=>'Goblis Foundation corroborates AfriTrace outcomes; its figures are not added to the AfriTrace headline goal.','route'=>'/api/public/impact/waithaka/']
  ];
 }

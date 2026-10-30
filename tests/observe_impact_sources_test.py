@@ -65,11 +65,21 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(set(probe.SOURCES), {
             "goblis_group", "ubunifu", "afritrace", "goblis_foundation"
         })
-        for url in probe.SOURCES.values():
+        for source, url in probe.SOURCES.items():
             self.assertTrue(url.startswith("https://www."))
-            self.assertTrue(url.endswith("/api/public/impact/waithaka/"))
+            self.assertTrue(url.endswith("/api/public/impact/waithaka" + ("" if source == "afritrace" else "/")))
             self.assertNotIn("@", url)
             self.assertNotIn("?", url)
+
+    def test_afritrace_request_matches_registered_non_slash_route(self):
+        response = Response(PRIVATE.encode())
+        response.status = 503
+        opener = Opener(response)
+        report = probe.observe("afritrace", probe.SOURCES["afritrace"], opener=opener)
+        self.assertEqual(opener.url, "https://www.afritracelink.com/api/public/impact/waithaka")
+        self.assertEqual(opener.method, "GET")
+        self.assertEqual(report["state"], "publication_not_available")
+        self.assertNotIn(PRIVATE, json.dumps(report))
 
     def test_private_fields_never_enter_status_report(self):
         body = json.dumps(FIXTURE).encode()
