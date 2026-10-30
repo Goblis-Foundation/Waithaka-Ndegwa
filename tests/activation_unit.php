@@ -26,6 +26,21 @@ function reconciliation_items():array{return array_fill(0,33,['id'=>'synthetic']
 function render_write(string $view,array $data):void{$GLOBALS['rendered_view']=$view;$GLOBALS['rendered_data']=$data;}
 require dirname(__DIR__).'/app/activation_centre.php';
 
+function fitness_client_fingerprint(array $client):string{return hash('sha256',json_encode($client,JSON_THROW_ON_ERROR));}
+$syntheticClient=['client_id'=>'fixture-client','client_secret'=>'SECRET_MUST_NOT_RENDER','dedicated_project'=>true];
+$syntheticConnection=['status'=>'connected','connected_by'=>42,'selected_resource'=>'PRIVATE_TARGET','metadata_json'=>'{}','scopes_json'=>'["threads_basic","threads_content_publish"]'];
+ac_check(activation_connection_state($syntheticConnection,42,'threads')==='connected','Threads needs exact owner and publishing scopes.');
+ac_check(activation_connection_state($syntheticConnection,9,'threads')==='other_owner','Another Writer grant cannot become owner-ready.');
+$declared=$syntheticConnection;$declared['metadata_json']='{"owner_declared":true}';ac_check(activation_connection_state($declared,42,'discord')==='assisted','An owner-declared label is assisted, not verified webhook access.');
+$noScope=$syntheticConnection;$noScope['scopes_json']='[]';ac_check(activation_connection_state($noScope,42,'threads')==='permissions_missing','Login alone does not authorize publishing.');
+$grant=['owner'=>42,'status'=>'connected','client'=>fitness_client_fingerprint($syntheticClient),'tokens'=>['access_token'=>'SECRET_MUST_NOT_RENDER']];
+ac_check(activation_activity_state(42,'google_health',$grant,$syntheticClient)==='connected','Only the same configured dedicated client is confirmed.');
+$changed=$syntheticClient;$changed['client_secret']='changed';ac_check(activation_activity_state(42,'google_health',$grant,$changed)==='reconnect','Changed health clients require reconnect.');
+ac_check(activation_activity_state(9,'strava',$grant,$syntheticClient)==='other_owner','Health ownership never crosses Writers.');
+$withoutProject=$syntheticClient;$withoutProject['dedicated_project']=false;ac_check(activation_activity_state(42,'google_health',$grant,$withoutProject)==='reconnect','Google Health cannot share an unconfirmed project.');
+$unconfirmed=$syntheticConnection;$unconfirmed['selected_resource']=null;ac_check(activation_connection_state($unconfirmed,42,'telegram')==='pending_confirmation','A saved grant without a chosen destination is never ready.');
+$connectionRows=activation_connection_rows(['threads'=>'connected','signal'=>'assisted','google_health'=>'connected','samsung_health'=>'imported','unsafe'=>'SECRET_MUST_NOT_RENDER']);
+ac_check(count($connectionRows)===9&&!str_contains(json_encode($connectionRows),'SECRET_MUST_NOT_RENDER'),'Nine exact services expose only allowlisted labels and next steps.');
 $empty=activation_assess([]);
 ac_check(count($empty)===7&&array_column($empty,'issue')===[70,71,72,73,74,75,76],'All seven acceptance gates must remain ordered and present.');
 ac_check(str_contains($empty[4]['observed'],'incomplete')&&!str_contains($empty[4]['observed'],'0 approved'),'Unknown impact must remain unavailable, not numeric zero.');

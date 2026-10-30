@@ -4,7 +4,7 @@ if(PHP_SAPI!=='cli'||count($argv)!==2)exit(2);
 set_error_handler(static function(int $severity,string $message,string $file,int $line):never{throw new ErrorException($message,0,$severity,$file,$line);});
 $out=realpath($argv[1]);if(!$out||!str_starts_with($out,sys_get_temp_dir().'/')&&!str_starts_with($out,(string)getenv('RUNNER_TEMP').'/'))throw new RuntimeException('Use a disposable fixture directory.');
 $CONFIG=['app_env'=>'testing','base_url'=>'http://127.0.0.1:8125','timezone'=>'Africa/Nairobi','app_key'=>'isolated-fixture-only'];$APP_INSTALLED=false;$_SESSION=[];$_GET=[];$_SERVER['REQUEST_URI']='/write/login';
-foreach(['functions','reader','planner','workspace_reports','impact','reconciliation_register','google_actions','youtube_actions','writer_auth','writer_auth_providers','experience_workflows']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
+foreach(['functions','reader','planner','workspace_reports','impact','reconciliation_register','google_actions','youtube_actions','writer_auth','writer_auth_providers','experience_workflows','activation_centre']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
 // Replace only persistence in this isolated renderer. All templates and CSS are production files.
 function comm_get(string $key,array $default=[]):array{return $default;}
 function comm_records(string $key,int $limit=2000):array{return [];}
@@ -25,6 +25,7 @@ $_SERVER['REQUEST_URI']='/write/desk';
 foreach([false,true]as$billing)file_put_contents($out.'/module-desk-'.(int)$billing.'.html',ma_page('desk_index',['billing'=>$billing,'items'=>[],'orders'=>[]]));
 $_SERVER['REQUEST_URI']='/write/impact';file_put_contents($out.'/module-impact.html',ma_page('impact'));
 $_SERVER['REQUEST_URI']='/write/reconciliation';file_put_contents($out.'/module-register.html',ma_page('reconciliation',['items'=>reconciliation_items()]));
+$_SERVER['REQUEST_URI']='/write/activation';file_put_contents($out.'/module-activation.html',ma_page('activation',['activationRows'=>activation_assess([]),'activationConnections'=>activation_connection_rows(['threads'=>'connected','signal'=>'assisted','google_health'=>'pending_confirmation','samsung_health'=>'imported']),'activationObservedAt'=>'2026-10-30T12:00:00+00:00','activationWorker'=>false,'activationWorkAreas'=>count(reconciliation_items())]));
 $_SERVER['REQUEST_URI']='/write/google/actions';
 $base=['part'=>'','record'=>null,'records'=>[],'values'=>[],'uid'=>7,'error'=>''];
 file_put_contents($out.'/module-google-actions.html',ma_page('google_actions',$base));

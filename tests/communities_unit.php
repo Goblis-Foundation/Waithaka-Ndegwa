@@ -30,12 +30,13 @@ function transport(string $slug,string $method,string $path,array $creds,?array 
   ck(!empty(publishing_community_state($GLOBALS['saved'])),'Mutation intent saved before remote boundary');
   if($mode==='timeout')throw new PublishingRemoteException('Timeout',0,true);
   if($path==='/12345/threads')return ['id'=>'44444'];$posts++;
-  if($path==='/12345/threads_publish')return ['id'=>'77777'];
+  if($path==='/12345/threads_publish'){if($mode==='timeout-publish')throw new PublishingRemoteException('Publish timeout',0,true);return ['id'=>'77777'];}
   if($slug==='discord'){ck($path==='?wait=true'&&$body['allowed_mentions']===['parse'=>[]]&&$body['flags']===4,'Discord waits for receipt and suppresses mentions/embeds');return ['id'=>'77777'];}
   if($slug==='telegram'){ck(!isset($body['parse_mode'])&&$body['chat_id']==='-10077777','Telegram sends literal reviewed text to exact channel');return ['message_id'=>77,'chat'=>['id'=>-10077777]]+ (isset($body['caption'])?['caption'=>$body['caption']]:['text'=>$mode==='wrong-receipt'?'other':$body['text']])+($path==='sendPhoto'?['photo'=>[['file_id'=>'fixture-photo']]]:($path==='sendVideo'?['video'=>['file_id'=>'fixture-video']]:[]));}
  }
  if($slug==='discord'&&$path==='/messages/77777')return ['id'=>'77777','webhook_id'=>'12345','channel_id'=>'66666','content'=>$mode==='wrong-receipt'?'other':'Approved message @everyone','mention_everyone'=>$mode==='mentions'];
- if(str_starts_with($path,'/77777?'))return ['id'=>'77777','text'=>$mode==='wrong-receipt'?'other':'Approved message @everyone','media_type'=>'TEXT_POST','permalink'=>'https://www.threads.net/@fixture/post/AbCd'];
+ if(str_starts_with($path,'/44444?'))return ['id'=>$mode==='wrong-container'?'88888':'44444','status'=>$GLOBALS['container_status']??'FINISHED'];
+ if(str_starts_with($path,'/77777?'))return ['id'=>'77777','text'=>$mode==='wrong-receipt'?'other':'Approved message @everyone','media_type'=>$GLOBALS['receipt_type']??'TEXT_POST','permalink'=>'https://www.threads.net/@fixture/post/AbCd'];
  if(str_starts_with($path,'/12345/threads?'))return ['data'=>$mode==='wrong-owner'?[]:[['id'=>'77777']]];
  throw new RuntimeException('Unexpected fixture request');
 }
@@ -59,4 +60,30 @@ foreach(['image/jpeg','video/mp4']as$mime){
  $r=publishing_community_deliver($j,$snap,$c,'transport',$credentials);ck($r['status']==='published'&&$posts===1,'Owned Telegram photo/video receipt checked');
  $v['text']=str_repeat('x',1025);denied(fn()=>publishing_community_validate_variant('telegram',$v,['method'=>'direct']),'Long media caption rejected');$v['text']='Approved';$v['media_asset']['bytes']=60000000;denied(fn()=>publishing_community_validate_variant('telegram',$v,['method'=>'direct']),'Oversized media rejected');
 }
+// Media containers remain recoverable before publication, but uncertain writes never replay.
+function published_where():string{return "p.status='published'";}
+function db():object{return new class {function prepare(string $sql):object{return new class {function execute(array $ids):void{ck($ids===[456],'Delayed media rechecks exact source article');}function fetchColumn():mixed{return false;}};}};}
+function media_setup(string $mime):array {
+ [$j,$snap,$c,$v]=setup('threads');$a=['id'=>9,'mime'=>$mime,'bytes'=>100,'visibility'=>'public','public_url'=>'https://media.example.com/owned','sha256'=>str_repeat('b',64)];$GLOBALS['asset']=$a;$GLOBALS['receipt_type']=$mime==='video/mp4'?'VIDEO':'IMAGE';$GLOBALS['container_status']='IN_PROGRESS';
+ $v['media_asset_id']=9;$v['media_asset']=$a;$v['media_url']=$a['public_url'];$v['media_type']=$mime==='video/mp4'?'video':'image';$v['alt_text']='An approved accessible description';$snap['variants']['threads']=$v;$j['snapshot_json']=publishing_json($snap);$j['content_hash']=hash('sha256',$j['snapshot_json']);$GLOBALS['saved']=$j;return [$j,$snap,$c,$v];
+}
+foreach(['image/jpeg','image/png','video/mp4']as$mime){
+ [$j,$snap,$c,$v]=media_setup($mime);$r=publishing_community_deliver($j,$snap,$c,'transport',$credentials);$saved=array_replace($saved,$r);
+ ck($r['status']==='delivered'&&$posts===0&&publishing_community_can_resume($saved),'Owned media saves processing container before any publish');
+ $create=array_values(array_filter($calls,static fn($call)=>$call[1]==='POST'))[0];ck(($create[3][$mime==='video/mp4'?'video_url':'image_url']??'')===$v['media_url']&&($create[3]['alt_text']??'')===$v['alt_text'],'Exact source URL, type and description preserved');
+ $r=publishing_community_check($saved,$c,'transport',$credentials);$saved=array_replace($saved,$r);ck($posts===0&&$r['status']==='delivered','In-progress container is only read');
+ $container_status='FINISHED';$r=publishing_community_check($saved,$c,'transport',$credentials);$saved=array_replace($saved,$r);ck($posts===1&&$r['status']==='published','Ready media publishes once and reads matching format/caption/ownership');
+ denied(fn()=>publishing_community_deliver($saved,$snap,$c,'transport',$credentials),'Published media container never recreated');
+}
+foreach(['ERROR','EXPIRED','PUBLISHED','UNKNOWN']as$status){[$j,$snap,$c]=media_setup('video/mp4');$r=publishing_community_deliver($j,$snap,$c,'transport',$credentials);$saved=array_replace($saved,$r);$container_status=$status;if(in_array($status,['ERROR','EXPIRED'],true))ck(publishing_community_check($saved,$c,'transport',$credentials)['status']==='failed','Terminal processing stops without resend');else denied(fn()=>publishing_community_check($saved,$c,'transport',$credentials),'Unexpected/already-published processing stops');ck($posts===0,'No publish without exact ready status');}
+foreach(['asset','grant','container','timeout','format','bound']as$failure){
+ [$j,$snap,$c]=media_setup('image/jpeg');$r=publishing_community_deliver($j,$snap,$c,'transport',$credentials);$saved=array_replace($saved,$r);$container_status='FINISHED';
+ if($failure==='asset')$GLOBALS['asset']['sha256']=str_repeat('c',64);if($failure==='grant')$c['verified_at']='changed';if($failure==='container')$mode='wrong-container';if($failure==='timeout')$mode='timeout-publish';if($failure==='format')$receipt_type='TEXT_POST';
+ if($failure==='bound'){$s=publishing_community_state($saved);$s['processing_checks']=5;$saved['provider_state_json']=publishing_json($s);ck(publishing_community_check($saved,$c,'transport',$credentials)['status']==='failed'&&$posts===0,'Processing check budget stops repeated requests');}
+ elseif($failure==='format'){ck(publishing_community_check($saved,$c,'transport',$credentials)['status']==='delivered'&&$posts===1,'Incorrect remote format cannot become published');$receipt_type='IMAGE';$r=publishing_community_check($saved,$c,'transport',$credentials);ck($r['status']==='published'&&$posts===1,'Known media receipt verification does not republish');}
+ else{denied(fn()=>publishing_community_check($saved,$c,'transport',$credentials),'Changed media/account/container or uncertain publish stops');if($failure==='timeout'){ck(!publishing_community_can_resume($saved),'Uncertain publication intent cannot be replayed');$before=count($calls);denied(fn()=>publishing_community_check($saved,$c,'transport',$credentials),'Publish timeout is not retried');ck(count($calls)===$before,'No call after uncertain publish');}else ck($posts===0,'Changed approval boundary cannot publish');}
+}
+[$j,$snap,$c,$v]=media_setup('image/jpeg');foreach(['visibility','mime','bytes','alt_text']as$bad){$copy=$v;if($bad==='alt_text')$copy['alt_text']=str_repeat('x',501);else $copy['media_asset'][$bad]=match($bad){'visibility'=>'private','mime'=>'image/webp',default=>8000001};denied(fn()=>publishing_community_validate_variant('threads',$copy,['method'=>'direct']),'Reject invalid or oversized media and descriptions');}
+[$j,$snap,$c]=media_setup('image/jpeg');$snap['source_post_id']=456;$j['snapshot_json']=publishing_json($snap);$j['content_hash']=hash('sha256',$j['snapshot_json']);$GLOBALS['saved']=$j;$r=publishing_community_deliver($j,$snap,$c,'transport',$credentials);$saved=array_replace($saved,$r);$container_status='FINISHED';denied(fn()=>publishing_community_check($saved,$c,'transport',$credentials),'Withdrawn source article blocks delayed publication');ck($posts===0,'No post after source withdrawal');
+unset($GLOBALS['receipt_type'],$GLOBALS['container_status']);
 echo 'Passed '.$n." community delivery/recovery checks.\n";

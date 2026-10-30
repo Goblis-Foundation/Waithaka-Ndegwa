@@ -12,7 +12,7 @@ function publishing_studio_formats(string $slug): array {
 }
 function publishing_studio_format_note(string $slug): string {
     return match($slug){
-        'threads'=>'Direct text/link posts through a separate Threads grant. Images, videos, carousels and native options remain assisted until their account-specific path is implemented.',
+        'threads'=>'Direct text/link posts and one owned public JPEG/PNG or MP4 through a separate Threads grant. Media waits for processing and a matching owned-post receipt. Carousels and native options use assisted publishing.',
         'telegram'=>'Bot delivery to the exact confirmed channel or supergroup: text, owned public photos or MP4 videos. Telegram returns a sent-message receipt; it does not prove that subscribers read it.',
         'discord'=>'Direct text/link messages to one verified server/channel webhook. Mentions are disabled. Images, video, forums and thread destinations remain assisted.',
         'signal'=>'Assisted private-group posting: prepare and download approved content, send it in Signal, then record your private completion reference. No bot, member import or automatic Signal delivery is claimed.',
