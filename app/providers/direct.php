@@ -37,6 +37,7 @@ function publishing_direct_deliver(array $job, array $snapshot, array $connectio
     if ($destination['slug'] === 'tiktok') return publishing_tiktok_business_deliver($job,$snapshot,$connection);
     if ($destination['slug'] === 'instagram') return publishing_instagram_native_deliver($job,$snapshot,$connection);
     $variant = $snapshot['variants'][$destination['slug']];
+    if(in_array($destination['slug'],['facebook','x'],true)&&(!empty($variant['media_url'])||!empty($variant['media_asset_id'])))return publishing_social_video_deliver($job,$snapshot,$connection);
     $headers = publishing_bearer(publishing_access_token($connection));
     $target = (string)$destination['resource'];
     if ($destination['slug'] === 'x') {
@@ -67,6 +68,7 @@ function publishing_direct_check(array $job, array $connection): array {
         'youtube'=>publishing_youtube_check($job,$connection),
         'tiktok'=>publishing_tiktok_business_check($job,$connection),
         'instagram'=>publishing_instagram_check($job,$connection),
+        'facebook','x'=>publishing_social_video_check($job,$connection),
         default=>throw new PublishingRemoteException('This direct delivery has no pending provider status to check. Review its existing remote post.',422),
     };
 }

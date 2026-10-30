@@ -303,6 +303,7 @@ try {
                   'google_meet_unit.php'=>'Selected private Meet imports and account boundaries',
                   'youtube_actions_unit.php'=>'Reviewed YouTube channel actions and independent results',
                   'instagram_native_unit.php'=>'Native Instagram image/Reel recovery and verified receipts',
+                  'social_video_unit.php'=>'Facebook/X video recovery and Connect destination boundaries',
                   'google_actions_unit.php'=>'Reviewed Google actions and independent results',
                   'google_calendar_sync_unit.php'=>'Incremental calendar snapshots and notification authentication',
                   'preparation_status_unit.php'=>'Private preparation monitoring and privacy',

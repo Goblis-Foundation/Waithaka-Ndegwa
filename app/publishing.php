@@ -8,17 +8,13 @@ require_once __DIR__.'/providers/buffer.php';
 require_once __DIR__.'/providers/youtube.php';
 require_once __DIR__.'/providers/instagram_native.php';
 require_once __DIR__.'/providers/direct.php';
+require_once __DIR__.'/providers/social_video.php';
+require_once __DIR__.'/publishing_studio.php';
 
 function publishing_channels(): array { return db()->query('SELECT * FROM publishing_channels ORDER BY id')->fetchAll(); }
 function publishing_channel(string $slug): ?array { $st=db()->prepare('SELECT * FROM publishing_channels WHERE slug=?');$st->execute([$slug]);return $st->fetch()?:null; }
 function publishing_package(int $id): ?array { $st=db()->prepare('SELECT * FROM publishing_packages WHERE id=?');$st->execute([$id]);return $st->fetch()?:null; }
 
-/** Describe the saved declaration without asserting a provider-verified account subtype. */
-function publishing_account_type_label(array $channel): string {
-    $type=(string)($channel['account_type']??'');
-    if (($channel['slug']??'')==='tiktok'&&$type==='professional') return 'professional (owner-declared)';
-    return str_replace('_',' ',$type);
-}
 
 function publishing_event(?int $packageId, ?int $jobId, string $type, string $note, ?int $actorId = null): void {
     db()->prepare('INSERT INTO publishing_events(package_id,job_id,event_type,note,actor_id) VALUES(?,?,?,?,?)')->execute([$packageId,$jobId,$type,mb_substr($note,0,500),$actorId]);
@@ -98,7 +94,7 @@ function publishing_default_draft(?array $post=null): array {
         'media_url'=>'','media_asset_id'=>0,'media_type'=>$slug==='youtube'?'video':'image','alt_text'=>'','title'=>$post['title']??'','format'=>$slug==='youtube'?'video':'post',
         'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false,
         'tiktok_allow_comments'=>false,'tiktok_allow_duet'=>false,'tiktok_allow_stitch'=>false,
-        'platform_options'=>[],'tiktok_brand_organic'=>false,'tiktok_branded_content'=>false,'tiktok_settings_confirmed'=>false,'instagram_settings_confirmed'=>false,'instagram_share_to_feed'=>false
+        'platform_options'=>[],'tiktok_brand_organic'=>false,'tiktok_branded_content'=>false,'tiktok_settings_confirmed'=>false,'instagram_settings_confirmed'=>false,'instagram_share_to_feed'=>false,'video_settings_confirmed'=>false,'audience'=>'public'
     ];
     return $draft;
 }
@@ -119,6 +115,7 @@ function publishing_normalize_draft(array $input): array {
             'platform_options'=>social_options_input($slug,$v['platform_options']??[]),'enabled'=>!empty($v['enabled']),'text'=>trim((string)($v['text']??'')), 'media_url'=>$media,'media_asset_id'=>$assetId,
             'media_type'=>in_array($v['media_type']??'', ['image','video'],true)?$v['media_type']:'image',
             'alt_text'=>mb_substr(trim((string)($v['alt_text']??'')),0,1000),'title'=>mb_substr(trim((string)($v['title']??$title)),0,100),
+            'video_settings_confirmed'=>!empty($v['video_settings_confirmed']),'audience'=>($v['audience']??'public')==='subscribers'?'subscribers':'public',
             'format'=>in_array($v['format']??'', ['post','reel','story','short','video'],true)?$v['format']:'post',
             'privacy'=>in_array($v['privacy']??'', ['private','unlisted','public'],true)?$v['privacy']:'private',
             'made_for_kids'=>!empty($v['made_for_kids']),'ai_generated'=>!empty($v['ai_generated']),'notify_subscribers'=>!empty($v['notify_subscribers']),
@@ -171,10 +168,13 @@ function publishing_service_for_channel(string $slug): string { return match($sl
 function publishing_destination(array $channel, array $variant=[]): array {
     $method=$channel['delivery_method'];
     $dest=['slug'=>$channel['slug'],'name'=>$channel['name'],'profile_url'=>$channel['profile_url'],'account_type'=>$channel['account_type'],'method'=>$method];
+    if($channel['slug']==='facebook'){$dest['audience']=$variant['audience']??'public';if($dest['audience']==='subscribers'&&$method==='manual'){$link=setting('social.facebook_connect_url','');if(publishing_connect_url_valid($link))$dest['profile_url']=$link;}}
     if ($channel['slug']==='youtube'||($channel['slug']==='tiktok'&&$method==='direct')) $dest['visibility']=$variant['privacy']??'private';
     $connection=null;$remote=null;
-    if ($method!=='manual') $connection=publishing_connection($method==='buffer'?'buffer':publishing_service_for_channel($channel['slug']));
+    $nativeMedia=$channel['slug']==='x'&&(($variant['media_url']??'')!==''||!empty($variant['media_asset_id']));
+    if ($method!=='manual') $connection=publishing_connection($method==='buffer'?'buffer':($nativeMedia?'x_media':publishing_service_for_channel($channel['slug'])));
     if ($method==='buffer') foreach(publishing_buffer_channels($connection) as $item) if($item['id']===$channel['buffer_channel_id']){$remote=$item;break;}
+    if($nativeMedia&&$method==='direct'&&$connection){$textAccount=publishing_connection('x');if($textAccount&&($textAccount['status']??'')==='connected'&&($textAccount['selected_resource']??'')!==($connection['selected_resource']??''))throw new RuntimeException('X text and video connections differ. Confirm the same intended account before approving.');}
     $cap=publishing_capability($channel,$connection,$remote);
     if (!$cap['usable']) throw new RuntimeException($channel['name'].': '.$cap['reason']);
     if ($connection) $dest+=['connection_id'=>(int)$connection['id'],'connection_external_id'=>$connection['external_id'],'service'=>$connection['service'],'resource'=>$connection['selected_resource'],'account_name'=>$connection['display_name']];
@@ -188,6 +188,7 @@ function publishing_destination(array $channel, array $variant=[]): array {
 }
 
 function publishing_validate_variant(string $slug, array $variant, array $destination): void {
+    if(($variant['audience']??'public')==='subscribers'&&($slug!=='facebook'||($destination['method']??'')!=='manual'))throw new RuntimeException('Subscriber-only content must use assisted Facebook delivery. Confirm the Connect destination and audience in Facebook.');
     social_options_validate($slug,$variant,$destination);
     $text=$variant['text'];$media=$variant['media_url'];$method=$destination['method'];
     $ownedMedia=!empty($variant['media_asset']);
@@ -196,6 +197,7 @@ function publishing_validate_variant(string $slug, array $variant, array $destin
     if (mb_strlen($text)>$limits[$slug]) throw new RuntimeException(ucfirst($slug).' exceeds the centre’s '.$limits[$slug].'-character caption limit.');
     if (($media!==''||$ownedMedia)&&$variant['media_type']==='image'&&$variant['alt_text']==='') throw new RuntimeException('Add an image description for '.$slug.'.');
     if ($method==='manual') return;
+    if (in_array($slug,['facebook','x'],true)&&$method==='direct'&&($media!==''||$ownedMedia)) { publishing_social_video_validate($slug,$variant,$destination); return; }
     if ($slug==='youtube'&&$method==='direct') { publishing_youtube_validate_variant($variant); return; }
     if ($slug==='instagram'&&$method==='direct') { publishing_instagram_native_validate_variant($variant); return; }
     if ($slug==='tiktok'&&$method==='direct') { publishing_tiktok_business_validate_variant($variant); return; }
@@ -213,7 +215,7 @@ function publishing_validate_variant(string $slug, array $variant, array $destin
         if ($slug==='instagram'&&$variant['ai_generated']) throw new RuntimeException('Use Buffer or assisted Instagram publishing when the platform AI disclosure is required.');
     }
     if ($slug==='instagram'&&!in_array($variant['format'],['post','reel','story'],true)) throw new RuntimeException('Choose an Instagram post, Reel or Story.');
-    if ($slug==='facebook'&&!in_array($variant['format'],['post','reel','story'],true)) throw new RuntimeException('Choose a Facebook post, Reel or Story.');
+    if ($slug==='facebook'&&!in_array($variant['format'],['post','reel','story','video'],true)) throw new RuntimeException('Choose a Facebook post, video, Reel or Story.');
     if (in_array($variant['format'],['reel','short'],true)&&($media===''||$variant['media_type']!=='video')) throw new RuntimeException('A Reel or Short requires a video file.');
 }
 
