@@ -28,7 +28,7 @@ function transport(string $method,string $resource,array $query,string $token,?a
     if($method==='POST'){
         $writes++;if($mode==='timeout')throw new PublishingRemoteException('timeout',0,true);if($mode==='denied')throw new PublishingRemoteException('denied',403,false);
         if($mode==='grant-during-write')$connection['external_id']='changed';
-        if($resource==='comments/setModerationStatus'){check($query['banAuthor']==='false'&&!str_contains($query['id'],','),'Single comment, never ban author');$x=source('comments',$query['id']);$x['snippet']['moderationStatus']=$query['moderationStatus'];$remote['comments'][$query['id']]=$x;return ['acknowledged'=>true];}
+        if($resource==='comments/setModerationStatus'){check(($query['banAuthor']??'false')==='false'&&!str_contains($query['id'],','),'Single comment, never ban author');check($query['moderationStatus']==='rejected'||!array_key_exists('banAuthor',$query),'Ban parameter omitted where provider forbids it');$x=source('comments',$query['id']);$x['snippet']['moderationStatus']=$query['moderationStatus'];$remote['comments'][$query['id']]=$x;return ['acknowledged'=>true];}
         if($resource==='thumbnails/set'){check($media===['bytes'=>'png','mime'=>'image/png'],'Exact approved image bytes');$remote['thumbnail']=['default'=>['url'=>'https://i.ytimg.com/vi/video_12345/default.jpg']];return ['items'=>[$remote['thumbnail']]];}
         $id='created-'.$writes;$x=['id'=>$id,'etag'=>'new-revision']+$body;
         if($resource==='playlists')$x['snippet']['channelId']='UC'.str_repeat('a',22);
