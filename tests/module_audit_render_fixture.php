@@ -108,3 +108,8 @@ foreach(['week','year','empty']as$variant){
  if($variant==='empty')$stage=['owner'=>7,'source'=>'health_connect','rows'=>$rows,'revision'=>'fixture-preview','mode'=>'merge'];
  file_put_contents($out.'/module-activity-'.$variant.'.html',ma_page('activity',compact('source','range','report','targets','targetValues','stage')+['grants'=>['google_health'=>['identity'=>'fixture-health','status'=>'pending_confirmation'],'strava'=>['identity'=>'7','status'=>'connected']],'configured'=>['google_health'=>true,'strava'=>true],'canConfigure'=>true,'error'=>'','notice'=>'','complete'=>true,'observed'=>time(),'metric'=>'activities','local'=>['health_connect'=>['count'=>2,'observed'=>time()],'samsung_health'=>null,'google_fit'=>null]]));
 }
+
+// Renamed Google identity controls use a real template and synthetic account only.
+foreach(['providers/http','studio','google_workspace']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
+$_SERVER['REQUEST_URI']='/write/google';
+file_put_contents($out.'/module-google-workspace.html',ma_page('google_workspace',['accounts'=>[['id'=>8,'display_name'=>'Synthetic owner · fixture@old.example.invalid','status'=>'connected','verified_at'=>'2026-10-30 12:00:00','credentials_encrypted'=>'synthetic-fixture-only','calendars_json'=>json_encode([['id'=>'synthetic-calendar','name'=>'Synthetic calendar','timezone'=>'Africa/Nairobi','access'=>'owner']]),'selected_json'=>json_encode(['synthetic-calendar'])]],'health'=>[],'result'=>null,'agenda'=>null,'searchReview'=>null,'draft'=>null,'error'=>'','input'=>'','mode'=>'outline']));

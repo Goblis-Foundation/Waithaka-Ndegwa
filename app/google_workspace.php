@@ -44,6 +44,31 @@ function google_calendar_owned(int $id,int $userId): array {
     $q=db()->prepare('SELECT * FROM google_calendar_accounts WHERE id=? AND user_id=?');$q->execute([$id,$userId]);$r=$q->fetch();
     if(!$r||$r['status']==='disconnected'||owner_identity_label_is($r['display_name'],'isaac@afritracelink.com'))throw new InvalidArgumentException('Choose one of your connected calendar accounts.');return $r;
 }
+/** A changed email is a display-identity refresh, never a substitute Google subject or grant. */
+function google_calendar_identity_label(array $account,array $who,string $expected): string {
+    $expected=strtolower(trim($expected));
+    if(strlen($expected)>190||!filter_var($expected,FILTER_VALIDATE_EMAIL)||preg_match('/[\r\n]/',$expected))throw new InvalidArgumentException('Enter the new primary Google email address.');
+    if(!is_string($who['sub']??null)||!is_string($account['google_sub']??null)||$account['google_sub']===''||!hash_equals($account['google_sub'],$who['sub']))throw new RuntimeException('Google returned a different account. The saved identity was not changed.');
+    $email=$who['email']??null;
+    if(($who['email_verified']??false)!==true||!is_string($email)||strtolower($email)!==$expected)throw new RuntimeException('Google has not verified that address for this connected account. Confirm its primary email with Google, then try again. The saved identity was not changed.');
+    owner_identity_require_primary($expected);
+    $name=$who['name']??'';if(!is_string($name)||!mb_check_encoding($name,'UTF-8')||preg_match('/[\x00-\x1f\x7f]/u',$name))throw new RuntimeException('Google returned an invalid account name. The saved identity was not changed.');
+    $name=mb_substr(trim($name),0,max(0,252-mb_strlen($expected)));
+    return $name!==''?$name.' · '.$expected:$expected;
+}
+function google_calendar_refresh_identity(int $id,int $uid,string $expected,?callable $transport=null): string {
+    $expected=strtolower(trim($expected));if(strlen($expected)>190||!filter_var($expected,FILTER_VALIDATE_EMAIL)||preg_match('/[\r\n]/',$expected))throw new InvalidArgumentException('Enter the new primary Google email address.');
+    $account=google_calendar_owned($id,$uid);$headers=publishing_bearer(google_calendar_token($account));
+    // Token renewal may rotate the encrypted credential; bind the subsequent write to the fresh row.
+    $account=google_calendar_owned($id,$uid);if($account['status']!=='connected')throw new RuntimeException('Review this calendar account before refreshing its identity.');
+    $http=$transport??'publishing_http';$who=$http('GET','https://openidconnect.googleapis.com/v1/userinfo',$headers)['data']??null;
+    if(!is_array($who))throw new RuntimeException('Google did not return an account identity.');
+    $label=google_calendar_identity_label($account,$who,$expected);if($label===$account['display_name'])return $label;
+    $q=db()->prepare("UPDATE google_calendar_accounts SET display_name=? WHERE id=? AND user_id=? AND google_sub=? AND status='connected' AND display_name=? AND credentials_encrypted=?");
+    $q->execute([$label,$id,$uid,$account['google_sub'],$account['display_name'],$account['credentials_encrypted']]);
+    if($q->rowCount()!==1)throw new RuntimeException('The calendar connection changed during verification. Reload and try again.');
+    return $label;
+}
 function google_calendar_selection(array $available,mixed $input): array {
     if(!is_array($input)||count($input)>30)throw new InvalidArgumentException('Choose up to 30 calendars per account.');
     $valid=array_column($available,'id');$out=[];
@@ -273,6 +298,10 @@ function google_workspace_dispatch(string $path): bool {
                 flash('success','Calendar selection saved privately. Other connected accounts were retained.');redirect(url('/write/google#calendars'));
             }elseif($action==='calendar-remove'){
                 $a=google_calendar_owned((int)($_POST['account_id']??0),$uid);db()->prepare("UPDATE google_calendar_accounts SET status='disconnected',credentials_encrypted=NULL,selected_json='[]',calendars_json='[]' WHERE id=? AND user_id=?")->execute([$a['id'],$uid]);flash('success','Saved calendar access removed. You can also revoke the app in your Google account.');redirect(url('/write/google#calendars'));
+            }elseif($action==='calendar-identity'){
+                $id=filter_var($_POST['account_id']??null,FILTER_VALIDATE_INT);$email=$_POST['expected_email']??null;if(!$id||!is_string($email))throw new InvalidArgumentException('Choose a connected account and its new primary email.');
+                if(!journeys_rate_limit('google-calendar-identity',$uid.':'.$id,6,3600))throw new RuntimeException('Please wait before checking this account identity again.');
+                google_calendar_refresh_identity($id,$uid,$email);flash('success','Google verified the email for the same connected account. Its displayed identity is updated; saved calendars and permissions are retained.');redirect(url('/write/google#calendars'));
             }elseif($action==='calendar-refresh'){
                 $a=google_calendar_owned((int)($_POST['account_id']??0),$uid);$available=google_calendar_discover(publishing_bearer(google_calendar_token($a)));$old=publishing_decode($a['selected_json']);$selected=array_values(array_intersect($old,array_column($available,'id')));db()->prepare('UPDATE google_calendar_accounts SET calendars_json=?,selected_json=?,verified_at=UTC_TIMESTAMP() WHERE id=? AND user_id=?')->execute([publishing_json($available),publishing_json($selected),$a['id'],$uid]);flash('success','Calendar list refreshed. Newly discovered calendars remain unselected.');redirect(url('/write/google#calendars'));
             }else{
