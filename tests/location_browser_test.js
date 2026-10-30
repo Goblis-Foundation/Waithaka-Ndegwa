@@ -9,5 +9,6 @@ vm.runInNewContext(code,context);
 assert.equal(kenya.hidden,false);assert.equal(other.hidden,true);assert.equal(region.disabled,true);assert.equal(county.disabled,false);assert.equal(ward.disabled,false);
 country.value='United Kingdom';update();assert.equal(kenya.hidden,true);assert.equal(county.disabled,true);assert.equal(ward.disabled,true);assert.equal(other.hidden,false);assert.equal(region.disabled,false);assert.equal(label.textContent,'City / Town / Locality');
 country.value='Kenya';update();assert.equal(county.value,'Nyeri');assert.equal(sub.value,'Kieni West');assert.equal(ward.value,'Mweiga');assert.equal(ward.disabled,false);assert.equal(county.disabled,false);assert.equal(label.textContent,'Town / Area');
+root.dataset.locationRequired='1';country.value='United Kingdom';update();assert.equal(county.required,false);assert.equal(ward.required,false);assert.equal(region.required,true);assert.equal(district.required,true);country.value='Kenya';update();assert.equal(county.required,true);assert.equal(ward.required,true);assert.equal(region.required,false);
 vm.runInNewContext(code,context);assert.equal(root.dataset.locationReady,'1');
 console.log('PASS: country switching, inactive field exclusion, preserved edits and repeated script safety.');

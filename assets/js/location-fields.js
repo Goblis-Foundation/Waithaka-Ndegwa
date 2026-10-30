@@ -13,7 +13,7 @@
       const ke=country.value.trim().toLowerCase()==='kenya';
       [[kenya,!ke],[international,ke]].forEach(([section,hide])=>{
         section.hidden=hide;
-        section.querySelectorAll('input,select').forEach(field=>{field.disabled=hide;});
+        section.querySelectorAll('input,select').forEach(field=>{field.disabled=hide;if(root.dataset.locationRequired==='1')field.required=!hide;});
       });
       if(label)label.textContent=ke?'Town / Area':'City / Town / Locality';
       if(city)city.autocomplete=ke?'address-level4':'address-level3';
