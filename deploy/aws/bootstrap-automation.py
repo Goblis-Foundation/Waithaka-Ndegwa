@@ -4,6 +4,7 @@ import json
 import subprocess
 import tempfile
 from pathlib import Path
+from repair_rolling_role import main as repair_rolling_role
 
 ACCOUNT = '466401734428'
 REGION = 'af-south-1'
@@ -72,9 +73,6 @@ def bootstrap():
         statement('OwnedStackUpdates', ['cloudformation:CreateStack','cloudformation:UpdateStack','cloudformation:CreateChangeSet','cloudformation:ExecuteChangeSet','cloudformation:DeleteChangeSet'], [f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/waithaka-edge/*', data['StackId'], f'arn:aws:cloudformation:*:{ACCOUNT}:changeSet/awscli-cloudformation-package-deploy-*/*']),
         statement('ExistingEnvironmentStack', ['cloudformation:UpdateStack','cloudformation:CancelUpdateStack','cloudformation:ContinueUpdateRollback','cloudformation:TagResource','cloudformation:UntagResource','cloudformation:SignalResource'], f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/awseb-e-8sjvpauytq-stack/*', regional),
         statement('EnvironmentScalingUpdates', ['autoscaling:UpdateAutoScalingGroup','autoscaling:CreateLaunchConfiguration','autoscaling:DeleteLaunchConfiguration','autoscaling:ResumeProcesses','autoscaling:SuspendProcesses','autoscaling:SetDesiredCapacity','autoscaling:PutScalingPolicy','autoscaling:CreateOrUpdateTags','autoscaling:DeleteTags'], [f'arn:aws:autoscaling:{REGION}:{ACCOUNT}:autoScalingGroup:*:autoScalingGroupName/awseb-e-8sjvpauytq-stack-*',f'arn:aws:autoscaling:{REGION}:{ACCOUNT}:launchConfiguration:*:launchConfigurationName/awseb-e-8sjvpauytq-stack-*'], regional),
-        # Rolling-with-additional-batch retires the old ASG instance only after the replacement passes health checks.
-        # This action is scoped to the one existing Elastic Beanstalk environment ASG.
-        statement('RetireHealthyEnvironmentBatch', ['autoscaling:TerminateInstanceInAutoScalingGroup'], f'arn:aws:autoscaling:{REGION}:{ACCOUNT}:autoScalingGroup:*:autoScalingGroupName/awseb-e-8sjvpauytq-stack-*', regional),
         statement('DeploymentLaunchTemplates', ['ec2:CreateLaunchTemplate','ec2:CreateLaunchTemplateVersion','ec2:ModifyLaunchTemplate','ec2:DeleteLaunchTemplateVersions','ec2:CreateTags'], f'arn:aws:ec2:{REGION}:{ACCOUNT}:launch-template/*', regional),
         statement('EnvironmentInstanceReplacement', ['ec2:TerminateInstances'], f'arn:aws:ec2:{REGION}:{ACCOUNT}:instance/*', {'StringEquals':{'aws:RequestedRegion':REGION},'ArnLike':{'ec2:ResourceTag/aws:cloudformation:stack-id':f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/awseb-e-8sjvpauytq-stack/*'}}),
         statement('ExistingEnvironmentLoadBalancer', ['elasticloadbalancing:CreateListener','elasticloadbalancing:ModifyListener','elasticloadbalancing:DeleteListener','elasticloadbalancing:ModifyLoadBalancerAttributes','elasticloadbalancing:ModifyTargetGroup','elasticloadbalancing:ModifyTargetGroupAttributes','elasticloadbalancing:RegisterTargets','elasticloadbalancing:DeregisterTargets','elasticloadbalancing:AddTags','elasticloadbalancing:RemoveTags','elasticloadbalancing:CreateRule','elasticloadbalancing:ModifyRule','elasticloadbalancing:DeleteRule','elasticloadbalancing:SetRulePriorities'], elb_resources, regional),
@@ -90,7 +88,6 @@ def bootstrap():
         statement('PublicMediaDistributionPolicy', ['s3:PutBucketPolicy'], 'arn:aws:s3:::'+outputs['PublicMedia']),
         statement('RuntimeSecretCreation', ['secretsmanager:CreateSecret','secretsmanager:DescribeSecret','secretsmanager:TagResource'], f'arn:aws:secretsmanager:{REGION}:{ACCOUNT}:secret:waithaka-ndegwa-production-runtime-*', regional),
         statement('PassExistingBeanstalkRoles', ['iam:GetRole','iam:PassRole'], [f'arn:aws:iam::{ACCOUNT}:role/waithaka-eb-service-role',f'arn:aws:iam::{ACCOUNT}:role/waithaka-eb-instance-role']),
-        statement('ReadOwnDeploymentPolicy', ['iam:GetRolePolicy'], f'arn:aws:iam::{ACCOUNT}:role/WaithakaGitHubDeployRole'),
         statement('RuntimeBootstrapPolicy', ['iam:GetRolePolicy','iam:PutRolePolicy'], f'arn:aws:iam::{ACCOUNT}:role/waithaka-eb-instance-role'),
         statement('RuntimeSsmOnly', ['iam:AttachRolePolicy'], f'arn:aws:iam::{ACCOUNT}:role/waithaka-eb-instance-role', {'ArnEquals':{'iam:PolicyARN':'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'}}),
         statement('ExistingZoneRecords', ['route53:ChangeResourceRecordSets'], zone_arns),
@@ -107,6 +104,9 @@ def bootstrap():
         else:
             aws('iam','update-assume-role-policy','--role-name',ROLE,'--policy-document','file://'+str(t))
         aws('iam','put-role-policy','--role-name',ROLE,'--policy-name','WaithakaScopedAutomation','--policy-document','file://'+str(p))
+        # New release grants live in the small managed policy, outside the inline size quota.
+        # This bootstrap runs as the administrator, never as the deployment role.
+        repair_rolling_role(['--apply'])
         checks = [
             ('rds:DescribeDBInstances', db_arn),
             ('cloudformation:UpdateStack', f'arn:aws:cloudformation:{REGION}:{ACCOUNT}:stack/awseb-e-8sjvpauytq-stack/fixture'),

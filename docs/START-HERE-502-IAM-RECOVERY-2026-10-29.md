@@ -1,48 +1,48 @@
-# Start Here 502 / AWS production release blocker — 29 October 2026
+# AWS production release repair — inline-policy quota follow-up
 
-## Observed evidence
+## Current blocker and corrected implementation
 
-The owner's captured page for `/start-here` displayed **502 Bad Gateway** during a release. Issue #100 records the first incident. The latest release (workflow [40835576114](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40835576114), commit `cc8461d6277551e4d75760d85768781d1ddd9206`) failed. Its Elastic Beanstalk events show an explicit authorization denial for `autoscaling:TerminateInstanceInAutoScalingGroup` on the existing environment's Auto Scaling group. The earlier immutable-deployment approach also required ungranted `cloudformation:CreateStack` on a temporary EB stack.
+On 30 October 2026 the owner used an `AWSReservedSSO_AdministratorAccess` session in the correct account, `466401734428`, to run the pinned repair. AWS rejected `PutRolePolicy` with `LimitExceeded`: the role had reached its aggregate 10,240-character inline-policy limit. The failed write did not add the permissions, and the subsequent `--verify-only` correctly failed. This is a size-limit failure, not a wrong administrator account.
 
-The release uses the `RollingWithAdditionalBatch` policy to retain the existing serving instance while preparing a new instance. This action is required to retire the old serving instance. A missing permission blocks successful completion; an AWS health value alone cannot establish uninterrupted public access. Do not use an all-at-once deployment as a workaround.
+The revised `deploy/aws/repair_rolling_role.py` creates or reuses the exact customer-managed policy `WaithakaRollingDeploymentRepair` and attaches it only to `WaithakaGitHubDeployRole`. It **never writes, deletes or replaces an inline policy**. All existing inline statements, SIDs, allows, denies, resources and conditions remain intact. Adding another inline policy or minifying whitespace would not solve the aggregate quota.
 
-## Code remediation
+The small managed policy contains:
 
-- `bootstrap-automation.py` now includes precisely `autoscaling:TerminateInstanceInAutoScalingGroup` for the existing environment ASG `arn:aws:autoscaling:af-south-1:466401734428:autoScalingGroup:*:autoScalingGroupName/awseb-e-8sjvpauytq-stack-*`, restricted to `aws:RequestedRegion=af-south-1`. It does not give `autoscaling:*` or access to unrelated ASGs.
-- `repair_rolling_role.py` provides a smaller **one-time, admin-operated** update to the existing `WaithakaScopedAutomation` inline policy on role `WaithakaGitHubDeployRole`. It also permits `iam:GetRolePolicy` on only the deployment role for the GitHub release preflight, retains all other statements, refuses conflicts, defaults to **dry run**, checks account `466401734428`, and verifies an exact policy read-back after applying.
-- Offline tests validate scope, idempotence, preservation of existing grants and rejection of a conflicting broader statement. No AWS policy was changed by this repository PR.
+- `autoscaling:TerminateInstanceInAutoScalingGroup`, restricted to the existing `awseb-e-8sjvpauytq-stack-*` Auto Scaling group in `af-south-1` and account `466401734428`.
+- `iam:GetRolePolicy` and `iam:ListAttachedRolePolicies`, restricted to `WaithakaGitHubDeployRole`.
+- `iam:GetPolicy` and `iam:GetPolicyVersion`, restricted to `arn:aws:iam::466401734428:policy/WaithakaRollingDeploymentRepair`.
 
-## Controlled privileged handoff
+It grants no IAM create, update, attach, detach or delete rights to the deployment role. The administrator performs policy creation and attachment. The repair refuses a conflicting policy rather than updating its default version, rejects deployment-role self-grants, verifies the exact active document and actual role attachment, and rereads the active version. A stopped create/attach can be rerun: an existing exact policy is reused. Existing successful legacy inline repairs remain supported without mutation or new read requirements.
 
-Use an existing AWS administrator session for account **466401734428**. From this checked-out repository, **review the diff first**, then run:
+`bootstrap-automation.py` leaves these repair statements out of its large inline policy and invokes the same administrator repair after creating/updating the role. The targeted repair is the intended operation for this incident; do not rerun the full account bootstrap.
+
+## Owner CloudShell continuation
+
+Fetch and check out the newly reviewed Git revision before running these commands; the older `7b0ac98` script still uses the failed inline approach. The session must be the account's authorized administrator, not the GitHub deployment role.
 
 ```bash
 python3 -B deploy/aws/repair_rolling_role.py
 python3 -B deploy/aws/repair_rolling_role.py --apply
-```
-
-The script is intentionally not run by untrusted pull requests or a deployment workflow, which cannot grant itself new permissions. Explicit AWS IAM administrator authorization and successful read-back are prerequisites for another release attempt. If organization SCPs, permission boundaries or explicit denies override the inline role policy, resolve them with the AWS account owner. Do not paste secrets into GitHub or chat.
-
-## Proving actual restoration
-
-After an administrator applies the permission, run one controlled production deployment with the release continuity guard. Confirm before changing code that `/healthz`, `/` and `/start-here` each return HTTP 200 and Start Here contains all five required source-content markers. During the update, retain the external monitor's timestamped 5-second GET-only samples and raw failure count. Afterward, confirm Elastic Beanstalk Ready/Green at the **new** version, both frontend and origin targets, no 502/blank responses, independent browser acceptance and the correct live Start Here content. Review ALB/instance/proxy logs for the cause if symptoms persist.
-
-The existing workflow deliberately refuses to start new deployment operations if its initial health/Start Here sample is not already valid. Do not bypass the guard, start a competing deploy or reactivate the outbound worker/email queue. Preserve the full 33-area register and open issues #70–76 and #100. A successful IAM policy patch **does not by itself certify website restoration**.
-
-## Recovery audit correction
-
-The initial PR contained literal `\n` characters inside a Python comment. This commented out both the new ASG permission and the adjacent `DeploymentLaunchTemplates` statement while still passing Python syntax checks. The recovery revision restores real line breaks and tests the **evaluated policy expression**, so missing or widened permissions fail the suite. The previously standalone repair test was not in the standard application test runner; it is now included in both PHP/MySQL jobs and production validation.
-
-The repair also prints the exact proposed statement, rejects self-grant by the deployment role, checks for intervening policy changes before writing, preserves every existing statement, and adds a read-only verification mode. IAM has no compare-and-swap for inline policies: the immediate reread reduces the race window but is not a transaction; avoid concurrent IAM edits during application.
-
-After the dry run and authorized apply, use:
-
-```bash
 python3 -B deploy/aws/repair_rolling_role.py --verify-only
 ```
 
-This verifies the exact stored statement, not the effect of an SCP, permissions boundary or other deny. It does not trigger an instance termination or deployment. All live acceptance and continuity requirements above still apply. The 16 offline tests cover policy generation, preservation, scope, idempotence, wrong-account rejection, deployment-role self-grant refusal, concurrent edits, mismatched read-back, temporary-file cleanup and CI wiring.
+The first command previews the exact managed document without writes. Apply creates/attaches only that policy, then reads it back. Verification must report the exact managed repair attached to `WaithakaGitHubDeployRole`. If creation succeeded but a later read or attachment failed, retry explicitly; no inline rollback or deletion is necessary. Conflicting managed content or an IAM denial requires investigation, not automatic overwrite. Avoid concurrent administrative edits during this operation; IAM does not provide transactional attachment/version verification.
 
-## GitHub Actions preflight
+After successful verification, rerun the **new production workflow from the corrected Git revision**. An old workflow attempt uses its original checked-out script and will continue looking only for inline statements. The new release preflight checks the exact managed default version and attachment before DNS recovery or an environment update. It still accepts an already-correct legacy inline repair. Stored allows do not override SCPs, boundaries or explicit denies, and policy verification alone is not a deployment.
 
-The production workflow runs `python3 -B deploy/aws/repair_rolling_role.py --verify-only` immediately after verifying the AWS target, before DNS recovery and deployment changes. This performs only STS identity and IAM policy reads. It fails closed if either exact required statement is absent, conflicts, or cannot be read. The bootstrap and administrator repair include the matching own-role read permission. Deployment-role self-grants remain prohibited. The user requested Git-only operation; do not use a console as a substitute for this release path.
+## Validation and acceptance
+
+Offline regressions exercise a near-limit inline policy, preservation of all original grants, exact managed scope, dry-run/read-only behavior, creation and attachment idempotence, interrupted attempts, access denial, conflicting/default-version content, incomplete attachment inventories, creation races and temporary-file cleanup. The standard PHP/MySQL CI and production validation runner includes the suite. No real AWS changes are made by these tests.
+
+Keep incident #100 open until a guarded rollout produces the new version, Ready/Green status, uninterrupted sampled public content and all post-deployment checks. Retain all 33 work areas. Do not bypass the preflight, use an all-at-once release, release paused outbound queues or claim the new code is live based on the old site's health.
+
+Official references:
+- https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html
+- https://docs.aws.amazon.com/IAM/latest/APIReference/API_AttachRolePolicy.html
+- https://docs.aws.amazon.com/cli/latest/reference/iam/get-policy-version.html
+
+## Historical incident evidence
+
+The owner's captured page for `/start-here` displayed **502 Bad Gateway** during a release. Issue #100 records the first incident. The latest release (workflow [40835576114](https://github.com/Goblis-Foundation/Waithaka-Ndegwa/actions/runs/40835576114), commit `cc8461d6277551e4d75760d85768781d1ddd9206`) failed. Its Elastic Beanstalk events show an explicit authorization denial for `autoscaling:TerminateInstanceInAutoScalingGroup` on the existing environment's Auto Scaling group. The earlier immutable-deployment approach also required ungranted `cloudformation:CreateStack` on a temporary EB stack.
+
+The release uses the `RollingWithAdditionalBatch` policy to retain the existing serving instance while preparing a new instance. This action is required to retire the old serving instance. A missing permission blocks successful completion; an AWS health value alone cannot establish uninterrupted public access. Do not use an all-at-once deployment as a workaround.
