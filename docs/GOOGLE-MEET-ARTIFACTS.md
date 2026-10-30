@@ -23,7 +23,7 @@ Google retains Meet API transcript entries for 30 days after the conference ends
 
 `tests/google_meet_unit.php` covers account/owner isolation, grant changes during reads, exact artifact validation, pagination, duplicate imports, size limits, no partial persistence, retained-copy removal, CSRF/consent dispatch and escaped rendering using an offline provider fixture. The standard test runner includes it on PHP 8.3/8.4 and in production validation. The real production template has disconnected, selected and saved synthetic fixtures in the responsive browser and accessibility suites.
 
-Live acceptance remains pending deployment, Google OAuth callback/API setup and explicit account consent. After consent, verify one genuinely available conference and transcript, compare the private copy with the Meet API source, repeat the import to confirm no duplicate, then remove the local copy and verify the original remains in Google. Do not mark this completed on unit tests alone.
+The implementation is deployed by production run 41007427263 from 7a0c09b17b203e6d1928473814bffafd5f836311. Genuine artifact acceptance still requires Google OAuth callback/API setup and explicit account consent. After consent, verify one genuinely available conference and transcript, compare the private copy with the Meet API source, repeat the import to confirm no duplicate, then remove the local copy and verify the original remains in Google. Do not mark this completed on unit tests alone.
 
 ## Official API references reviewed
 

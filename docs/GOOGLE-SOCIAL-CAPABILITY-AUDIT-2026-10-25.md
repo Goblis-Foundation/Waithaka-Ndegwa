@@ -2,6 +2,12 @@
 
 Observed in the authenticated production connection screens. “Connected” is a stored authorisation, not evidence of every endpoint working today. No real post, message or account-conversion test was performed.
 
+## 30 October implementation continuation
+
+The dated inventory below is historical. Subsequent releases implemented reviewed Docs/Sheets creation, selected-list Tasks, opt-in incremental Calendar refresh/notification handling, and selected read-only Meet artifacts/private transcript retention. Production run 41007427263 completed successfully; its independent provider-consent and real-artifact acceptance remain separate.
+
+The next Git candidate implements `/write/google/youtube` for reviewed playlist creation/entries, timed SRT caption upload, media-library thumbnails and single-comment moderation. See `YOUTUBE-CHANNEL-ACTIONS.md` for exact scopes, result semantics, quota and remaining provider acceptance. It does not claim that a new grant or any real channel change has occurred. Optional BigQuery/Looker and additional Instagram formats remain software follow-up. The retained 33-area register and issues #71–76 still apply.
+
 ## Google already connected
 Search Console (selected domain), GA4 (website property), YouTube read/upload/analytics, selected-file Drive, Gmail personal inbox read, website booking calendar and eight separate Google calendar identities. Calendar destination is isaac@goblisgroup.com; Gmail inbox read is iwaithakaw@gmail.com. Existing integrations include selected calendars, owner-approved booking/Meet creation, scoped date/time/cancellation changes, charts by country/device/channel/page/campaign, sitemap/index inspections, Lighthouse/CrUX configuration, selected Google Doc import, Gemini model discovery and selected-note drafting, and a local aggregate-report MCP adapter. New footer measures GA4 recent activity and recorded visits without a new tracker.
 

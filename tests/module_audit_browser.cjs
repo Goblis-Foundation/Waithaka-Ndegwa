@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','verify','auth-settings','directory']){
+ for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
   ok(await page.locator('h1').count()===1,key+' has one page heading');
@@ -22,6 +22,16 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  ok(await page.locator('form:has(input[value=import]) input[name=fingerprint]').count()===1,'Meet import binds the reviewed account');
  await page.goto(host+'module-google-meet-saved.html');
  ok(await page.locator('pre').innerText().then(t=>t.includes('<script>Literal untrusted transcript content</script>')),'Meet transcript is rendered as literal text');
+ await page.goto(host+'module-youtube-review.html');
+ ok(await page.locator('main').innerText().then(t=>t.includes('<script>Literal untrusted comment</script>')),'YouTube comment is rendered as literal text');
+ ok(await page.locator('form:has(input[value=apply]) input[name=confirm][required]').count()===1,'YouTube apply requires exact action approval');
+ ok(await page.locator('main').innerText().then(t=>t.includes('cannot be undone here')),'Comment rejection explains its effect');
+ await page.goto(host+'module-youtube-pending.html');
+ ok(await page.getByRole('button',{name:'Read existing result'}).count()===1,'Pending captions expose read-only recheck');
+ ok(await page.getByRole('button',{name:'Apply to YouTube',exact:true}).count()===0,'Pending action cannot be resent');
+ await page.goto(host+'module-youtube-caption.html');
+ ok(await page.getByLabel('Visibility',{exact:true}).inputValue()==='1','New caption defaults to hidden draft');
+ ok(await page.locator('input[name=content_consent][required]').count()===1,'Preparation needs selected-content consent');
  await page.goto(host+'module-login-error.html');
  ok(await page.getByLabel('Writer email',{exact:true}).inputValue()==='fixture@example.invalid','Email retained after rejection');
  ok(!await page.locator('[name=trust_device]').isChecked(),'Shared-device choice retained after rejection');
