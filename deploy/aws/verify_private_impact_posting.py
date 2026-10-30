@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only production acceptance: neither protected configuration page is public."""
+"""Read-only production acceptance: selected protected workspaces and private previews are not public."""
 import urllib.request
 import urllib.error
 from urllib.parse import urlparse
@@ -10,7 +10,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 opener=urllib.request.build_opener(NoRedirect)
 
-for path in ("/write/impact","/write/publishing/automation"):
+for path in ("/write/impact","/write/publishing/automation","/write/google/youtube","/write/google/youtube/new","/write/google/youtube/"+"0"*32+"/image","/write/google/meet"):
     req=urllib.request.Request(BASE+path,headers={"Accept":"text/html","Cache-Control":"no-cache","User-Agent":"Waithaka-ReadOnly-Private-Check/1.0"})
     try:
         response=opener.open(req,timeout=20)
@@ -26,7 +26,7 @@ for path in ("/write/impact","/write/publishing/automation"):
             raise RuntimeError(f"{path}: unexpected authentication redirect")
     elif status not in (401,403,404):
         raise RuntimeError(f"{path}: protected workspace unexpectedly accessible: HTTP {status}")
-    if "Read-only bearer token" in response_body or "Posting automation · actual readiness" in response_body:
+    if "Read-only bearer token" in response_body or "Posting automation · actual readiness" in response_body or "data-youtube-actions" in response_body or "data-google-meet" in response_body:
         raise RuntimeError(f"{path}: private workspace content leaked to anonymous request")
     print("PASS: anonymous access remains blocked on "+path)
 print("PASS: no private data, payments, posts or provider actions.")

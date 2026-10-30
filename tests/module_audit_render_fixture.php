@@ -59,3 +59,10 @@ $ytaRecord=['id'=>str_repeat('b',32),'owner'=>7,'kind'=>'moderate','title'=>'Rev
 file_put_contents($out.'/module-youtube-review.html',ma_page('youtube_actions',array_replace($ytaBase,['part'=>$ytaRecord['id'],'record'=>$ytaRecord])));
 $ytaRecord['kind']='caption';$ytaRecord['source']=['video'=>['id'=>'video_12345','title'=>'Synthetic video','privacy'=>'private']];$ytaRecord['payload']=['video'=>'video_12345','name'=>'English','language'=>'en-KE','draft'=>true,'text'=>"1\n00:00:01,000 --> 00:00:03,000\nLiteral <caption> text."];$ytaRecord['state']='unknown';$ytaRecord['remote_id']='known-caption';$ytaRecord['outcome']='Processing is not yet verified. Recheck this known track; do not upload another.';
 file_put_contents($out.'/module-youtube-pending.html',ma_page('youtube_actions',array_replace($ytaBase,['part'=>$ytaRecord['id'],'record'=>$ytaRecord])));
+
+foreach([false,true]as$confirmed){
+ $v=['instagram_share_to_feed'=>$confirmed,'instagram_settings_confirmed'=>$confirmed];
+ $content='<link rel="stylesheet" href="/assets/css/publishing.css"><main class="write-main pub-main"><h1>Instagram Reel settings</h1><form>'.ma_render('partials_instagram_reel_settings',compact('v')).'</form></main>';
+ $html=ma_render('layout',['content'=>$content,'writeTitle'=>'Synthetic Reel fixture','writerShellUser'=>['id'=>7,'name'=>'Synthetic owner','email'=>'fixture@example.invalid']]);
+ file_put_contents($out.'/module-instagram-reel-'.($confirmed?'confirmed':'new').'.html',str_replace('class="workspace-guest"','class="workspace-auth"',$html));
+}
