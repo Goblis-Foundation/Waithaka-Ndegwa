@@ -127,7 +127,7 @@ function publishing_dispatch(string $path): bool {
         if ($path==='/write/publishing'&&!is_post()) {
             $packages=db()->query('SELECT p.*, (SELECT COUNT(*) FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id WHERE r.package_id=p.id) job_count FROM publishing_packages p ORDER BY p.updated_at DESC LIMIT 100')->fetchAll();
             $jobs=db()->query("SELECT j.*,p.title,p.id package_id,c.name channel_name FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id JOIN publishing_channels c ON c.id=j.channel_id ORDER BY CASE WHEN j.status IN ('failed','ambiguous','reconnect','assisted','reminder_queued','reminder_sent') THEN 0 WHEN j.status='scheduled' THEN 1 ELSE 2 END,j.scheduled_at DESC LIMIT 100")->fetchAll();
-            render_write('publishing',['writeTitle'=>'Publishing centre','packages'=>$packages,'jobs'=>$jobs]);return true;
+            render_write('publishing',['writeTitle'=>'Publishing centre','packages'=>$packages,'jobs'=>$jobs,'channels'=>publishing_channels()]);return true;
         }
         if ($path==='/write/publishing/new'&&!is_post()) {
             $post=null;if(!empty($_GET['post'])){$st=db()->prepare('SELECT * FROM posts WHERE id=?');$st->execute([(int)$_GET['post']]);$post=$st->fetch()?:null;}

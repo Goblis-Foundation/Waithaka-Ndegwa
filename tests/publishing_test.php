@@ -146,4 +146,12 @@ social_options_validate('instagram',['platform_options'=>['location_id'=>'123','
 check(publishing_job_label(['status'=>'delivered','destination_json'=>'{"slug":"instagram"}','provider_state_json'=>'{"adapter":"instagram_native_v2","phase":"verification_pending"}'])==='Publication ID received · Verifying','Instagram receipt is not mislabeled verified publication');
 $reelBuffer=array_replace(publishing_default_draft()['variants']['instagram'],['text'=>'Reviewed Reel','format'=>'reel','media_type'=>'video','media_url'=>'https://example.com/video.mp4','instagram_settings_confirmed'=>true]);
 rejects(fn()=>publishing_validate_variant('instagram',$reelBuffer,['method'=>'buffer']),'Native Reel settings cannot be silently omitted by Buffer');
+$subscriber=publishing_default_draft()['variants']['facebook'];$subscriber['enabled']=true;$subscriber['text']='An approved subscriber insight';$subscriber['audience']='subscribers';
+rejects(fn()=>publishing_validate_variant('facebook',$subscriber,['method'=>'direct']),'Subscriber content cannot leak through public Facebook API delivery');
+rejects(fn()=>publishing_validate_variant('facebook',$subscriber,['method'=>'buffer']),'Subscriber content cannot leak through Buffer');
+publishing_validate_variant('facebook',$subscriber,['method'=>'manual']);check(true,'Subscriber audience remains available for assisted Facebook');
+check(publishing_owner_control('/write/connections/community','POST'),'Only the publication owner can change Connect destination');
+$withAudience=publishing_default_draft();$withAudience['title']='Audience fixture';$withAudience['variants']['facebook']=$subscriber;$withAudience['variants']['x']['video_settings_confirmed']=true;
+$normal=publishing_normalize_draft($withAudience);check($normal['variants']['facebook']['audience']==='subscribers'&&$normal['variants']['x']['video_settings_confirmed']===true,'Audience and media consent survive normalization');
+check(!in_array('media.write',publishing_services()['x']['scopes'],true)&&in_array('media.write',publishing_services()['x_media']['scopes'],true),'Video grant does not silently widen existing X text authorization');
 echo "PASS: platform-specific options retained, validated and never silently dropped by unsupported delivery routes.\n";
