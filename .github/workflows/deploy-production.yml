@@ -115,7 +115,7 @@ jobs:
 
           The required deployment policy could not be verified. This job did not run DNS recovery or update the environment.
 
-          The authorized IAM administrator must apply the reviewed `deploy/aws/repair_rolling_role.py` using an administrator identity, then rerun this GitHub release. The deployment role cannot grant itself rights. The repair includes environment-scoped Auto Scaling termination and read-only access to its own inline policy; it adds no IAM self-write permission.
+          The authorized IAM administrator must apply the latest reviewed `deploy/aws/repair_rolling_role.py` using an administrator identity, then rerun this GitHub release. The repair attaches a small customer-managed policy, preserving the existing inline policies and their size budget. It includes environment-scoped Auto Scaling termination and only the role/policy reads needed for verification; it adds no IAM self-write permission. Rerun a release from this updated revision, not an older run that only checks inline grants.
           EOF
 
       - name: Reconstruct Route 53 deployment state
