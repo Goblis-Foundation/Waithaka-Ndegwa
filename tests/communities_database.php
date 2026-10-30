@@ -11,7 +11,25 @@ function url(string $path=''):string{return 'https://www.waithakandegwa.com/'.lt
 function encrypt_secret(string $value):string{$iv=random_bytes(12);$tag='';$cipher=openssl_encrypt($value,'aes-256-gcm',hash('sha256',$GLOBALS['CONFIG']['app_key'],true),OPENSSL_RAW_DATA,$iv,$tag);return base64_encode($iv.$tag.$cipher);}
 function decrypt_secret(string $value):string{$v=base64_decode($value,true);return openssl_decrypt(substr($v,28),'aes-256-gcm',hash('sha256',$GLOBALS['CONFIG']['app_key'],true),OPENSSL_RAW_DATA,substr($v,0,12),substr($v,12,16));}
 require_once __DIR__.'/../app/publishing.php';require_once __DIR__.'/../app/migrations.php';
+require_once __DIR__.'/../app/community_channel_catalogue.php';
 $n=0;function ck(bool $ok,string $why):void{$GLOBALS['n']++;if(!$ok)throw new RuntimeException($why);}
+// Recover the exact production gap: deployed code with only the original six rows.
+$pdo->exec("DELETE FROM publishing_channels WHERE slug IN ('threads','telegram','discord','signal')");
+$pdo->exec("DELETE FROM schema_migrations WHERE name='200_community_channels.sql'");
+$sixBefore=publishing_channels();
+ck(count($sixBefore)===6&&count(community_catalogue_missing($pdo))===4,'Read-only plan detects the four missing catalogue rows');
+ck(publishing_channels()===$sixBefore,'Planning never registers channels');
+community_catalogue_apply($pdo);
+ck(count(publishing_channels())===10&&community_catalogue_missing($pdo)===[],'Deployment data registration repairs a six-channel installation');
+ck(array_values(array_filter(publishing_channels(),static fn(array $row):bool=>in_array($row['slug'],array_column($sixBefore,'slug'),true)))===$sixBefore,'Registration preserves the original six channel records exactly');
+ck($pdo->query("SELECT sha256 FROM schema_migrations WHERE name='200_community_channels.sql'")->fetchColumn()===community_catalogue_hash(),'Registration records the unchanged SQL migration checksum');
+$pdo->exec("UPDATE publishing_channels SET name='Owner confirmed Threads',profile_url='https://www.threads.net/@owner' WHERE slug='threads'");
+$tenBefore=publishing_channels();community_catalogue_apply($pdo);
+ck(publishing_channels()===$tenBefore,'Repeated deploy preserves owner destinations and all existing rows');
+$pdo->exec("UPDATE schema_migrations SET sha256=REPEAT('0',64) WHERE name='200_community_channels.sql'");
+$rejected=false;try{community_catalogue_apply($pdo);}catch(RuntimeException){$rejected=true;}
+ck($rejected&&!$pdo->inTransaction()&&publishing_channels()===$tenBefore,'Mismatched applied migration fails safely with a rolled-back transaction');
+$pdo->prepare("UPDATE schema_migrations SET sha256=? WHERE name='200_community_channels.sql'")->execute([community_catalogue_hash()]);
 ck(count(publishing_channels())===10,'Migration registers all ten channels');$before=$pdo->query("SELECT * FROM publishing_channels WHERE slug IN ('linkedin','facebook','instagram','x','youtube','tiktok') ORDER BY id")->fetchAll();
 foreach(wk_sql_statements(file_get_contents(__DIR__.'/../app/migrations/200_community_channels.sql'))as$sql)$pdo->exec($sql);
 ck(count(publishing_channels())===10&&$before===$pdo->query("SELECT * FROM publishing_channels WHERE slug IN ('linkedin','facebook','instagram','x','youtube','tiktok') ORDER BY id")->fetchAll(),'Migration is additive and idempotent');
