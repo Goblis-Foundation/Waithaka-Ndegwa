@@ -154,11 +154,35 @@ const fs=require('node:fs');
   check((await f.locator('[name="ward"]').inputValue())==='Mweiga'&&(await f.locator('[name="county"]').inputValue())==='Nyeri','Kenya location is retained on country switch in '+prefix);
   check(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=2),'No narrow-screen overflow in '+prefix+' form');
  }
+ // Real contact form: mandatory details stay visible and only the active country branch validates.
+ await page.goto(host+'public-contact.html');
+ const contact=page.locator('[data-contact-form]');
+ for(const width of sizes){
+  await page.setViewportSize({width,height:900});
+  check(await contact.locator('[name="phone"]').isVisible()&&await contact.locator('[name="country"]').isVisible(),'Contact phone and country visible at '+width+'px');
+  check(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=2),'Contact has no horizontal overflow at '+width+'px');
+ }
+ for(const name of ['first_name','last_name','email','phone_code','phone','country','county','sub_county','ward','city','message','enquiry_type'])check(await contact.locator('[name="'+name+'"]').evaluate(el=>el.required),'Contact requires '+name);
+ check(!(await contact.evaluate(form=>form.checkValidity())),'Empty contact form cannot submit');
+ for(const [name,value] of Object.entries({first_name:'Amina',last_name:'Fixture',email:'amina@example.invalid',phone:'0712345678',sub_county:'Kieni West',ward:'Mweiga',city:'Endarasha',message:'Synthetic local fixture with enough enquiry context.'}))await contact.locator('[name="'+name+'"]').fill(value);
+ await contact.locator('[name="county"]').selectOption('Nyeri');await contact.locator('[name="not_robot"]').check();
+ check(await contact.evaluate(form=>form.checkValidity()),'Complete Kenya contact form validates without sending');
+ await contact.locator('[name="country"]').selectOption('United Kingdom');
+ check(await contact.locator('[name="county"]').evaluate(el=>el.disabled&&!el.required),'Kenya fields do not block international enquiry');
+ check(await contact.locator('[name="region"]').evaluate(el=>el.required&&!el.disabled),'International region becomes mandatory');
+ check(!(await contact.evaluate(form=>form.checkValidity())),'International administrative details are required');
+ await contact.locator('[name="region"]').fill('England');await contact.locator('[name="district"]').fill('Westminster');
+ check(await contact.evaluate(form=>form.checkValidity()),'Residence is independent of a valid Kenyan calling code');
+ await contact.locator('[name="country"]').selectOption('Kenya');
+ check(await contact.evaluate(form=>form.checkValidity()),'Switching back restores complete Kenya fields');
  // No-JavaScript forms keep both labelled alternatives, with server choice controlling parsing.
  const noJS=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:800}});
  const fallback=await noJS.newPage();
  await fallback.goto(host+'location-founder.html');
  check(await fallback.locator('[name="ward"]').isVisible()&&await fallback.locator('[name="region"]').isVisible(),'No-script fallback retains both explicit structures');
+ await fallback.goto(host+'public-contact.html');
+ check(await fallback.getByRole('button',{name:'Update country fields'}).isVisible(),'Contact offers a no-script country refresh without sending');
+ check(await fallback.locator('[name="phone"]').isVisible()&&await fallback.locator('[name="region"]').isDisabled(),'No-script contact shows applicable Kenya fields');
  await noJS.close();
 
  const evidence=process.env.EXPERIENCE_EVIDENCE_DIR;
@@ -168,6 +192,8 @@ const fs=require('node:fs');
   for(const width of [390,1440]){
    await page.setViewportSize({width,height:900});
    await page.screenshot({path:evidence+'/public-navigation-'+width+'.png',fullPage:true});
+   await page.goto(host+'public-contact.html');
+   await page.screenshot({path:evidence+'/contact-required-'+width+'.png',fullPage:true});
    await page.goto(host+'public-search.html');
    await page.screenshot({path:evidence+'/search-section-alignment-'+width+'.png',fullPage:true});
    await page.goto(host+'public-search-results.html');

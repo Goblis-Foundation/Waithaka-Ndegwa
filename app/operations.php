@@ -118,6 +118,9 @@ function email_work(int $limit=10,?callable $testTransport=null,?array $onlyOutb
                     db()->prepare("UPDATE email_outbox SET status='suppressed',error_code='recipient_suppressed' WHERE id=?")->execute([$row['id']]);$stats['suppressed']++;continue;
                 }
             }
+            if((str_starts_with($payload['dedupe_key'],'contact:')||str_starts_with($payload['dedupe_key'],'contact-receipt:'))&&(!function_exists('contact_guard_outbox_allowed')||!contact_guard_outbox_allowed($payload['dedupe_key'],$payload))){
+                db()->prepare("UPDATE email_outbox SET status='pending',claimed_at=NULL,attempts=GREATEST(attempts-1,0),available_at=DATE_ADD(NOW(),INTERVAL 1 HOUR),error_code='contact_owner_review' WHERE id=?")->execute([$row['id']]);$stats['deferred']++;continue;
+            }
             if(str_starts_with($payload['dedupe_key'],'opportunity:')&&function_exists('opportunity_email_gate')&&!opportunity_email_gate($payload['dedupe_key'],$payload,(int)$row['id'])){
                 db()->prepare("UPDATE email_outbox SET status='suppressed',error_code='opportunity_link_obsolete' WHERE id=?")->execute([$row['id']]);$stats['suppressed']++;continue;
             }

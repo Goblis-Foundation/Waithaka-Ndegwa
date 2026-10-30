@@ -120,22 +120,13 @@ if ($path === '/contact') {
         $contactNonce=contact_form_nonce($_POST['contact_request']??'');
         $contactDigest=hash('sha256',json_encode($_SESSION['contact_form'],JSON_THROW_ON_ERROR));
         if($contactNonce!==''&&isset($_SESSION['contact_requests'][$contactNonce])){$priorReceipt=$_SESSION['contact_requests'][$contactNonce];if(($priorReceipt['digest']??'')!==$contactDigest){flash('error','That form was already sent. Your changes are shown below; review and send this new form to create a follow-up.');redirect(url('/contact#contact-message'));}$_SESSION['contact_receipt']=$priorReceipt;unset($_SESSION['contact_form']);redirect(url('/contact#contact-receipt'));}
-        $m=[
-            'reference'=>make_reference('WK'),'first_name'=>trim((string)($_POST['first_name']??'')),'last_name'=>trim((string)($_POST['last_name']??'')),
-            'email'=>trim((string)($_POST['email']??'')),'phone_code'=>trim((string)($_POST['phone_code']??'+254')),'phone'=>trim((string)($_POST['phone']??'')),
-            'country'=>trim((string)($_POST['country']??'Kenya')),'city'=>trim((string)($_POST['city']??'')),'message'=>trim((string)($_POST['message']??'')),
-        ];
-        if($m['first_name']===''||!filter_var($m['email'],FILTER_VALIDATE_EMAIL)||$m['message']===''){
-            flash('error','Please complete all required fields with a valid email address.');redirect(url('/contact#contact-message'));
-        }
-        $contactTokenValid=contact_form_consume($contactNonce);$contactCaptchaValid=recaptcha_ok();
-        if(function_exists('reader_contact_submit')){
-            try{$contactId=contact_guard_receive($m,$_POST,$contactTokenValid,$contactCaptchaValid);}catch(InvalidArgumentException $e){flash('error',$e->getMessage());redirect(url('/contact#contact-message'));}
-        }else{
-            $st=db()->prepare('INSERT INTO contact_messages(reference,first_name,last_name,email,phone_code,phone,country,city,message,ip_hash,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
-            $st->execute([$m['reference'],$m['first_name'],$m['last_name'],$m['email'],$m['phone_code'],$m['phone'],$m['country'],$m['city'],$m['message'],ip_hash(),mb_substr($_SERVER['HTTP_USER_AGENT']??'',0,500)]);
-            $sent=send_contact_email($m); if($sent&&!function_exists('enqueue_email'))db()->prepare('UPDATE contact_messages SET email_sent=1 WHERE reference=?')->execute([$m['reference']]);
-        }
+        if(($_POST['contact_action']??'')==='country'){redirect(url('/contact#contact-message'));}
+        try{$m=['reference'=>make_reference('WK')]+contact_required_values($_POST);}catch(InvalidArgumentException $e){flash('error',$e->getMessage());redirect(url('/contact#contact-message'));}
+        $issuedAt=$_SESSION['contact_issued'][$contactNonce]??0;$contactAge=is_int($issuedAt)&&$issuedAt>0?max(0,time()-$issuedAt):null;
+        $contactTokenValid=contact_form_consume($contactNonce);$contactCaptchaValid=is_string($_POST['g-recaptcha-response']??'')&&((string)setting('recaptcha.secret','')!==''?recaptcha_ok():(($_POST['not_robot']??'')==='1'));
+        if(!$contactTokenValid||!$contactCaptchaValid){flash('error','Please complete the human check and send the refreshed form. Your message has been kept below.');redirect(url('/contact#contact-message'));}
+        $guardInput=array_replace($_POST,['_contact_age'=>$contactAge]);
+        try{$contactId=contact_guard_receive($m,$guardInput,$contactTokenValid,$contactCaptchaValid);}catch(InvalidArgumentException $e){flash('error',$e->getMessage());redirect(url('/contact#contact-message'));}
         $receipt=['reference'=>$m['reference'],'first'=>$m['first_name'],'type'=>$_SESSION['contact_form']['enquiry_type']??'general','digest'=>$contactDigest];$_SESSION['contact_receipt']=$receipt;unset($_SESSION['contact_form']);if($contactNonce!==''){$_SESSION['contact_requests'][$contactNonce]=$receipt;$_SESSION['contact_requests']=array_slice($_SESSION['contact_requests'],-20,null,true);}
         flash('success','Thank you. Your message has been received. Reference: '.$m['reference']);redirect(url('/contact#contact-receipt')); 
     }

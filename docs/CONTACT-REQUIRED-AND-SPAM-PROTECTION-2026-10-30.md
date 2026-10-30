@@ -1,0 +1,11 @@
+# Contact requirements and email abuse protection — 30 Oct 2026
+
+Phone and country now appear in the main form. First name, last name, email, enquiry purpose, phone and calling code, country, message (20–10,000 characters), and applicable location fields are required in HTML and on the server. Kenya and +254 remain defaults. Kenya requires county, sub-county, ward and town/area; other countries use region, district and city/locality, with N/A accepted for administrative levels that do not apply. Residence and telephone country remain independent. Inactive fields are excluded; a no-script country update never saves or emails an enquiry.
+
+Public submissions require session CSRF, a one-use server-issued form token and the configured human check. Limits reject duplicate messages, the sixth message from an IP per minute, and configured sender hourly/daily caps before adding another record. Honeypot, rapid completion and excessive links remain visible screening reasons. A fallback checkbox is self-attestation, not proof of bot detection.
+
+Every new contact enquiry is saved for individual owner review and gives an on-screen reference. No acknowledgement or owner email is automatically queued. The real mail worker also holds historical pending contact mail unless its exact enquiry has explicit current-owner approval, a review note and consent. Recipient matching prevents using an approved enquiry to send acknowledgement to another address. Keeping an enquiry without email persists that choice. Trash remains excluded. No messages are deleted, unrelated queues resumed, or real emails sent by this release.
+
+Verification covers real PHP form rendering, missing field validation, international switching, token/human-check rejection, no-script update, durable receipt and repeat handling, actual worker transport gate with synthetic callbacks, legacy queue hold, explicit release, retained decisions and IP caps. Responsive browser checks use the actual contact view across 13 widths, plus automated accessibility scans. Production deployment uses the existing GitHub Actions → AWS pipeline.
+
+The shared public footer now links the Afrisol credit to `https://www.afrisoltech.com/`, replacing the former `.co.ke` address as requested.

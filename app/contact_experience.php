@@ -14,12 +14,25 @@ function contact_draft_values(array $in): array {
  $out=[];foreach(['first_name'=>120,'last_name'=>120,'email'=>190,'phone_code'=>12,'phone'=>60,'country'=>120,'county'=>120,'sub_county'=>120,'ward'=>120,'region'=>120,'district'=>120,'city'=>120,'message'=>10000]as$key=>$max){$v=$in[$key]??'';$out[$key]=is_string($v)&&mb_check_encoding($v,'UTF-8')?mb_substr(trim($v),0,$max):'';}
  $type=$in['enquiry_type']??'general';$out['enquiry_type']=is_string($type)&&isset(contact_guides()[$type])?$type:'general';return $out;
 }
+/** Public contact requirements; historical enquiries retain their original sparse data. */
+function contact_required_values(array $input): array {
+ $values=[];foreach(['first_name'=>120,'last_name'=>120,'email'=>190,'message'=>10000]as$key=>$max)$values[$key]=reader_text($input[$key]??'',ucwords(str_replace('_',' ',$key)),$max,true);
+ if(!filter_var($values['email'],FILTER_VALIDATE_EMAIL)||preg_match('/[\r\n]/',$values['email']))throw new InvalidArgumentException('Enter a valid email address.');
+ if(mb_strlen($values['message'])<20)throw new InvalidArgumentException('Please give at least 20 characters of context in your message.');
+ $country=location_text($input['country']??'','Country');if($country===''||!in_array($country,country_options(),true))throw new InvalidArgumentException('Choose your country or territory.');
+ if(location_text($input['phone_code']??'','Country calling code',4)==='')throw new InvalidArgumentException('Enter your country calling code.');
+ $phone=location_phone($input);if($phone['phone']==='')throw new InvalidArgumentException('Enter your phone number.');if(!str_starts_with($phone['phone'],$phone['phone_code']))throw new InvalidArgumentException('The phone number must match the calling code. Change the calling code if this number belongs to another country.');
+ $location=location_fields($input);$fields=$country==='Kenya'?['county'=>'County','sub_county'=>'Sub-County','ward'=>'Ward','city'=>'Town / Area']:['region'=>'State / Province / Region','district'=>'District / Area','city'=>'City / Town / Locality'];
+ foreach($fields as$key=>$label)if($location[$key]==='')throw new InvalidArgumentException('Complete '.$label.'. Use N/A if your country does not use that administrative level.');
+ $type=$input['enquiry_type']??null;if(!is_string($type)||!isset(contact_current_types()[$type]))throw new InvalidArgumentException('Choose what you would like to discuss.');
+ return $values+$phone+$location;
+}
 function contact_form_nonce(mixed $value): string {return is_string($value)&&preg_match('/^[a-f0-9]{32}$/D',$value)?$value:'';}
 function contact_delivery_ids(int $contactId,string $reference): array {
  $q=db()->prepare('SELECT reference FROM contact_messages c WHERE id=? AND NOT EXISTS(SELECT 1 FROM reader_enquiries e JOIN reader_enquiry_trash t ON t.enquiry_id=e.id WHERE e.contact_id=c.id)');$q->execute([$contactId]);if($q->fetchColumn()!==$reference)return [];
  $q=db()->prepare('SELECT id FROM email_outbox WHERE dedupe_key IN (?,?) ORDER BY id');$q->execute([hash('sha256','contact:'.$reference),hash('sha256','contact-receipt:'.$reference)]);return array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
 }
-function contact_delivery_register(int $contactId,string $reference): void {$q=db()->prepare('SELECT id FROM reader_enquiries WHERE contact_id=?');$q->execute([$contactId]);$enquiry=(int)$q->fetchColumn();$meta=$enquiry?contact_guard_meta($enquiry):[];if($meta&&!in_array($meta['state'],['approved','released'],true))return;if(!contact_delivery_ids($contactId,$reference))return;comm_put('contact.delivery.'.$contactId,['id'=>$contactId,'reference'=>$reference,'created'=>time()]);}
+function contact_delivery_register(int $contactId,string $reference): void {$q=db()->prepare('SELECT id FROM reader_enquiries WHERE contact_id=?');$q->execute([$contactId]);$enquiry=(int)$q->fetchColumn();$meta=$enquiry?contact_guard_meta($enquiry):[];if(!contact_guard_email_approved($meta,(int)(comm_config()['owner']??0)))return;if(!contact_delivery_ids($contactId,$reference))return;comm_put('contact.delivery.'.$contactId,['id'=>$contactId,'reference'=>$reference,'created'=>time()]);}
 /** Future successful contact submissions only. Never releases the historical outbox. */
 function contact_delivery_work(?callable $testTransport=null): void {
  if(!$testTransport&&!email_transport_ready())return;
