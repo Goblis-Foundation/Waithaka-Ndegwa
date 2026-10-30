@@ -91,7 +91,7 @@ function publishing_dispatch(string $path): bool {
             render_write('connections_report',['writeTitle'=>publishing_services()[$m[1]]['name'].' report','connection'=>$connection,'report'=>$report]);return true;
         }
         if ($path==='/write/connections/community'&&is_post()) {
-            $link=trim((string)($_POST['community_url']??''));
+            $rawLink=$_POST['community_url']??'';if(!is_string($rawLink))throw new RuntimeException('Enter a valid Facebook destination.');$link=trim($rawLink);
             if($link!==''&&!publishing_connect_url_valid($link))throw new RuntimeException('Use the exact Facebook group or subscription link. A profile home link is not a subscriber destination.');
             set_setting('social.facebook_connect_url',$link);
             publishing_event(null,null,'community_link_updated','Waithaka Ndegwa Connect destination updated. No membership or publication was changed.',$userId);

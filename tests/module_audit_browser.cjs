@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
+ for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   if(key.startsWith('instagram-reel-'))await page.locator('main details').evaluate(e=>{e.open=true;});
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
@@ -18,6 +18,19 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   }
  }
  ok(layoutFailures.length===0,'Module layouts: '+JSON.stringify(layoutFailures));
+ await page.goto(host+'module-publishing-studio.html');
+ ok(await page.locator('[data-studio-channel]').count()===6,'All six channel editors render');
+ await page.locator('#text-x').fill('<script>literal preview</script>');
+ ok(await page.locator('#studio-x [data-preview-copy]').textContent()==='<script>literal preview</script>','Preview treats source as literal text');
+ ok(await page.locator('#studio-x [data-preview-copy] script').count()===0,'Preview cannot execute caption HTML');
+ await page.locator('#studio-x [data-channel-enabled]').check();
+ ok((await page.locator('[data-studio-summary]').textContent()).includes('1 channel selected'),'Selection summary updates');
+ await page.locator('#format-facebook').selectOption('reel');
+ ok((await page.locator('#studio-facebook [data-preview-meta]').textContent()).includes('Reel'),'Format preview updates');
+ await page.locator('#facebook-audience').selectOption('subscribers');
+ ok(await page.locator('#facebook-audience').inputValue()==='subscribers','Connect audience remains an explicit saved field');
+ // Dismiss the unsaved-edit guard only in this isolated test fixture.
+ page.once('dialog',dialog=>dialog.accept());
  await page.goto(host+'module-google-meet-select.html');
  ok(await page.locator('input[name=confirm][required]').count()===1,'Meet import requires explicit retention consent');
  ok(await page.locator('form:has(input[value=import]) input[name=fingerprint]').count()===1,'Meet import binds the reviewed account');

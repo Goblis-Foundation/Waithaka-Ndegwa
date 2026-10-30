@@ -18,3 +18,19 @@ function publishing_studio_format_note(string $slug): string {
         'tiktok'=>'Owned-video delivery through a separately authorized Accounts API and verified media domain. Photo posts, native effects and music use assisted publishing.',
         'linkedin'=>'Direct member text/link posts. Images, documents, video, polls and multi-image posts use assisted publishing or a verified Buffer route.',default=>'Prepare, review and confirm the published result.'};
 }
+
+/** Describe the saved declaration without asserting a provider-verified account subtype. */
+function publishing_account_type_label(array $channel): string {
+    $type=(string)($channel['account_type']??'');
+    if (($channel['slug']??'')==='tiktok'&&$type==='professional') return 'professional (owner-declared)';
+    return str_replace('_',' ',$type);
+}
+
+function publishing_studio_route_status(array $channel): string {
+    if(($channel['delivery_method']??'manual')==='manual')return 'Assisted · publication is completed in the platform';
+    $service=($channel['delivery_method']??'')==='buffer'?'buffer':publishing_service_for_channel($channel['slug']);$c=publishing_connection($service);
+    if(!$c||($c['status']??'')!=='connected'||empty($c['selected_resource']))return 'Connection required · save a draft while account setup is completed';
+    $text='Saved connection: '.($c['display_name']??'Confirmed destination').' · review format permissions before approval';
+    if($channel['slug']==='x'&&$channel['delivery_method']==='direct'){$media=publishing_connection('x_media');$text.=$media&&($media['status']??'')==='connected'&&!empty($media['selected_resource'])?' · media connection saved':' · separate video connection required';}
+    return $text;
+}

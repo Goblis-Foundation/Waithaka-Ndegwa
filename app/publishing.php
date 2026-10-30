@@ -15,12 +15,6 @@ function publishing_channels(): array { return db()->query('SELECT * FROM publis
 function publishing_channel(string $slug): ?array { $st=db()->prepare('SELECT * FROM publishing_channels WHERE slug=?');$st->execute([$slug]);return $st->fetch()?:null; }
 function publishing_package(int $id): ?array { $st=db()->prepare('SELECT * FROM publishing_packages WHERE id=?');$st->execute([$id]);return $st->fetch()?:null; }
 
-/** Describe the saved declaration without asserting a provider-verified account subtype. */
-function publishing_account_type_label(array $channel): string {
-    $type=(string)($channel['account_type']??'');
-    if (($channel['slug']??'')==='tiktok'&&$type==='professional') return 'professional (owner-declared)';
-    return str_replace('_',' ',$type);
-}
 
 function publishing_event(?int $packageId, ?int $jobId, string $type, string $note, ?int $actorId = null): void {
     db()->prepare('INSERT INTO publishing_events(package_id,job_id,event_type,note,actor_id) VALUES(?,?,?,?,?)')->execute([$packageId,$jobId,$type,mb_substr($note,0,500),$actorId]);
@@ -180,6 +174,7 @@ function publishing_destination(array $channel, array $variant=[]): array {
     $nativeMedia=$channel['slug']==='x'&&(($variant['media_url']??'')!==''||!empty($variant['media_asset_id']));
     if ($method!=='manual') $connection=publishing_connection($method==='buffer'?'buffer':($nativeMedia?'x_media':publishing_service_for_channel($channel['slug'])));
     if ($method==='buffer') foreach(publishing_buffer_channels($connection) as $item) if($item['id']===$channel['buffer_channel_id']){$remote=$item;break;}
+    if($nativeMedia&&$method==='direct'&&$connection){$textAccount=publishing_connection('x');if($textAccount&&($textAccount['status']??'')==='connected'&&($textAccount['selected_resource']??'')!==($connection['selected_resource']??''))throw new RuntimeException('X text and video connections differ. Confirm the same intended account before approving.');}
     $cap=publishing_capability($channel,$connection,$remote);
     if (!$cap['usable']) throw new RuntimeException($channel['name'].': '.$cap['reason']);
     if ($connection) $dest+=['connection_id'=>(int)$connection['id'],'connection_external_id'=>$connection['external_id'],'service'=>$connection['service'],'resource'=>$connection['selected_resource'],'account_name'=>$connection['display_name']];
