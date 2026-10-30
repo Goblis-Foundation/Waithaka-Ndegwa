@@ -127,12 +127,13 @@ function publishing_channel_copy(string $slug,string $title,string $message,stri
 }
 /** Relevant library assets only: never choose an unrelated image just to fill a field. */
 function publishing_pick_media(string $slug,string $context,string $featured,array $assets,array $channel=[]): ?array {
- if(($channel['delivery_method']??'')==='direct'&&in_array($slug,['x','linkedin','discord'],true))return null;
+ if(($channel['delivery_method']??'')==='direct'&&in_array($slug,['x','linkedin'],true))return null;
  if($slug==='signal')return null;
  $tokens=array_values(array_filter(preg_split('/[^\p{L}\p{N}]+/u',mb_strtolower($context))?:[],static fn($t)=>mb_strlen($t)>3));
  $best=null;$score=0;foreach($assets as$a){
  if(($a['status']??'')!=='ready'||($a['visibility']??'')!=='public')continue;
  if($slug==='threads'&&($channel['delivery_method']??'')==='direct'&&(!in_array($a['mime']??'',['image/jpeg','image/png'],true)||(int)($a['bytes']??0)<1||(int)$a['bytes']>8000000))continue;
+ if($slug==='discord'&&($channel['delivery_method']??'')==='direct'&&(!in_array($a['mime']??'',['image/jpeg','image/png'],true)||(int)($a['bytes']??0)<1||(int)$a['bytes']>10000000))continue;
  $video=str_starts_with($a['mime'],'video/');if(in_array($slug,['youtube','tiktok'],true)&&!$video)continue;
  if($slug==='instagram'&&($video||$a['mime']!=='image/jpeg'))continue;
  if(!in_array($slug,['youtube','tiktok'],true)&&$video)continue;
