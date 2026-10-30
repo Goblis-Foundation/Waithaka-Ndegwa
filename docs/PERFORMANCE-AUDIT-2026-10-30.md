@@ -21,3 +21,11 @@ The preceding contact/domain release (PR #119, commit `718d485b2c802fa507849b7a3
 A fresh bounded anonymous source observation on 30 October returned Group HTTP 403 and Ubunifu/AfriTrace/Foundation HTTP 503. These statuses do not establish a cause, approved data or numerical impact values. Provider credentials/consents, approved sender address, authentic impact reports, settlement evidence and physical-device acceptance remain pending.
 
 Offline Node audit contracts pass. Initial GitHub jobs were queued before execution; the isolated local fallback could install the pinned tools but Chromium could not open its debugging socket (`Operation not permitted`). No performance score or optimization result is claimed from that failed attempt. Full runner execution is required before accepting the new audit implementation.
+
+## Initial live measurement and targeted correction
+
+The first runner measurement captured the live homepage at Lighthouse performance 80/100, LCP 3,607 ms, TBT 94 ms and CLS 0. Accessibility, best practices and SEO each returned 100 in that sample. It observed 928 ms document response and image over-delivery, especially the small secondary photograph using a 960-pixel source for a roughly 142-pixel rendered slot. These are one simulated mobile observation, not field percentiles or a stable baseline.
+
+The runner then stopped on a cleanup API mismatch (`chrome.kill()` may return synchronously). Cleanup now supports both synchronous and asynchronous implementations, including disconnect failures, with a dedicated regression test. Full eight-case execution must pass before accepting the audit.
+
+The homepage now supplies responsive image sizes matching its existing hero layout and gives the secondary photo lazy/low-priority loading. Existing approved photo bytes, alt text, dimensions, crops and layout remain unchanged. This follows the observed oversized-image finding; measured improvements require a later complete live audit. No private cache, analytics configuration, backend instance or original portrait was changed.

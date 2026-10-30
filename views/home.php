@@ -8,8 +8,8 @@
       <div class="button-row"><a class="button button-primary" href="<?=url('/my-thoughts')?>">Read My Thoughts</a><a class="button button-secondary" href="#goals-2030">My 2030 goals</a></div>
     </div>
     <div class="home-hero-media" data-reveal>
-      <figure class="hero-main-image"><img <?=responsive_image_attrs(asset('images/journey/speaking.webp'))?> alt="Waithaka Ndegwa speaking at an event" fetchpriority="high" decoding="async"></figure>
-      <figure class="hero-secondary-image"><img <?=responsive_image_attrs(asset('images/journey/farm-cassava.webp'))?> alt="Working with harvested cassava on a farm" loading="eager" decoding="async"></figure>
+      <figure class="hero-main-image"><img <?=responsive_image_attrs(asset('images/journey/speaking.webp'),'(max-width: 380px) calc(100vw - 67px), (max-width: 560px) calc(100vw - 82px), (max-width: 820px) calc(100vw - 122px), (max-width: 1050px) 330px, 480px')?> alt="Waithaka Ndegwa speaking at an event" fetchpriority="high" decoding="async"></figure>
+      <figure class="hero-secondary-image"><img <?=responsive_image_attrs(asset('images/journey/farm-cassava.webp'),'(max-width: 560px) calc(43vw - 20px), (max-width: 820px) calc(42vw - 28px), 250px')?> alt="Working with harvested cassava on a farm" loading="lazy" fetchpriority="low" decoding="async"></figure>
       <div class="hero-location"><span>Roots</span><strong>Gakanga & Charity · Endarasha, Kenya</strong><small>At the foot of the Nyandarua Mountains, looking towards Mount Kenya.</small></div>
     </div>
   </div>
