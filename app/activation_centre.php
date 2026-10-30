@@ -117,15 +117,55 @@ function activation_assess(array $facts): array {
     }
     return $rows;
 }
+/** Allowlisted states only: no profile IDs, private labels, tokens or activity records leave inventory. */
+function activation_connection_state(?array $row,int $owner,string $service): string {
+    if(!$row||($row['status']??'')==='disconnected')return 'disconnected';
+    if($owner<1||(int)($row['connected_by']??0)!==$owner)return 'other_owner';
+    if(($row['status']??'')!=='connected')return in_array($row['status']??'',['pending_confirmation','reconnect'],true)?$row['status']:'unknown';
+    if(empty($row['selected_resource']))return 'pending_confirmation';
+    $metadata=json_decode((string)($row['metadata_json']??'{}'),true,32,JSON_THROW_ON_ERROR);
+    if(!empty($metadata['owner_declared']))return 'assisted';
+    if($service==='signal')return 'assisted';
+    if($service==='threads'){$scopes=json_decode((string)($row['scopes_json']??'[]'),true,32,JSON_THROW_ON_ERROR);if(!is_array($scopes)||array_diff(['threads_basic','threads_content_publish'],$scopes))return 'permissions_missing';}
+    return 'connected';
+}
+function activation_activity_state(int $owner,string $source,array $grant,array $client): string {
+    if($owner<1||!$grant||($grant['status']??'')==='disconnected')return 'disconnected';
+    if(($grant['owner']??0)!==$owner)return 'other_owner';
+    if(empty($client['client_id'])||empty($client['client_secret'])||($source==='google_health'&&($client['dedicated_project']??false)!==true)||!isset($grant['client'])||!hash_equals((string)$grant['client'],fitness_client_fingerprint($client)))return 'reconnect';
+    return in_array($grant['status']??'',['connected','pending_confirmation','reconnect'],true)?$grant['status']:'unknown';
+}
+function activation_connection_inventory(): array {
+    $owner=(int)(comm_config()['owner']??0);$states=[];
+    foreach(['threads','telegram','discord','signal']as$service){try{$states[$service]=activation_connection_state(publishing_connection($service),$owner,$service);}catch(Throwable){$states[$service]='unknown';}}
+    foreach(['google_health','strava']as$source){try{$states[$source]=activation_activity_state($owner,$source,comm_get(fitness_key($owner,'grant',$source)),fitness_client($source));}catch(Throwable){$states[$source]='unknown';}}
+    foreach(['health_connect','samsung_health','google_fit']as$source){try{$data=comm_get(fitness_key($owner,'data',$source));$states[$source]=!$data?'not_imported':(($data['owner']??0)!==$owner?'other_owner':(is_array($data['rows']??null)?'imported':'unknown'));}catch(Throwable){$states[$source]='unknown';}}
+    return $states;
+}
+function activation_connection_rows(array $states): array {
+    $definitions=[
+        'threads'=>['Threads','/write/connections#integrations-communities','Connect the separate Threads app, confirm your profile, then approve text, photo or video in the posting studio.'],
+        'telegram'=>['Telegram','/write/connections#integrations-communities','Verify a bot with administrator/posting rights and confirm the exact channel or supergroup.'],
+        'discord'=>['Discord','/write/connections#integrations-communities','Verify the incoming webhook and confirm its server/channel. Prepare text and links in the posting studio.'],
+        'signal'=>['Signal','/write/connections#integrations-communities','Confirm the private destination label. Complete the approved post in Signal and record your private reference.'],
+        'google_health'=>['Google Health','/write/activity#connections','Save a dedicated Google Health Cloud project, authorize the linked account, then confirm its returned identity.'],
+        'strava'=>['Strava','/write/activity#connections','Configure the Strava application, authorize your own athlete account and confirm the returned identity.'],
+        'health_connect'=>['Android Health Connect','/write/activity#imports','Install the companion, grant workout access, export a file and review it before importing.'],
+        'samsung_health'=>['Samsung Health','/write/activity#imports','Share workouts with Health Connect on the phone. Select Samsung Health in the companion, then review and import the export.'],
+        'google_fit'=>['Google Fit history','/write/activity#imports','Select available Google Fit workouts in the Health Connect companion or prepare the documented CSV, then review and import it.'],
+    ];
+    $labels=['connected'=>'Saved account confirmed','assisted'=>'Confirmed for assisted posting','pending_confirmation'=>'Confirm the returned account','reconnect'=>'Reconnect or update app setup','disconnected'=>'Connection needed','other_owner'=>'Owner connection needed','permissions_missing'=>'Publishing permission needed','unknown'=>'Status unavailable','imported'=>'Reviewed import saved','not_imported'=>'Reviewed import needed'];
+    $rows=[];foreach($definitions as$key=>[$name,$path,$next]){$state=$states[$key]??'unknown';$rows[]=['key'=>$key,'name'=>$name,'status'=>$labels[$state]??$labels['unknown'],'path'=>$path,'next'=>$next];}return $rows;
+}
 function activation_dispatch(string $path): bool {
     if($path!=='/write/activation')return false;
     require_auth();private_response_headers();journeys_method(['GET','HEAD']);
     $user=current_user();$owner=(int)(comm_config()['owner']??0);
     if($owner<1||!$user||(int)$user['id']!==$owner){http_response_code(403);echo 'Owner access required.';return true;}
     if(($_SERVER['REQUEST_METHOD']??'GET')==='HEAD')return true;
-    $facts=activation_local_facts();$rows=activation_assess($facts);
+    $facts=activation_local_facts();$rows=activation_assess($facts);$connections=activation_connection_rows(activation_connection_inventory());
     render_write('activation',['writeTitle'=>'Activation & launch readiness','activationRows'=>$rows,
         'activationObservedAt'=>$facts['observed_at'],'activationWorker'=>$facts['delivery_worker'],
-        'activationWorkAreas'=>function_exists('reconciliation_items')?count(reconciliation_items()):null]);
+        'activationConnections'=>$connections,'activationWorkAreas'=>function_exists('reconciliation_items')?count(reconciliation_items()):null]);
     return true;
 }

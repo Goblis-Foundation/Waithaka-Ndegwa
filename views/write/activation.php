@@ -33,6 +33,15 @@
       <?php endforeach;?>
     </div>
   </section>
+  <section class="activation-section" aria-labelledby="activation-connections-title">
+    <div class="activation-section-heading"><h2 id="activation-connections-title">Community & activity connections</h2><p>Open the next setup step for each requested service. These are saved-state checks, not a live account test or evidence that a post was sent. Activity reports and weekly, monthly and annual targets stay private.</p></div>
+    <div class="activation-connection-grid">
+      <?php foreach(($activationConnections??activation_connection_rows([]))as$connection):?>
+      <article class="activation-connection" aria-labelledby="activation-connection-<?=e($connection['key'])?>"><h3 id="activation-connection-<?=e($connection['key'])?>"><?=e($connection['name'])?></h3><p class="activation-status"><?=e($connection['status'])?></p><p><?=e($connection['next'])?></p><a class="wbtn" href="<?=url($connection['path'])?>">Set up <?=e($connection['name'])?></a></article>
+      <?php endforeach;?>
+    </div>
+    <p class="activation-stamp">A saved import does not certify complete device history. Signal uses assisted posting; Google Fit and Samsung Health use reviewed activity files. Cloud reports require their own read consent.</p>
+  </section>
   <section class="activation-note" aria-labelledby="activation-controls-title"><h2 id="activation-controls-title">Release controls retained</h2>
     <p>The existing website, original writing and media, scheduled public monthly roundup, approved identity and source records remain unchanged. A queued email is not sent automatically from this page. Payments require provider-confirmed settlement; social publication needs an approved revision and verified destination; private organizational records are never promoted into Goal 2030 results without source publication approval.</p>
     <p>Automated website accessibility and navigation checks complement, but do not replace, actual physical-device testing. Use the implementation register to review every earlier task and avoid treating a missing result as zero.</p>

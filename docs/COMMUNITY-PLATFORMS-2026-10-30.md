@@ -4,7 +4,7 @@
 
 | Channel | Implemented route | Activation required |
 |---|---|---|
-| Threads | Native text/link container then publication, exact profile and owned-post read-back; assisted media | Separate Threads app/consent, registered `/write/connections/callback/threads`, actual profile confirmation |
+| Threads | Native text/link and single owned public JPEG/PNG or MP4; saved processing container, exact profile and owned-post read-back | Separate Threads app/consent, registered `/write/connections/callback/threads`, actual profile confirmation |
 | Telegram | Bot text and owned public JPEG/PNG/MP4 to one channel/supergroup; send receipt | BotFather token, exact @username or -100… ID, bot administrator/posting rights, explicit destination confirmation |
 | Discord | Incoming channel webhook text/link messages; mentions and embeds suppressed; independent message read-back | Exact incoming webhook, read-verified guild/channel identity, explicit destination confirmation |
 | Signal | Owner-declared assisted group/contact target, approved media download and private Writer completion reference | Exact private destination label and owner confirmation; send in Signal |
@@ -19,7 +19,7 @@ Telegram returns a complete sent-message response. The workspace verifies the re
 
 Signal has no automatic delivery in this implementation. Its completion form requires the Writer to verify the exact named destination and approved content, then save a private reference without an invitation link. Status is “Completed · Writer confirmed”. No fabricated public permalink, official bot support or provider receipt is claimed.
 
-Media limits: Telegram photo 10 MB; video MP4 50 MB; media caption 1,024 characters. Native provider image/video eligibility still applies. Threads native media and Discord attachments/forums/threads remain assisted. Native options are not silently dropped. New reporting cards accept explicitly sourced manual metrics; missing data stays unavailable and publishing consent is never treated as an Insights grant. Signal does not gain automated membership or read-receipt analytics.
+Media limits: Telegram photo 10 MB; video MP4 50 MB; media caption 1,024 characters. Native provider image/video eligibility still applies. Threads single owned public JPEG/PNG (8 MB) and MP4 (workspace limit 50 MB) are implemented with preserved media descriptions up to 500 characters. Saved containers wait for provider eligibility; five bounded one-minute processing reads precede owner review. A known ready container publishes once, with the intent persisted first. Unknown creation/publication outcomes are never replayed. Changed media versions or a withdrawn source article block publication. Remote caption, media type, owned-post inventory and permalink are verified separately. Threads carousels/native options and Discord attachments/forums/threads remain assisted. Native options are not silently dropped. New reporting cards accept explicitly sourced manual metrics; missing data stays unavailable and publishing consent is never treated as an Insights grant. Signal does not gain automated membership or read-receipt analytics.
 
 Primary references checked:
 

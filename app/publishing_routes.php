@@ -193,7 +193,7 @@ function publishing_dispatch(string $path): bool {
                 $instagramResume=publishing_instagram_can_resume($job);
                 $videoResume=publishing_social_video_can_resume($job);$communityResume=publishing_community_can_resume($job);
                 if((!in_array($job['status'],['failed','reconnect'],true)&&!($job['status']==='ambiguous'&&($youtubeResume||$tiktokResume||$instagramResume||$videoResume||$communityResume)))||empty($_POST['reviewed_remote']))throw new RuntimeException('Only reviewed failed/reconnected work, a recoverable YouTube session or a known TikTok/Instagram processing record can be resumed. Unknown outcomes never create another post automatically.');
-                if($communityResume){publishing_job_connection($job);$state=publishing_community_state($job);$state['checks']=0;publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
+                if($communityResume){publishing_job_connection($job);$state=publishing_community_state($job);$state['checks']=0;if(($state['phase']??'')==='media_processing')$state['processing_checks']=0;publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
                 } elseif($videoResume) {
                     publishing_job_connection($job);$state=publishing_social_video_state($job);$state['checks']=0;
                     publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
