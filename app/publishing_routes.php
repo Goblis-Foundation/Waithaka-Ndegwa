@@ -90,6 +90,10 @@ function publishing_dispatch(string $path): bool {
             $report=$m[1]==='tiktok_read'?publishing_tiktok_report($connection):publishing_google_report($connection);
             render_write('connections_report',['writeTitle'=>publishing_services()[$m[1]]['name'].' report','connection'=>$connection,'report'=>$report]);return true;
         }
+        if(preg_match('~^/write/connections/(telegram|discord|signal)/configure$~D',$path,$community)&&is_post()){
+            if(!journeys_rate_limit('community-setup',(string)$userId,12,3600))throw new RuntimeException('Wait before another community verification.');
+            publishing_community_setup($community[1],$_POST,$userId);flash('success','Destination saved for explicit confirmation. No message was sent.');redirect(url('/write/connections#'.$community[1]));
+        }
         if ($path==='/write/connections/community'&&is_post()) {
             $rawLink=$_POST['community_url']??'';if(!is_string($rawLink))throw new RuntimeException('Enter a valid Facebook destination.');$link=trim($rawLink);
             if($link!==''&&!publishing_connect_url_valid($link))throw new RuntimeException('Use the exact Facebook group or subscription link. A profile home link is not a subscriber destination.');
@@ -106,6 +110,7 @@ function publishing_dispatch(string $path): bool {
                 $type=(string)($_POST['account_type']??'professional_profile');
                 if(!in_array($type,['professional_profile','page'],true))throw new RuntimeException('Choose Facebook professional profile or Page.');
             }
+            if($slug==='threads'){ $profile=$_POST['profile_url']??$channel['profile_url'];if(!is_string($profile)||!preg_match('~^https://(?:www\.)?threads\.(?:net|com)/@[A-Za-z0-9._]{1,50}/?$~D',trim($profile)))throw new RuntimeException('Use your exact Threads profile URL.');$channel['profile_url']=trim($profile);}
             $channel['account_type']=$type;$channel['delivery_method']=$method;
             $channel['buffer_mode']=($_POST['buffer_mode']??'automatic')==='notification'?'notification':'automatic';
             $bufferId=trim((string)($_POST['buffer_channel_id']??''));
@@ -121,6 +126,7 @@ function publishing_dispatch(string $path): bool {
             $cap=publishing_capability($channel,$connection,$remote);
             if(!$cap['usable'])throw new RuntimeException($cap['reason']);
             db()->prepare('UPDATE publishing_channels SET account_type=?,delivery_method=?,buffer_channel_id=?,buffer_mode=? WHERE id=?')->execute([$type,$method,$method==='buffer'?$bufferId:null,$channel['buffer_mode'],$channel['id']]);
+            if($slug==='threads')db()->prepare('UPDATE publishing_channels SET profile_url=? WHERE id=?')->execute([$channel['profile_url'],$channel['id']]);
             publishing_event(null,null,'channel_route_changed',$channel['name'].' delivery route changed to '.$method.'. Existing approved revisions retain their original destination.',$userId);
             flash('success','Channel route saved. Review and approve a new package revision to use it.');redirect(url('/write/connections#channels'));
         }
@@ -177,16 +183,18 @@ function publishing_dispatch(string $path): bool {
             if($m[2]==='complete') {
                 if(!in_array($job['status'],['assisted','reminder_queued','reminder_sent','ambiguous','failed','reconnect','delivered'],true)||empty($_POST['confirm_published']))throw new RuntimeException('Confirm that this exact post is already published.');
                 $external=trim((string)($_POST['external_url']??''));
-                if(!publishing_job_url_valid($external,$destination['slug']))throw new RuntimeException('Paste the actual published post URL on the selected platform, not its profile URL.');
+                if($destination['slug']==='signal'){$reference=$_POST['completion_reference']??'';if(!is_string($reference)||trim($reference)===''||mb_strlen($reference)>300||preg_match('/[\x00-\x1f\x7f]|https?:\/\//i',$reference))throw new RuntimeException('Add a private completion reference without a group invitation link.');$external=null;publishing_event((int)$job['package_id'],(int)$job['id'],'signal_writer_receipt',trim($reference),$userId);}
+                elseif(!publishing_job_url_valid($external,$destination['slug']))throw new RuntimeException('Paste the actual published post URL on the selected platform, not its profile URL.');
                 publishing_job_update((int)$job['id'],['status'=>'published','external_url'=>$external,'completed_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>'Publication confirmed by Writer user '.$userId.'.']);
                 publishing_event((int)$job['package_id'],(int)$job['id'],'manual_completion','Writer confirmed the published post URL.',$userId);
             } elseif($m[2]==='retry') {
                 $youtubeResume=publishing_youtube_can_resume($job);
                 $tiktokResume=publishing_tiktok_business_can_resume($job);
                 $instagramResume=publishing_instagram_can_resume($job);
-                $videoResume=publishing_social_video_can_resume($job);
-                if((!in_array($job['status'],['failed','reconnect'],true)&&!($job['status']==='ambiguous'&&($youtubeResume||$tiktokResume||$instagramResume||$videoResume)))||empty($_POST['reviewed_remote']))throw new RuntimeException('Only reviewed failed/reconnected work, a recoverable YouTube session or a known TikTok/Instagram processing record can be resumed. Unknown outcomes never create another post automatically.');
-                if($videoResume) {
+                $videoResume=publishing_social_video_can_resume($job);$communityResume=publishing_community_can_resume($job);
+                if((!in_array($job['status'],['failed','reconnect'],true)&&!($job['status']==='ambiguous'&&($youtubeResume||$tiktokResume||$instagramResume||$videoResume||$communityResume)))||empty($_POST['reviewed_remote']))throw new RuntimeException('Only reviewed failed/reconnected work, a recoverable YouTube session or a known TikTok/Instagram processing record can be resumed. Unknown outcomes never create another post automatically.');
+                if($communityResume){publishing_job_connection($job);$state=publishing_community_state($job);$state['checks']=0;publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
+                } elseif($videoResume) {
                     publishing_job_connection($job);$state=publishing_social_video_state($job);$state['checks']=0;
                     publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
                 } elseif($instagramResume) {
@@ -218,7 +226,7 @@ function publishing_dispatch(string $path): bool {
                 }
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_resumed','Writer reviewed the failed attempt and resumed the existing job.',$userId);
             } else {
-                $nativePending=$job['status']==='delivered'&&(publishing_youtube_can_resume($job)||publishing_tiktok_business_can_resume($job)||publishing_instagram_can_resume($job)||publishing_social_video_can_resume($job));
+                $nativePending=$job['status']==='delivered'&&(publishing_youtube_can_resume($job)||publishing_tiktok_business_can_resume($job)||publishing_instagram_can_resume($job)||publishing_social_video_can_resume($job)||publishing_community_can_resume($job));
                 if(!in_array($job['status'],['scheduled','assisted','failed','reconnect','ambiguous','reminder_queued','reminder_sent'],true)&&!$nativePending)throw new RuntimeException('Manage an accepted or processing post in the provider before closing its record.');
                 if((!empty($job['remote_id'])||$job['status']==='ambiguous'||$nativePending)&&empty($_POST['reviewed_remote']))throw new RuntimeException('Check and stop any remote publication before closing this record.');
                 $st=db()->prepare("UPDATE publishing_jobs SET status='cancelled' WHERE id=? AND status=?");$st->execute([$job['id'],$job['status']]);

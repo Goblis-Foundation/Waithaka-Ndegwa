@@ -32,7 +32,7 @@ function campaign_link_set(array $post): array {
     $q=db()->prepare('SELECT 1 FROM posts p WHERE p.id=? AND '.published_where());$q->execute([(int)$post['id']]);
     if(!$q->fetchColumn())return [];
     $path='/my-thoughts/'.$post['slug'];$code='post-'.(int)$post['id'];$links=[];
-    foreach(['linkedin','facebook','instagram','x','youtube','tiktok','newsletter']as$source){
+    foreach(array_merge(array_keys(publishing_networks()),['newsletter'])as$source){
         $medium=$source==='newsletter'?'email':'social';
         $format=in_array($source,['youtube','tiktok'],true)?'video':($source==='instagram'?'bio':($source==='newsletter'?'newsletter':'article'));
         $links[$source]=analytics_campaign_url($path,$source,$medium,$code,$format);

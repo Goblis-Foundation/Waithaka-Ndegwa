@@ -1,19 +1,25 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/publishing_networks.php';
 
 /** Private account reporting. No provider calls on page load and no publication side effects. */
 function media_centre_platforms(): array {
-    return [
+    $platforms=[
         'linkedin'=>['name'=>'LinkedIn','service'=>'linkedin_analytics','note'=>'Member post analytics needs the approved analytics product and a separate read grant.'],
         'facebook'=>['name'=>'Facebook','service'=>'','note'=>'Your professional-mode personal profile uses assisted posting and native Professional Dashboard reports. Page API credentials do not provide profile publishing or profile Insights.'],
         'instagram'=>['name'=>'Instagram','service'=>'instagram','note'=>'Connected professional-account totals are available where returned. Record additional Insights from the native dashboard.'],
         'x'=>['name'=>'X','service'=>'x','note'=>'Account totals use your authorised X API access and may incur API charges.'],
         'youtube'=>['name'=>'YouTube','service'=>'google_youtube_read','note'=>'Channel totals use the confirmed YouTube channel; period-specific Studio analytics can be recorded separately.'],
+        'threads'=>['name'=>'Threads','service'=>'','note'=>'Publishing consent is separate from Insights. Record source-dated native reports manually; no automatic audience metrics are claimed.'],
+        'telegram'=>['name'=>'Telegram','service'=>'','note'=>'Bot sends have provider acknowledgements. Native channel analytics must be recorded with dates and source; sending does not prove reading.'],
+        'discord'=>['name'=>'Discord','service'=>'','note'=>'Webhook delivery verifies message identity, not member reach. Record native reports manually without member exports.'],
+        'signal'=>['name'=>'Signal','service'=>'','note'=>'Owner-declared assisted destination. No automated member counts, read receipts or private conversation import.'],
         'tiktok'=>['name'=>'TikTok','service'=>'tiktok_read','note'=>'Profile totals and up to 20 public videos use the separate read grant; native analytics may offer more detail.']
     ];
+    $ordered=[];foreach(publishing_networks() as$key=>$name)$ordered[$key]=$platforms[$key];return $ordered;
 }
 function media_centre_connect_services(): array {
-    return ['linkedin'=>'linkedin','facebook'=>'facebook_profile','instagram'=>'instagram','x'=>'x','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_read'];
+    return ['linkedin'=>'linkedin','facebook'=>'facebook_profile','instagram'=>'instagram','x'=>'x','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_read','threads'=>'threads','telegram'=>'telegram','discord'=>'discord','signal'=>'signal'];
 }
 function writer_workspace_summary(): array {
     $connected=0;foreach(media_centre_connect_services()as$slug=>$service){if($service==='')continue;$services=[$service];if($slug==='linkedin')$services[]='linkedin_analytics';if($slug==='youtube')$services[]='google_youtube_read';if($slug==='tiktok')$services[]='tiktok_business';foreach($services as$granted){$c=publishing_connection($granted);if($c&&$c['status']==='connected'&&!empty($c['selected_resource'])){$connected++;break;}}}

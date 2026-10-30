@@ -112,7 +112,7 @@ rejects(fn()=>publishing_google_report(['provider'=>'google','status'=>'pending_
 
 $draft=publishing_default_draft(['id'=>12,'slug'=>'first-test','title'=>'First test','standfirst'=>'What we learned.']);
 check($draft['source_url']==='https://www.waithakandegwa.com/my-thoughts/first-test','Canonical article route is preserved');
-check(count($draft['variants'])===6,'All six channels have independent variants');
+check(count($draft['variants'])===10,'All ten channels have independent variants');
 check(count(array_filter($draft['variants'],fn($v)=>$v['enabled']))===0,'A new package does not authorize any platform');
 check($draft['variants']['youtube']['privacy']==='private','YouTube visibility is explicit and conservative');
 $v=$draft['variants']['instagram'];$v['enabled']=true;$v['media_url']='https://example.com/image.jpg';$v['media_type']='image';$v['alt_text']='Prototype on a table.';$v['text']='The first prototype.';

@@ -70,9 +70,16 @@ foreach([false,true]as$confirmed){
 // Real six-channel composer template; only account/persistence data is synthetic.
 foreach(['publishing_studio','publishing_automation','social_options']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
 $channels=[];$draft=['title'=>'A considered idea','source_post_id'=>null,'source_url'=>'https://www.waithakandegwa.com/my-thoughts/example','notes'=>'Private fixture notes','variants'=>[]];
-foreach(['linkedin','facebook','instagram','x','youtube','tiktok']as$slug){
+foreach(array_keys(publishing_networks())as$slug){
  $channels[]=['id'=>count($channels)+1,'slug'=>$slug,'name'=>$slug==='x'?'X':ucfirst($slug),'delivery_method'=>'manual','account_type'=>$slug==='facebook'?'professional_profile':'professional','profile_url'=>'https://example.invalid/profile'];
  $draft['variants'][$slug]=['enabled'=>false,'text'=>'<img src=x onerror=alert(1)> Literal preview','media_asset_id'=>0,'media_url'=>'','media_type'=>'image','alt_text'=>'','title'=>'Fixture title','format'=>$slug==='youtube'?'video':'post','privacy'=>'private','platform_options'=>[],'made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false,'instagram_settings_confirmed'=>false,'instagram_share_to_feed'=>false,'video_settings_confirmed'=>false,'audience'=>'public'];
 }
 $_SERVER['REQUEST_URI']='/write/publishing/new';
 file_put_contents($out.'/module-publishing-studio.html',ma_page('publishing_editor',['package'=>null,'draft'=>$draft,'channels'=>$channels,'jobs'=>[],'revision'=>null,'events'=>[]]));
+
+$content='<link rel="stylesheet" href="/assets/css/publishing.css"><main class="write-main pub-main"><h1>Community destinations</h1><div class="pub-grid">';
+foreach(['telegram','discord','signal']as$service){
+ $connection=['display_name'=>'Synthetic destination','credentials_encrypted'=>'NEVER_RENDER_SECRET'];$status='pending_confirmation';$metadata=$service==='signal'?['owner_declared'=>true]:[];$resources=[['id'=>'fixture-destination','name'=>'Synthetic exact destination']];$definition=['name'=>ucfirst($service),'description'=>'Isolated setup fixture. No provider request.'];
+ $content.=ma_render('integration_community',compact('service','connection','status','metadata','resources','definition'));
+}
+$content.='</div></main>';$html=ma_render('layout',['content'=>$content,'writeTitle'=>'Community setup fixture','writerShellUser'=>['id'=>7,'name'=>'Synthetic owner','email'=>'fixture@example.invalid']]);file_put_contents($out.'/module-community-settings.html',str_replace('class="workspace-guest"','class="workspace-auth"',$html));

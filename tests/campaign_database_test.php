@@ -41,7 +41,7 @@ try{
     campaign_check(campaign_link_set(campaign_source($postId))===[],'Future publication must not produce links.');
     db()->prepare("UPDATE posts SET status='published',published_at=DATE_SUB(NOW(),INTERVAL 1 DAY) WHERE id=?")->execute([$postId]);
     $post=campaign_source($postId);$links=campaign_link_set($post);
-    campaign_check(count($links)===7,'Six social channels and the newsletter get distinct links.');
+    campaign_check(count($links)===11,'Ten publishing channels and the newsletter get distinct links.');
     foreach($links as$channel=>$link){parse_str((string)parse_url($link,PHP_URL_QUERY),$query);campaign_check($query['utm_source']===$channel&&$query['utm_campaign']==='post-'.$postId,'Attribution is stable and identifies content, not a reader.');}
     $draft=publishing_default_draft($post);
     foreach($draft['variants']as$channel=>$variant)campaign_check(str_contains($variant['text'],'utm_source='.$channel)&&!$variant['enabled'],'Fresh social variants include the matching link and remain unselected drafts.');

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/publishing_networks.php';
 
 function publishing_connect_url_valid(string $url): bool {
     if(!publishing_public_url($url))return false;$p=parse_url($url);$host=strtolower($p['host']??'');
@@ -11,6 +12,10 @@ function publishing_studio_formats(string $slug): array {
 }
 function publishing_studio_format_note(string $slug): string {
     return match($slug){
+        'threads'=>'Direct text/link posts through a separate Threads grant. Images, videos, carousels and native options remain assisted until their account-specific path is implemented.',
+        'telegram'=>'Bot delivery to the exact confirmed channel or supergroup: text, owned public photos or MP4 videos. Telegram returns a sent-message receipt; it does not prove that subscribers read it.',
+        'discord'=>'Direct text/link messages to one verified server/channel webhook. Mentions are disabled. Images, video, forums and thread destinations remain assisted.',
+        'signal'=>'Assisted private-group posting: prepare and download approved content, send it in Signal, then record your private completion reference. No bot, member import or automatic Signal delivery is claimed.',
         'facebook'=>'Profile and Connect: assisted posts, videos, Reels and Stories. Confirm subscriber-only audience in Facebook. A separately confirmed Page supports direct text/link posts and owned MP4 videos/Reels; Page photos and Stories remain assisted.',
         'x'=>'Direct text/link posts; owned MP4 video with separate X media consent. Images, threads, polls and unverified formats use assisted publishing or a verified Buffer route. Review API spending in X.',
         'instagram'=>'Direct JPEG posts and owned-video Reels. Stories, carousels, music, stickers and Instagram Login tags use assisted publishing.',

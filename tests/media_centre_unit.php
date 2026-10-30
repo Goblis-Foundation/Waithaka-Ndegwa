@@ -18,7 +18,7 @@ $r=media_centre_api_report('x',$c,static function($url,$h)use(&$calls){$calls[]=
 mc_check($r['metrics']['Followers']===0&&$r['metrics']['Posts']===12&&!isset($r['metrics']['Following'])&&count($calls)===1,'Only returned account metrics are retained.');
 mc_reject(fn()=>media_centre_api_report('x',$c,static fn()=>['data'=>['id'=>'different','public_metrics'=>['followers_count'=>99]]]));
 mc_reject(fn()=>media_centre_api_report('linkedin',['service'=>'linkedin','status'=>'connected','selected_resource'=>'member']));
-mc_check(count(media_centre_platforms())===6,'Every social account has a reporting route.');
+mc_check(count(media_centre_platforms())===10,'Every social account has a reporting route.');
 echo "PASS: social analytics input, zero/missing, identity, source and grant boundaries.\n";
 
 mc_check(array_keys(media_centre_connect_services())===array_keys(media_centre_platforms()),'Every platform has one primary Connect action.');
