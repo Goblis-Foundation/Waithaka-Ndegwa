@@ -14,3 +14,8 @@ sc(writer_login_destination('/write/program?token=private')==='/write/program','
 sc(writer_login_destination('/write/communication?tab=content')==='/write/communication?tab=content','Calendar intent is retained.');
 $_SESSION=['writer_return_to'=>'/write/program'];sc(writer_login_return()==='/write/program'&&!isset($_SESSION['writer_return_to']),'Return destination is consumed once.');
 echo "PASS: allowlisted workspace resumption excludes action endpoints, external URLs and private parameters.\n";
+
+foreach(['/write/edit/123','/write/preview/123','/write/publishing/123','/write/publishing/new','/write/google/youtube','/write/activation','/write/journeys/founders/42']as$value)sc(writer_login_destination($value)===$value,'Read-only deep link resumes exactly: '.$value);
+foreach(['/write/publishing/123/approve','/write/publishing/jobs/123/retry','/write/edit/0','/write/edit/123/delete','/write/google/youtube/invalid','/write/preview/1#private']as$value)sc(writer_login_destination($value)==='/write','Action or malformed deep link cannot replay: '.$value);
+sc(writer_login_destination('/write/edit/123?token=private')==='/write/edit/123','Record resumes without sensitive parameters.');
+echo "PASS: editor, preview, publishing and owner-readiness resumption excludes mutation endpoints.\n";

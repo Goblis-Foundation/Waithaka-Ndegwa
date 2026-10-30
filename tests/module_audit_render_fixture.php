@@ -83,3 +83,16 @@ foreach(['telegram','discord','signal']as$service){
  $content.=ma_render('integration_community',compact('service','connection','status','metadata','resources','definition'));
 }
 $content.='</div></main>';$html=ma_render('layout',['content'=>$content,'writeTitle'=>'Community setup fixture','writerShellUser'=>['id'=>7,'name'=>'Synthetic owner','email'=>'fixture@example.invalid']]);file_put_contents($out.'/module-community-settings.html',str_replace('class="workspace-guest"','class="workspace-auth"',$html));
+
+require_once dirname(__DIR__).'/app/workspace_home.php';
+$_SERVER['REQUEST_URI']='/write';
+$fixturePosts=[];
+foreach(range(1,20)as$i)$fixturePosts[]=['id'=>$i,'title'=>'Synthetic article '.$i,'standfirst'=>'Private draft summary','status'=>$i===2?'scheduled':($i===3?'published':'draft'),'_is_public'=>$i===3,'published_at'=>$i===2?'2099-01-01 10:00:00':'2026-01-01 10:00:00','slug'=>'synthetic-'.$i,'updated_at'=>'2026-10-30 10:00:00','category_name'=>'Enterprise','is_selected'=>$i===3,'_has_draft'=>$i===3];
+$dashBase=['can_communicate'=>true,'is_owner'=>true,'open'=>2,'overdue'=>1,'devices'=>0,'activities'=>[['title'=>'Synthetic next activity','start'=>1793350800,'end'=>1793354400,'source'=>'program']],'active_total'=>1,'timezone'=>'Africa/Nairobi','calendar_observed'=>null];
+foreach(['populated','empty','unknown','collaborator']as$variant){
+ $dashboard=$dashBase;$posts=$variant==='empty'?[]:$fixturePosts;
+ if($variant==='empty')$dashboard['activities']=[];
+ if($variant==='unknown')foreach(['activities','devices','open','overdue']as$key)$dashboard[$key]=null;
+ if($variant==='collaborator'){$dashboard['can_communicate']=false;$dashboard['is_owner']=false;}
+ file_put_contents($out.'/module-dashboard-'.$variant.'.html',ma_page('dashboard',['posts'=>$posts,'counts'=>['draft'=>18,'published'=>1,'scheduled'=>1,'selected'=>1,'total'=>20],'workspace'=>['scheduled'=>0,'connected'=>0,'attention'=>0],'dashboard'=>$dashboard,'libraryPage'=>1,'libraryQuery'=>'']));
+}

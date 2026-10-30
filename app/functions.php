@@ -132,10 +132,14 @@ function current_user(): ?array {
 }
 /** Resume a known workspace only; never replay action URLs or OAuth tokens. */
 function writer_login_destination(mixed $value): string {
-    $allowed=['/write','/write/control-centre','/write/notes','/write/voice','/write/program','/write/communication','/write/correspondence','/write/meetings','/write/booking-mailboxes','/write/studio','/write/capture','/write/new','/write/media-centre','/write/publishing','/write/media','/write/desk','/write/desk/orders','/write/desk/settings','/write/newsletter','/write/monthly-roundup','/write/readers','/write/contact-controls','/write/campaigns','/write/seo-checks','/write/discovery','/write/visitor-statistics','/write/enterprises','/write/opportunities','/write/journeys','/write/journeys/founders','/write/editorial','/write/releases','/write/impact','/write/connections','/write/google','/write/google/actions','/write/google/sync','/write/microsoft','/write/app','/write/security','/write/security/sign-in','/write/operations','/write/reconciliation','/write/settings','/write/account'];
+    $allowed=['/write','/write/control-centre','/write/notes','/write/voice','/write/program','/write/communication','/write/correspondence','/write/meetings','/write/booking-mailboxes','/write/studio','/write/capture','/write/new','/write/media-centre','/write/publishing','/write/media','/write/desk','/write/desk/orders','/write/desk/settings','/write/newsletter','/write/monthly-roundup','/write/readers','/write/contact-controls','/write/campaigns','/write/seo-checks','/write/discovery','/write/visitor-statistics','/write/enterprises','/write/opportunities','/write/journeys','/write/journeys/founders','/write/editorial','/write/releases','/write/impact','/write/connections','/write/google','/write/google/actions','/write/google/sync','/write/microsoft','/write/app','/write/security','/write/security/sign-in','/write/operations','/write/reconciliation','/write/settings','/write/account','/write/activation','/write/publishing/new','/write/publishing/automation','/write/google/youtube','/write/google/youtube/new','/write/google/meet','/write/monthly-support','/write/wise','/write/desk/opportunity/new','/write/desk/sponsored/new'];
     if(!is_string($value)||strlen($value)>250)return '/write';
-    $path=explode('?',$value,2)[0];if(!in_array($path,$allowed,true))return '/write';
-    if($path==='/write/communication'&&$value==='/write/communication?tab=content')return $value;
+    $path=explode('?', $value, 2)[0];
+    // Match read-only record views, never trailing actions, callbacks or arbitrary paths.
+    $record=preg_match('~^/write/(?:edit|preview|publishing|releases|journeys/founders)/[1-9][0-9]{0,9}$~D',$path)===1
+        ||preg_match('~^/write/google/youtube/[a-f0-9]{32}$~D',$path)===1;
+    if(!in_array($path,$allowed,true)&&!$record)return '/write';
+    if($path==='/write/communication'&&in_array($value,['/write/communication?tab=content','/write/communication?tab=inbox'],true))return $value;
     return $path;
 }
 function writer_login_return(): string {$next=writer_login_destination($_SESSION['writer_return_to']??'/write');unset($_SESSION['writer_return_to']);return $next;}
@@ -339,7 +343,7 @@ function writer_is_public(array $post): bool {
 function writer_merge_draft(array $post): array {
     $post['_public_status'] = $post['status'];
     $post['_public_title'] = $post['title'];
-    $post['_is_public'] = writer_is_public($post);
+    $post['_is_public'] = isset($post['_is_public'])?(bool)$post['_is_public']:writer_is_public($post);
     $post['_draft_version'] = (int)($post['draft_version'] ?? 0);
     $draft = !empty($post['draft_payload']) ? json_decode($post['draft_payload'], true, 32, JSON_THROW_ON_ERROR) : null;
     $post['_has_draft'] = is_array($draft);
@@ -358,9 +362,13 @@ function writer_post_by_id(int $id): ?array {
     return $post ? writer_merge_draft($post) : null;
 }
 
-function writer_posts(int $limit = 200): array {
-    $rows = db()->query('SELECT p.*,c.name category_name,d.payload draft_payload,d.version draft_version,d.updated_at draft_updated_at FROM posts p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN post_drafts d ON d.post_id=p.id ORDER BY GREATEST(p.updated_at,COALESCE(d.updated_at,p.updated_at)) DESC LIMIT '.max(1,min(500,$limit)))->fetchAll();
-    return array_map('writer_merge_draft', $rows);
+function writer_posts(int $limit = 200, int $offset = 0, string $search = ''): array {
+    $query = 'SELECT p.*,CASE WHEN '.published_where().' THEN 1 ELSE 0 END _is_public,c.name category_name,d.payload draft_payload,d.version draft_version,d.updated_at draft_updated_at FROM posts p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN post_drafts d ON d.post_id=p.id';
+    $params=[];
+    if($search!==''){$query.=' WHERE p.title LIKE ? OR p.standfirst LIKE ? OR c.name LIKE ? OR d.payload LIKE ?';$params=array_fill(0,4,'%'.str_replace(['!','%','_'],['!!','!%','!_'],$search).'%');$query=str_replace(' LIKE ?'," LIKE ? ESCAPE '!'",$query);}
+    $query.=' ORDER BY GREATEST(p.updated_at,COALESCE(d.updated_at,p.updated_at)) DESC,p.id DESC LIMIT '.max(1,min(500,$limit)).' OFFSET '.max(0,min(1000000,$offset));
+    $st=db()->prepare($query);$st->execute($params);
+    return array_map('writer_merge_draft', $st->fetchAll());
 }
 
 function writer_post_fields(array $input, array $existing, ?string $image): array {

@@ -65,12 +65,15 @@
   const syncTravel=()=>{if(!cat||!travel)return;travel.hidden=cat.options[cat.selectedIndex]?.dataset.slug!=='travel'};cat?.addEventListener('change',syncTravel);syncTravel();
 
   const writerSearch=document.querySelector('[data-writer-search]'),writerStatus=document.querySelector('[data-writer-status]'),writerPosts=[...document.querySelectorAll('[data-writer-post]')],writerEmpty=document.querySelector('[data-writer-empty]');
-  const filterWriter=()=>{const q=(writerSearch?.value||'').trim().toLowerCase(),f=writerStatus?.value||'all';let visible=0;writerPosts.forEach(p=>{const status=p.dataset.status||'',selected=p.dataset.selected==='1';const statusMatch=f==='all'||status===f||(f==='selected'&&selected);const textMatch=!q||(p.dataset.search||'').includes(q);const show=statusMatch&&textMatch;p.hidden=!show;if(show)visible++});if(writerEmpty)writerEmpty.hidden=visible!==0;};
-  writerSearch?.addEventListener('input',filterWriter);writerStatus?.addEventListener('change',filterWriter);
+  const writerMore=document.querySelector('[data-writer-more]'),writerResults=document.querySelector('[data-writer-results]');let writerLimit=6;
+  const filterWriter=()=>{const q=(writerSearch?.value||'').trim().toLowerCase(),f=writerStatus?.value||'all';let matches=0,visible=0;writerPosts.forEach(p=>{const match=(f==='all'||p.dataset.status===f||(f==='selected'&&p.dataset.selected==='1'))&&(!q||(p.dataset.search||'').includes(q));if(match)matches++;const show=match&&matches<=writerLimit;p.hidden=!show;if(show)visible++;});if(writerEmpty)writerEmpty.hidden=matches!==0||writerPosts.length===0;if(writerMore)writerMore.hidden=matches<=writerLimit;if(writerResults)writerResults.textContent=writerPosts.length?'Showing '+visible+' of '+matches+' matching articles on this page.':'';};
+  const resetWriter=()=>{writerLimit=6;filterWriter();};
+  writerSearch?.addEventListener('input',resetWriter);writerStatus?.addEventListener('change',resetWriter);
+  writerMore?.addEventListener('click',()=>{const shown=new Set(writerPosts.filter(p=>!p.hidden));writerLimit+=12;filterWriter();writerPosts.find(p=>!p.hidden&&!shown.has(p))?.querySelector('a')?.focus();});
   const statButtons=[...document.querySelectorAll('[data-writer-filter]')];
-  const syncStatActive=()=>{const f=writerStatus?.value||'all';statButtons.forEach(b=>b.classList.toggle('active',b.dataset.writerFilter===f));};
-  statButtons.forEach(b=>b.addEventListener('click',()=>{if(writerStatus)writerStatus.value=b.dataset.writerFilter||'all';syncStatActive();filterWriter();document.querySelector('.writer-library')?.scrollIntoView({behavior:'smooth',block:'start'})}));
-  writerStatus?.addEventListener('change',syncStatActive);syncStatActive();
+  const syncStatActive=()=>{const f=writerStatus?.value||'all';statButtons.forEach(b=>{const active=b.dataset.writerFilter===f;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});};
+  statButtons.forEach(b=>b.addEventListener('click',()=>{if(writerStatus)writerStatus.value=b.dataset.writerFilter||'all';syncStatActive();resetWriter();document.querySelector('.writer-library')?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'})}));
+  writerStatus?.addEventListener('change',syncStatActive);syncStatActive();filterWriter();
 
   if(form&&Number(form.dataset.postId)===0&&body&&title&&standfirst){
     const key='wk_writer_new_draft_v1';

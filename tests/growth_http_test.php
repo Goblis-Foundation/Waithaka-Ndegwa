@@ -68,13 +68,32 @@ try{
     foreach(['/write/studio','/write/capture','/write/assist','/write/media-centre']as$privateRoute){$r=growth_request($privateRoute);growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Studio endpoints require authentication: '.$privateRoute);}
     $r=growth_request('/write/impact');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Reporting connections require Writer authentication.');
     $r=growth_request('/write/campaigns');growth_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Campaigns require Writer authentication.');
+    $resume=growth_request('/write/edit/'.$post.'?token=PRIVATE_RESUME');growth_check($resume['status']===302,'Editor deep link requires authentication.');
     $login=growth_request('/write/login');$r=growth_request('/write/login',['csrf'=>growth_csrf($login),'email'=>$email,'password'=>$password]);growth_check($r['status']===302,'The synthetic Writer can authenticate.');
+    growth_check(str_ends_with($r['headers']['location']??'','/write/edit/'.$post),'Sign-in resumes the editor without private parameters.');
     $overview=growth_request('/write');growth_check($overview['status']===200&&str_contains($overview['body'],'Workspace overview')&&str_contains($overview['body'],'workspace-sidebar'),'Professional overview renders with grouped sidebar.');
     foreach(['Daily work','Create &amp; publish','Audience','Journeys &amp; impact','Manage workspace']as$group)growth_check(str_contains($overview['body'],$group),'Sidebar keeps workspace group: '.$group);
     growth_check(str_contains($overview['body'],'id="library"')&&str_contains($overview['body'],'data-writer-search')&&str_contains($overview['body'],'data-writer-filter'),'Article library filters remain available.');
     growth_check(str_contains($overview['body'],'of 10 platforms with saved account access')&&str_contains($overview['body'],'Social deliveries'),'Overview uses actual social connection and job summary.');
     growth_check(str_contains($overview['body'],'data-workspace-search')&&str_contains($overview['body'],'<details class="workspace-nav-group"')&&str_contains($overview['body'],'id="attention"'),'Workspace search, expandable navigation and attention panel render.');
     foreach(['/write/program','/write/communication','/write/meetings','/write/studio','/write/capture','/write/new','/write#library','/write/media-centre','/write/publishing','/write/media','/write/connections','/write/newsletter','/write/readers','/write/campaigns','/write/discovery','/write/journeys','/write/journeys/founders','/write/editorial','/write/releases','/write/impact','/write/google','/write/app','/write/security','/write/operations','/write/settings','/write/account']as$destination)growth_check(str_contains($overview['body'],'href="'.$base.$destination.'"'),'Navigation retains destination: '.$destination);
+    growth_check(str_contains($overview['headers']['cache-control']??'','no-store')&&!str_contains($overview['body'],'googletagmanager.com'),'Dashboard stays private and tracker-free.');
+    growth_check(!str_contains($overview['body'],'workspace-section-bar')&&str_contains($overview['body'],'Website &amp; workspace'),'Dashboard avoids duplicate tabs and offers public/private journey map.');
+    growth_check(str_contains(growth_request('/')['body'],'Writer sign in'),'Public footer offers a static protected workspace entry.');
+    $found=writer_posts(200,0,'A public test article');growth_check(in_array($post,array_column($found,'id')),'Whole-library bound search finds a known title.');
+    growth_check(writer_posts(200,0,'UNMATCHED_LITERAL_%_'.bin2hex(random_bytes(4)))===[],'Literal wildcard search does not expand to unrelated articles.');
+    growth_check(writer_posts(200,1000000)===[],'Bounded offset supports safe empty-page recovery.');
+    $search=growth_request('/write?q='.rawurlencode('A public test article'));growth_check($search['status']===200&&str_contains($search['body'],'A public test article'),'Authenticated search route renders matching articles.');
+    $missing=growth_request('/write?q=UNMATCHED_'.bin2hex(random_bytes(4)));growth_check($missing['status']===200&&str_contains($missing['body'],'No articles match this search.'),'No-match server search has a recovery state.');
+    // Due scheduled content is live; future published content must remain preview-only.
+    $original=db()->query('SELECT status,published_at FROM posts WHERE id='.(int)$post)->fetch();
+    try{
+        db()->prepare("UPDATE posts SET status='scheduled',published_at=DATE_SUB(NOW(),INTERVAL 1 DAY) WHERE id=?")->execute([$post]);
+        $due=array_values(array_filter(writer_posts(),static fn($p)=>(int)$p['id']===$GLOBALS['post']))[0];growth_check($due['_is_public']===true,'Due scheduled article uses the same public policy as the website.');
+        db()->prepare("UPDATE posts SET status='published',published_at=DATE_ADD(NOW(),INTERVAL 1 DAY) WHERE id=?")->execute([$post]);
+        $future=growth_request('/write?q='.rawurlencode('A public test article'));
+        growth_check($future['status']===200&&str_contains($future['body'],'/write/preview/'.$post)&&!str_contains($future['body'],'/my-thoughts/'.$prefix),'Future published article offers preview without a broken live link.');
+    }finally{db()->prepare('UPDATE posts SET status=?,published_at=? WHERE id=?')->execute([$original['status'],$original['published_at'],$post]);}
     $centre=growth_request('/write/media-centre');growth_check($centre['status']===200&&str_contains($centre['headers']['cache-control']??'','no-store')&&!str_contains($centre['body'],'googletagmanager.com'),'Media centre is private and has no analytics tracker.');
     foreach(['LinkedIn','Facebook','Instagram','X','YouTube','TikTok','Threads','Telegram','Discord','Signal']as$platform)growth_check(str_contains($centre['body'],'<h3>'.$platform.'</h3>'),'Media centre covers '.$platform);
     growth_check(substr_count($centre['body'],'>Connect</button>')===6&&str_contains($centre['body'],'Set up personal Login')&&str_contains($centre['body'],'Prepare Facebook post'),'Personal Facebook identity connection and assisted posting are presented.');

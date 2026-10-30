@@ -440,7 +440,9 @@ if ($path === '/write/logout') {
     verify_csrf();app_trust_forget();session_unset();session_destroy();redirect(url('/write/login'));
 }
 if ($path === '/write') {
-    require_auth();$posts=writer_posts();$rows=db()->query("SELECT status,COUNT(*) n FROM posts GROUP BY status")->fetchAll();$counts=['draft'=>0,'scheduled'=>0,'published'=>0,'selected'=>(int)db()->query('SELECT COUNT(*) FROM posts WHERE is_selected=1')->fetchColumn()];foreach($rows as $r)$counts[$r['status']]=(int)$r['n'];render_write('dashboard',['writeTitle'=>'My Thoughts','posts'=>$posts,'counts'=>$counts,'workspace'=>writer_workspace_summary()]);exit;
+    require_auth();require_once __DIR__.'/app/workspace_home.php';$libraryPage=max(1,min(5000,(int)(is_string($_GET['page']??null)?$_GET['page']:1)));$libraryQuery=is_string($_GET['q']??null)?mb_substr(trim($_GET['q']),0,120):'';$posts=writer_posts(200,($libraryPage-1)*200,$libraryQuery);
+    $counts=db()->query("SELECT COALESCE(SUM(p.status='draft'),0) draft,COALESCE(SUM(p.status IN ('published','scheduled') AND p.published_at>NOW()),0) scheduled,COALESCE(SUM(".published_where()."),0) published,COALESCE(SUM(p.is_selected=1),0) selected,COUNT(*) total FROM posts p")->fetch();
+    render_write('dashboard',['writeTitle'=>'Today','posts'=>$posts,'counts'=>$counts,'workspace'=>writer_workspace_summary(),'dashboard'=>workspace_home_snapshot((int)current_user()['id']),'libraryPage'=>$libraryPage,'libraryQuery'=>$libraryQuery]);exit;
 }
 if ($path === '/write/new') { require_auth();$newPost=[];if(isset($_GET['founder'])){$founderId=reader_id($_GET['founder']);$q=db()->prepare('SELECT id,associated_post_id FROM founder_submissions WHERE id=?');$q->execute([$founderId]);$founder=$q->fetch();if(!$founder)not_found();if($founder['associated_post_id'])redirect(url('/write/edit/'.$founder['associated_post_id']));$newPost['_founder_submission_id']=$founderId;}render_write('editor',['writeTitle'=>'New post','post'=>$newPost,'categories'=>categories()]);exit; }
 if (preg_match('~^/write/edit/(\d+)$~',$path,$m)) {
