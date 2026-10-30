@@ -376,6 +376,7 @@ try {
                 'writer_auth' => 'writer_auth_database.php',
                 'journeys' => 'journeys_workflows.php',
                 'publishing' => 'publishing_database_test.php',
+                'communities' => 'communities_database.php',
                 'operations' => 'operations_test.php',
                 'newsletter' => 'newsletter_database_test.php',
                 'readiness' => 'readiness_database.php',

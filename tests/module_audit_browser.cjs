@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
+ for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   if(key.startsWith('instagram-reel-'))await page.locator('main details').evaluate(e=>{e.open=true;});
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
@@ -31,6 +31,11 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  ok(await page.locator('#facebook-audience').inputValue()==='subscribers','Connect audience remains an explicit saved field');
  // Dismiss the unsaved-edit guard only in this isolated test fixture.
  page.once('dialog',dialog=>dialog.accept());
+ await page.goto(host+'module-community-settings.html');
+ ok(!(await page.content()).includes('NEVER_RENDER_SECRET'),'Saved community credentials are never rendered');
+ ok(await page.locator('input[type=password]').count()===2,'Only Telegram and Discord accept secret credentials');
+ ok(await page.locator('#community-label-signal[required]').count()===1,'Signal requires a named private target');
+ ok(await page.locator('form[action$=configure]').count()===3,'Community setup does not reuse OAuth start routes');
  await page.goto(host+'module-google-meet-select.html');
  ok(await page.locator('input[name=confirm][required]').count()===1,'Meet import requires explicit retention consent');
  ok(await page.locator('form:has(input[value=import]) input[name=fingerprint]').count()===1,'Meet import binds the reviewed account');

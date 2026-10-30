@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/publishing_networks.php';
 
 /** One measurement destination for public editorial pages. */
 function analytics_measurement_id(array $seo = [], bool $private = false, ?string $path = null): string {
@@ -17,7 +18,7 @@ function analytics_measurement_id(array $seo = [], bool $private = false, ?strin
 /** Campaign labels are editorial identifiers, never arbitrary incoming text. */
 function analytics_campaign_parameters(array $input): array {
     $result = [];
-    $sources = ['facebook','instagram','x','tiktok','linkedin','youtube','newsletter','rss','community','partner'];
+    $sources = array_merge(array_keys(publishing_networks()),['newsletter','rss','community','partner']);
     $mediums = ['social','organic_social','email','video','referral','rss'];
     foreach (['utm_source'=>$sources, 'utm_medium'=>$mediums] as $key=>$values) {
         if (is_string($input[$key] ?? null) && in_array($input[$key], $values, true)) $result[$key] = $input[$key];

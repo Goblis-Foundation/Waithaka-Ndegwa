@@ -70,9 +70,6 @@ function publishing_local_time(?string $utc): string {
     try { return (new DateTimeImmutable($utc,new DateTimeZone('UTC')))->setTimezone(new DateTimeZone((string)app_config('timezone','Africa/Nairobi')))->format('D j M Y, H:i T'); } catch (Throwable $e) { return $utc; }
 }
 
-function publishing_state_label(string $state): string {
-    return ['scheduled'=>'Scheduled','processing'=>'Sending','delivered'=>'Accepted / processing','published'=>'Published','assisted'=>'Finish in platform','reminder_queued'=>'Reminder queued','reminder_sent'=>'Reminder sent','reconnect'=>'Reconnect required','failed'=>'Needs attention','ambiguous'=>'Outcome unknown','cancelled'=>'Cancelled','pending_confirmation'=>'Confirm destination','connected'=>'Connected','disconnected'=>'Not connected'][$state]??ucfirst(str_replace('_',' ',$state));
-}
 
 function publishing_job_label(array $job): string {
     $destination=publishing_decode($job['destination_json']??'');
@@ -183,6 +180,7 @@ function publishing_destination(array $channel, array $variant=[]): array {
     if ($method!=='manual') $connection=publishing_connection($method==='buffer'?'buffer':($nativeMedia?'x_media':publishing_service_for_channel($channel['slug'])));
     if ($method==='buffer') foreach(publishing_buffer_channels($connection) as $item) if($item['id']===$channel['buffer_channel_id']){$remote=$item;break;}
     if($nativeMedia&&$method==='direct'&&$connection){$textAccount=publishing_connection('x');if($textAccount&&($textAccount['status']??'')==='connected'&&($textAccount['selected_resource']??'')!==($connection['selected_resource']??''))throw new RuntimeException('X text and video connections differ. Confirm the same intended account before approving.');}
+    if($channel['slug']==='threads'&&$method==='manual'&&!preg_match('~^https://(?:www\.)?threads\.(?:net|com)/@[A-Za-z0-9._]{1,50}/?$~D',$dest['profile_url']))throw new RuntimeException('Save the exact Threads profile URL in Channel routes before approving an assisted Threads post.');
     if(in_array($channel['slug'],['telegram','discord','signal'],true)&&$method==='manual'){$declared=publishing_connection($channel['slug']);if(!$declared||$declared['status']!=='connected'||empty($declared['selected_resource']))throw new RuntimeException('Configure and confirm the exact '.$channel['name'].' destination before approval.');$dest['community_target']=$declared['selected_resource'];$dest['community_label']=$declared['display_name'];$dest['account_name']=$declared['display_name'];}
     $cap=publishing_capability($channel,$connection,$remote);
     if (!$cap['usable']) throw new RuntimeException($channel['name'].': '.$cap['reason']);

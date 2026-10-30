@@ -76,3 +76,10 @@ foreach(array_keys(publishing_networks())as$slug){
 }
 $_SERVER['REQUEST_URI']='/write/publishing/new';
 file_put_contents($out.'/module-publishing-studio.html',ma_page('publishing_editor',['package'=>null,'draft'=>$draft,'channels'=>$channels,'jobs'=>[],'revision'=>null,'events'=>[]]));
+
+$content='<link rel="stylesheet" href="/assets/css/publishing.css"><main class="write-main pub-main"><h1>Community destinations</h1><div class="pub-grid">';
+foreach(['telegram','discord','signal']as$service){
+ $connection=['display_name'=>'Synthetic destination','credentials_encrypted'=>'NEVER_RENDER_SECRET'];$status='pending_confirmation';$metadata=$service==='signal'?['owner_declared'=>true]:[];$resources=[['id'=>'fixture-destination','name'=>'Synthetic exact destination']];$definition=['name'=>ucfirst($service),'description'=>'Isolated setup fixture. No provider request.'];
+ $content.=ma_render('integration_community',compact('service','connection','status','metadata','resources','definition'));
+}
+$content.='</div></main>';$html=ma_render('layout',['content'=>$content,'writeTitle'=>'Community setup fixture','writerShellUser'=>['id'=>7,'name'=>'Synthetic owner','email'=>'fixture@example.invalid']]);file_put_contents($out.'/module-community-settings.html',str_replace('class="workspace-guest"','class="workspace-auth"',$html));

@@ -182,7 +182,7 @@ try {
     $xpath=new DOMXPath(pub_http_document($response));
     pub_http_check(str_contains($xpath->evaluate("string(//strong[normalize-space()='TikTok']/following-sibling::small)"),'professional (owner-declared)'),
         'The publication composer uses the corrected TikTok declaration without claiming provider verification.');
-    pub_http_check($xpath->query('//input[@type="checkbox" and starts-with(@name,"variants[") and contains(@name,"][enabled]")]')->length===6,
+    pub_http_check($xpath->query('//input[@type="checkbox" and starts-with(@name,"variants[") and contains(@name,"][enabled]")]')->length===10,
         'The editor must render an independent selection for each accepted channel.');
 
     $firstCopy='Initial HTTP copy '.$suffix;

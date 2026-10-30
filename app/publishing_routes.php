@@ -110,6 +110,7 @@ function publishing_dispatch(string $path): bool {
                 $type=(string)($_POST['account_type']??'professional_profile');
                 if(!in_array($type,['professional_profile','page'],true))throw new RuntimeException('Choose Facebook professional profile or Page.');
             }
+            if($slug==='threads'){ $profile=$_POST['profile_url']??$channel['profile_url'];if(!is_string($profile)||!preg_match('~^https://(?:www\.)?threads\.(?:net|com)/@[A-Za-z0-9._]{1,50}/?$~D',trim($profile)))throw new RuntimeException('Use your exact Threads profile URL.');$channel['profile_url']=trim($profile);}
             $channel['account_type']=$type;$channel['delivery_method']=$method;
             $channel['buffer_mode']=($_POST['buffer_mode']??'automatic')==='notification'?'notification':'automatic';
             $bufferId=trim((string)($_POST['buffer_channel_id']??''));
@@ -125,6 +126,7 @@ function publishing_dispatch(string $path): bool {
             $cap=publishing_capability($channel,$connection,$remote);
             if(!$cap['usable'])throw new RuntimeException($cap['reason']);
             db()->prepare('UPDATE publishing_channels SET account_type=?,delivery_method=?,buffer_channel_id=?,buffer_mode=? WHERE id=?')->execute([$type,$method,$method==='buffer'?$bufferId:null,$channel['buffer_mode'],$channel['id']]);
+            if($slug==='threads')db()->prepare('UPDATE publishing_channels SET profile_url=? WHERE id=?')->execute([$channel['profile_url'],$channel['id']]);
             publishing_event(null,null,'channel_route_changed',$channel['name'].' delivery route changed to '.$method.'. Existing approved revisions retain their original destination.',$userId);
             flash('success','Channel route saved. Review and approve a new package revision to use it.');redirect(url('/write/connections#channels'));
         }
