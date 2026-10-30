@@ -58,7 +58,7 @@ function yta_thumbnail(array $asset): array {
 function yta_thumbnail_bytes(array $asset): string {
     yta_thumbnail($asset);$current=media_library_approved_asset((int)$asset['id']);if($current!==$asset)throw new YouTubeActionException('The selected thumbnail changed. Prepare again.');
     $local=media_library_materialize($asset,2097152);
-    try{$bytes=file_get_contents($local['path']);if(!is_string($bytes)||strlen($bytes)!==$asset['bytes']||!hash_equals($asset['sha256'],hash('sha256',$bytes)))throw new YouTubeActionException('The approved thumbnail bytes changed.');$image=@getimagesizefromstring($bytes);
+    try{$handle=fopen($local['path'],'rb');if($handle===false)throw new YouTubeActionException('The approved thumbnail could not be opened.');try{$stat=fstat($handle);if(!$stat||$stat['size']!==$asset['bytes'])throw new YouTubeActionException('The approved thumbnail size changed.');$bytes=stream_get_contents($handle,2097153);}finally{fclose($handle);}if(!is_string($bytes)||strlen($bytes)!==$asset['bytes']||!hash_equals($asset['sha256'],hash('sha256',$bytes)))throw new YouTubeActionException('The approved thumbnail bytes changed.');$image=@getimagesizefromstring($bytes);
         if(!$image||($image['mime']??'')!==$asset['mime']||$image[0]<1||$image[1]<1||$image[0]>4096||$image[1]>4096)throw new YouTubeActionException('Use a valid image no larger than 4096 pixels in either direction.');return $bytes;
     }finally{media_library_release($local);}
 }

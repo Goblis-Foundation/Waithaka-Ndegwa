@@ -13,7 +13,7 @@ function comm_config():array{return ['owner'=>7];}
 function comm_get(string $key,array $default=[]):array{return $GLOBALS['store'][$key]??$default;}
 function comm_put(string $key,array $value):void{$GLOBALS['store'][$key]=$value;}
 function comm_lock(string $key,callable $fn):mixed{check(empty($GLOBALS['held'][$key]),'Locks cannot recursively enter');$GLOBALS['held'][$key]=true;try{return $fn();}finally{unset($GLOBALS['held'][$key]);}}
-function media_library_approved_asset(int $id):array{return ['id'=>$id,'bytes'=>3,'mime'=>'image/png','sha256'=>hash('sha256','png'),'title'=>'Synthetic image'];}
+function media_library_approved_asset(int $id):array{return $GLOBALS['assetOverride']??['id'=>$id,'bytes'=>3,'mime'=>'image/png','sha256'=>hash('sha256','png'),'title'=>'Synthetic image'];}
 function setup():void{
     $GLOBALS['connection']=['id'=>44,'status'=>'connected','connected_by'=>7,'external_id'=>'subject-7','display_name'=>'fixture@example.invalid','selected_resource'=>'UC'.str_repeat('a',22),'verified_at'=>'2026-10-30 08:00:00','scopes_json'=>'["https://www.googleapis.com/auth/youtube.force-ssl"]'];
     $GLOBALS['store']=[];$GLOBALS['requests']=[];$GLOBALS['remote']=[];$GLOBALS['writes']=0;$GLOBALS['mode']='ok';
@@ -91,6 +91,18 @@ foreach(['../escape','https://untrusted.invalid','x&part=secret',',batch','..','
 foreach(["no timing",str_replace('00:00:03,000','00:00:00,500',$srt),str_replace('00:00:03,500','00:00:00,500',$srt),str_replace('Hello world.','',$srt),str_repeat('x',100001)]as$bad)denied(fn()=>yta_srt($bad),'Malformed SRT rejected');check(yta_srt(str_replace("\n","\r\n",$srt))===yta_srt($srt),'SRT line endings normalised');
 denied(fn()=>yta_thumbnail(['bytes'=>2097153,'mime'=>'image/png','sha256'=>str_repeat('a',64)]),'Thumbnail byte limit');denied(fn()=>yta_thumbnail(['bytes'=>3,'mime'=>'image/svg+xml','sha256'=>str_repeat('a',64)]),'SVG thumbnail rejected');
 denied(fn()=>yta_http('GET','https://untrusted.invalid',[],'unused'),'No arbitrary provider URL');denied(fn()=>yta_http('DELETE','videos',[],'unused'),'Unsupported remote mutation rejected before transport');
+// Native media staging is byte-bounded and always released, including changed/invalid files.
+function media_library_materialize(array $asset,int $limit):array{check($limit===2097152,'Native staging byte limit');return ['path'=>$GLOBALS['imageFile']];}
+function media_library_release(array $local):void{$GLOBALS['released']=($GLOBALS['released']??0)+1;}
+$imageFile=tempnam(sys_get_temp_dir(),'yta-native-');
+try{
+    $png=base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aS2kAAAAASUVORK5CYII=',true);file_put_contents($imageFile,$png);
+    $assetOverride=['id'=>9,'bytes'=>strlen($png),'mime'=>'image/png','sha256'=>hash('sha256',$png),'title'=>'Native fixture'];
+    $released=0;check(yta_thumbnail_bytes($assetOverride)===$png,'Native image returns only exact approved bytes');check($released===1,'Native staging released after success');
+    file_put_contents($imageFile,str_repeat('x',2097153));denied(fn()=>yta_thumbnail_bytes($assetOverride),'Changed oversized staging file rejected');check($released===2,'Changed staging released');
+    file_put_contents($imageFile,'not an image');$assetOverride['bytes']=strlen('not an image');$assetOverride['sha256']=hash('sha256','not an image');denied(fn()=>yta_thumbnail_bytes($assetOverride),'Non-image contents rejected after hash validation');check($released===3,'Invalid image staging released');
+    $snapshot=$assetOverride;$assetOverride['title']='Changed metadata';denied(fn()=>yta_thumbnail_bytes($snapshot),'Changed media-library metadata rejected');check($released===3,'No staging created after metadata mismatch');
+}finally{unlink($imageFile);unset($assetOverride);}
 // Exercise the real dispatcher without provider calls, including owner, CSRF and exact confirmation.
 function require_auth():void{}
 function private_response_headers():void{}
