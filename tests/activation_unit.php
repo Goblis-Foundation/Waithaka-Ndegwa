@@ -37,6 +37,8 @@ $grant=['owner'=>42,'status'=>'connected','client'=>fitness_client_fingerprint($
 ac_check(activation_activity_state(42,'google_health',$grant,$syntheticClient)==='connected','Only the same configured dedicated client is confirmed.');
 $changed=$syntheticClient;$changed['client_secret']='changed';ac_check(activation_activity_state(42,'google_health',$grant,$changed)==='reconnect','Changed health clients require reconnect.');
 ac_check(activation_activity_state(9,'strava',$grant,$syntheticClient)==='other_owner','Health ownership never crosses Writers.');
+$withoutProject=$syntheticClient;$withoutProject['dedicated_project']=false;ac_check(activation_activity_state(42,'google_health',$grant,$withoutProject)==='reconnect','Google Health cannot share an unconfirmed project.');
+$unconfirmed=$syntheticConnection;$unconfirmed['selected_resource']=null;ac_check(activation_connection_state($unconfirmed,42,'telegram')==='pending_confirmation','A saved grant without a chosen destination is never ready.');
 $connectionRows=activation_connection_rows(['threads'=>'connected','signal'=>'assisted','google_health'=>'connected','samsung_health'=>'imported','unsafe'=>'SECRET_MUST_NOT_RENDER']);
 ac_check(count($connectionRows)===9&&!str_contains(json_encode($connectionRows),'SECRET_MUST_NOT_RENDER'),'Nine exact services expose only allowlisted labels and next steps.');
 $empty=activation_assess([]);
