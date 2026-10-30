@@ -303,7 +303,10 @@ for i in $(seq 1 120); do
   if [[ "$STATUS" == "Ready" ]]; then
     [[ "$DEPLOYED_VERSION" == "$VERSION" ]] || fail "Beanstalk reverted to $DEPLOYED_VERSION instead of $VERSION. Inspect startup logs."
     READY_UNHEALTHY=$((READY_UNHEALTHY+1))
-    [[ "$READY_UNHEALTHY" -lt 8 ]] || fail "Beanstalk remained Ready/$HEALTH after deployment; inspect startup logs."
+    # Enhanced health can retain the retired instance/version after a successful
+    # additional-batch update. Allow up to ten minutes for convergence; the
+    # public availability guard remains active and exact-version Green is required.
+    [[ "$READY_UNHEALTHY" -lt 40 ]] || fail "Beanstalk remained Ready/$HEALTH after deployment; inspect startup logs."
   else
     READY_UNHEALTHY=0
   fi

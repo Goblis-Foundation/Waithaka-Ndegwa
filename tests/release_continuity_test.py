@@ -99,6 +99,43 @@ class ContinuityTests(unittest.TestCase):
                                            2.0, report), 1)
             self.assertEqual(json.loads(report.read_text())["samples"][0]["ok"], False)
 
+    def run_deployment_health_wait(self, snapshots):
+        source = (ROOT / "deploy/aws/fresh_application.sh").read_text()
+        loop = source.split('STATUS=""; HEALTH=""; READY_UNHEALTHY=0', 1)[1].split('if [[ "$GOOGLE_MIGRATION_REQUIRED" == 1 ]]; then', 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory) / "health"
+            fixture.write_text("\n".join(snapshots) + "\n")
+            setup = r'''set -euo pipefail
+VERSION=expected
+STATUS=""; HEALTH=""; READY_UNHEALTHY=0
+HEALTH_FIXTURE="$1"
+environment_snapshot(){ head -n 1 "$HEALTH_FIXTURE"; sed -i '1d' "$HEALTH_FIXTURE"; }
+sleep(){ :; }
+fail(){ echo "$*" >&2; exit 1; }
+'''
+            return subprocess.run(["bash", "-c", setup + loop, "health-test", str(fixture)],
+                                  capture_output=True, text=True)
+
+    def test_deployment_allows_delayed_health_convergence(self):
+        result = self.run_deployment_health_wait(
+            ["env Ready Red expected"] * 20 + ["env Ready Green expected"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_deployment_rejects_persistent_unhealthy_state(self):
+        result = self.run_deployment_health_wait(["env Ready Red expected"] * 45)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("remained Ready/Red", result.stderr)
+
+    def test_deployment_rejects_reverted_application_version(self):
+        result = self.run_deployment_health_wait(["env Ready Green previous"])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reverted to previous", result.stderr)
+
+    def test_deployment_requires_completion_on_exact_version(self):
+        result = self.run_deployment_health_wait(
+            ["env Updating Green previous"] * 3 + ["env Ready Green expected"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_start_here_is_a_real_website_page_not_a_placeholder(self):
         page_source = (ROOT / "views/editorial/start.php").read_text()
         for marker in ("Welcome to the journey.", "Explore My Thoughts",
