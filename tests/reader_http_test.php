@@ -161,7 +161,7 @@ try {
     $contact = rh_row('SELECT * FROM contact_messages WHERE email=?', [$contactEmail]); if ($contact) $contactIds[] = (int)$contact['id'];
     $enquiry = $contact ? rh_row('SELECT * FROM reader_enquiries WHERE contact_id=?', [$contact['id']]) : [];
     rh_check(rh_redirect($response, '/contact') && $enquiry && $enquiry['enquiry_type'] === 'correction', 'A fully completed contact form creates the durable typed enquiry with required phone and location.');
-    rh_check($enquiry['notification_state']==='held'&&count(contact_delivery_ids((int)$contact['id'],$contact['reference']))===0,'Public contact submission never queues an automatic acknowledgement or owner email.');
+    rh_check($enquiry['notification_state']==='held'&&rh_count('SELECT COUNT(*) FROM email_outbox WHERE dedupe_key IN (?,?)',[hash('sha256','contact:'.$contact['reference']),hash('sha256','contact-receipt:'.$contact['reference'])])===0,'Public contact submission never queues an automatic acknowledgement or owner email.');
     rh_check(rh_count('SELECT COUNT(*) FROM newsletter_subscribers WHERE email=?', [$contactEmail]) === 0, 'Contact POST never creates a marketing record.');
     $receipt=rh_request('/contact');rh_check(str_contains($receipt['body'],'data-copy-contact')&&str_contains($receipt['body'],$contact['reference']),'Successful contact shows a copyable durable receipt reference');
     $repeat=rh_request('/contact',$form+$requiredContact+['first_name'=>'Contact fixture','email'=>$contactEmail,'message'=>'PRIVATE CONTACT '.$suffix,'enquiry_type'=>'correction','not_robot'=>'1']);rh_check(rh_count('SELECT COUNT(*) FROM contact_messages WHERE email=?',[$contactEmail])===1,'Repeat of the same successful form creates no duplicate enquiry');
