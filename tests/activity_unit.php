@@ -47,4 +47,6 @@ $grant=comm_get($grantKey);$grant['status']='connected';$grant['identity']='7';$
 $private=static function(string $method,string $url,?array $body=null,string $token='')use($transport):array{if(str_contains($url,'/athlete/activities'))return [['id'=>9,'private'=>true,'start_date'=>'2026-01-07T03:00:00Z','elapsed_time'=>3600,'moving_time'=>3000,'distance'=>5000]];return $transport($method,$url,$body,$token);};ac(fitness_read(7,'strava',$range,$private)['rows']===[],'Only You activities remain excluded without explicit wider-scope consent');
 $future=fitness_range(['period'=>'year','anchor'=>(new DateTimeImmutable('+1 month'))->format('Y').'-12-01']);ac(count(fitness_graph(fitness_report([],$future,'google_health'),'activities',false))===12,'Future annual targets retain twelve graph buckets');
 ac(fitness_pace_label(359.6)==='6:00','Pace rounding never produces sixty seconds within a minute');
+rejects(fn()=>fitness_client_input('google_health',['client_id'=>'workspace-client','client_secret'=>'fixture-secret'],['workspace-client']),'Health revocation cannot reuse the known Workspace OAuth client');
+fitness_targets_save(7,'health_connect',$range,['version'=>'1']);ac(comm_get($key)['periods']===[],'Clearing every target removes that calendar-period record');
 echo "PASS: $checks private activity, OAuth, import, period target, graph and retention checks.\n";

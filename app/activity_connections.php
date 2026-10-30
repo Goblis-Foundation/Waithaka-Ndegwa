@@ -12,6 +12,7 @@ function fitness_http(string $method,string $url,?array $body=null,string $token
 }
 function fitness_client(string $source): array {fitness_cloud($source);return comm_get('activity.client.'.$source);}
 function fitness_callback(string $source): string {fitness_cloud($source);return url('/write/activity/callback/'.$source);}
+function fitness_client_input(string $source,array $in,array $reserved=[]): array {fitness_cloud($source);$id=fitness_text($in['client_id']??'',250);$secret=fitness_text($in['client_secret']??'',1000);if($id===''||$secret===''||preg_match('/\s/',$id.$secret))throw new FitnessException('Enter the dedicated provider client ID and secret.');if($source==='google_health'&&in_array($id,array_filter($reserved),true))throw new FitnessException('Use a separate Google Health OAuth client. Reusing the Workspace client could couple its revocation to other Google services.');return ['client_id'=>$id,'client_secret'=>$secret];}
 function fitness_configured(array $client): bool {return !empty($client['client_id'])&&!empty($client['client_secret']);}
 function fitness_client_fingerprint(array $client): string {return hash('sha256',json_encode($client,JSON_THROW_ON_ERROR));}
 function fitness_authorize(string $source,int $uid,bool $private): string {

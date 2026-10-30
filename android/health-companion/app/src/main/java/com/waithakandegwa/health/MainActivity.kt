@@ -86,6 +86,17 @@ class MainActivity : ComponentActivity() {
         days.onItemSelectedListener=object: android.widget.AdapterView.OnItemSelectedListener { override fun onItemSelected(p:android.widget.AdapterView<*>?,v:android.view.View?,position:Int,id:Long){prepared=null}; override fun onNothingSelected(p:android.widget.AdapterView<*>?){} }
     }
     private fun csv(value: String): String = "\"" + (if(value.trimStart().firstOrNull() in listOf('=','+','-','@')) "'"+value else value).replace("\"","\"\"").replace("\r"," ").replace("\n"," ") + "\""
+    private fun typeName(type: Int): String = when(type) {
+        ExerciseSessionRecord.EXERCISE_TYPE_RUNNING -> "Running"
+        ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "Walking"
+        ExerciseSessionRecord.EXERCISE_TYPE_BIKING -> "Cycling"
+        ExerciseSessionRecord.EXERCISE_TYPE_HIKING -> "Hiking"
+        ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL -> "Pool swimming"
+        ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_OPEN_WATER -> "Open-water swimming"
+        ExerciseSessionRecord.EXERCISE_TYPE_YOGA -> "Yoga"
+        ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING -> "Strength training"
+        else -> "Exercise type $type"
+    }
     private fun preview() {
         if (busy) return
         prepared=null
@@ -93,6 +104,7 @@ class MainActivity : ComponentActivity() {
         val selected=source.selectedItemPosition
         val period=if(days.selectedItemPosition==0) 7L else 30L
         busy=true
+        status.text="Reading the selected source and period. Nothing is uploaded."
         lifecycleScope.launch {
             try {
                 if(HealthConnectClient.getSdkStatus(this@MainActivity)!=HealthConnectClient.SDK_AVAILABLE) error("Health Connect unavailable")
@@ -116,7 +128,7 @@ class MainActivity : ComponentActivity() {
                     val distance=aggregate?.get(DistanceRecord.DISTANCE_TOTAL)?.inMeters?.toString()?:""
                     val steps=aggregate?.get(StepsRecord.COUNT_TOTAL)?.toString()?:""
                     // Health Connect does not provide a guaranteed active-duration total here. Leave it absent.
-                    output.append(listOf(row.metadata.id,row.title?:"Workout", "Exercise type ${row.exerciseType}",row.startTime.toString(),row.endTime.toString(),"",distance,steps,"",row.metadata.dataOrigin.packageName).joinToString(","){csv(it)}).append('\n')
+                    output.append(listOf(row.metadata.id,row.title?:typeName(row.exerciseType), typeName(row.exerciseType),row.startTime.toString(),row.endTime.toString(),"",distance,steps,"",row.metadata.dataOrigin.packageName).joinToString(","){csv(it)}).append('\n')
                 }
                 if(source.selectedItemPosition!=selected||period!=(if(days.selectedItemPosition==0)7L else 30L)||!consent.isChecked) error("Selection changed")
                 prepared=if(rows.isEmpty())null else output.toString()

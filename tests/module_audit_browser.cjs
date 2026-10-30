@@ -26,7 +26,8 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  ok(await page.locator('.fitness-chart circle').count()===7,'Weekly graph has seven calendar buckets');
  ok(await page.locator('[data-fitness-print]').isVisible(),'Private report supports user-initiated print/PDF');
  ok(!(await page.content()).includes('SECRET_NEVER_RENDER'),'Activity setup never renders stored credentials');
- ok(await page.locator('.ux-page-outline').count()===0,'Activity sections have one index');
+ ok(await page.locator('.ux-page-outline,.ux-form-assist').count()===0,'Activity selectors use one index and their own explicit actions');
+ ok(await page.locator('button[value="select_period"]').isVisible(),'Period selection does not require a provider read');
  await page.goto(host+'module-activity-year.html');
  ok(await page.locator('.fitness-chart circle').count()===12,'Annual graph has twelve months');
  ok(await page.locator('select[name="period"] option[value="month"]').count()===1,'Calendar month reporting remains available');

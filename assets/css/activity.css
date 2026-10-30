@@ -2,3 +2,6 @@
 @media(max-width:900px){.fitness-progress{grid-template-columns:repeat(2,minmax(0,1fr))}.fitness-connection-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.fitness-card{padding:18px}.fitness-fields{grid-template-columns:1fr}.fitness-report-heading{flex-direction:column}.fitness-progress{gap:9px}.fitness-progress article{padding:13px}.fitness-progress strong{font-size:1.4rem}.fitness-chart{padding:10px}.fitness-chart svg{min-width:0}}
 @media print{.fitness-home>.fitness-controls,.fitness-home>.fitness-setup,.fitness-home>.dashboard-jump,.fitness-home>header,.fitness-print,.fitness-privacy{display:none!important}.fitness-report{border:0;padding:0;margin:0}.fitness-chart,.fitness-progress{break-inside:avoid}.fitness-table-wrap{overflow:visible}.fitness-home details{display:block}.fitness-home details>*{display:block}.fitness-home table{font-size:10pt}.fitness-home svg{max-height:230px}}
+
+.fitness-report>.fitness-table-wrap table{min-width:680px}.fitness-table-wrap:focus-visible{outline:3px solid #147456;outline-offset:3px}.fitness-report>.fitness-table-wrap :is(td,th){word-break:normal;overflow-wrap:normal}.fitness-report>.fitness-table-wrap td{white-space:nowrap}
+@media print{.fitness-report>.fitness-table-wrap table{min-width:0}.fitness-report>.fitness-table-wrap td{white-space:normal}}
