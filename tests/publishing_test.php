@@ -144,4 +144,6 @@ social_options_validate('facebook',['platform_options'=>['audience'=>'Friends','
 rejects(fn()=>social_instagram_parameters(['media_url'=>'https://example.com/image.jpg','text'=>'Fixture','alt_text'=>'Fixture','platform_options'=>['location_id'=>'123','user_tags'=>'fixture,0.5,0.5']]),'Instagram Login tags cannot silently pass as implemented native options');
 social_options_validate('instagram',['platform_options'=>['location_id'=>'123','user_tags'=>'fixture,0.5,0.5']],['method'=>'manual']);check(true,'Assisted Instagram preserves native tag requirements');
 check(publishing_job_label(['status'=>'delivered','destination_json'=>'{"slug":"instagram"}','provider_state_json'=>'{"adapter":"instagram_native_v2","phase":"verification_pending"}'])==='Publication ID received · Verifying','Instagram receipt is not mislabeled verified publication');
+$reelBuffer=array_replace(publishing_default_draft()['variants']['instagram'],['text'=>'Reviewed Reel','format'=>'reel','media_type'=>'video','media_url'=>'https://example.com/video.mp4','instagram_settings_confirmed'=>true]);
+rejects(fn()=>publishing_validate_variant('instagram',$reelBuffer,['method'=>'buffer']),'Native Reel settings cannot be silently omitted by Buffer');
 echo "PASS: platform-specific options retained, validated and never silently dropped by unsupported delivery routes.\n";
