@@ -25,6 +25,7 @@ $_SERVER['REQUEST_URI']='/write/desk';
 foreach([false,true]as$billing)file_put_contents($out.'/module-desk-'.(int)$billing.'.html',ma_page('desk_index',['billing'=>$billing,'items'=>[],'orders'=>[]]));
 $_SERVER['REQUEST_URI']='/write/impact';file_put_contents($out.'/module-impact.html',ma_page('impact'));
 $_SERVER['REQUEST_URI']='/write/reconciliation';file_put_contents($out.'/module-register.html',ma_page('reconciliation',['items'=>reconciliation_items()]));
+$_SERVER['REQUEST_URI']='/write/newsletter/sender';file_put_contents($out.'/module-newsletter-sender.html',ma_page('newsletter_sender',['sender'=>['name'=>'Synthetic sender','from'=>'newsletter@example.invalid','reply_to'=>'','postal_address'=>''],'senderPostalValue'=>'','senderPostalVersion'=>0,'error'=>null]));
 $_SERVER['REQUEST_URI']='/write/activation';file_put_contents($out.'/module-activation.html',ma_page('activation',['activationRows'=>activation_assess([]),'activationConnections'=>activation_connection_rows(['threads'=>'connected','signal'=>'assisted','google_health'=>'pending_confirmation','samsung_health'=>'imported']),'activationObservedAt'=>'2026-10-30T12:00:00+00:00','activationWorker'=>false,'activationWorkAreas'=>count(reconciliation_items())]));
 $_SERVER['REQUEST_URI']='/write/google/actions';
 $base=['part'=>'','record'=>null,'records'=>[],'values'=>[],'uid'=>7,'error'=>''];

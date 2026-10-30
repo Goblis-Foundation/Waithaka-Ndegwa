@@ -5,6 +5,8 @@ declare(strict_types=1);
 final class NewsletterValidationException extends InvalidArgumentException {}
 final class NewsletterConflictException extends RuntimeException {}
 
+require_once __DIR__.'/newsletter_sender_config.php';
+
 function newsletter_json(array $value): string { return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); }
 function newsletter_text(mixed $value, string $label, int $max, bool $required = false): string {
     if (!is_scalar($value) && $value !== null) throw new NewsletterValidationException($label.' is invalid.');
@@ -98,7 +100,7 @@ function newsletter_save_campaign(array $input, int $actor, ?int $id = null, ?in
     }catch(Throwable $error){if(db()->inTransaction())db()->rollBack();throw $error;}
 }
 function newsletter_sender(): array {
-    return ['from'=>trim((string)app_config('mail.from','')),'name'=>trim((string)app_config('mail.from_name','Waithaka Ndegwa')),'reply_to'=>trim((string)app_config('mail.reply_to','')),'postal_address'=>trim((string)app_config('mail.postal_address',''))];
+    return ['from'=>trim((string)app_config('mail.from','')),'name'=>trim((string)app_config('mail.from_name','Waithaka Ndegwa')),'reply_to'=>trim((string)app_config('mail.reply_to','')),'postal_address'=>newsletter_postal_configuration()['postal_address']];
 }
 function newsletter_snapshot(array $campaign): array {
     $values=newsletter_values($campaign);$sender=newsletter_sender();
