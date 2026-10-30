@@ -31,3 +31,9 @@ Deployment and CI evidence belong in the accompanying PR and production Actions 
 Meta-owned Threads API collection: https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api
 
 Media container status: https://www.postman.com/meta/threads/request/34203612-72c20362-5b0c-4f14-b9cd-4315ff91cd85
+
+## Pre-deployment acceptance observation
+
+At the initial review head `6b0342f697f14c0d6c215f3df0464ab5e1a0a129`, PHP 8.3 and PHP 8.4 / MySQL 8.4 passed 98/98 suites, including 271 community delivery/recovery checks. Browser run 41071621748 passed 892 module checks and 84 automated accessibility scans. These are fixture/software results, not actual channel publication or device acceptance. Mobile and desktop launch-page screenshots are retained by the subsequent browser run for visual review.
+
+A fresh anonymous source observation on 30 October 2026 returned Goblis Group HTTP 403 (authorization required), and Ubunifu Institute, AfriTrace Link and Goblis Foundation HTTP 503 (publication unavailable). This records only response status and does not establish the cause, approval, any numeric result or authority to alter source settings. The consumer still requires genuine approved reports.
