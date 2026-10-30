@@ -331,6 +331,29 @@ try {
     pub_http_check((int)($registered['is_secret']??0)===1,'Weekly queue registration is stored privately.');
     pub_http_request($weeklyPath.'/schedule',$weeklyFields+['schedule_mode'=>'weekly']);
     pub_http_check(pub_http_count('SELECT COUNT(*) FROM publishing_jobs WHERE revision_id=?',[(int)$weeklyFields['revision_id']])===1,'Repeated weekly scheduling cannot duplicate delivery jobs.');
+    // A real SQL/HTTP inventory larger than the former 100-row cap. All rows
+    // belong to this disposable account and are removed in the existing finally.
+    $cloneRevision=db()->prepare('INSERT INTO publishing_revisions(package_id,draft_version,snapshot_json,content_hash,approved_by) SELECT package_id,?,snapshot_json,content_hash,approved_by FROM publishing_revisions WHERE id=?');
+    $cloneJob=db()->prepare("INSERT INTO publishing_jobs(revision_id,channel_id,destination_json,job_key,method,status,scheduled_at) SELECT ?,channel_id,destination_json,?,method,'cancelled',scheduled_at FROM publishing_jobs WHERE id=?");
+    for($n=1000;$n<1102;$n++){
+        $cloneRevision->execute([$n,(int)$weeklyFields['revision_id']]);$rid=(int)db()->lastInsertId();
+        $cloneJob->execute([$rid,hash('sha256',$suffix.'history'.$n),(int)$weeklyJob['id']]);
+    }
+    db()->prepare("UPDATE publishing_jobs SET status='delivered' WHERE id=?")->execute([(int)$weeklyJob['id']]);
+    $response=pub_http_request('/write/publishing?delivery=processing&channel=facebook');
+    pub_http_check($response['status']===200&&str_contains($response['body'],'1 matching delivery records')&&str_contains($response['body'],'Accepted / processing'),'Accepted native jobs are discoverable separately from completed posts.');
+    $response=pub_http_request('/write/publishing?delivery=cancelled&channel=facebook&page=2');
+    $xp=new DOMXPath(pub_http_document($response));
+    pub_http_check($response['status']===200&&str_contains($response['body'],'102 matching delivery records')&&str_contains($response['body'],'Page 2 of 3')&&$xp->query('//section[@id="delivery-calendar"]//article')->length===50,'Delivery history paginates beyond 100 records without hiding older results.');
+    pub_http_check($xp->query('//nav[@aria-label="Delivery pages"]/a[@rel="next"]')->length===1&&str_contains($response['body'],'delivery=cancelled&amp;channel=facebook&amp;page=3'),'Next page preserves exact server-side filters.');
+    $response=pub_http_request('/write/publishing?delivery=cancelled&channel=facebook&page=999999');
+    $xp=new DOMXPath(pub_http_document($response));
+    pub_http_check(str_contains($response['body'],'Page 3 of 3')&&$xp->query('//section[@id="delivery-calendar"]//article')->length===2,'Out-of-range pages recover to the final existing page.');
+    $response=pub_http_request('/write/publishing?delivery=processing&channel=x');
+    pub_http_check(str_contains($response['body'],'0 matching delivery records')&&str_contains($response['body'],'No deliveries match this view'),'Empty channel filters offer explicit recovery.');
+    $response=pub_http_request('/write/publishing?delivery[]=published&channel[]=facebook&page[]=2');
+    pub_http_check($response['status']===200,'Malformed array queries are handled without warnings or SQL errors.');
+    pub_http_check(pub_http_row('SELECT status FROM publishing_jobs WHERE id=?',[(int)$weeklyJob['id']])['status']==='delivered','Reading summaries, filters and pages never advances a provider outcome.');
     $response=pub_http_request('/write/logout',['csrf'=>$completion['csrf']]);
     pub_http_check(pub_http_redirect($response,'/write/login'),'The fixture session must sign out through the CSRF-protected form.');
     $response=pub_http_request($packagePath);

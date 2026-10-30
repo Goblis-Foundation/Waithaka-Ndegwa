@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['newsletter-sender','activation','activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-workspace','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
+ for(const key of ['newsletter-sender','activation','activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-workspace','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','publishing-overview','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   if(key==='google-workspace')await page.locator('.google-account-identity').evaluate(e=>{e.open=true;});
   if(key.startsWith('activity-'))await page.locator('main details').evaluateAll(items=>items.forEach(e=>{e.open=true;}));
@@ -66,6 +66,12 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await page.goto(host+'module-dashboard-collaborator.html');
  ok(await page.locator('#attention a[href$="/write/activation"]').count()===0,'Owner acceptance is not offered to collaborators');
  ok(await page.locator('#attention a[href*="tab=inbox"]').count()===0,'Owner correspondence summary is not shared with collaborators');
+ await page.goto(host+'module-publishing-overview.html');
+ ok(await page.locator('.pub-delivery-stats a').count()===5,'Every delivery state has a visible summary route');
+ ok(await page.getByRole('combobox',{name:'Delivery status'}).inputValue()==='processing','Accepted posts have their own follow-up view');
+ ok(await page.getByRole('combobox',{name:'Channel',exact:true}).inputValue()==='x','Exact channel filter survives rendering');
+ ok(await page.getByRole('button',{name:'Show deliveries'}).isVisible(),'Filter form has an explicit submit action without JavaScript');
+ ok((await page.locator('#delivery-calendar').textContent()).includes('No deliveries match this view'),'Empty delivery view explains recovery');
  await page.goto(host+'module-publishing-studio.html');
  ok(await page.locator('[data-studio-channel]').count()===10,'All ten channel editors render');
  await page.locator('#text-x').fill('<script>literal preview</script>');
