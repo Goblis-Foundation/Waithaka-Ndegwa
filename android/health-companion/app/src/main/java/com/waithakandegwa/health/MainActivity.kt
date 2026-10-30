@@ -7,6 +7,7 @@ import android.widget.*
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.health.connect.client.aggregate.AggregateMetric
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
@@ -30,6 +31,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var source: Spinner
     private lateinit var days: Spinner
     private lateinit var consent: CheckBox
+    private lateinit var history: CheckBox
+    private var preparedPermissions: Set<String> = emptySet()
     private var prepared: String? = null
     private var busy = false
     private val core = setOf(HealthPermission.getReadPermission(ExerciseSessionRecord::class))
@@ -42,7 +45,7 @@ class MainActivity : ComponentActivity() {
         if (uri == null || csv == null) { status.text = "Save cancelled. Nothing was uploaded."; return@registerForActivityResult }
         lifecycleScope.launch {
             try {
-                if(!HealthConnectClient.getOrCreate(this@MainActivity).permissionController.getGrantedPermissions().containsAll(core)) error("Permission revoked")
+                if(!HealthConnectClient.getOrCreate(this@MainActivity).permissionController.getGrantedPermissions().containsAll(preparedPermissions)) error("Permission revoked")
                 withContext(Dispatchers.IO) { contentResolver.openOutputStream(uri)?.use { it.write(csv.toByteArray(Charsets.UTF_8)) } ?: error("No file destination") }
                 prepared = null
                 status.text = "CSV saved to your selected destination. Open your protected Writer Activity workspace, upload it, review the preview and confirm. No upload was performed by this app."
@@ -60,13 +63,18 @@ class MainActivity : ComponentActivity() {
         text("Source app")
         source=Spinner(this).apply { adapter=ArrayAdapter(this@MainActivity,android.R.layout.simple_spinner_dropdown_item,listOf("Samsung Health", "Google Fit", "All permitted source apps")); layout.addView(this) }
         text("Recent period (Health Connect permission history limits apply)")
-        days=Spinner(this).apply { adapter=ArrayAdapter(this@MainActivity,android.R.layout.simple_spinner_dropdown_item,listOf("7 days", "30 days")); layout.addView(this) }
+        days=Spinner(this).apply { adapter=ArrayAdapter(this@MainActivity,android.R.layout.simple_spinner_dropdown_item,listOf("7 days", "30 days", "365 days · optional history permission")); layout.addView(this) }
         consent=CheckBox(this).apply { text="I want to read and save these workout summaries for my private Writer reports."; layout.addView(this) }
+        history=CheckBox(this).apply { text="Optional: allow access to past workout, distance and step history for annual reports on supported devices."; layout.addView(this); setOnCheckedChangeListener { _, _ -> prepared=null } }
         fun button(label: String, action: () -> Unit) { layout.addView(Button(this).apply { text=label; setOnClickListener { action() } }) }
         button("1. Review Health Connect permissions") {
             if (!consent.isChecked) { status.text="Review and select the consent checkbox first."; return@button }
             when (HealthConnectClient.getSdkStatus(this)) {
-                HealthConnectClient.SDK_AVAILABLE -> permissions.launch(core + metrics)
+                HealthConnectClient.SDK_AVAILABLE -> {
+                    val client=HealthConnectClient.getOrCreate(this)
+                    if(history.isChecked && client.features.getFeatureStatus(HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY)!=HealthConnectFeatures.FEATURE_STATUS_AVAILABLE){status.text="This device does not support history access. Choose 7/30 days or update Health Connect; earlier reviewed files can still supply annual history.";return@button}
+                    permissions.launch(core + metrics + if(history.isChecked)setOf(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY)else emptySet())
+                }
                 HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> { status.text="Install or update Health Connect from Google Play, then return."; startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata"))) }
                 else -> status.text="Health Connect is unavailable on this device. No file was created."
             }
@@ -80,7 +88,7 @@ class MainActivity : ComponentActivity() {
             try { startActivity(Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)) } catch (_: Exception) { status.text="Open Health Connect in Android Settings to manage or revoke access." }
         }
         status=text("No activity data has been read. Grant only the permissions you choose.")
-        text("Permission rationale: workout times/types identify sessions; optional distance and step reads provide session measurements. You can deny measurements and still export sessions. Missing metrics stay blank. User-selected CSV files are not automatically deleted when the app is removed; delete them from the storage destination yourself.")
+        text("Permission rationale: workout times/types identify sessions; optional distance and step reads provide session measurements. You can deny measurements and still export sessions. History access is optional and requested only when its checkbox is selected; it does not grant access to any additional data type. Missing metrics stay blank. User-selected CSV files are not automatically deleted when the app is removed; delete them from the storage destination yourself.")
         setContentView(ScrollView(this).apply { fitsSystemWindows=true; addView(layout) })
         source.onItemSelectedListener=object: android.widget.AdapterView.OnItemSelectedListener { override fun onItemSelected(p:android.widget.AdapterView<*>?,v:android.view.View?,position:Int,id:Long){prepared=null}; override fun onNothingSelected(p:android.widget.AdapterView<*>?){} }
         days.onItemSelectedListener=object: android.widget.AdapterView.OnItemSelectedListener { override fun onItemSelected(p:android.widget.AdapterView<*>?,v:android.view.View?,position:Int,id:Long){prepared=null}; override fun onNothingSelected(p:android.widget.AdapterView<*>?){} }
@@ -97,12 +105,13 @@ class MainActivity : ComponentActivity() {
         ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING -> "Strength training"
         else -> "Exercise type $type"
     }
+    private fun selectedDays(): Long = when(days.selectedItemPosition){0->7L;1->30L;else->365L}
     private fun preview() {
         if (busy) return
         prepared=null
         if (!consent.isChecked) { status.text="Review and select the consent checkbox first."; return }
         val selected=source.selectedItemPosition
-        val period=if(days.selectedItemPosition==0) 7L else 30L
+        val period=selectedDays()
         busy=true
         status.text="Reading the selected source and period. Nothing is uploaded."
         lifecycleScope.launch {
@@ -111,6 +120,7 @@ class MainActivity : ComponentActivity() {
                 val client=HealthConnectClient.getOrCreate(this@MainActivity)
                 val granted=client.permissionController.getGrantedPermissions()
                 if(!granted.containsAll(core)) error("Permission revoked")
+                if(period>30 && (!history.isChecked || client.features.getFeatureStatus(HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY)!=HealthConnectFeatures.FEATURE_STATUS_AVAILABLE || !granted.contains(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY))){status.text="Annual device export requires the optional history checkbox, device support and granted history permission. Select 7/30 days to continue without history.";return@launch}
                 val end=Instant.now(); val start=end.minus(period,ChronoUnit.DAYS)
                 val origin=when(selected){0->"com.sec.android.app.shealth";1->"com.google.android.apps.fitness";else->null}
                 val origins=origin?.let{setOf(DataOrigin(it))}?:emptySet()
@@ -123,16 +133,18 @@ class MainActivity : ComponentActivity() {
                 } while(token!=null)
                 val output=StringBuilder("id,title,type,start_time,end_time,duration_seconds,distance_m,steps,calories_kcal,origin\n")
                 val availableMetrics=buildSet<AggregateMetric<*>> { if(granted.contains(HealthPermission.getReadPermission(DistanceRecord::class)))add(DistanceRecord.DISTANCE_TOTAL);if(granted.contains(HealthPermission.getReadPermission(StepsRecord::class)))add(StepsRecord.COUNT_TOTAL) }
-                for(row in rows) {
+                for((index,row) in rows.withIndex()) {
+                    if(index%25==0)status.text="Preparing workout ${index+1} of ${rows.size}. Nothing is uploaded."
                     val aggregate=if(availableMetrics.isEmpty())null else client.aggregate(AggregateRequest(availableMetrics,TimeRangeFilter.between(row.startTime,row.endTime),dataOriginFilter=setOf(row.metadata.dataOrigin)))
                     val distance=aggregate?.get(DistanceRecord.DISTANCE_TOTAL)?.inMeters?.toString()?:""
                     val steps=aggregate?.get(StepsRecord.COUNT_TOTAL)?.toString()?:""
                     // Health Connect does not provide a guaranteed active-duration total here. Leave it absent.
                     output.append(listOf(row.metadata.id,row.title?:typeName(row.exerciseType), typeName(row.exerciseType),row.startTime.toString(),row.endTime.toString(),"",distance,steps,"",row.metadata.dataOrigin.packageName).joinToString(","){csv(it)}).append('\n')
                 }
-                if(source.selectedItemPosition!=selected||period!=(if(days.selectedItemPosition==0)7L else 30L)||!consent.isChecked) error("Selection changed")
+                if(source.selectedItemPosition!=selected||period!=selectedDays()||!consent.isChecked||(period>30&&!history.isChecked)) error("Selection changed")
+                preparedPermissions=core + metrics.intersect(granted) + if(period>30)setOf(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY)else emptySet()
                 prepared=if(rows.isEmpty())null else output.toString()
-                status.text="Preview: ${rows.size} workouts from ${origin?:"all permitted apps"}, last $period days. Optional missing metrics are blank. Active duration is unavailable; elapsed time is shown in Writer. Overlapping recordings are flagged there. ${if(rows.isEmpty())"No export was prepared. Check source sharing and history permissions." else "Review this source/period, then save the CSV."}"
+                status.text="Preview: ${rows.size} workouts from ${origin?:"all permitted apps"}, last $period days. Optional missing metrics are blank. Active duration is unavailable; elapsed time is shown in Writer. Overlapping recordings are flagged there. ${if(rows.isEmpty())"No export was prepared. Check source sharing and history permissions; history access cannot create data absent from the device." else "Review this source/period, then save the CSV."}"
             } catch (_: Exception) { prepared=null;status.text="The read did not complete. Check Health Connect, permissions, source sharing and the recent period; then explicitly preview again. No partial file was saved." }
             finally { busy=false }
         }

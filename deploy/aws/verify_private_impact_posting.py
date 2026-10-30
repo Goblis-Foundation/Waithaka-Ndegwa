@@ -10,7 +10,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 opener=urllib.request.build_opener(NoRedirect)
 
-for path in ("/write/impact","/write/publishing/automation","/write/google/youtube","/write/google/youtube/new","/write/google/youtube/"+"0"*32+"/image","/write/google/meet"):
+for path in ("/write/activity","/write/activity/template","/write/activity/callback/google_health","/write/impact","/write/publishing/automation","/write/google/youtube","/write/google/youtube/new","/write/google/youtube/"+"0"*32+"/image","/write/google/meet"):
     req=urllib.request.Request(BASE+path,headers={"Accept":"text/html","Cache-Control":"no-cache","User-Agent":"Waithaka-ReadOnly-Private-Check/1.0"})
     try:
         response=opener.open(req,timeout=20)
@@ -26,7 +26,7 @@ for path in ("/write/impact","/write/publishing/automation","/write/google/youtu
             raise RuntimeError(f"{path}: unexpected authentication redirect")
     elif status not in (401,403,404):
         raise RuntimeError(f"{path}: protected workspace unexpectedly accessible: HTTP {status}")
-    if "Read-only bearer token" in response_body or "Posting automation · actual readiness" in response_body or "data-youtube-actions" in response_body or "data-google-meet" in response_body:
+    if "fitness-report-form" in response_body or "fitness-connections-title" in response_body or "Read-only bearer token" in response_body or "Posting automation · actual readiness" in response_body or "data-youtube-actions" in response_body or "data-google-meet" in response_body:
         raise RuntimeError(f"{path}: private workspace content leaked to anonymous request")
     print("PASS: anonymous access remains blocked on "+path)
 print("PASS: no private data, payments, posts or provider actions.")
