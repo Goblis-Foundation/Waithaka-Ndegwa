@@ -21,6 +21,7 @@ function newsletter_editor_data(?array $campaign,array $values=[],?string $error
     return ['writeTitle'=>$campaign?'Newsletter edition':'New newsletter','campaign'=>$campaign,'values'=>$values,'error'=>$error,'revision'=>$revision,'snapshot'=>$snapshot,'reviewError'=>$reviewError,'posts'=>$posts,'sourceNotice'=>$sourceNotice];
 }
 function newsletter_dispatch(string $path): bool {
+    if(newsletter_sender_config_dispatch($path))return true;
     if($path==='/newsletter/one-click'){
         // RFC 8058: the URL capability authorizes this fixed POST operation. It
         // deliberately does not require session cookies, login or a CSRF field.

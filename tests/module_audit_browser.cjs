@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['activation','activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
+ for(const key of ['newsletter-sender','activation','activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   if(key.startsWith('activity-'))await page.locator('main details').evaluateAll(items=>items.forEach(e=>{e.open=true;}));
   if(key.startsWith('dashboard-'))await page.locator('.dashboard-journeys').evaluate(e=>{e.open=true;});
@@ -20,6 +20,10 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   }
  }
  ok(layoutFailures.length===0,'Module layouts: '+JSON.stringify(layoutFailures));
+ await page.goto(host+'module-newsletter-sender.html');
+ ok(await page.getByRole('textbox',{name:'Approved mailing address'}).count()===1,'Owner can complete the missing mailing address in the dashboard');
+ ok(await page.locator('input[name="confirm_public_footer"][required]').count()===1,'Footer disclosure requires explicit review');
+ ok(await page.locator('form[data-no-form-assist]').count()===1,'Sender setup uses one explicit form');
  await page.goto(host+'module-activation.html');
  ok(await page.locator('.activation-card').count()===7,'All seven acceptance streams remain');
  ok(await page.locator('.activation-connection').count()===9,'Every requested community and activity service has a next setup step');
@@ -128,5 +132,6 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-activity-week.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/activity-'+width+'.png',fullPage:true});}}
  if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-dashboard-populated.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/dashboard-'+width+'.png',fullPage:true});}}
  if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-activation.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/activation-'+width+'.png',fullPage:true});}}
+ if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-newsletter-sender.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/newsletter-sender-'+width+'.png',fullPage:true});}}
  console.log('PASS: '+checks+' module, login, passkey, no-drop register and progressive-enhancement checks.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});

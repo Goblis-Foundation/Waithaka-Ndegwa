@@ -5,6 +5,8 @@ declare(strict_types=1);
 final class NewsletterValidationException extends InvalidArgumentException {}
 final class NewsletterConflictException extends RuntimeException {}
 
+require_once __DIR__.'/newsletter_sender_config.php';
+
 function newsletter_json(array $value): string { return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); }
 function newsletter_text(mixed $value, string $label, int $max, bool $required = false): string {
     if (!is_scalar($value) && $value !== null) throw new NewsletterValidationException($label.' is invalid.');
@@ -98,7 +100,7 @@ function newsletter_save_campaign(array $input, int $actor, ?int $id = null, ?in
     }catch(Throwable $error){if(db()->inTransaction())db()->rollBack();throw $error;}
 }
 function newsletter_sender(): array {
-    return ['from'=>trim((string)app_config('mail.from','')),'name'=>trim((string)app_config('mail.from_name','Waithaka Ndegwa')),'reply_to'=>trim((string)app_config('mail.reply_to','')),'postal_address'=>trim((string)app_config('mail.postal_address',''))];
+    return ['from'=>trim((string)app_config('mail.from','')),'name'=>trim((string)app_config('mail.from_name','Waithaka Ndegwa')),'reply_to'=>trim((string)app_config('mail.reply_to','')),'postal_address'=>newsletter_postal_configuration()['postal_address']];
 }
 function newsletter_snapshot(array $campaign): array {
     $values=newsletter_values($campaign);$sender=newsletter_sender();
@@ -189,9 +191,9 @@ function newsletter_html(array $snapshot, ?string $unsubscribe = null, ?string $
 }
 function newsletter_lifecycle_html(string $kind,array $subscriber,?string $unsubscribe=null): string {
     $name=(string)(($subscriber['first_name']??'')?:($subscriber['name']??''));
-    if($kind==='welcome')return email_design('Thank you for subscribing.','<p>I appreciate you making space for My Thoughts in your inbox. I look forward to sharing practical ideas, honest learning and the experience of turning challenges into lasting value.</p><p>Your subscription is now confirmed. You will receive new writing and Startup Journeys that match your preferences.</p>'.email_design_button('Explore My Thoughts',url('/my-thoughts')).'<p>Thank you for being part of the conversation.</p>',['name'=>$name,'preheader'=>'You are now subscribed to My Thoughts.','unsubscribe'=>$unsubscribe,'preferences'=>url('/newsletter/preferences/request')]);
+    if($kind==='welcome')return email_design('Thank you for subscribing.','<p>I appreciate you making space for My Thoughts in your inbox. I look forward to sharing practical ideas, honest learning and the experience of turning challenges into lasting value.</p><p>Your subscription is now confirmed. You will receive new writing and Startup Journeys that match your preferences.</p>'.email_design_button('Explore My Thoughts',url('/my-thoughts')).'<p>Thank you for being part of the conversation.</p>',['name'=>$name,'preheader'=>'You are now subscribed to My Thoughts.','unsubscribe'=>$unsubscribe,'preferences'=>url('/newsletter/preferences/request'),'postal_address'=>newsletter_sender()['postal_address']]);
     if($kind!=='goodbye')throw new InvalidArgumentException('Unknown subscription message.');
-    return email_design('Your subscription has ended.','<p>Your request is complete. You will no longer receive newsletter editions from My Thoughts.</p><p>Thank you for the time you have shared with me. You are always welcome to read the website at your own pace.</p><p>There is nothing else you need to do.</p>',['name'=>$name,'preheader'=>'You have been unsubscribed. No further action is needed.','footer'=>'<p>This is the one-time unsubscribe receipt you requested. It does not restart your subscription. You will not receive further newsletter editions unless you subscribe and confirm again.</p>']);
+    return email_design('Your subscription has ended.','<p>Your request is complete. You will no longer receive newsletter editions from My Thoughts.</p><p>Thank you for the time you have shared with me. You are always welcome to read the website at your own pace.</p><p>There is nothing else you need to do.</p>',['name'=>$name,'preheader'=>'You have been unsubscribed. No further action is needed.','postal_address'=>newsletter_sender()['postal_address'],'footer'=>'<p>This is the one-time unsubscribe receipt you requested. It does not restart your subscription. You will not receive further newsletter editions unless you subscribe and confirm again.</p>']);
 }
 function newsletter_queue_lifecycle(int $id,string $kind): void {
     $subscriber=newsletter_subscriber($id);if(!$subscriber)return;
