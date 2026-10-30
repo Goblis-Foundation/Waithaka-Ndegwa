@@ -28,7 +28,7 @@ Official references checked for this release:
 
 ## Targets and graphs
 
-Weeks run Monday–Sunday, months use calendar boundaries and annual reports use the calendar year in the selected timezone (Nairobi by default). An anchor date selects the period, including historical periods. Custom reports span at most one year and do not create calendar targets.
+Weeks run Monday–Sunday, months use calendar boundaries and annual reports use the calendar year in the selected timezone (Nairobi by default). An anchor date selects the period, including historical periods and targets up to one year ahead. Entirely future periods are upcoming and do not trigger cloud reads or certify progress. Custom reports span at most one year and do not create calendar targets.
 
 Activity count, active minutes, distance in kilometres and session steps have independent optional targets. Target keys include the exact source, period, starting date and timezone. Version checks prevent stale tabs overwriting targets. Targets are user-entered goals with no clinical recommendations or automatic carry-forward. Cumulative performance graphs include the period target and a table of exact values. Weekly/monthly graphs use days; annual graphs use twelve months. Print/PDF and private CSV exports are user initiated.
 

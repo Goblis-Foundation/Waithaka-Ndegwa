@@ -34,9 +34,10 @@ function fitness_dispatch(string $path): bool {
    if($action==='save_targets'){fitness_targets_save($uid,$source,$range,$_POST);$notice='Targets saved for this source and calendar period.';}
    elseif(in_array($action,['report','export'],true)){
     if($error!=='')throw new FitnessException($error);
-    if(in_array($source,['google_health','strava'],true)){if(!journeys_rate_limit('fitness-read',(string)$uid,3,900))throw new FitnessException('Wait before another cloud activity read.');$snapshot=fitness_read($uid,$source,$range);$complete=$snapshot['complete'];$observed=$snapshot['observed'];$rows=$snapshot['rows'];}
+    if($range['start']>time()){$rows=[];$complete=false;$observed=time();}
+    elseif(in_array($source,['google_health','strava'],true)){if(!journeys_rate_limit('fitness-read',(string)$uid,3,900))throw new FitnessException('Wait before another cloud activity read.');$snapshot=fitness_read($uid,$source,$range);$complete=$snapshot['complete'];$observed=$snapshot['observed'];$rows=$snapshot['rows'];}
     else{$snapshot=comm_get(fitness_key($uid,'data',$source));if(($snapshot['owner']??0)!==$uid)throw new FitnessException('Import and confirm your own activity file first.');$rows=$snapshot['rows'];$observed=$snapshot['observed'];$complete=($_POST['coverage_complete']??'')==='1';}
-    $report=fitness_report($rows,$range,$source);
+    $complete=$complete&&$range['start']<=time();$report=fitness_report($rows,$range,$source);
     if($action==='export'){header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="private-activities-'.$source.'-'.$range['from'].'.csv"');echo fitness_export($report);return true;}
    }elseif(!in_array($action,['save_targets'],true))throw new FitnessException('Choose an available activity action.');
   }catch(Throwable $e){$error=$e instanceof FitnessException||$e instanceof FitnessRemoteException?$e->getMessage():'The activity action could not be completed. No provider response or private credential is displayed.';}

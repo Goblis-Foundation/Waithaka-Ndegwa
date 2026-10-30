@@ -102,10 +102,11 @@ class MainActivity : ComponentActivity() {
                 val end=Instant.now(); val start=end.minus(period,ChronoUnit.DAYS)
                 val origin=when(selected){0->"com.sec.android.app.shealth";1->"com.google.android.apps.fitness";else->null}
                 val origins=origin?.let{setOf(DataOrigin(it))}?:emptySet()
-                val rows=mutableListOf<ExerciseSessionRecord>(); var token:String?=null
+                val rows=mutableListOf<ExerciseSessionRecord>(); var token:String?=null; var pages=0; val seen=mutableSetOf<String>()
                 do {
                     val page=client.readRecords(ReadRecordsRequest(ExerciseSessionRecord::class, TimeRangeFilter.between(start,end), dataOriginFilter=origins, pageSize=200, pageToken=token))
-                    rows.addAll(page.records); token=page.pageToken
+                    rows.addAll(page.records); token=page.pageToken; pages++
+                    if(pages>20 || (token!=null && !seen.add(token!!))) error("Incomplete activity pagination")
                     if(rows.size>2000) error("Choose a shorter period")
                 } while(token!=null)
                 val output=StringBuilder("id,title,type,start_time,end_time,duration_seconds,distance_m,steps,calories_kcal,origin\n")
