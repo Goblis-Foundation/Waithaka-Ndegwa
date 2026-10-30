@@ -87,6 +87,8 @@ class MainActivity : ComponentActivity() {
         button("Health Connect permission settings") {
             try { startActivity(Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)) } catch (_: Exception) { status.text="Open Health Connect in Android Settings to manage or revoke access." }
         }
+        button("Open protected Writer activity workspace") { startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://www.waithakandegwa.com/write/activity#imports"))) }
+        button("Activity-data privacy notice") { startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://www.waithakandegwa.com/privacy#activity-data"))) }
         status=text("No activity data has been read. Grant only the permissions you choose.")
         text("Permission rationale: workout times/types identify sessions; optional distance and step reads provide session measurements. You can deny measurements and still export sessions. History access is optional and requested only when its checkbox is selected; it does not grant access to any additional data type. Missing metrics stay blank. User-selected CSV files are not automatically deleted when the app is removed; delete them from the storage destination yourself.")
         setContentView(ScrollView(this).apply { fitsSystemWindows=true; addView(layout) })

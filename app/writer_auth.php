@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/owner_identity_aliases.php';
 
 /** Writer authentication is separate from grants for publishing, mail or calendars. */
 final class WriterAuthException extends RuntimeException {}
@@ -9,16 +10,16 @@ function wa_user(int $uid): ?array {$q=db()->prepare('SELECT * FROM users WHERE 
 /** Owner-authorised aliases share the same workspace, data and administrative permissions. */
 function wa_owner_aliases(): array {return ['isaac@goblisgroup.com','isaac@goblisfoundation.org'];}
 function wa_find_user(string $email): ?array {
-    $email=strtolower(trim($email));if(!filter_var($email,FILTER_VALIDATE_EMAIL))return null;
+    $email=owner_identity_email($email);if(!filter_var($email,FILTER_VALIDATE_EMAIL))return null;
     if(in_array($email,wa_owner_aliases(),true))return wa_user(wa_owner_id());
     $q=db()->prepare('SELECT * FROM users WHERE email=? AND is_active=1 LIMIT 1');$q->execute([$email]);return $q->fetch()?:null;
 }
-function wa_addresses(array $user): array {return array_values(array_unique(array_merge([strtolower($user['email'])],(int)$user['id']===wa_owner_id()?wa_owner_aliases():[])));}
+function wa_addresses(array $user): array {return array_values(array_unique(array_merge([(int)$user['id']===wa_owner_id()?owner_identity_email($user['email']):strtolower($user['email'])],(int)$user['id']===wa_owner_id()?wa_owner_aliases():[])));}
 function wa_stepup_email(array $user,mixed $value=null): string {
     $allowed=wa_addresses($user);
     if($value===null){$preferred=$_SESSION['login_email']??'';return is_string($preferred)&&in_array($preferred,$allowed,true)?$preferred:$allowed[0];}
     if(!is_string($value)||strlen($value)>254)throw new WriterAuthException('Choose one of your approved sign-in addresses.');
-    $email=strtolower(trim($value));if(!in_array($email,$allowed,true))throw new WriterAuthException('Choose one of your approved sign-in addresses.');return $email;
+    $email=owner_identity_email($value);if(!in_array($email,$allowed,true))throw new WriterAuthException('Choose one of your approved sign-in addresses.');return $email;
 }
 function wa_factors(int $uid): array {return comm_get('auth.factors.'.$uid);}
 function wa_mac(string $value): string {return hash_hmac('sha256','writer-auth|'.$value,(string)app_config('app_key'));}
@@ -47,6 +48,7 @@ function wa_pending(): array {
     $id=$_SESSION['wa_pending']??'';if(!is_string($id)||!preg_match('/^[a-f0-9]{32}$/D',$id))throw new WriterAuthException('Start sign-in again.');$c=comm_get('auth.challenge.'.$id);if(!wa_challenge_current($c))throw new WriterAuthException('This verification expired or reached its attempt limit. Start sign-in again.');return $c;
 }
 function wa_begin(array $user,string $email,bool $trust,string $purpose='login',array $identity=[]): string {
+    $email=owner_identity_email($email);
     if(!in_array($email,wa_addresses($user),true)||!in_array($purpose,['login','manage','link'],true)||($purpose!=='login'&&(int)($_SESSION['user_id']??0)!==(int)$user['id'])||($purpose==='link'&&(!wa_stepup((int)$user['id'])||!$identity)))throw new WriterAuthException('This sign-in could not be verified.');
     $old=$_SESSION['wa_pending']??'';if(is_string($old)&&preg_match('/^[a-f0-9]{32}$/D',$old))comm_lock('wa-challenge-'.$old,static function()use($old){$c=comm_get('auth.challenge.'.$old);$c['used']=true;unset($c['code_hash']);comm_put('auth.challenge.'.$old,$c);});
     if(session_status()===PHP_SESSION_ACTIVE)session_regenerate_id(true);$id=bin2hex(random_bytes(16));

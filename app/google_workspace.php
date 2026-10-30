@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/owner_identity_aliases.php';
 require_once __DIR__.'/gemini.php';
 require_once __DIR__.'/google_search_review.php';
 
@@ -30,17 +31,18 @@ function google_calendar_discover(array $headers): array {
     throw new RuntimeException('More calendars were returned than can be safely reviewed. Use an account with a smaller subscribed calendar list.');
 }
 function google_calendar_observed(array $credentials,array $scopes,array $observed,int $userId): void {
+    owner_identity_require_primary((string)($observed['metadata']['email']??''));if(owner_identity_label_is((string)($observed['name']??''),'isaac@afritracelink.com'))owner_identity_require_primary('isaac@afritracelink.com');
     // Reauthorization reuses the same (user, Google subject) row, retaining prior calendar choices solely as pending review prefill.\n    // A changed Google subject creates a different row. Pending accounts cannot read calendars until their returned list is explicitly confirmed.
     $q=db()->prepare("SELECT COUNT(*) FROM google_calendar_accounts WHERE user_id=? AND status<>'disconnected' AND google_sub<>?");$q->execute([$userId,$observed['id']]);if((int)$q->fetchColumn()>=20)throw new RuntimeException('Up to 20 Google calendar accounts can be connected. Remove an unused account before adding another.');
     db()->prepare("INSERT INTO google_calendar_accounts(user_id,google_sub,display_name,status,credentials_encrypted,scopes_json,calendars_json,selected_json,verified_at) VALUES(?,?,?,'pending_confirmation',?,?,?,'[]',UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),status='pending_confirmation',credentials_encrypted=VALUES(credentials_encrypted),scopes_json=VALUES(scopes_json),calendars_json=VALUES(calendars_json),verified_at=UTC_TIMESTAMP()")
         ->execute([$userId,$observed['id'],$observed['name'],encrypt_secret(publishing_json($credentials)),publishing_json($scopes),publishing_json($observed['resources'])]);
 }
 function google_calendar_accounts(int $userId): array {
-    $q=db()->prepare("SELECT * FROM google_calendar_accounts WHERE user_id=? AND status<>'disconnected' ORDER BY display_name,id");$q->execute([$userId]);return $q->fetchAll();
+    $q=db()->prepare("SELECT * FROM google_calendar_accounts WHERE user_id=? AND status<>'disconnected' ORDER BY display_name,id");$q->execute([$userId]);return array_values(array_filter($q->fetchAll(),static fn($a)=>!owner_identity_label_is($a['display_name'],'isaac@afritracelink.com')));
 }
 function google_calendar_owned(int $id,int $userId): array {
     $q=db()->prepare('SELECT * FROM google_calendar_accounts WHERE id=? AND user_id=?');$q->execute([$id,$userId]);$r=$q->fetch();
-    if(!$r||$r['status']==='disconnected')throw new InvalidArgumentException('Choose one of your connected calendar accounts.');return $r;
+    if(!$r||$r['status']==='disconnected'||owner_identity_label_is($r['display_name'],'isaac@afritracelink.com'))throw new InvalidArgumentException('Choose one of your connected calendar accounts.');return $r;
 }
 function google_calendar_selection(array $available,mixed $input): array {
     if(!is_array($input)||count($input)>30)throw new InvalidArgumentException('Choose up to 30 calendars per account.');

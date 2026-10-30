@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/../owner_identity_aliases.php';
 
 require_once __DIR__.'/../meetings.php';
 require_once __DIR__.'/tiktok.php';
@@ -227,6 +228,7 @@ function publishing_provider_identity(string $service, array &$token): array {
     $metadata = [];
     if ($provider === 'google') {
         $who = publishing_http('GET','https://openidconnect.googleapis.com/v1/userinfo',$access)['data'];
+        owner_identity_require_primary((string)($who['email']??''));
         $id = (string)($who['sub'] ?? '');
         $name = trim((string)($who['name'] ?? '').' · '.(string)($who['email'] ?? ''));
         if ($service === 'google_booking_mail') {
