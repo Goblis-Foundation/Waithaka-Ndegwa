@@ -5,8 +5,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
+ for(const key of ['dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
+  if(key.startsWith('dashboard-'))await page.locator('.dashboard-journeys').evaluate(e=>{e.open=true;});
   if(key.startsWith('instagram-reel-'))await page.locator('main details').evaluate(e=>{e.open=true;});
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
   ok(await page.locator('h1').count()===1,key+' has one page heading');
@@ -18,6 +19,28 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   }
  }
  ok(layoutFailures.length===0,'Module layouts: '+JSON.stringify(layoutFailures));
+ await page.goto(host+'module-dashboard-populated.html');
+ ok(await page.locator('[data-writer-post]:visible').count()===6,'Dashboard starts with six recent articles');
+ await page.locator('[data-writer-more]').click();
+ ok(await page.locator('[data-writer-post]:visible').count()===18,'Show more expands the library');
+ await page.locator('[data-writer-filter="published"]').click();
+ ok(await page.locator('[data-writer-post]:visible').count()===1,'Public filter uses actual public availability');
+ ok(await page.locator('[data-writer-filter="published"]').getAttribute('aria-pressed')==='true','Filter announces its selected state');
+ ok(await page.locator('[data-writer-post][data-status="scheduled"] a[href*="/my-thoughts/"]').count()===0,'Future article has no misleading public link');
+ ok(await page.locator('[data-writer-post][data-status="published"] a[href*="/my-thoughts/"]').count()===1,'Live article has a public link');
+ await page.locator('[data-writer-status]').selectOption('all');
+ await page.locator('[data-writer-search]').fill('no such article');
+ ok(await page.locator('[data-writer-empty]').isVisible(),'No-match recovery is visible');
+ await page.locator('.dashboard-journeys summary').click();
+ ok(await page.locator('.dashboard-journeys article').count()===9,'All nine visitor journeys have public and private paths');
+ ok(await page.locator('.workspace-section-bar,.ux-page-outline').count()===0,'Home has no duplicate section tabs or generated index');
+ ok(await page.locator('.writer-post-actions a').first().evaluate(e=>getComputedStyle(e).whiteSpace)==='nowrap','Article action labels cannot break inside a word');
+ await page.goto(host+'module-dashboard-unknown.html');
+ ok((await page.locator('.dashboard-today').textContent()).includes('could not be loaded'),'Unknown day is not presented as empty');
+ ok((await page.locator('#attention').textContent()).includes('Unknown'),'Unknown devices are not zero');
+ await page.goto(host+'module-dashboard-collaborator.html');
+ ok(await page.locator('#attention a[href$="/write/activation"]').count()===0,'Owner acceptance is not offered to collaborators');
+ ok(await page.locator('#attention a[href*="tab=inbox"]').count()===0,'Owner correspondence summary is not shared with collaborators');
  await page.goto(host+'module-publishing-studio.html');
  ok(await page.locator('[data-studio-channel]').count()===10,'All ten channel editors render');
  await page.locator('#text-x').fill('<script>literal preview</script>');
@@ -79,7 +102,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  for(const n of [70,71,72,73,74,75,76])ok(await page.locator('[data-register-item]:visible a[href$="/issues/'+n+'"]').count()>0,'Open issue '+n+' is retained in follow-up');
  const bare=await browser.newContext({javaScriptEnabled:false});await bare.route('**/*',route=>route.request().url().startsWith(host)?route.continue():route.abort());const fallback=await bare.newPage();await fallback.goto(host+'module-login.html');
  ok(await fallback.locator('[data-login-submit]').isVisible(),'Password sign-in works without JS');ok(!await fallback.locator('[data-passkey-area]').isVisible(),'No dead passkey action without JS');ok(!await fallback.locator('[data-password-toggle]').isVisible(),'No dead show/hide control without JS');
+ await fallback.goto(host+'module-dashboard-populated.html');ok(await fallback.locator('[data-writer-post]:visible').count()===20,'No-JS dashboard retains every article');await fallback.locator('.dashboard-journeys summary').click();ok(await fallback.locator('.dashboard-journeys article:visible').count()===9,'No-JS journey directory remains usable');
  await fallback.close();await bare.close();ok(errors.length===0,'No runtime errors: '+errors.join(';'));
  if(process.env.EXPERIENCE_EVIDENCE_DIR){fs.mkdirSync(process.env.EXPERIENCE_EVIDENCE_DIR,{recursive:true});await page.goto(host+'module-login.html');for(const width of [390,1180]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/writer-login-'+width+'.png',fullPage:true});}}
+ if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-dashboard-populated.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/dashboard-'+width+'.png',fullPage:true});}}
  console.log('PASS: '+checks+' module, login, passkey, no-drop register and progressive-enhancement checks.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});
