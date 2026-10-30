@@ -21,7 +21,7 @@ MAX_BYTES = 65536
 SOURCES = {
     "goblis_group": "https://www.goblisgroup.com/api/public/impact/waithaka/",
     "ubunifu": "https://www.ubunifuinstitute.com/api/public/impact/waithaka/",
-    "afritrace": "https://www.afritracelink.com/api/public/impact/waithaka/",
+    "afritrace": "https://www.afritracelink.com/api/public/impact/waithaka",
     "goblis_foundation": "https://www.goblisfoundation.org/api/public/impact/waithaka/",
 }
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")

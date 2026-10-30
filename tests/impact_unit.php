@@ -17,6 +17,7 @@ $offline=impact_display(['status'=>'unavailable','data'=>$clean],'startups',$now
 check(impact_metrics()['market_access']['source']==='afritrace','Foundation corroboration must not be added to the primary market count.');
 foreach(['http://example.com/report','https://127.0.0.1/report','https://example.com:8443/report','https://user:pass@example.com/report','https://example.com/report?token=secret','https://example.com/report#fragment']as$url){$rejected=false;try{impact_endpoint($url);}catch(InvalidArgumentException $e){$rejected=true;}check($rejected,'Unsafe feed URL was accepted.');}
 $sourceContracts=impact_source_exchange();
+check($sourceContracts['afritrace']['route']==='/api/public/impact/waithaka','AfriTrace candidate route matches the exact registered non-slash publisher route');
 check(count($sourceContracts)===4&&$sourceContracts['ubunifu']['metric_keys'][0]==='social_enterprises','Four source-owned reporting contracts retain separate metric authority');
 check($sourceContracts['goblis_foundation']['metric_keys'][0]==='market_access (corroboration only)','Foundation does not double-count AfriTrace enterprise market access');
 foreach(impact_sources()as$source=>$label){
