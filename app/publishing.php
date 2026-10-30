@@ -6,6 +6,7 @@ require_once __DIR__.'/providers/http.php';
 require_once __DIR__.'/providers/oauth.php';
 require_once __DIR__.'/providers/buffer.php';
 require_once __DIR__.'/providers/youtube.php';
+require_once __DIR__.'/providers/instagram_native.php';
 require_once __DIR__.'/providers/direct.php';
 
 function publishing_channels(): array { return db()->query('SELECT * FROM publishing_channels ORDER BY id')->fetchAll(); }
@@ -77,6 +78,11 @@ function publishing_job_label(array $job): string {
         if (($state['phase']??'')==='uploading'&&!empty($state['bytes'])) return 'Uploading · '.min(100,(int)floor(100*(int)($state['offset']??0)/(int)$state['bytes'])).'% acknowledged';
         if (($state['phase']??'')==='processing') return 'Uploaded · Processing';
     }
+    if(($job['status']??'')==='delivered'&&($destination['slug']??'')==='instagram') {
+        $state=publishing_instagram_native_state($job);
+        if(($state['phase']??'')==='container_ready')return 'Container ready · Processing';
+        if(($state['phase']??'')==='verification_pending')return 'Publication ID received · Verifying';
+    }
     if (($job['status']??'')==='published'&&($destination['slug']??'')==='youtube') {
         $visibility=$destination['visibility']??'unknown';
         return match($visibility) {'private'=>'Uploaded · Private','unlisted'=>'Uploaded · Unlisted','public'=>'Published · Public',default=>'Upload completed'};
@@ -92,7 +98,7 @@ function publishing_default_draft(?array $post=null): array {
         'media_url'=>'','media_asset_id'=>0,'media_type'=>$slug==='youtube'?'video':'image','alt_text'=>'','title'=>$post['title']??'','format'=>$slug==='youtube'?'video':'post',
         'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false,
         'tiktok_allow_comments'=>false,'tiktok_allow_duet'=>false,'tiktok_allow_stitch'=>false,
-        'platform_options'=>[],'tiktok_brand_organic'=>false,'tiktok_branded_content'=>false,'tiktok_settings_confirmed'=>false
+        'platform_options'=>[],'tiktok_brand_organic'=>false,'tiktok_branded_content'=>false,'tiktok_settings_confirmed'=>false,'instagram_settings_confirmed'=>false,'instagram_share_to_feed'=>false
     ];
     return $draft;
 }
@@ -118,7 +124,7 @@ function publishing_normalize_draft(array $input): array {
             'made_for_kids'=>!empty($v['made_for_kids']),'ai_generated'=>!empty($v['ai_generated']),'notify_subscribers'=>!empty($v['notify_subscribers']),
             'tiktok_allow_comments'=>!empty($v['tiktok_allow_comments']),'tiktok_allow_duet'=>!empty($v['tiktok_allow_duet']),
             'tiktok_allow_stitch'=>!empty($v['tiktok_allow_stitch']),'tiktok_brand_organic'=>!empty($v['tiktok_brand_organic']),
-            'tiktok_branded_content'=>!empty($v['tiktok_branded_content']),'tiktok_settings_confirmed'=>!empty($v['tiktok_settings_confirmed'])
+            'tiktok_branded_content'=>!empty($v['tiktok_branded_content']),'tiktok_settings_confirmed'=>!empty($v['tiktok_settings_confirmed']),'instagram_settings_confirmed'=>!empty($v['instagram_settings_confirmed']),'instagram_share_to_feed'=>!empty($v['instagram_share_to_feed'])
         ];
         if (mb_strlen($draft['variants'][$slug]['text'])>20000) throw new RuntimeException('The '.$slug.' caption is too long.');
     }
@@ -155,6 +161,7 @@ function publishing_capability(array $channel, ?array $connection = null, ?array
     if ($method==='direct'&&$slug==='tiktok') return publishing_tiktok_business_connection_ready($connection)
         ? ['usable'=>true,'mode'=>'direct','reason'=>'Native Accounts API video publishing is available for this confirmed TikTok account. Each revision needs an owned public video, explicit settings and a verified media URL property.']
         : ['usable'=>false,'mode'=>'direct','reason'=>'Authorize the separate TikTok Accounts API app and confirm its returned account and publishing permissions. TikTok read access does not authorize posting.'];
+    if ($method==='direct'&&$slug==='instagram') return publishing_instagram_native_ready($connection)?['usable'=>true,'mode'=>'direct','reason'=>'Confirmed Instagram Login can deliver JPEG posts and reviewed owned-video Reels. Other formats remain assisted.']:['usable'=>false,'mode'=>'direct','reason'=>'Confirm the actual Instagram account and its basic/content-publish scopes first.'];
     if ($method==='direct'&&in_array($slug,['linkedin','x','instagram','facebook'],true)) return ['usable'=>true,'mode'=>'direct','reason'=>in_array($slug,['x','linkedin','facebook'],true)?'Direct text/link publishing is available for this confirmed account.':'Direct single-image publishing is available for this professional account.'];
     return ['usable'=>false,'mode'=>$method,'reason'=>'Use Buffer or assisted publishing for this channel and format.'];
 }
@@ -190,10 +197,12 @@ function publishing_validate_variant(string $slug, array $variant, array $destin
     if (($media!==''||$ownedMedia)&&$variant['media_type']==='image'&&$variant['alt_text']==='') throw new RuntimeException('Add an image description for '.$slug.'.');
     if ($method==='manual') return;
     if ($slug==='youtube'&&$method==='direct') { publishing_youtube_validate_variant($variant); return; }
+    if ($slug==='instagram'&&$method==='direct') { publishing_instagram_native_validate_variant($variant); return; }
     if ($slug==='tiktok'&&$method==='direct') { publishing_tiktok_business_validate_variant($variant); return; }
     if ($slug==='tiktok'&&$method==='buffer'&&(!empty($variant['tiktok_settings_confirmed'])||!empty($variant['tiktok_allow_comments'])||!empty($variant['tiktok_allow_duet'])||!empty($variant['tiktok_allow_stitch'])||!empty($variant['tiktok_brand_organic'])||!empty($variant['tiktok_branded_content']))) throw new RuntimeException('The selected native TikTok interaction and promotional settings need the Accounts API route or assisted publishing. This Buffer adapter cannot apply them.');
     if ($ownedMedia&&$media==='') throw new RuntimeException('This delivery route needs a public media-library asset. Keep private media for direct YouTube upload or assisted publishing.');
     if ($slug==='youtube'&&($media===''||$variant['media_type']!=='video'||$variant['title']==='')) throw new RuntimeException('YouTube delivery through Buffer needs a public video file and title.');
+    if($slug==='instagram'&&$method==='buffer'&&(!empty($variant['instagram_settings_confirmed'])||!empty($variant['instagram_share_to_feed'])))throw new RuntimeException('These native Reel audience/feed settings need Direct API or assisted publishing. This Buffer adapter cannot apply them.');
     if ($slug==='youtube'&&$method==='buffer'&&($variant['format']!=='short'||!empty($variant['notify_subscribers']))) throw new RuntimeException('This Buffer route supports Shorts without a custom subscriber-notification setting. Choose direct YouTube upload for a full-length video or explicit notifications.');
     if (in_array($slug,['instagram','tiktok'],true)&&$media==='') throw new RuntimeException(ucfirst($slug).' needs a media file for automatic/provider delivery.');
     if ($slug==='tiktok'&&$variant['media_type']!=='video') throw new RuntimeException('This TikTok adapter currently accepts videos. Use assisted publishing for photo posts.');

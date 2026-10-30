@@ -28,10 +28,11 @@ function social_instagram_tags(string $raw): array {
 function social_options_validate(string $slug,array $variant,array $destination): void {
  $options=social_options_input($slug,$variant['platform_options']??[]);$method=$destination['method'];
  if(!$options||$method==='manual')return;
- $implemented=$method==='direct'?match($slug){'instagram'=>['location_id','user_tags'],'facebook'=>['location_id'],'x'=>['location_id'],'youtube'=>['tags','language'],default=>[]}:[]; 
+ $implemented=$method==='direct'?match($slug){'instagram'=>[],'facebook'=>['location_id'],'x'=>['location_id'],'youtube'=>['tags','language'],default=>[]}:[];
  foreach($options as$k=>$v)if(!in_array($k,$implemented,true))throw new RuntimeException(social_option_fields($slug)[$k].' requires assisted publishing for '.$slug.'. Switch this channel to assisted delivery or remove that option. It will not be silently dropped.');
 }
 function social_instagram_parameters(array $v): array {
- $body=['image_url'=>$v['media_url'],'caption'=>$v['text'],'alt_text'=>$v['alt_text']];$o=social_options_input('instagram',$v['platform_options']??[]);
- if(!empty($o['location_id']))$body['location_id']=$o['location_id'];if(!empty($o['user_tags']))$body['user_tags']=publishing_json(social_instagram_tags($o['user_tags']));return $body;
+ $o=social_options_input('instagram',$v['platform_options']??[]);
+ if($o)throw new RuntimeException('Instagram Login tagging and native options require assisted publishing. They will not be silently discarded.');
+ return ['image_url'=>$v['media_url'],'caption'=>$v['text'],'alt_text'=>$v['alt_text']];
 }

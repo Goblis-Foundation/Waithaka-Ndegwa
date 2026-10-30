@@ -50,7 +50,8 @@ $instagram=['slug'=>'instagram','account_type'=>'professional','delivery_method'
 check(!publishing_capability($instagram)['usable'],'Professional branding does not imply OAuth authorization');
 check(publishing_capability($instagram,$identity)['mode']==='direct','Direct declaration is represented distinctly');
 $pending=$identity;$pending['status']='pending_confirmation';check(!publishing_capability($instagram,$pending)['usable'],'An observed account still requires destination confirmation');
-check(publishing_capability($instagram,$identity)['usable'],'Confirmed Instagram professional identity can use the implemented direct format');
+check(!publishing_capability($instagram,$identity)['usable'],'Generic identity cannot substitute actual Instagram publish scopes');
+$igIdentity=array_replace($identity,['service'=>'instagram','external_id'=>'17840000000000001','selected_resource'=>'17840000000000001','scopes_json'=>'["instagram_business_basic","instagram_business_content_publish"]']);check(publishing_capability($instagram,$igIdentity)['usable'],'Scoped confirmed Instagram identity can use native image/Reel formats');
 $youtube=['slug'=>'youtube','account_type'=>'channel','delivery_method'=>'direct'];
 check(!publishing_capability($youtube,$identity)['usable'],'Upload grant does not advertise an unimplemented direct video adapter');
 $bufferChannel=['service'=>'instagram','type'=>'profile','serviceId'=>'42','isDisconnected'=>false,'isLocked'=>false,'isQueuePaused'=>false,'hasActiveMemberDevice'=>true,'allowedActions'=>['scheduleUpdates']];
@@ -140,6 +141,9 @@ check(social_options_input('instagram',['location_id'=>'123','user_tags'=>'fixtu
 $rejected=false;try{social_instagram_tags('fixture,2,0');}catch(InvalidArgumentException){$rejected=true;}check($rejected,'Image tags reject coordinates outside image bounds');
 $rejected=false;try{social_options_validate('facebook',['platform_options'=>['audience'=>'Friends']],['method'=>'direct']);}catch(RuntimeException){$rejected=true;}check($rejected,'Native audience setting cannot silently become a public API post');
 social_options_validate('facebook',['platform_options'=>['audience'=>'Friends','location_label'=>'Nairobi']],['method'=>'manual']);
-$parameters=social_instagram_parameters(['media_url'=>'https://example.com/image.jpg','text'=>'Fixture','alt_text'=>'Fixture','platform_options'=>['location_id'=>'123','user_tags'=>'fixture,0.5,0.5']]);
-check($parameters['location_id']==='123'&&json_decode($parameters['user_tags'],true)[0]['username']==='fixture','Actual direct Instagram payload carries selected approved tags and location');
+rejects(fn()=>social_instagram_parameters(['media_url'=>'https://example.com/image.jpg','text'=>'Fixture','alt_text'=>'Fixture','platform_options'=>['location_id'=>'123','user_tags'=>'fixture,0.5,0.5']]),'Instagram Login tags cannot silently pass as implemented native options');
+social_options_validate('instagram',['platform_options'=>['location_id'=>'123','user_tags'=>'fixture,0.5,0.5']],['method'=>'manual']);check(true,'Assisted Instagram preserves native tag requirements');
+check(publishing_job_label(['status'=>'delivered','destination_json'=>'{"slug":"instagram"}','provider_state_json'=>'{"adapter":"instagram_native_v2","phase":"verification_pending"}'])==='Publication ID received · Verifying','Instagram receipt is not mislabeled verified publication');
+$reelBuffer=array_replace(publishing_default_draft()['variants']['instagram'],['text'=>'Reviewed Reel','format'=>'reel','media_type'=>'video','media_url'=>'https://example.com/video.mp4','instagram_settings_confirmed'=>true]);
+rejects(fn()=>publishing_validate_variant('instagram',$reelBuffer,['method'=>'buffer']),'Native Reel settings cannot be silently omitted by Buffer');
 echo "PASS: platform-specific options retained, validated and never silently dropped by unsupported delivery routes.\n";

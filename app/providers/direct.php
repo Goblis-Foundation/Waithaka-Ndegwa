@@ -35,6 +35,7 @@ function publishing_direct_deliver(array $job, array $snapshot, array $connectio
     $destination = publishing_decode($job['destination_json']);
     if ($destination['slug'] === 'youtube') return publishing_youtube_deliver($job,$snapshot,$connection);
     if ($destination['slug'] === 'tiktok') return publishing_tiktok_business_deliver($job,$snapshot,$connection);
+    if ($destination['slug'] === 'instagram') return publishing_instagram_native_deliver($job,$snapshot,$connection);
     $variant = $snapshot['variants'][$destination['slug']];
     $headers = publishing_bearer(publishing_access_token($connection));
     $target = (string)$destination['resource'];
@@ -57,16 +58,6 @@ function publishing_direct_deliver(array $job, array $snapshot, array $connectio
         if ($id === '') throw new PublishingRemoteException('Facebook did not return a post ID. Check the Page before retrying.',0,true);
         return ['status'=>'published','remote_id'=>$id,'external_url'=>'https://www.facebook.com/'.rawurlencode($id)];
     }
-    if ($destination['slug'] === 'instagram') {
-        $base = 'https://graph.instagram.com/'.publishing_meta_version();
-        $result = publishing_http('POST',$base.'/'.rawurlencode($target).'/media',$headers,social_instagram_parameters($variant),true,false)['data'];
-        if (empty($result['id'])) throw new RuntimeException('Instagram did not create an image container.');
-        // Container creation does not publish. Persist its ID before the separate publishing request.
-        $state = ['container_id'=>(string)$result['id'],'phase'=>'container_ready'];
-        publishing_job_update((int)$job['id'],['provider_state_json'=>publishing_json($state)]);
-        $job['provider_state_json'] = publishing_json($state);
-        return publishing_instagram_check($job,$connection);
-    }
     throw new RuntimeException('Choose Buffer or assisted publishing for this channel.');
 }
 
@@ -81,11 +72,21 @@ function publishing_direct_check(array $job, array $connection): array {
 }
 
 function publishing_instagram_check(array $job, array $connection): array {
+    if(publishing_instagram_native_state($job))return publishing_instagram_native_check($job,$connection);
+    return publishing_instagram_legacy_check($job,$connection);
+}
+
+/** Preserve existing approved JPEG container receipts; never recreate legacy containers. */
+function publishing_instagram_legacy_check(array $job, array $connection): array {
     $state = publishing_decode($job['provider_state_json']);
     if (empty($state['container_id']) || ($state['phase'] ?? '') !== 'container_ready') throw new PublishingRemoteException('Review the Instagram post before another publish attempt.',0,true);
     $headers = publishing_bearer(publishing_access_token($connection));
     $base = 'https://graph.instagram.com/'.publishing_meta_version();
+    if((int)($state['checks']??0)>=5)return ['status'=>'failed','provider_state_json'=>publishing_json($state),'next_check_at'=>null,'last_error'=>'The legacy Instagram container needs review after five checks. No replacement was created.'];
+    $state['checks']=(int)($state['checks']??0)+1;
+    publishing_job_update((int)$job['id'],['provider_state_json'=>publishing_json($state)]);
     $status = publishing_http('GET',$base.'/'.rawurlencode($state['container_id']).'?fields=status_code',$headers)['data']['status_code'] ?? '';
+    if($status==='PUBLISHED')return ['status'=>'ambiguous','provider_state_json'=>publishing_json($state),'next_check_at'=>null,'last_error'=>'Instagram reports this legacy container already published. Check the profile; no publish request was repeated.'];
     if (in_array($status,['ERROR','EXPIRED'],true)) return ['status'=>'failed','last_error'=>'Instagram could not prepare the image. Check its format and public availability.'];
     if ($status !== 'FINISHED') return ['status'=>'delivered','provider_state_json'=>publishing_json($state),'next_check_at'=>gmdate('Y-m-d H:i:s',time()+60)];
     $destination = publishing_decode($job['destination_json']);
