@@ -1,0 +1,7 @@
+# Community channel deployment registration — 30 October 2026
+
+Live owner verification after PR #121 exposed only six channels in the publishing overview. Threads, Telegram, Discord and Signal had adapters, templates and migration 200 in source, but the production routine deployment did not apply that catalogue-only migration. Clean CI databases had all migrations and did not reproduce the gap.
+
+A deployment-only CLI and postdeploy hook now register the four fixed catalogue rows using existing runtime SELECT/INSERT permissions. No admin credential, new permission, DDL, outbound request or web-request write is introduced. The reviewed migration checksum is pinned and recorded under the migration lock, with transactional insertion and read-back. Conflicting applied checksums stop deployment. Existing owner labels, destinations, account types and delivery methods are preserved. New channels start assisted, with no selected account, authorization or queued publication.
+
+The disposable MySQL community suite now starts from the actual six-channel condition, verifies a read-only plan, registers all ten channels, checks the ledger, repeats registration after owner customization and verifies safe failure/rollback for a changed ledger. Production acceptance must independently confirm that all ten channels render in the owner studio and delivery filters. External app grants and exact real destination/receipt acceptance remain separate.
