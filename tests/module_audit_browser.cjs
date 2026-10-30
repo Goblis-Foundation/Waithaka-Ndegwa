@@ -7,6 +7,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
  for(const key of ['dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
+  if(key.startsWith('dashboard-'))await page.locator('.dashboard-journeys').evaluate(e=>{e.open=true;});
   if(key.startsWith('instagram-reel-'))await page.locator('main details').evaluate(e=>{e.open=true;});
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
   ok(await page.locator('h1').count()===1,key+' has one page heading');
@@ -103,5 +104,6 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await fallback.goto(host+'module-dashboard-populated.html');ok(await fallback.locator('[data-writer-post]:visible').count()===20,'No-JS dashboard retains every article');await fallback.locator('.dashboard-journeys summary').click();ok(await fallback.locator('.dashboard-journeys article:visible').count()===9,'No-JS journey directory remains usable');
  await fallback.close();await bare.close();ok(errors.length===0,'No runtime errors: '+errors.join(';'));
  if(process.env.EXPERIENCE_EVIDENCE_DIR){fs.mkdirSync(process.env.EXPERIENCE_EVIDENCE_DIR,{recursive:true});await page.goto(host+'module-login.html');for(const width of [390,1180]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/writer-login-'+width+'.png',fullPage:true});}}
+ if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-dashboard-populated.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/dashboard-'+width+'.png',fullPage:true});}}
  console.log('PASS: '+checks+' module, login, passkey, no-drop register and progressive-enhancement checks.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});

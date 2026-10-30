@@ -8,7 +8,7 @@ The home screen now prioritizes Today, Needs attention, Create & publish and the
 - Library public links and published counts use the same public SQL policy as the website, including scheduled publication dates and withheld founder stories. Saved working drafts remain clearly identified and previewable privately.
 - The library initially reveals six rows, supports further rows, page filtering, bound whole-library search and pagination. Without JavaScript, every loaded article and native disclosure remains available.
 - Unavailable calendar, inbox or device records remain unknown rather than a zero or an empty day. Owner inbox data is never read for collaborators. Launch-readiness access remains owner-only.
-- The public footer has a static Writer sign-in link; the private shell links back to the website. No public response depends on the signed-in identity.
+- The private shell links back to the website. The existing public-footer rule excluding Writer sign-in links is preserved. No public response depends on the signed-in identity.
 
 ## Public → private journeys
 
