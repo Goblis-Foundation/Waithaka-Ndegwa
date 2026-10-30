@@ -10,7 +10,7 @@
 'finance'=>['name'=>'Finance','intro'=>'Receiving accounts, payment providers and verification. Bank instructions and API access are separate.','services'=>[]],
 'microsoft'=>['name'=>'Microsoft 365','intro'=>'Personal and organisation accounts, with aliases grouped.','services'=>[]],
 'meetings'=>['name'=>'Meetings','intro'=>'Zoom, Microsoft Teams / Outlook and Webex.','services'=>['meetings_zoom','meetings_microsoft','meetings_webex']],
-'social'=>['name'=>'Other social platforms','intro'=>'Your personal LinkedIn, X and TikTok accounts, plus optional Buffer.','services'=>['linkedin','linkedin_analytics','x','tiktok_read','tiktok_business','buffer']],
+'social'=>['name'=>'Other social platforms','intro'=>'Your personal LinkedIn, X and TikTok accounts, plus optional Buffer.','services'=>['linkedin','linkedin_analytics','x','x_media','tiktok_read','tiktok_business','buffer']],
 'ai'=>['name'=>'AI & tools','intro'=>'Private drafting, research and notification tools.','services'=>[]]
 ];?>
 <nav class="integration-groups" aria-label="Integration groups"><?php foreach($integrationGroups as$key=>$group):?><a href="#integrations-<?=e($key)?>"><?=e($group['name'])?></a><?php endforeach;?></nav>
@@ -22,6 +22,7 @@
 <?php foreach(['openai'=>['OpenAI','/write/integration/openai',setting('openai.api_key','')!==''],'gemini'=>['Google Gemini','/write/integration/gemini',setting('google.gemini_key','')!=='']]as$tool=>$item):?><article class="pub-card"><div class="pub-card-top"><h3><?=e($item[0])?></h3><span class="pub-status"><?= $item[2]?'Key saved · check access':'Not configured'?></span></div><p>Private AI drafting and document assistance. Credentials never appear on the public website.</p><a class="wbtn primary" href="<?=url($item[1])?>"><?=$item[2]?'Manage':'Connect'?></a></article><?php endforeach;?><article class="pub-card"><h3>Phone & computer notifications</h3><p>Each device needs its own browser permission and registration.</p><a class="wbtn primary" href="<?=url('/write/app')?>">Connect this device</a></article>
 <?php endif;?></div></section><?php endforeach;?>
 
+  <?php include __DIR__.'/partials_connect_settings.php';?>
   <section id="channels" class="pub-section pub-connection-anchor"><h2 class="pub-section-title">Channel routes</h2><p>Each saved route applies to the next approved revision. An existing approved package keeps its original destination.</p><div class="pub-grid">
   <?php $buffer=$connections['buffer']??null;$bufferChannels=publishing_buffer_channels($buffer);foreach($channels as $channel):$slug=$channel['slug'];$letter=['linkedin'=>'in','facebook'=>'f','instagram'=>'◎','x'=>'X','youtube'=>'▶','tiktok'=>'♪'][$slug];?>
     <article class="pub-card"><div class="pub-network-heading"><span class="pub-network-icon" aria-hidden="true"><?=e($letter)?></span><div><h3><?=e($channel['name'])?></h3><a class="pub-help" href="<?=e($channel['profile_url'])?>" target="_blank" rel="noopener noreferrer">Open current profile ↗</a></div></div>

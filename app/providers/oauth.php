@@ -43,6 +43,7 @@ function publishing_services(): array {
         'facebook_pages' => ['name'=>'Facebook Page discovery', 'provider'=>'facebook', 'scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'], 'description'=>'Discover Pages you manage, then choose a real Page. This cannot publish to your professional-mode profile.'],
         'linkedin_analytics' => ['name'=>'LinkedIn member analytics','provider'=>'linkedin','scopes'=>['openid','profile','r_member_postAnalytics'],'description'=>'Separate approved analytics product and member consent. Read aggregate post impressions, reach and reactions; this does not grant publishing permission.'],
         'linkedin' => ['name'=>'LinkedIn member', 'provider'=>'linkedin', 'scopes'=>['openid','profile','w_member_social'], 'description'=>'Requires Sign In with LinkedIn using OpenID Connect and Share on LinkedIn products. Direct delivery supports text and links; use Buffer for media.'],
+        'x_media' => ['name'=>'X media publishing', 'provider'=>'x', 'scopes'=>['tweet.read','tweet.write','users.read','media.write','offline.access'], 'description'=>'Separate media-upload consent for owned MP4 videos. Your existing text connection is unchanged. X API usage can incur charges; review your X spending controls before authorizing. Confirm the same personal account.'],
         'x' => ['name'=>'X professional account', 'provider'=>'x', 'scopes'=>['tweet.read','tweet.write','users.read','offline.access'], 'description'=>'User OAuth with PKCE. Direct text/link posts use the X API and may incur usage charges. Set your spending limit in X.'],
         'tiktok_read' => ['name'=>'TikTok read access', 'provider'=>'tiktok', 'scopes'=>publishing_tiktok_scopes(), 'description'=>'Login Kit and Display API approval are required. Verify and confirm your TikTok identity, then read profile totals and up to 20 recent public videos. This grant does not permit posting or verify a Business account type.'],
         'tiktok_business' => ['name'=>'TikTok Accounts publishing', 'provider'=>'tiktok_business', 'scopes'=>publishing_tiktok_business_scopes(), 'description'=>'Separate API for Business app approval and account-holder authorization. Confirms the actual account and its current settings before native public video delivery from your verified owned media domain. Professional labeling and the read-only grant do not authorize this route.'],
@@ -265,7 +266,7 @@ function publishing_provider_identity(string $service, array &$token): array {
         $response = publishing_http('GET',$base.'/me/accounts?fields=id,name,access_token,tasks,link&limit=100',$access)['data'];
         $token['page_tokens'] = [];
         foreach ($response['data'] ?? [] as $page) {
-            if (empty($page['access_token']) || !array_intersect(['CREATE_CONTENT','MANAGE'], $page['tasks'] ?? [])) continue;
+            if (empty($page['access_token']) || !array_intersect(['CREATE_CONTENT','MANAGE','PROFILE_PLUS_CREATE_CONTENT','PROFILE_PLUS_FULL_CONTROL'], $page['tasks'] ?? [])) continue;
             $resources[] = ['id'=>$page['id'],'name'=>$page['name'],'type'=>'page','url'=>$page['link'] ?? 'https://www.facebook.com/'.$page['id']];
             $token['page_tokens'][(string)$page['id']] = $page['access_token'];
         }

@@ -90,6 +90,13 @@ function publishing_dispatch(string $path): bool {
             $report=$m[1]==='tiktok_read'?publishing_tiktok_report($connection):publishing_google_report($connection);
             render_write('connections_report',['writeTitle'=>publishing_services()[$m[1]]['name'].' report','connection'=>$connection,'report'=>$report]);return true;
         }
+        if ($path==='/write/connections/community'&&is_post()) {
+            $link=trim((string)($_POST['community_url']??''));
+            if($link!==''&&!publishing_connect_url_valid($link))throw new RuntimeException('Use the exact Facebook group or subscription link. A profile home link is not a subscriber destination.');
+            set_setting('social.facebook_connect_url',$link);
+            publishing_event(null,null,'community_link_updated','Waithaka Ndegwa Connect destination updated. No membership or publication was changed.',$userId);
+            flash('success','Waithaka Ndegwa Connect link saved. Facebook manages its subscription and membership.');redirect(url('/write/connections#connect-community'));
+        }
         if ($path==='/write/connections/channel'&&is_post()) {
             $slug=(string)($_POST['slug']??'');$channel=publishing_channel($slug);if(!$channel)throw new RuntimeException('Unknown channel.');
             $method=(string)($_POST['delivery_method']??'manual');
@@ -177,8 +184,12 @@ function publishing_dispatch(string $path): bool {
                 $youtubeResume=publishing_youtube_can_resume($job);
                 $tiktokResume=publishing_tiktok_business_can_resume($job);
                 $instagramResume=publishing_instagram_can_resume($job);
-                if((!in_array($job['status'],['failed','reconnect'],true)&&!($job['status']==='ambiguous'&&($youtubeResume||$tiktokResume||$instagramResume)))||empty($_POST['reviewed_remote']))throw new RuntimeException('Only reviewed failed/reconnected work, a recoverable YouTube session or a known TikTok/Instagram processing record can be resumed. Unknown outcomes never create another post automatically.');
-                if($instagramResume) {
+                $videoResume=publishing_social_video_can_resume($job);
+                if((!in_array($job['status'],['failed','reconnect'],true)&&!($job['status']==='ambiguous'&&($youtubeResume||$tiktokResume||$instagramResume||$videoResume)))||empty($_POST['reviewed_remote']))throw new RuntimeException('Only reviewed failed/reconnected work, a recoverable YouTube session or a known TikTok/Instagram processing record can be resumed. Unknown outcomes never create another post automatically.');
+                if($videoResume) {
+                    publishing_job_connection($job);$state=publishing_social_video_state($job);$state['checks']=0;
+                    publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
+                } elseif($instagramResume) {
                     publishing_job_connection($job);$state=publishing_instagram_native_state($job);$state['checks']=0;$state['verification_checks']=0;
                     publishing_job_update((int)$job['id'],['status'=>'delivered','next_check_at'=>gmdate('Y-m-d H:i:s'),'last_error'=>null,'provider_state_json'=>publishing_json($state)]);
                 } elseif($tiktokResume) {
@@ -207,7 +218,7 @@ function publishing_dispatch(string $path): bool {
                 }
                 publishing_event((int)$job['package_id'],(int)$job['id'],'delivery_resumed','Writer reviewed the failed attempt and resumed the existing job.',$userId);
             } else {
-                $nativePending=$job['status']==='delivered'&&(publishing_youtube_can_resume($job)||publishing_tiktok_business_can_resume($job)||publishing_instagram_can_resume($job));
+                $nativePending=$job['status']==='delivered'&&(publishing_youtube_can_resume($job)||publishing_tiktok_business_can_resume($job)||publishing_instagram_can_resume($job)||publishing_social_video_can_resume($job));
                 if(!in_array($job['status'],['scheduled','assisted','failed','reconnect','ambiguous','reminder_queued','reminder_sent'],true)&&!$nativePending)throw new RuntimeException('Manage an accepted or processing post in the provider before closing its record.');
                 if((!empty($job['remote_id'])||$job['status']==='ambiguous'||$nativePending)&&empty($_POST['reviewed_remote']))throw new RuntimeException('Check and stop any remote publication before closing this record.');
                 $st=db()->prepare("UPDATE publishing_jobs SET status='cancelled' WHERE id=? AND status=?");$st->execute([$job['id'],$job['status']]);
