@@ -1,8 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Deliberately no INTERNET, location, background, history, clinical or write permissions. -->
+    <!-- Deliberately no INTERNET, location, background, clinical or write permissions. History is separate optional user consent. -->
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_DISTANCE" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
     <queries><package android:name="com.google.android.apps.healthdata" /></queries>
     <application android:allowBackup="false" android:label="Waithaka Activity · Test" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:supportsRtl="true" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">
