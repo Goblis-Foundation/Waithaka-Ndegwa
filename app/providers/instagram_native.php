@@ -70,7 +70,7 @@ function publishing_instagram_native_owned_media(string $id,string $target,strin
     for($page=0;$page<4;$page++){$q=['fields'=>'id','limit'=>25];if($cursor!=='')$q['after']=$cursor;$r=$http('GET','/'.$target.'/media',$q,$token);
         if(!is_array($r['data']??null)||!array_is_list($r['data'])||count($r['data'])>25)throw new PublishingRemoteException('Instagram returned an invalid owned-media inventory.',422);
         foreach($r['data']as$item){$returned=publishing_instagram_native_id($item['id']??null);if(isset($ids[$returned]))throw new PublishingRemoteException('Instagram returned duplicate owned-media rows.',422);$ids[$returned]=true;if($returned===$id)return;}
-        if(empty($r['paging']['next']))break;$cursor=$r['paging']['cursors']['after']??null;if(!is_string($cursor)||!preg_match('/^[A-Za-z0-9_=\-]{1,2048}$/D',$cursor)||isset($seen[$cursor]))throw new PublishingRemoteException('Instagram returned invalid media pagination.',422);$seen[$cursor]=true;
+        if(empty($r['paging']['next']))break;$cursor=$r['paging']['cursors']['after']??null;if(!is_string($cursor)||strlen($cursor)>2048||$cursor===''||preg_match('/[\x00-\x20\x7f]/',$cursor)||isset($seen[$cursor]))throw new PublishingRemoteException('Instagram returned invalid media pagination.',422);$seen[$cursor]=true;
     }throw new PublishingRemoteException('The known publication was not found in the bounded approved-account inventory. Review it in Instagram; do not publish again.',422);
 }
 function publishing_instagram_native_verify(array &$job,array $s,array $c,array $v,string $token,callable $http): array {

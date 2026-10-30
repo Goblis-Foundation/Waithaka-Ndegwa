@@ -42,10 +42,10 @@ function transport(string $method,string $path,array $query,string $token,?array
         $s=publishing_decode($saved['provider_state_json']);return ['id'=>'18000000000000002','caption'=>$mode==='wrong-caption'?'Changed':'Reviewed caption','media_type'=>$s['format']==='reel'?'VIDEO':'IMAGE','media_product_type'=>$mode==='wrong-format'?'FEED':($s['format']==='reel'?'REELS':'FEED'),'permalink'=>$mode==='bad-link'?'https://untrusted.invalid/post':'https://www.instagram.com/'.($s['format']==='reel'?'reel':'p').'/fixture/'];
     }
     if($path==='/17840000000000001/media'){
-        check($method==='GET'&&$query['limit']===25,'Owned-media verification is a bounded read');
+        check($method==='GET'&&$query['limit']===25,'Owned-media verification is a bounded read');if($mode==='paging-valid'&&isset($query['after']))check($query['after']==='next+/cursor==','Opaque cursor preserved as query data');
         if($mode==='wrong-owner')return ['data'=>[['id'=>'18000000000009999']]];
         if($mode==='paging-loop')return ['data'=>[],'paging'=>['next'=>'https://untrusted.invalid/never-follow','cursors'=>['after'=>'repeated']]];
-        if($mode==='paging-valid'&&!isset($query['after']))return ['data'=>[['id'=>'18000000000009999']],'paging'=>['next'=>'https://untrusted.invalid/never-follow','cursors'=>['after'=>'next_cursor']]];
+        if($mode==='paging-valid'&&!isset($query['after']))return ['data'=>[['id'=>'18000000000009999']],'paging'=>['next'=>'https://untrusted.invalid/never-follow','cursors'=>['after'=>'next+/cursor==']]];
         return ['data'=>[['id'=>'18000000000000002']]];
     }
     throw new RuntimeException('Unexpected fixture request '.$method.' '.$path);
