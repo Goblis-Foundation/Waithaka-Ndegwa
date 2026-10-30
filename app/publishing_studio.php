@@ -14,7 +14,7 @@ function publishing_studio_format_note(string $slug): string {
     return match($slug){
         'threads'=>'Direct text/link posts and one owned public JPEG/PNG or MP4 through a separate Threads grant. Media waits for processing and a matching owned-post receipt. Carousels and native options use assisted publishing.',
         'telegram'=>'Bot delivery to the exact confirmed channel or supergroup: text, owned public photos or MP4 videos. Telegram returns a sent-message receipt; it does not prove that subscribers read it.',
-        'discord'=>'Direct text/link messages to one verified server/channel webhook. Mentions are disabled. Images, video, forums and thread destinations remain assisted.',
+        'discord'=>'Direct text/link messages and one owned public JPEG/PNG or MP4 up to 10 MB to the verified server/channel webhook. Mentions are disabled. Caption, attachment description and original bytes are checked. Forums and thread destinations remain assisted.',
         'signal'=>'Assisted private-group posting: prepare and download approved content, send it in Signal, then record your private completion reference. No bot, member import or automatic Signal delivery is claimed.',
         'facebook'=>'Profile and Connect: assisted posts, videos, Reels and Stories. Confirm subscriber-only audience in Facebook. A separately confirmed Page supports direct text/link posts and owned MP4 videos/Reels; Page photos and Stories remain assisted.',
         'x'=>'Direct text/link posts; owned MP4 video with separate X media consent. Images, threads, polls and unverified formats use assisted publishing or a verified Buffer route. Review API spending in X.',

@@ -146,7 +146,7 @@ function activation_connection_rows(array $states): array {
     $definitions=[
         'threads'=>['Threads','/write/connections#integrations-communities','Connect the separate Threads app, confirm your profile, then approve text, photo or video in the posting studio.'],
         'telegram'=>['Telegram','/write/connections#integrations-communities','Verify a bot with administrator/posting rights and confirm the exact channel or supergroup.'],
-        'discord'=>['Discord','/write/connections#integrations-communities','Verify the incoming webhook and confirm its server/channel. Prepare text and links in the posting studio.'],
+        'discord'=>['Discord','/write/connections#integrations-communities','Verify the incoming webhook and confirm its server/channel. Prepare text, links or an owned photo/video in the posting studio.'],
         'signal'=>['Signal','/write/connections#integrations-communities','Confirm the private destination label. Complete the approved post in Signal and record your private reference.'],
         'google_health'=>['Google Health','/write/activity#connections','Save a dedicated Google Health Cloud project, authorize the linked account, then confirm its returned identity.'],
         'strava'=>['Strava','/write/activity#connections','Configure the Strava application, authorize your own athlete account and confirm the returned identity.'],
