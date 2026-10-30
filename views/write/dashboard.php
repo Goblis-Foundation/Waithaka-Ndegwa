@@ -6,7 +6,7 @@ $dashAttention=$workspace['attention']??null;$dashOpen=$dashboard['open'];$dashO
 <main class="write-main writer-dashboard dashboard-home">
   <div class="writer-head dashboard-heading"><div><span class="writer-kicker">Personal workspace</span><h1>Workspace overview</h1><p class="muted">A clear view of today. Create, review and follow through.</p><span class="admin-day-label"><?=e((new DateTimeImmutable('now',new DateTimeZone('Africa/Nairobi')))->format('l, j F Y'))?> · Nairobi</span></div><a class="wbtn primary" href="<?=url('/write/capture')?>">＋ Capture an idea</a></div>
   <?php foreach(flashes() as $f):?><div class="notice <?=$f['type']==='error'?'error':''?>"><?=e($f['message'])?></div><?php endforeach;?>
-  <nav class="dashboard-jump" aria-label="Dashboard sections"><a href="#day">Today</a><a href="#attention">Needs attention</a><a href="#create">Create & publish</a><a href="#library">Article library</a></nav>
+  <nav class="dashboard-jump" data-page-outline aria-label="Dashboard sections"><a href="#day">Today</a><a href="#attention">Needs attention</a><a href="#create">Create & publish</a><a href="#library">Article library</a></nav>
 
   <div class="dashboard-day-grid" id="day">
     <section class="dashboard-today" aria-labelledby="today-title"><span class="writer-kicker">Your next steps</span><h2 id="today-title">Today</h2><p class="muted"><?=e($dashboard['timezone'])?> · Saved program and calendar snapshot</p>

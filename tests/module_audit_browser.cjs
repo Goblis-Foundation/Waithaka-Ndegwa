@@ -33,7 +33,8 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  ok(await page.locator('[data-writer-empty]').isVisible(),'No-match recovery is visible');
  await page.locator('.dashboard-journeys summary').click();
  ok(await page.locator('.dashboard-journeys article').count()===9,'All nine visitor journeys have public and private paths');
- ok(await page.locator('.workspace-section-bar').count()===0,'Home has no duplicate section tabs');
+ ok(await page.locator('.workspace-section-bar,.ux-page-outline').count()===0,'Home has no duplicate section tabs or generated index');
+ ok(await page.locator('.writer-post-actions a').first().evaluate(e=>getComputedStyle(e).whiteSpace)==='nowrap','Article action labels cannot break inside a word');
  await page.goto(host+'module-dashboard-unknown.html');
  ok((await page.locator('.dashboard-today').textContent()).includes('could not be loaded'),'Unknown day is not presented as empty');
  ok((await page.locator('#attention').textContent()).includes('Unknown'),'Unknown devices are not zero');
