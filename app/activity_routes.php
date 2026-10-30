@@ -8,7 +8,7 @@ function fitness_targets_save(int $uid,string $source,array $range,array $input)
 }
 function fitness_dispatch(string $path): bool {
  if(!preg_match('~^/write/activity(?:/(template|callback/(?:google_health|strava)))?$~D',$path))return false;
- require_auth();private_response_headers();journeys_method(['GET','HEAD','POST']);header('Referrer-Policy: no-referrer');$uid=(int)current_user()['id'];$owner=(int)(comm_config()['owner']??0);$canConfigure=$owner>0&&$owner===$uid;$error='';$notice='';$report=null;$stage=[];$complete=false;$observed=null;
+ private_response_headers();header('Referrer-Policy: no-referrer');require_auth();journeys_method(['GET','HEAD','POST']);$uid=(int)current_user()['id'];$owner=(int)(comm_config()['owner']??0);$canConfigure=$owner>0&&$owner===$uid;$error='';$notice='';$report=null;$stage=[];$complete=false;$observed=null;
  if(($_SERVER['REQUEST_METHOD']??'GET')==='HEAD')return true;
  if(str_contains($path,'/callback/')){journeys_method(['GET']);$source=basename($path);try{fitness_complete($source,$uid,$_GET);flash('success','Activity identity returned. Confirm the exact account before reading workouts.');}catch(Throwable $e){flash('error',$e instanceof FitnessException?$e->getMessage():'Activity authorization was not completed. Review the provider setup and start again.');}redirect(url('/write/activity#connections'));}
  if($path==='/write/activity/template'){journeys_method(['GET']);header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="activity-import-template.csv"');echo "id,title,type,start_time,end_time,duration_seconds,distance_m,steps,calories_kcal,origin\n";return true;}
