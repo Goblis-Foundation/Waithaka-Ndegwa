@@ -1,3 +1,4 @@
+<?php if(in_array($service,['telegram','discord','signal'],true)){include __DIR__.'/integration_community.php';return;}?>
     <?php if($service==='facebook_pages'):?><details class="pub-card"><summary>Optional Facebook Page integration</summary><p>Your personal professional-mode profile does not need Page discovery. Saved app credentials remain available for separately managed Pages.</p><?php endif;?>
     <article class="pub-card pub-provider" id="<?=e($service)?>"><div class="pub-card-top"><h3><?=e($definition['name'])?></h3><span class="pub-status <?=e($status)?>"><?=e(publishing_state_label($status))?></span></div>
       <p><?=e($definition['description'])?></p>

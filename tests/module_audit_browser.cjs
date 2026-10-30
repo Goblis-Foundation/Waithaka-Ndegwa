@@ -19,7 +19,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  }
  ok(layoutFailures.length===0,'Module layouts: '+JSON.stringify(layoutFailures));
  await page.goto(host+'module-publishing-studio.html');
- ok(await page.locator('[data-studio-channel]').count()===6,'All six channel editors render');
+ ok(await page.locator('[data-studio-channel]').count()===10,'All ten channel editors render');
  await page.locator('#text-x').fill('<script>literal preview</script>');
  ok(await page.locator('#studio-x [data-preview-copy]').textContent()==='<script>literal preview</script>','Preview treats source as literal text');
  ok(await page.locator('#studio-x [data-preview-copy] script').count()===0,'Preview cannot execute caption HTML');

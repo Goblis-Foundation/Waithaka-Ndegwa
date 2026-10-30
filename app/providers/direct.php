@@ -33,6 +33,7 @@ function publishing_linkedin_posts_receipt(array $response): array {
 
 function publishing_direct_deliver(array $job, array $snapshot, array $connection): array {
     $destination = publishing_decode($job['destination_json']);
+    if(in_array($destination['slug']??'',['threads','telegram','discord'],true))return publishing_community_deliver($job,$snapshot,$connection);
     if ($destination['slug'] === 'youtube') return publishing_youtube_deliver($job,$snapshot,$connection);
     if ($destination['slug'] === 'tiktok') return publishing_tiktok_business_deliver($job,$snapshot,$connection);
     if ($destination['slug'] === 'instagram') return publishing_instagram_native_deliver($job,$snapshot,$connection);
@@ -69,6 +70,7 @@ function publishing_direct_check(array $job, array $connection): array {
         'tiktok'=>publishing_tiktok_business_check($job,$connection),
         'instagram'=>publishing_instagram_check($job,$connection),
         'facebook','x'=>publishing_social_video_check($job,$connection),
+        'threads','discord'=>publishing_community_check($job,$connection),
         default=>throw new PublishingRemoteException('This direct delivery has no pending provider status to check. Review its existing remote post.',422),
     };
 }

@@ -43,6 +43,10 @@ function publishing_services(): array {
         'facebook_pages' => ['name'=>'Facebook Page discovery', 'provider'=>'facebook', 'scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'], 'description'=>'Discover Pages you manage, then choose a real Page. This cannot publish to your professional-mode profile.'],
         'linkedin_analytics' => ['name'=>'LinkedIn member analytics','provider'=>'linkedin','scopes'=>['openid','profile','r_member_postAnalytics'],'description'=>'Separate approved analytics product and member consent. Read aggregate post impressions, reach and reactions; this does not grant publishing permission.'],
         'linkedin' => ['name'=>'LinkedIn member', 'provider'=>'linkedin', 'scopes'=>['openid','profile','w_member_social'], 'description'=>'Requires Sign In with LinkedIn using OpenID Connect and Share on LinkedIn products. Direct delivery supports text and links; use Buffer for media.'],
+        'threads'=>['name'=>'Threads profile','provider'=>'threads','scopes'=>['threads_basic','threads_content_publish'],'description'=>'Separate Threads OAuth for reviewed text/link posts. Confirm the returned profile. Images, videos, carousels and native options remain assisted.'],
+        'telegram'=>['name'=>'Telegram community bot','provider'=>'telegram','scopes'=>[],'description'=>'Verify a bot and one exact channel/supergroup, then confirm the destination. Native text, owned public photos and MP4 videos. No personal inbox or member import.'],
+        'discord'=>['name'=>'Discord channel webhook','provider'=>'discord','scopes'=>[],'description'=>'Verify one incoming server/channel webhook. Native text/link delivery with mentions disabled, saved receipt and independent message read-back.'],
+        'signal'=>['name'=>'Signal assisted destination','provider'=>'signal','scopes'=>[],'description'=>'Owner-declared private group/contact label only. Prepare approved content, finish in Signal and record a private completion reference. No automatic sending or member import.'],
         'x_media' => ['name'=>'X media publishing', 'provider'=>'x', 'scopes'=>['tweet.read','tweet.write','users.read','media.write','offline.access'], 'description'=>'Separate media-upload consent for owned MP4 videos. Your existing text connection is unchanged. X API usage can incur charges; review your X spending controls before authorizing. Confirm the same personal account.'],
         'x' => ['name'=>'X professional account', 'provider'=>'x', 'scopes'=>['tweet.read','tweet.write','users.read','offline.access'], 'description'=>'User OAuth with PKCE. Direct text/link posts use the X API and may incur usage charges. Set your spending limit in X.'],
         'tiktok_read' => ['name'=>'TikTok read access', 'provider'=>'tiktok', 'scopes'=>publishing_tiktok_scopes(), 'description'=>'Login Kit and Display API approval are required. Verify and confirm your TikTok identity, then read profile totals and up to 20 recent public videos. This grant does not permit posting or verify a Business account type.'],
@@ -93,7 +97,7 @@ function publishing_meta_version(): string {
 
 function publishing_oauth_start(string $service, int $userId,bool $calendarEdit=false): string {
     $definition = publishing_services()[$service] ?? null;
-    if (!$definition || $service === 'buffer') throw new RuntimeException('This connection does not use this OAuth flow.');
+    if (!$definition || in_array($service,['buffer','telegram','discord','signal'],true)) throw new RuntimeException('This connection does not use this OAuth flow.');
     if($service==='google_calendar'&&$calendarEdit)$definition['scopes'][]='https://www.googleapis.com/auth/calendar.events.owned';
     $provider = $definition['provider'];
     $client = publishing_service_client($service);
@@ -114,6 +118,7 @@ function publishing_oauth_start(string $service, int $userId,bool $calendarEdit=
         'google'=>'https://accounts.google.com/o/oauth2/v2/auth',
         'linkedin'=>'https://www.linkedin.com/oauth/v2/authorization',
         'x'=>'https://x.com/i/oauth2/authorize',
+        'threads'=>'https://threads.net/oauth/authorize',
         'instagram'=>'https://www.instagram.com/oauth/authorize',
         'facebook'=>'https://www.facebook.com/'.publishing_meta_version().'/dialog/oauth',
         'tiktok'=>'https://www.tiktok.com/v2/auth/authorize/',
@@ -124,6 +129,8 @@ function publishing_oauth_start(string $service, int $userId,bool $calendarEdit=
     } elseif ($provider === 'instagram') {
         $params['scope'] = implode(',',$definition['scopes']);
         $params += ['enable_fb_login'=>'0','force_authentication'=>'1'];
+    } elseif ($provider === 'threads') {
+        $params['scope']=implode(',',$definition['scopes']);
     } elseif ($provider === 'facebook') {
         $params['scope'] = implode(',',$definition['scopes']);
         $params['auth_type'] = 'rerequest';
@@ -182,12 +189,16 @@ function publishing_oauth_complete(string $service, string $code, array $state, 
         'google'=>'https://oauth2.googleapis.com/token',
         'linkedin'=>'https://www.linkedin.com/oauth/v2/accessToken',
         'x'=>'https://api.x.com/2/oauth2/token',
+        'threads'=>'https://graph.threads.net/oauth/access_token',
         'instagram'=>'https://api.instagram.com/oauth/access_token',
         'facebook'=>'https://graph.facebook.com/'.publishing_meta_version().'/oauth/access_token',
     };
     $token = publishing_http('POST',$endpoint,$headers,$body,true)['data'];
     if (empty($token['access_token'])) throw new RuntimeException('The provider did not grant an access token.');
-    if ($provider === 'instagram') {
+    if ($provider === 'threads') {
+        $long=publishing_http('GET','https://graph.threads.net/access_token?'.http_build_query(['grant_type'=>'th_exchange_token','client_secret'=>$client['client_secret'],'access_token'=>$token['access_token']],'','&',PHP_QUERY_RFC3986))['data'];
+        if(empty($long['access_token']))throw new RuntimeException('Threads did not return a long-lived token.');$token=array_merge($token,$long);
+    } elseif ($provider === 'instagram') {
         $long = publishing_http('GET','https://graph.instagram.com/access_token?'.http_build_query(['grant_type'=>'ig_exchange_token','client_secret'=>$client['client_secret'],'access_token'=>$token['access_token']],'','&',PHP_QUERY_RFC3986))['data'];
         if (empty($long['access_token'])) throw new RuntimeException('Instagram did not return a long-lived token.');
         $token = array_merge($token,$long);
@@ -240,6 +251,8 @@ function publishing_provider_identity(string $service, array &$token): array {
             $response = publishing_http('GET','https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true&maxResults=50',$access)['data'];
             foreach ($response['items'] ?? [] as $channel) $resources[] = ['id'=>$channel['id'],'name'=>$channel['snippet']['title'],'type'=>'youtube_channel','url'=>'https://www.youtube.com/channel/'.$channel['id']];
         }
+    } elseif ($provider === 'threads') {
+        $who=publishing_http('GET','https://graph.threads.net/v1.0/me?fields=id,username',$access)['data'];$id=publishing_community_id($who['id']??null);$username=(string)($who['username']??'');if(!preg_match('/^[A-Za-z0-9._]{1,50}$/D',$username))throw new RuntimeException('Threads did not return a valid username.');$name='@'.$username;$resources[]=['id'=>$id,'name'=>$name,'type'=>'profile','url'=>'https://www.threads.net/@'.$username];
     } elseif ($provider === 'linkedin') {
         $who = publishing_http('GET','https://api.linkedin.com/v2/userinfo',$access)['data'];
         $id = (string)($who['sub'] ?? ''); $name = (string)($who['name'] ?? 'LinkedIn member');
@@ -283,7 +296,7 @@ function publishing_save_observed_connection(string $service, array $credentials
     if ($service==='google_calendar') { google_calendar_observed($credentials,$scopes,$observed,$userId); return; }
     $st = db()->prepare("INSERT INTO publishing_connections(service,provider,status,external_id,display_name,credentials_encrypted,scopes_json,resources_json,metadata_json,verified_at,connected_by) VALUES(?,?,'pending_confirmation',?,?,?,?,?,?,UTC_TIMESTAMP(),?) ON DUPLICATE KEY UPDATE provider=VALUES(provider),status='pending_confirmation',external_id=VALUES(external_id),display_name=VALUES(display_name),credentials_encrypted=VALUES(credentials_encrypted),scopes_json=VALUES(scopes_json),resources_json=VALUES(resources_json),metadata_json=VALUES(metadata_json),selected_resource=NULL,verified_at=UTC_TIMESTAMP(),connected_by=VALUES(connected_by)");
     $st->execute([$service,$provider,$observed['id'],$observed['name'],encrypt_secret(publishing_json($credentials)),publishing_json(array_values($scopes)),publishing_json($observed['resources']),publishing_json($observed['metadata'] ?? []),$userId]);
-    publishing_event(null,null,'connection_observed',publishing_services()[$service]['name'].' returned an account. Destination confirmation is pending.',$userId);
+    publishing_event(null,null,'connection_observed',publishing_services()[$service]['name'].(!empty($observed['metadata']['owner_declared'])?' saved an owner-declared assisted target. No provider identity was verified.':' returned an account. Destination confirmation is pending.'),$userId);
 }
 
 function publishing_confirm_connection(string $service, string $resource, int $userId): void {

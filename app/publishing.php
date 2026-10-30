@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/social_options.php';
+require_once __DIR__.'/publishing_networks.php';
+require_once __DIR__.'/providers/communities.php';
 
 require_once __DIR__.'/providers/http.php';
 require_once __DIR__.'/providers/oauth.php';
@@ -24,6 +26,7 @@ function publishing_public_url(string $url): bool {
     if (strlen($url)>2000 || !filter_var($url,FILTER_VALIDATE_URL)) return false;
     $p=parse_url($url);$host=strtolower($p['host']??'');
     if (($p['scheme']??'')!=='https' || isset($p['user']) || isset($p['pass']) || (isset($p['port'])&&(int)$p['port']!==443)) return false;
+    if(in_array($host,['signal.group','signal.me','discord.gg','api.telegram.org'],true)||($host==='discord.com'&&preg_match('~^/api(?:/v[0-9]+)?/webhooks/~',$p['path']??''))||($host==='t.me'&&preg_match('~^/(?:\+|joinchat/)~',$p['path']??'')))return false;
     if ($host==='' || !str_contains($host,'.') || preg_match('/(^|\.)(localhost|local|internal|test|invalid)$/',$host)) return false;
     if (filter_var(trim($host,'[]'),FILTER_VALIDATE_IP) && !filter_var(trim($host,'[]'),FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE)) return false;
     $path=$p['path']??'/';for($i=0;$i<3;$i++)$path=rawurldecode($path);
@@ -41,6 +44,10 @@ function publishing_public_url(string $url): bool {
 function publishing_job_url_valid(string $url, string $slug): bool {
     if (!publishing_public_url($url)) return false;
     $host=strtolower((string)parse_url($url,PHP_URL_HOST));$path=(string)parse_url($url,PHP_URL_PATH);
+    if($slug==='threads')return in_array($host,['threads.net','www.threads.net','threads.com','www.threads.com'],true)&&preg_match('~^/@[A-Za-z0-9._]+/post/[A-Za-z0-9_-]+/?$~D',$path);
+    if($slug==='telegram')return $host==='t.me'&&preg_match('~^/(?:[A-Za-z0-9_]{5,32}|c/[0-9]{1,20})/[1-9][0-9]*/?$~D',$path);
+    if($slug==='discord')return $host==='discord.com'&&preg_match('~^/channels/[0-9]{1,20}/[0-9]{1,20}/[0-9]{1,20}/?$~D',$path);
+    if($slug==='signal')return false;
     $domains=['linkedin'=>['linkedin.com'],'facebook'=>['facebook.com','fb.watch'],'instagram'=>['instagram.com'],'x'=>['x.com','twitter.com'],'youtube'=>['youtube.com','youtu.be'],'tiktok'=>['tiktok.com']];
     if ($slug==='youtube') {
         if ($host==='youtu.be') return (bool)preg_match('~^/[A-Za-z0-9_-]{11}/?$~',$path);
@@ -89,7 +96,7 @@ function publishing_job_label(array $job): string {
 function publishing_default_draft(?array $post=null): array {
     $source=$post?url('/my-thoughts/'.$post['slug']):'';
     $draft=['title'=>$post['title']??'','source_post_id'=>$post['id']??null,'source_url'=>$source,'notes'=>'','variants'=>[]];
-    foreach (['linkedin','facebook','instagram','x','youtube','tiktok'] as $slug) $draft['variants'][$slug]=[
+    foreach (array_keys(publishing_networks()) as $slug) $draft['variants'][$slug]=[
         'enabled'=>false,'text'=>$post?trim((string)($post['standfirst']??'')."\n\n".(function_exists('analytics_campaign_url')?analytics_campaign_url('/my-thoughts/'.$post['slug'],$slug,'social','post-'.(int)$post['id'],in_array($slug,['youtube','tiktok'],true)?'video':'article'):$source)):'',
         'media_url'=>'','media_asset_id'=>0,'media_type'=>$slug==='youtube'?'video':'image','alt_text'=>'','title'=>$post['title']??'','format'=>$slug==='youtube'?'video':'post',
         'privacy'=>'private','made_for_kids'=>false,'ai_generated'=>false,'notify_subscribers'=>false,
@@ -105,7 +112,7 @@ function publishing_normalize_draft(array $input): array {
     $source=trim((string)($input['source_url']??''));
     if ($source!==''&&!publishing_public_url($source)) throw new RuntimeException('Use a public HTTPS article URL without private preview, consent, subscription or signed-access tokens.');
     $draft=['title'=>$title,'source_post_id'=>!empty($input['source_post_id'])?(int)$input['source_post_id']:null,'source_url'=>$source,'notes'=>mb_substr(trim((string)($input['notes']??'')),0,5000),'variants'=>[]];
-    foreach (['linkedin','facebook','instagram','x','youtube','tiktok'] as $slug) {
+    foreach (array_keys(publishing_networks()) as $slug) {
         $v=is_array($input['variants'][$slug]??null)?$input['variants'][$slug]:[];
         $assetId=filter_var($v['media_asset_id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>PHP_INT_MAX]]);
         if($assetId===false)throw new RuntimeException('Choose a valid media-library asset for '.$slug.'.');
@@ -115,7 +122,7 @@ function publishing_normalize_draft(array $input): array {
             'platform_options'=>social_options_input($slug,$v['platform_options']??[]),'enabled'=>!empty($v['enabled']),'text'=>trim((string)($v['text']??'')), 'media_url'=>$media,'media_asset_id'=>$assetId,
             'media_type'=>in_array($v['media_type']??'', ['image','video'],true)?$v['media_type']:'image',
             'alt_text'=>mb_substr(trim((string)($v['alt_text']??'')),0,1000),'title'=>mb_substr(trim((string)($v['title']??$title)),0,100),
-            'video_settings_confirmed'=>!empty($v['video_settings_confirmed']),'audience'=>($v['audience']??'public')==='subscribers'?'subscribers':'public',
+            'video_settings_confirmed'=>!empty($v['video_settings_confirmed']),'audience'=>publishing_audience_input($v['audience']??'public'),
             'format'=>in_array($v['format']??'', ['post','reel','story','short','video'],true)?$v['format']:'post',
             'privacy'=>in_array($v['privacy']??'', ['private','unlisted','public'],true)?$v['privacy']:'private',
             'made_for_kids'=>!empty($v['made_for_kids']),'ai_generated'=>!empty($v['ai_generated']),'notify_subscribers'=>!empty($v['notify_subscribers']),
@@ -144,6 +151,7 @@ function publishing_variant_with_asset(array $variant): array {
 function publishing_capability(array $channel, ?array $connection = null, ?array $bufferChannel = null): array {
     $slug=$channel['slug'];$method=$channel['delivery_method']??'manual';
     if ($slug==='facebook'&&($channel['account_type']??'')!=='page') return ['usable'=>$method==='manual','mode'=>'manual','reason'=>'A Facebook professional profile is completed in Facebook. Page delivery needs a separately discovered Page.'];
+    if(in_array($slug,['threads','telegram','discord','signal'],true)&&$method!=='manual')return publishing_community_capability($channel,$connection);
     if ($method==='manual') return ['usable'=>true,'mode'=>'manual','reason'=>'Writer prepares a task; you finish publishing in the platform.'];
     if (!$connection||$connection['status']!=='connected'||empty($connection['external_id'])||empty($connection['selected_resource'])) return ['usable'=>false,'mode'=>$method,'reason'=>'Connect the provider and confirm the actual destination first.'];
     if ($method==='buffer') {
@@ -175,9 +183,11 @@ function publishing_destination(array $channel, array $variant=[]): array {
     if ($method!=='manual') $connection=publishing_connection($method==='buffer'?'buffer':($nativeMedia?'x_media':publishing_service_for_channel($channel['slug'])));
     if ($method==='buffer') foreach(publishing_buffer_channels($connection) as $item) if($item['id']===$channel['buffer_channel_id']){$remote=$item;break;}
     if($nativeMedia&&$method==='direct'&&$connection){$textAccount=publishing_connection('x');if($textAccount&&($textAccount['status']??'')==='connected'&&($textAccount['selected_resource']??'')!==($connection['selected_resource']??''))throw new RuntimeException('X text and video connections differ. Confirm the same intended account before approving.');}
+    if(in_array($channel['slug'],['telegram','discord','signal'],true)&&$method==='manual'){$declared=publishing_connection($channel['slug']);if(!$declared||$declared['status']!=='connected'||empty($declared['selected_resource']))throw new RuntimeException('Configure and confirm the exact '.$channel['name'].' destination before approval.');$dest['community_target']=$declared['selected_resource'];$dest['community_label']=$declared['display_name'];$dest['account_name']=$declared['display_name'];}
     $cap=publishing_capability($channel,$connection,$remote);
     if (!$cap['usable']) throw new RuntimeException($channel['name'].': '.$cap['reason']);
     if ($connection) $dest+=['connection_id'=>(int)$connection['id'],'connection_external_id'=>$connection['external_id'],'service'=>$connection['service'],'resource'=>$connection['selected_resource'],'account_name'=>$connection['display_name']];
+    if($connection&&in_array($channel['slug'],['telegram','discord','threads'],true))$dest['community_grant']=publishing_community_fingerprint($connection);
     if ($method==='buffer') {
         $dest+=['buffer_channel_id'=>$remote['id'],'buffer_mode'=>$channel['buffer_mode'],'service_id'=>$remote['serviceId'],'organization_id'=>$remote['organizationId']];
         $dest['account_name']=$remote['displayName']??$remote['name'];
@@ -193,9 +203,10 @@ function publishing_validate_variant(string $slug, array $variant, array $destin
     $text=$variant['text'];$media=$variant['media_url'];$method=$destination['method'];
     $ownedMedia=!empty($variant['media_asset']);
     if ($text===''&&$media===''&&!$ownedMedia) throw new RuntimeException('Add content for '.$slug.'.');
-    $limits=['linkedin'=>3000,'x'=>280,'instagram'=>2200,'tiktok'=>2200,'youtube'=>5000,'facebook'=>20000];
+    $limits=publishing_network_limits();
     if (mb_strlen($text)>$limits[$slug]) throw new RuntimeException(ucfirst($slug).' exceeds the centre’s '.$limits[$slug].'-character caption limit.');
     if (($media!==''||$ownedMedia)&&$variant['media_type']==='image'&&$variant['alt_text']==='') throw new RuntimeException('Add an image description for '.$slug.'.');
+    if(in_array($slug,['threads','telegram','discord','signal'],true)){publishing_community_validate_variant($slug,$variant,$destination);return;}
     if ($method==='manual') return;
     if (in_array($slug,['facebook','x'],true)&&$method==='direct'&&($media!==''||$ownedMedia)) { publishing_social_video_validate($slug,$variant,$destination); return; }
     if ($slug==='youtube'&&$method==='direct') { publishing_youtube_validate_variant($variant); return; }
