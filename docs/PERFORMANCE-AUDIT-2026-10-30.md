@@ -13,3 +13,11 @@ Implementation follows the pinned primary-source programmatic API and desktop co
 - https://github.com/GoogleChrome/lighthouse/blob/v13.6.0/core/config/desktop-config.js
 
 Initial measurements and resulting software corrections will be recorded on the accompanying PR; this document does not invent a baseline score.
+
+## Continuation evidence
+
+The preceding contact/domain release (PR #119, commit `718d485b2c802fa507849b7a36c2028215202aca`) passed all three production jobs in run `41085190532`. Live inspection verified phone/country visibility, active required fields, international switching and the `afrisoltech.com` footer credit. The dashboard register is updated to reflect the deployed contact requirements and individual owner-review rule.
+
+A fresh bounded anonymous source observation on 30 October returned Group HTTP 403 and Ubunifu/AfriTrace/Foundation HTTP 503. These statuses do not establish a cause, approved data or numerical impact values. Provider credentials/consents, approved sender address, authentic impact reports, settlement evidence and physical-device acceptance remain pending.
+
+Offline Node audit contracts pass. Initial GitHub jobs were queued before execution; the isolated local fallback could install the pinned tools but Chromium could not open its debugging socket (`Operation not permitted`). No performance score or optimization result is claimed from that failed attempt. Full runner execution is required before accepting the new audit implementation.

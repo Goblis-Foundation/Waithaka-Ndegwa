@@ -59,7 +59,7 @@ async function main() {
       const label = (route === '/' ? 'home' : route.slice(1)) + '-' + device;
       let chrome, guard;
       try {
-        chrome = await chromeLauncher.launch({chromePath:chromium.executablePath(),chromeFlags:['--headless','--no-sandbox','--disable-dev-shm-usage']});
+        chrome = await chromeLauncher.launch({chromePath:chromium.executablePath(),connectionPollInterval:500,maxConnectionRetries:20,chromeFlags:['--headless','--no-sandbox','--disable-dev-shm-usage']});
         guard = await chromium.connectOverCDP('http://127.0.0.1:' + chrome.port);
         let blockedWrites = 0;
         await guard.contexts()[0].route('**/*',request => {
