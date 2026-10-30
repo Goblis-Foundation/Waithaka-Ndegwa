@@ -45,6 +45,11 @@ function markdown(report) {
   return rows.join('\n');
 }
 
+async function closeAuditBrowser(guard,chrome) {
+  try { if(guard) await guard.close(); } catch (_) { /* Still terminate our own Chrome process. */ }
+  try { if(chrome) await chrome.kill(); } catch (_) { /* Runner process cleanup remains a final fallback. */ }
+}
+
 async function main() {
   const output = process.env.PERFORMANCE_EVIDENCE_DIR;
   if (!output || !path.isAbsolute(output)) throw new Error('Set an absolute, disposable performance evidence directory.');
@@ -79,8 +84,7 @@ async function main() {
         report.errors.push({route,device,error:String(error.message || error).replace(/[\r\n]+/g,' ').slice(0,250)});
         console.error('Incomplete measurement: ' + label + ': ' + report.errors.at(-1).error);
       } finally {
-        if (guard) await guard.close().catch(()=>{});
-        if (chrome) await chrome.kill().catch(()=>{});
+        await closeAuditBrowser(guard,chrome);
       }
       fs.writeFileSync(path.join(output,'summary.json'),JSON.stringify(report,null,2));
     }
@@ -92,5 +96,5 @@ async function main() {
   if (report.errors.length || report.results.length !== 8) throw new Error('Public performance audit did not complete all eight measurements.');
 }
 
-module.exports = {ORIGIN,TARGETS,summarize,markdown,readMethod};
+module.exports = {ORIGIN,TARGETS,summarize,markdown,readMethod,closeAuditBrowser};
 if (require.main === module) main().catch(error => {console.error(error.message);process.exitCode=1;});
