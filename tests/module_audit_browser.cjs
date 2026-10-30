@@ -5,8 +5,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
+ for(const key of ['activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
+  if(key.startsWith('activity-'))await page.locator('main details').evaluateAll(items=>items.forEach(e=>{e.open=true;}));
   if(key.startsWith('dashboard-'))await page.locator('.dashboard-journeys').evaluate(e=>{e.open=true;});
   if(key.startsWith('instagram-reel-'))await page.locator('main details').evaluate(e=>{e.open=true;});
   ok(await page.locator('main').count()===1,key+' has exactly one main landmark');
@@ -19,6 +20,20 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   }
  }
  ok(layoutFailures.length===0,'Module layouts: '+JSON.stringify(layoutFailures));
+ await page.goto(host+'module-activity-week.html');
+ ok(await page.locator('.fitness-progress article').count()===4,'Four private performance metrics');
+ ok((await page.locator('.fitness-progress article').first().textContent()).includes('50.0%'),'Weekly measured count progress');
+ ok(await page.locator('.fitness-chart circle').count()===7,'Weekly graph has seven calendar buckets');
+ ok(await page.locator('[data-fitness-print]').isVisible(),'Private report supports user-initiated print/PDF');
+ ok(!(await page.content()).includes('SECRET_NEVER_RENDER'),'Activity setup never renders stored credentials');
+ ok(await page.locator('.ux-page-outline,.ux-form-assist').count()===0,'Activity selectors use one index and their own explicit actions');
+ ok(await page.locator('button[value="select_period"]').isVisible(),'Period selection does not require a provider read');
+ await page.goto(host+'module-activity-year.html');
+ ok(await page.locator('.fitness-chart circle').count()===12,'Annual graph has twelve months');
+ ok(await page.locator('select[name="period"] option[value="month"]').count()===1,'Calendar month reporting remains available');
+ await page.goto(host+'module-activity-empty.html');
+ ok(await page.locator('#import-preview').count()===1,'Device import has an explicit review step');
+ ok(await page.locator('button[value="confirm_import"]').isVisible(),'Reviewed file requires explicit confirmation');
  await page.goto(host+'module-dashboard-populated.html');
  ok(await page.locator('[data-writer-post]:visible').count()===6,'Dashboard starts with six recent articles');
  await page.locator('[data-writer-more]').click();
@@ -105,6 +120,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await fallback.goto(host+'module-dashboard-populated.html');ok(await fallback.locator('[data-writer-post]:visible').count()===20,'No-JS dashboard retains every article');await fallback.locator('.dashboard-journeys summary').click();ok(await fallback.locator('.dashboard-journeys article:visible').count()===9,'No-JS journey directory remains usable');
  await fallback.close();await bare.close();ok(errors.length===0,'No runtime errors: '+errors.join(';'));
  if(process.env.EXPERIENCE_EVIDENCE_DIR){fs.mkdirSync(process.env.EXPERIENCE_EVIDENCE_DIR,{recursive:true});await page.goto(host+'module-login.html');for(const width of [390,1180]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/writer-login-'+width+'.png',fullPage:true});}}
+ if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-activity-week.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/activity-'+width+'.png',fullPage:true});}}
  if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-dashboard-populated.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/dashboard-'+width+'.png',fullPage:true});}}
  console.log('PASS: '+checks+' module, login, passkey, no-drop register and progressive-enhancement checks.');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});

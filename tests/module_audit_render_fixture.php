@@ -96,3 +96,13 @@ foreach(['populated','empty','unknown','collaborator']as$variant){
  if($variant==='collaborator'){$dashboard['can_communicate']=false;$dashboard['is_owner']=false;}
  file_put_contents($out.'/module-dashboard-'.$variant.'.html',ma_page('dashboard',['posts'=>$posts,'counts'=>['draft'=>18,'published'=>1,'scheduled'=>1,'selected'=>1,'total'=>20],'workspace'=>['scheduled'=>0,'connected'=>0,'attention'=>0],'dashboard'=>$dashboard,'libraryPage'=>1,'libraryQuery'=>'']));
 }
+
+require_once dirname(__DIR__).'/app/activity_routes.php';
+$_SERVER['REQUEST_URI']='/write/activity';
+foreach(['week','year','empty']as$variant){
+ $source=$variant==='year'?'google_health':'health_connect';$fixtureYear=$variant==='year'?'2025':'2026';$range=fitness_range(['period'=>$variant==='year'?'year':'week','anchor'=>$fixtureYear.'-01-07']);$rows=[];
+ foreach([7,8]as$i)$rows[]=fitness_row(['id'=>'fixture-'.$i,'title'=>'Synthetic walk '.$i,'type'=>'Walking','start_time'=>$fixtureYear.'-01-0'.$i.'T03:00:00Z','end_time'=>$fixtureYear.'-01-0'.$i.'T04:00:00Z','duration_seconds'=>3000,'distance_m'=>5000,'steps'=>6000,'origin'=>'com.sec.android.app.shealth'],$source);
+ $report=$variant==='empty'?null:fitness_report($rows,$range,$source);$targets=['owner'=>7,'version'=>0,'periods'=>[]];$targetValues=['activities'=>4,'active_minutes'=>150,'distance_km'=>20,'steps'=>24000];$stage=[];
+ if($variant==='empty')$stage=['owner'=>7,'source'=>'health_connect','rows'=>$rows,'revision'=>'fixture-preview','mode'=>'merge'];
+ file_put_contents($out.'/module-activity-'.$variant.'.html',ma_page('activity',compact('source','range','report','targets','targetValues','stage')+['grants'=>['google_health'=>['identity'=>'fixture-health','status'=>'pending_confirmation'],'strava'=>['identity'=>'7','status'=>'connected']],'configured'=>['google_health'=>true,'strava'=>true],'canConfigure'=>true,'error'=>'','notice'=>'','complete'=>true,'observed'=>time(),'metric'=>'activities','local'=>['health_connect'=>['count'=>2,'observed'=>time()],'samsung_health'=>null,'google_fit'=>null]]));
+}

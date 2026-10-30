@@ -14,7 +14,7 @@ function activation_definitions(): array {
         73=>['title'=>'Monthly newsletter & delivery','path'=>'/write/monthly-roundup','action'=>'Review sender and monthly edition','next'=>'Complete the approved sender postal details, confirm the exact receiving mailbox, test inbox delivery and suppression before any subscription send. Review queued messages individually; no historical bulk release.'],
         74=>['title'=>'Goal 2030 approved impact','path'=>'/write/impact','action'=>'Review source-owned reports','next'=>'Confirm each source-owned endpoint and approved closed-month report with correction/withdrawal evidence. Never publish targets as progress, combine corroborating counts or replace missing values with zero.'],
         75=>['title'=>'Google & Microsoft productivity','path'=>'/write/google#calendars','action'=>'Review calendar accounts','next'=>'Reauthorize the affected AfriTrace Google account using the same provider identity, confirm returned calendars, then verify permitted account-specific Workspace/Microsoft operations with an actual read-back.'],
-        76=>['title'=>'Live experience & devices','path'=>'/write/app','action'=>'Review device enrollment','next'=>'Perform real phone/tablet, assistive-technology, passkey/push and field Core Web Vitals checks. Passing synthetic browser scans does not certify real-device experience.'],
+        76=>['title'=>'Live experience & devices','path'=>'/write/app','action'=>'Review device enrollment','next'=>'Perform real phone/tablet, assistive-technology, passkey/push and field Core Web Vitals checks. Install the activity companion and verify Health Connect source sharing/permissions and the separate Google Health/Strava account grants. Passing synthetic browser scans does not certify real-device experience.'],
     ];
 }
 function activation_local_facts(): array {
@@ -108,7 +108,7 @@ function activation_assess(array $facts): array {
     $messages=[
         70=>$meta,71=>$network,72=>$money,73=>$mail,
         74=>$impactText,75=>$cal,
-        76=>'Automated production browser checks are installed. Physical-device and field-performance acceptance remain outstanding.'
+        76=>'Automated production browser checks are installed. Physical-device and field-performance acceptance remain outstanding. Activity companion installation, Health Connect permissions and actual Google Health/Strava consent also need their own acceptance.'
     ];
     $rows=[];
     foreach(activation_definitions()as $number=>$definition) {

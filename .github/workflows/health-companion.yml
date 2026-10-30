@@ -1,0 +1,58 @@
+name: Android activity companion
+on:
+  push:
+    paths: ['android/health-companion/**', '.github/workflows/health-companion.yml']
+  pull_request:
+    paths: ['android/health-companion/**', '.github/workflows/health-companion.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: health-companion-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Build and lint the read-only test companion
+        run: gradle --no-daemon -p android/health-companion assembleDebug lintDebug
+      - name: Verify merged APK permission boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          apkanalyzer manifest permissions android/health-companion/app/build/outputs/apk/debug/app-debug.apk > "$RUNNER_TEMP/companion-permissions.txt"
+          python3 - "$RUNNER_TEMP/companion-permissions.txt" <<'PYCODE'
+          import pathlib, sys
+          allowed = {'android.permission.health.READ_EXERCISE', 'android.permission.health.READ_DISTANCE', 'android.permission.health.READ_STEPS'}
+          permissions = {line.strip() for line in pathlib.Path(sys.argv[1]).read_text().splitlines() if line.strip().startswith('android.permission.')}
+          assert permissions == allowed, f'Unexpected Android permissions: {permissions ^ allowed}'
+          print('PASS: merged APK has only workout, distance and step read permissions; no network, GPS, background, clinical or writes.')
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: waithaka-health-companion-test-apk
+          path: android/health-companion/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: health-companion-lint
+          path: android/health-companion/app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+          retention-days: 7

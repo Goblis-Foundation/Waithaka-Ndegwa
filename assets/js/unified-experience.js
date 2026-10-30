@@ -59,7 +59,7 @@
  // Long forms get local completion and review assistance. We leave original submit buttons,
  // names, server validation, consent, draft saves and existing specialised wizards untouched.
  document.querySelectorAll('form[method="post"]').forEach(form=>{
-  if(/\/write\/(?:integration|connections|security|account|google|microsoft|booking-mailboxes)(?:\/|$)/.test(location.pathname)||form.matches('[data-promote-form]')||form.querySelector('input[type="password"],input[name*="secret"],input[name*="api_key"]')||form.matches('[data-autosave],[data-editor-form]')||form.querySelector('[contenteditable="true"]'))return;
+  if(/\/write\/(?:integration|connections|security|account|google|microsoft|booking-mailboxes)(?:\/|$)/.test(location.pathname)||form.matches('[data-promote-form],[data-no-form-assist]')||form.querySelector('input[type="password"],input[name*="secret"],input[name*="api_key"]')||form.matches('[data-autosave],[data-editor-form]')||form.querySelector('[contenteditable="true"]'))return;
   const inputs=Array.from(form.querySelectorAll('input,select,textarea')).filter(el=>!['hidden','submit','button'].includes(el.type)&&!secret(el));
   if(inputs.length<7||form.querySelector('.ux-form-assist'))return;
   const bar=make('div',undefined,'ux-form-assist'),progress=make('p','', 'ux-form-progress'),review=button('Review my entries','ux-button');progress.setAttribute('role','status');progress.setAttribute('aria-live','polite');bar.append(progress,review);form.prepend(bar);
