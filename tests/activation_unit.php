@@ -24,6 +24,7 @@ function impact_snapshot(string $name):array{return [];}
 function google_calendar_accounts(int $owner):array{return [];}
 function reconciliation_items():array{return array_fill(0,33,['id'=>'synthetic']);}
 function render_write(string $view,array $data):void{$GLOBALS['rendered_view']=$view;$GLOBALS['rendered_data']=$data;}
+require dirname(__DIR__).'/app/activity.php';
 require dirname(__DIR__).'/app/activation_centre.php';
 
 function fitness_client_fingerprint(array $client):string{return hash('sha256',json_encode($client,JSON_THROW_ON_ERROR));}
@@ -40,7 +41,7 @@ ac_check(activation_activity_state(9,'strava',$grant,$syntheticClient)==='other_
 $withoutProject=$syntheticClient;$withoutProject['dedicated_project']=false;ac_check(activation_activity_state(42,'google_health',$grant,$withoutProject)==='reconnect','Google Health cannot share an unconfirmed project.');
 $unconfirmed=$syntheticConnection;$unconfirmed['selected_resource']=null;ac_check(activation_connection_state($unconfirmed,42,'telegram')==='pending_confirmation','A saved grant without a chosen destination is never ready.');
 $connectionRows=activation_connection_rows(['threads'=>'connected','signal'=>'assisted','google_health'=>'connected','samsung_health'=>'imported','unsafe'=>'SECRET_MUST_NOT_RENDER']);
-ac_check(count($connectionRows)===9&&!str_contains(json_encode($connectionRows),'SECRET_MUST_NOT_RENDER'),'Nine exact services expose only allowlisted labels and next steps.');
+ac_check(count($connectionRows)===10&&!str_contains(json_encode($connectionRows),'SECRET_MUST_NOT_RENDER'),'Ten exact services expose only allowlisted labels and next steps.');
 $empty=activation_assess([]);
 ac_check(count($empty)===7&&array_column($empty,'issue')===[70,71,72,73,74,75,76],'All seven acceptance gates must remain ordered and present.');
 ac_check(str_contains($empty[4]['observed'],'incomplete')&&!str_contains($empty[4]['observed'],'0 approved'),'Unknown impact must remain unavailable, not numeric zero.');

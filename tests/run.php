@@ -299,6 +299,7 @@ try {
                   'runtime_config_test.php' => 'Pure runtime configuration',
                   'impact_unit.php' => '2030 reporting validation and source boundaries',
                   'google_workspace_unit.php'=>'Google report, calendar selection and MCP boundaries',
+                  'search_review_schedule_unit.php'=>'Opt-in scheduled search review, cancellation and ownership',
                   'writer_auth_unit.php'=>'Writer authentication and verification',
                   'google_meet_unit.php'=>'Selected private Meet imports and account boundaries',
                   'youtube_actions_unit.php'=>'Reviewed YouTube channel actions and independent results',

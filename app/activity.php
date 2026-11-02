@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 /** Private activity summaries. No clinical data, GPS, public publishing or AI access. */
 final class FitnessException extends RuntimeException {}
-function fitness_sources(): array {return ['google_health'=>'Google Health','strava'=>'Strava','health_connect'=>'Android Health Connect','samsung_health'=>'Samsung Health export','google_fit'=>'Google Fit export'];}
+function fitness_sources(): array {return ['google_health'=>'Google Health','strava'=>'Strava','health_connect'=>'Android Health Connect','samsung_health'=>'Samsung Health export','google_fit'=>'Google Fit export','nike_run_club'=>'Nike Run Club · mapped export'];}
+function fitness_import_sources(): array {return ['health_connect','samsung_health','google_fit','nike_run_club'];}
 function fitness_provider(string $source): void {if(!isset(fitness_sources()[$source]))throw new FitnessException('Choose an activity source.');}
 function fitness_key(int $uid,string $kind,string $source=''): string {if($uid<1||!in_array($kind,['grant','data','stage','targets'],true))throw new FitnessException('Invalid private activity record.');if($source!=='')fitness_provider($source);return 'activity.'.$uid.'.'.$kind.($source!==''?'.'.$source:'');}
 function fitness_text(mixed $v,int $max=200): string {if(!is_string($v)||mb_strlen($v)>$max||preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$v))throw new FitnessException('Review the activity text fields.');return trim($v);}
@@ -16,7 +17,7 @@ function fitness_row(array $r,string $source): array {
 }
 function fitness_unique(array $rows): array {$out=[];foreach($rows as$r){$key=$r['source'].'|'.$r['origin'].'|'.$r['id'];if(isset($out[$key])&&$out[$key]!==$r)throw new FitnessException('Conflicting versions of the same source activity. Export it again.');$out[$key]=$r;}return array_values($out);}
 function fitness_csv(string $raw,string $source): array {
- if(!in_array($source,['health_connect','samsung_health','google_fit'],true))throw new FitnessException('Use the provider connection for cloud activities.');if(strlen($raw)>2000000||!mb_check_encoding($raw,'UTF-8')||str_contains($raw,"\0"))throw new FitnessException('Choose a UTF-8 activity CSV up to 2 MB.');$raw=preg_replace('/^\xEF\xBB\xBF/','',$raw);$f=fopen('php://temp','w+');fwrite($f,$raw);rewind($f);
+ if(!in_array($source,fitness_import_sources(),true))throw new FitnessException('Use the provider connection for cloud activities.');if(strlen($raw)>2000000||!mb_check_encoding($raw,'UTF-8')||str_contains($raw,"\0"))throw new FitnessException('Choose a UTF-8 activity CSV up to 2 MB.');$raw=preg_replace('/^\xEF\xBB\xBF/','',$raw);$f=fopen('php://temp','w+');fwrite($f,$raw);rewind($f);
  try{$header=fgetcsv($f,0,',','"','');$allowed=['id','title','type','start_time','end_time','duration_seconds','distance_m','steps','calories_kcal','origin'];if(!is_array($header)||count($header)!==count(array_unique($header))||array_diff(['id','start_time','end_time'],$header)||array_diff($header,$allowed))throw new FitnessException('Use the activity template or companion export. Unmapped vendor exports need conversion; GPS and clinical fields are not imported.');$rows=[];while(($cells=fgetcsv($f,0,',','"',''))!==false){if($cells===[null])continue;if(count($rows)>=2000||count($cells)!==count($header))throw new FitnessException('The CSV is incomplete or exceeds 2,000 activities.');$rows[]=fitness_row(array_combine($header,$cells),$source);}if(!$rows)throw new FitnessException('The file contains no activities.');return fitness_unique($rows);}finally{fclose($f);}
 }
 function fitness_range(array $input): array {

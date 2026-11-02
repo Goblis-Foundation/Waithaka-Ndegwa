@@ -139,7 +139,7 @@ function activation_connection_inventory(): array {
     $owner=(int)(comm_config()['owner']??0);$states=[];
     foreach(['threads','telegram','discord','signal']as$service){try{$states[$service]=activation_connection_state(publishing_connection($service),$owner,$service);}catch(Throwable){$states[$service]='unknown';}}
     foreach(['google_health','strava']as$source){try{$states[$source]=activation_activity_state($owner,$source,comm_get(fitness_key($owner,'grant',$source)),fitness_client($source));}catch(Throwable){$states[$source]='unknown';}}
-    foreach(['health_connect','samsung_health','google_fit']as$source){try{$data=comm_get(fitness_key($owner,'data',$source));$states[$source]=!$data?'not_imported':(($data['owner']??0)!==$owner?'other_owner':(is_array($data['rows']??null)?'imported':'unknown'));}catch(Throwable){$states[$source]='unknown';}}
+    foreach(fitness_import_sources()as$source){try{$data=comm_get(fitness_key($owner,'data',$source));$states[$source]=!$data?'not_imported':(($data['owner']??0)!==$owner?'other_owner':(is_array($data['rows']??null)?'imported':'unknown'));}catch(Throwable){$states[$source]='unknown';}}
     return $states;
 }
 function activation_connection_rows(array $states): array {
@@ -152,6 +152,7 @@ function activation_connection_rows(array $states): array {
         'strava'=>['Strava','/write/activity#connections','Configure the Strava application, authorize your own athlete account and confirm the returned identity.'],
         'health_connect'=>['Android Health Connect','/write/activity#imports','Install the companion, grant workout access, export a file and review it before importing.'],
         'samsung_health'=>['Samsung Health','/write/activity#imports','Share workouts with Health Connect on the phone. Select Samsung Health in the companion, then review and import the export.'],
+        'nike_run_club'=>['Nike Run Club','/write/activity#imports','Obtain your own activity records, map measured summaries to the CSV template and review the import. No Nike login or background sync is used.'],
         'google_fit'=>['Google Fit history','/write/activity#imports','Select available Google Fit workouts in the Health Connect companion or prepare the documented CSV, then review and import it.'],
     ];
     $labels=['connected'=>'Saved account confirmed','assisted'=>'Confirmed for assisted posting','pending_confirmation'=>'Confirm the returned account','reconnect'=>'Reconnect or update app setup','disconnected'=>'Connection needed','other_owner'=>'Owner connection needed','permissions_missing'=>'Publishing permission needed','unknown'=>'Status unavailable','imported'=>'Reviewed import saved','not_imported'=>'Reviewed import needed'];

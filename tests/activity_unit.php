@@ -54,4 +54,15 @@ $malformedGoogle=static function(string $method,string $url,?array $body=null,st
 rejects(fn()=>fitness_client_input('google_health',['client_id'=>'123456789012-health.apps.googleusercontent.com','client_secret'=>'fixture','separate_project'=>'1'],['123456789012-workspace.apps.googleusercontent.com']),'Distinct OAuth clients in the same known Google project cannot couple revocation');
 rejects(fn()=>fitness_client_input('google_health',['client_id'=>'isolated-health','client_secret'=>'fixture']),'Dedicated project declaration is explicit');ac(fitness_client_input('google_health',['client_id'=>'isolated-health','client_secret'=>'fixture','separate_project'=>'1'])['dedicated_project']===true,'Separate Google Health project confirmation saved');
 $privacy=fitness_privacy_notice();ac(str_contains($privacy,'id="activity-data"')&&str_contains($privacy,'not stored as an activity cache')&&!str_contains($privacy,'SECRET_NEVER_RENDER'),'Public activity privacy notice is static and contains no private records');
+
+
+// Nike history remains a separate, owner-selected mapped import, never an OAuth cloud source.
+$nrc=fitness_csv("id,title,start_time,end_time,distance_m\nnike-1,Run,2026-01-07T03:00:00Z,2026-01-07T04:00:00Z,5000\n",'nike_run_club');
+ac($nrc[0]['source']==='nike_run_club'&&$nrc[0]['seconds']===null&&$nrc[0]['steps']===null,'Nike missing active duration and steps remain unknown');
+ac($nrc[0]['distance_m']===5000.0&&in_array('nike_run_club',fitness_import_sources(),true),'Nike imports use measured metres and explicit source identity');
+rejects(fn()=>fitness_cloud('nike_run_club'),'Nike mapped import is not a cloud connection');
+fitness_stage(7,'nike_run_club',$nrc,'replace');$preview=comm_get(fitness_key(7,'stage'));fitness_confirm_import(7,$preview['revision']);
+ac(comm_get(fitness_key(7,'data','nike_run_club'))['rows']===$nrc,'Nike reviewed confirmation stores only its own source');
+ac(comm_get(fitness_key(8,'data','nike_run_club'))===[],'Nike import never appears in another account');
+
 echo "PASS: $checks private activity, OAuth, import, period target, graph and retention checks.\n";

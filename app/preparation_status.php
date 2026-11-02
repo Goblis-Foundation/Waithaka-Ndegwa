@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** Privacy-safe monitoring of preparation that runs independently from delivery. */
-function preparation_names(): array {return ['editorial'=>'Editorial plan and private newsletter drafts','audience'=>'Aggregate audience refresh','impact'=>'Approved impact-source refresh','calendars'=>'Selected-calendar refresh'];}
+function preparation_names(): array {return ['editorial'=>'Editorial plan and private newsletter drafts','audience'=>'Aggregate audience refresh','impact'=>'Approved impact-source refresh','calendars'=>'Selected-calendar refresh','search'=>'Scheduled Search Console review'];}
 function preparation_stage(string $stage,callable $work): mixed {
     if(!isset(preparation_names()[$stage]))throw new InvalidArgumentException('Unknown preparation stage.');
     $started=time();$save=static function(array $r)use($stage):void{try{comm_put('preparation.status.'.$stage,$r);}catch(Throwable){error_log('Preparation monitoring unavailable.');}};

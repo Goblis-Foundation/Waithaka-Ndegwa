@@ -24,7 +24,7 @@ function impl_csrf(array $response):string{
 $password=bin2hex(random_bytes(20));$email=$prefix.'@example.invalid';
 db()->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['Full implementation fixture',$email,password_hash($password,PASSWORD_DEFAULT)]);$user=(int)db()->lastInsertId();
 try{
-    foreach(['/write/media','/write/operations','/write/mail-feedback','/write/newsletter']as$route){
+    foreach(['/write/media','/write/operations','/write/mail-feedback','/write/newsletter','/write/google/search-reviews']as$route){
         $response=impl_request($route,null,false);impl_check($response['status']===302&&($response['headers']['location']??'')===$base.'/write/login','New Writer tools must require authentication: '.$route);
     }
     $login=impl_request('/write/login');$csrf=impl_csrf($login);
@@ -38,6 +38,8 @@ $forbiddenImpact=impl_request('/write/impact');
 impl_check($forbiddenImpact['status']===200&&!str_contains($forbiddenImpact['body'],'Approved reporting URL')&&!str_contains($forbiddenImpact['body'],'_token'),'Other Writers receive high-level impact status without source token or URL controls.');
 $forbiddenSync=impl_request('/write/impact',['csrf'=>$csrf,'action'=>'sync']);
 impl_check($forbiddenSync['status']===403,'Other Writers cannot initiate the source feed check.');
+$forbiddenSearch=impl_request('/write/google/search-reviews');
+impl_check($forbiddenSearch['status']===403,'Scheduled search summaries remain owner-only.');
 $forbiddenGoogle=impl_request('/write/google',['csrf'=>$csrf,'action'=>'settings']);
 impl_check($forbiddenGoogle['status']===403,'Other Writers cannot rewrite sitewide Google credentials or defaults.');
 $settingsOverview=impl_request('/write/settings');
