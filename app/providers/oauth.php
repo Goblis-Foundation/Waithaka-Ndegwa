@@ -287,18 +287,43 @@ function publishing_provider_identity(string $service, array &$token): array {
         $permissions = publishing_http('GET',$base.'/me/permissions',$access)['data']['data'] ?? [];
         $granted = array_column(array_filter($permissions,static fn($p)=>($p['status']??'')==='granted'),'permission');
         foreach (publishing_services()[$service]['scopes'] as $permission) if (!in_array($permission,$granted,true)) throw new RuntimeException('Facebook Page access is missing a required permission.');
-        $response = publishing_http('GET',$base.'/me/accounts?fields=id,name,access_token,tasks,link&limit=100',$access)['data'];
-        $token['page_tokens'] = [];
-        foreach ($response['data'] ?? [] as $page) {
-            if (empty($page['access_token']) || !array_intersect(['CREATE_CONTENT','MANAGE','PROFILE_PLUS_CREATE_CONTENT','PROFILE_PLUS_FULL_CONTROL'], $page['tasks'] ?? [])) continue;
-            $resources[] = ['id'=>$page['id'],'name'=>$page['name'],'type'=>'page','url'=>$page['link'] ?? 'https://www.facebook.com/'.$page['id']];
-            $token['page_tokens'][(string)$page['id']] = $page['access_token'];
-        }
-        $metadata['pagination_note'] = !empty($response['paging']['next']) ? 'The first 100 Pages are shown. Use a provider integration if your Page is outside this list.' : '';
+        $pages = publishing_facebook_discover_pages(static fn(string $cursor): array => publishing_http('GET',$base.'/me/accounts?fields=id,name,access_token,tasks,link&limit=100'.($cursor!==''?'&after='.rawurlencode($cursor):''),$access)['data']);
+        $resources = $pages['resources'];
+        $token['page_tokens'] = $pages['page_tokens'];
+        $metadata['page_discovery'] = $pages['diagnostics'];
         }
     } else throw new RuntimeException('Unsupported connection provider.');
     if ($id === '' || strlen($id) > 255) throw new RuntimeException('The provider did not return a usable account identity.');
     return ['id'=>$id,'name'=>mb_substr($name,0,255),'resources'=>$resources,'metadata'=>$metadata];
+}
+
+/** Follow opaque cursors on the fixed accounts endpoint; never follow provider URLs with tokens. */
+function publishing_facebook_discover_pages(callable $fetch): array {
+    $resources=[];$tokens=[];$skipped=[];$seen=[];$cursors=[];$cursor='';$responses=0;
+    do {
+        if (++$responses>20) throw new RuntimeException('Facebook Page discovery exceeded its safety limit. Existing access was retained; try again later.');
+        $response=$fetch($cursor);
+        if (!isset($response['data']) || !is_array($response['data'])) throw new RuntimeException('Facebook did not return a valid Page list. Existing access was retained.');
+        foreach ($response['data'] as $page) {
+            if (!is_array($page) || !is_string($page['id']??null) || !preg_match('/^[0-9]{1,40}$/D',$page['id'])) throw new RuntimeException('Facebook returned an invalid Page identity.');
+            $id=$page['id'];if(isset($seen[$id]))continue;$seen[$id]=true;
+            $name=mb_substr((string)($page['name']??$id),0,255);
+            $tasks=is_array($page['tasks']??null)?$page['tasks']:[];
+            $canPost=(bool)array_intersect(['CREATE_CONTENT','MANAGE','PROFILE_PLUS_CREATE_CONTENT','PROFILE_PLUS_FULL_CONTROL'],$tasks);
+            $hasToken=is_string($page['access_token']??null)&&$page['access_token']!=='';
+            if (!$hasToken || !$canPost) {
+                $skipped[]=['id'=>$id,'name'=>$name,'reason'=>!$hasToken?'Facebook did not supply Page access.':'Facebook did not return a content-creation task.'];
+                continue;
+            }
+            $resources[]=['id'=>$id,'name'=>$name,'type'=>'page','url'=>$page['link']??'https://www.facebook.com/'.$id];
+            $tokens[$id]=$page['access_token'];
+        }
+        if (empty($response['paging']['next'])) break;
+        $cursor=$response['paging']['cursors']['after']??null;
+        if (!is_string($cursor)||$cursor===''||strlen($cursor)>4096||isset($cursors[$cursor])) throw new RuntimeException('Facebook returned incomplete or repeated Page pagination. Existing access was retained.');
+        $cursors[$cursor]=true;
+    } while (true);
+    return ['resources'=>$resources,'page_tokens'=>$tokens,'diagnostics'=>['responses'=>$responses,'returned'=>count($seen),'eligible'=>count($resources),'skipped'=>$skipped,'complete'=>true]];
 }
 
 function publishing_save_observed_connection(string $service, array $credentials, array $scopes, array $observed, int $userId): void {

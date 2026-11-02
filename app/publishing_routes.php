@@ -68,6 +68,17 @@ function publishing_dispatch(string $path): bool {
             publishing_confirm_connection($m[1],(string)($_POST['resource']??''),$userId);
             flash('success','Account and destination confirmed. Use its authorized features below; publishing routes are selected separately.');redirect(url(meetings_definition($m[1])?'/write/meetings#'.publishing_services()[$m[1]]['provider']:'/write/connections#'.$m[1]));
         }
+        if ($path==='/write/connections/facebook_pages/refresh'&&is_post()) {
+            if(!journeys_rate_limit('facebook-page-discovery',(string)$userId,6,3600))throw new RuntimeException('Please wait before refreshing Facebook Page discovery again.');
+            $connection=publishing_connection('facebook_pages');
+            if(!$connection||!in_array($connection['status'],['connected','pending_confirmation'],true))throw new RuntimeException('Connect Facebook Pages before refreshing discovery.');
+            $credentials=publishing_credentials($connection);
+            if(empty($credentials['access_token'])||(!empty($credentials['expires_at'])&&(int)$credentials['expires_at']<=time()+120))throw new RuntimeException('Reconnect Facebook to renew expired access.');
+            $observed=publishing_provider_identity('facebook_pages',$credentials);
+            if((string)$observed['id']!==(string)$connection['external_id'])throw new RuntimeException('The Facebook identity changed. Reconnect and review the account.');
+            publishing_save_observed_connection('facebook_pages',$credentials,publishing_decode($connection['scopes_json']),$observed,$userId);
+            flash('success','Page discovery refreshed using existing permissions. Review the returned Pages and confirm them again. No post was sent.');redirect(url('/write/connections#facebook_pages'));
+        }
         if (preg_match('~^/write/connections/([a-z_]+)/disconnect$~',$path,$m)&&is_post()) {
             if(!isset(publishing_services()[$m[1]]))throw new RuntimeException('Unknown connection.');
             db()->prepare("UPDATE publishing_connections SET status='disconnected',credentials_encrypted=NULL,selected_resource=NULL,resources_json=NULL,metadata_json=NULL,scopes_json=NULL WHERE service=?")->execute([$m[1]]);
