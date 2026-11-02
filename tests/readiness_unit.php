@@ -34,9 +34,14 @@ readiness_test($byId['canonical']['state']==='ok','Omitted canonical flag uses t
 $defaultRouting['force_canonical']=false;
 $byId=array_column(readiness_config_checks($defaultRouting,$caps),null,'id');
 readiness_test($byId['canonical']['state']==='attention','Explicitly disabled canonical enforcement still needs review.');
+readiness_test(str_contains($byId['canonical']['summary'],'disabled; verify edge redirects'),'A disabled app flag must identify the next edge check, not claim HTTPS is broken.');
 $defaultRouting['force_canonical']=true;$defaultRouting['app_env']='staging';
 $byId=array_column(readiness_config_checks($defaultRouting,$caps),null,'id');
 readiness_test($byId['canonical']['state']==='attention','Non-production bootstrap does not enforce canonical routing.');
+readiness_test(str_contains($byId['canonical']['summary'],'outside production'),'Non-production routing must identify the environment limitation.');
+$defaultRouting['base_url']='http://example.com';
+$byId=array_column(readiness_config_checks($defaultRouting,$caps),null,'id');
+readiness_test(str_contains($byId['canonical']['summary'],'valid HTTPS URL'),'An insecure configured origin must remain a distinct actionable finding.');
 $config['media']['private_bucket']=$config['media']['bucket'];$config['mail']['transport']='disabled';
 $byId=array_column(readiness_config_checks($config,$caps),null,'id');
 readiness_test($byId['media']['state']==='attention','Public and private media must not share a bucket.');
