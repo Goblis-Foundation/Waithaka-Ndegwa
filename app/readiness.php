@@ -82,7 +82,10 @@ function readiness_config_checks(array $config,array $capabilities): array {
     $checks[]=readiness_check('key','Application encryption key',$keyReady?'ok':'blocked',$keyReady?'Key is configured':'Key is missing or invalid','This checks key format only. Preserve this key in backups; restored encrypted records require the same key.');
     $runtime=($capabilities['php_version_id']??0)>=80300&&empty($capabilities['missing_extensions']);
     $checks[]=readiness_check('runtime','PHP runtime',$runtime?'ok':'blocked',$runtime?'Required runtime is available':'A runtime requirement is missing','PHP 8.3 or newer and the required database, HTTP, DOM, image and encryption extensions are checked locally.');
-    $canonical=readiness_https_url($config['base_url']??null)&&!empty($config['force_canonical']);
+    // Match bootstrap's effective defaults; an omitted flag enables routing.
+    $canonical=readiness_https_url($config['base_url']??null)
+        &&($config['app_env']??'production')==='production'
+        &&($config['force_canonical']??true);
     $checks[]=readiness_check('canonical','Canonical HTTPS address',$canonical?'ok':'attention',$canonical?'HTTPS canonical routing is configured':'Review canonical HTTPS configuration','Verify the live certificates and all domain redirects through the deployed edge before cutover.');
     $proxies=$config['trusted_proxies']??[];$proxiesValid=is_array($proxies)&&$proxies!==[];
     if($proxiesValid)foreach($proxies as$range)if(!readiness_proxy_valid($range))$proxiesValid=false;
