@@ -18,3 +18,16 @@ function article_groups_apply_migration(PDO $pdo): void {
         if(!article_groups_migration_verified($pdo))throw new RuntimeException('Article grouping schema is incompatible.');
     }finally{$q=$pdo->prepare('SELECT RELEASE_LOCK(?)');$q->execute([$key]);}
 }
+
+/** Private, expiring deployment metadata; no credentials are accepted or stored here. */
+function article_groups_authority(array $manifest,string $host,string $database,string $hash,?int $now=null): string {
+    $now??=time();$keys=['schema_version','migration','sha256','state','account_id','region','admin_secret_arn','db_host','db_name','release','expires_at'];
+    if(array_diff(array_keys($manifest),$keys)||array_diff($keys,array_keys($manifest))
+        ||($manifest['schema_version']??null)!==1||($manifest['migration']??null)!=='210_article_groups.sql'||($manifest['state']??null)!=='open'
+        ||($manifest['sha256']??null)!==$hash||($manifest['account_id']??null)!=='466401734428'||($manifest['region']??null)!=='af-south-1'
+        ||($manifest['db_host']??null)!==$host||($manifest['db_name']??null)!==$database
+        ||!is_int($manifest['expires_at']??null)||$manifest['expires_at']<=$now||$manifest['expires_at']>$now+3660
+        ||!is_string($manifest['release']??null)||!preg_match('/^r17-[a-f0-9]{12}$/D',$manifest['release'])
+        ||!is_string($manifest['admin_secret_arn']??null)||!preg_match('~^arn:aws:secretsmanager:af-south-1:466401734428:secret:[A-Za-z0-9/!_+=.@-]+$~D',$manifest['admin_secret_arn']))throw new RuntimeException('The article migration authority does not match this database and release.');
+    return $manifest['admin_secret_arn'];
+}

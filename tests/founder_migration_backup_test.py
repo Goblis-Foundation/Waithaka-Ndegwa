@@ -43,4 +43,6 @@ class DiagnosticPrivacyTests(unittest.TestCase):
   diagnostic=importlib.util.module_from_spec(spec);spec.loader.exec_module(diagnostic)
   sample='password=private-fixture\\nAuthorization: private-fixture\\nFounder migration AWS read failed: AccessDeniedException; HTTP 400.\\nraw SQL and contact private-fixture'
   self.assertEqual(diagnostic.safe_lines(sample),['Founder migration AWS read failed: AccessDeniedException; HTTP 400.'])
+  article='password=private-fixture Article grouping migration AWS read failed: AccessDeniedException; HTTP 400. token=private-fixture'
+  self.assertEqual(diagnostic.safe_lines(article),['Article grouping migration AWS read failed: AccessDeniedException; HTTP 400.'])
 if __name__=='__main__':unittest.main()
