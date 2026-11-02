@@ -93,10 +93,10 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import subprocess,json,time,urllib.request,zipfile,io,re,datetime
+          import subprocess,json,time,urllib.request,zipfile,io,re,datetime,tempfile,pathlib
           def aws(*a):
               r=subprocess.run(['aws',*a,'--region','af-south-1','--output','json'],capture_output=True,text=True)
-              if r.returncode: raise RuntimeError(r.stderr)
+              if r.returncode: raise RuntimeError('Scoped deployment diagnostic metadata could not be read.')
               return json.loads(r.stdout or '{}')
           name='waithaka-ndegwa-production'
           requested=time.time()
@@ -107,25 +107,34 @@ jobs:
               entries=[e for e in entries if datetime.datetime.fromisoformat(e.get('SampleTimestamp','1970-01-01T00:00:00+00:00').replace('Z','+00:00')).timestamp() >= requested-5]
               if entries: break
           if not entries: raise RuntimeError('Beanstalk did not return tail logs.')
-          blocked=re.compile(r'password|secret|credential|token|APP_KEY|DB_PASS|Authorization|PRIVATE KEY',re.I)
-          for entry in entries:
-              data=urllib.request.urlopen(entry['Message'],timeout=30).read()
+          # Print fixed diagnostic shapes only, never raw application logs.
+          safe=re.compile(r'(Article grouping migration AWS read failed: [A-Za-z0-9_.-]{1,100}; HTTP [0-9]{1,3}\.|Article grouping (?:additive migration applied and verified|migration already verified with runtime read access)\.|Application error [A-F0-9]{12}(?: [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+)?|Could not open input file: bin/[a-z0-9-]+\.php|SQLSTATE\[[A-Z0-9]{5}\](?: \[[0-9]{1,5}\])?|\.platform/hooks/(?:predeploy|postdeploy)/[a-zA-Z0-9_-]+\.sh|(?:PDOException|RuntimeException|TypeError|ParseError|AwsException)(?: in /[A-Za-z0-9_./-]+:[0-9]+)?)')
+          causes=['The exact production database migration identity is required.','Migration identity is incomplete.','Production database TLS configuration is incomplete.','Unexpected article grouping migration.','Applied article grouping migration differs from this release.','Article grouping schema is incompatible.','Another article grouping upgrade is running.','could not find driver','syntax error, unexpected token','Permission denied']
+          bodies=[]
+          def retain(data):
               if zipfile.is_zipfile(io.BytesIO(data)):
-                  archive=zipfile.ZipFile(io.BytesIO(data))
-                  logs=[(path,archive.read(path)) for path in archive.namelist() if any(x in path for x in ['eb-engine.log','eb-hooks.log','error_log'])]
-              else:
-                  logs=[('Beanstalk tail logs',data)]
-              for path,body in logs:
-                  print('LOG '+path)
-                  lines=body.decode('utf-8','replace').splitlines()
-                  for line in lines[-300:]:
-                      if re.search(r'Application error [A-F0-9]{12} [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+',line): print(re.search(r'Application error [A-F0-9]{12} [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+',line).group(0))
-                      elif 'DB_ADMIN_SECRET_ARN is not configured.' in line: print('Bootstrap: DB_ADMIN_SECRET_ARN is not configured.')
-                      elif 'AWS Secrets Manager SDK is unavailable.' in line: print('Bootstrap: AWS Secrets Manager SDK is unavailable.')
-                      elif 'Database administrator secret is malformed.' in line: print('Bootstrap: Database administrator secret is malformed.')
-                      elif 'Database administrator secret is incomplete.' in line: print('Bootstrap: Database administrator secret is incomplete.')
-                      elif blocked.search(line): print('[sensitive log line omitted]')
-                      else: print(line[:1600])
+                  with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                      bodies.extend(archive.read(info) for info in archive.infolist() if info.file_size<=4*1024*1024 and any(x in info.filename for x in ['eb-engine.log','eb-hooks.log','error_log','error.log','php-fpm']))
+              else: bodies.append(data)
+          for entry in entries:
+              retain(urllib.request.urlopen(entry['Message'],timeout=30).read(16*1024*1024))
+          # A failed rolling instance can terminate before the current-instance tail is requested.
+          # Inspect only four recent bundles under this exact environment's retained-log prefix.
+          bucket='elasticbeanstalk-af-south-1-466401734428'
+          prefix='resources/environments/logs/bundle/e-8sjvpauytq/'
+          objects=aws('s3api','list-objects-v2','--bucket',bucket,'--prefix',prefix,'--max-keys','1000','--no-paginate').get('Contents',[])
+          recent=[o for o in objects if o.get('Size',0)<=16*1024*1024 and datetime.datetime.fromisoformat(o['LastModified'].replace('Z','+00:00')).timestamp()>requested-43200]
+          for item in sorted(recent,key=lambda o:o['LastModified'],reverse=True)[:4]:
+              if not item['Key'].startswith(prefix): raise RuntimeError('Unexpected retained-log scope.')
+              with tempfile.TemporaryDirectory(prefix='waithaka-safe-log-') as folder:
+                  target=pathlib.Path(folder)/'bundle.zip'
+                  aws('s3api','get-object','--bucket',bucket,'--key',item['Key'],str(target))
+                  retain(target.read_bytes())
+          for body in bodies:
+              for line in body.decode('utf-8','replace').splitlines():
+                  for match in safe.finditer(line): print(match.group(0))
+                  for cause in causes:
+                      if cause in line: print('Migration diagnostic: '+cause)
           PY
 # Read-only acceptance rerun after release 7dca603: inspect the monthly timer's
 # postdeploy output and boolean sender readiness. No message or payment is sent.
