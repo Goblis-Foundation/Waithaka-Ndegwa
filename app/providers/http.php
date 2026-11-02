@@ -51,6 +51,7 @@ function publishing_http(string $method, string $url, array $headers = [], ?arra
             default => 'The provider rejected the request (HTTP '.$code.'). Check the format, account and application settings.'
         };
         if ($code === 403 && in_array(strtolower($parts['host'] ?? ''), ['www.googleapis.com','calendar.googleapis.com','gmail.googleapis.com','generativelanguage.googleapis.com'], true)) $message = publishing_google_denial_message((string)$raw);
+        if (strtolower($parts['host'] ?? '') === 'gmailpostmastertools.googleapis.com') $message = publishing_postmaster_error_message((string)$raw, $code);
         throw new PublishingRemoteException($message, $code, $publishingMutation && $code >= 500);
     }
     $data = json_decode((string)$raw, true);
@@ -101,4 +102,37 @@ function publishing_google_denial_message(string $raw): string {
         'dailyLimitExceeded','quotaExceeded','rateLimitExceeded','userRateLimitExceeded','RATE_LIMIT_EXCEEDED'=>'Google denied access because a quota or rate limit was reached. Review the project’s API quota before retrying.',
         default=>null};if($message!==null)return $message;
     }return $fallback;
+}
+
+/** Fixed diagnostic vocabulary only: never expose Google messages, metadata or credentials. */
+function publishing_postmaster_error_message(string $raw, int $httpStatus): string {
+    $prefix = 'Google Postmaster HTTP '.$httpStatus.'. ';
+    $data = json_decode($raw, true);
+    $error = is_array($data) && is_array($data['error'] ?? null) ? $data['error'] : [];
+    $statuses = ['RESOURCE_EXHAUSTED','PERMISSION_DENIED','UNAUTHENTICATED','INVALID_ARGUMENT','NOT_FOUND','UNAVAILABLE','INTERNAL','FAILED_PRECONDITION'];
+    if (is_string($error['status'] ?? null) && in_array($error['status'], $statuses, true)) $prefix .= 'Status: '.$error['status'].'. ';
+    $messages = [
+        'SERVICE_DISABLED'=>'Enable Gmail Postmaster Tools API in the OAuth client project.',
+        'API_DISABLED'=>'Enable Gmail Postmaster Tools API in the OAuth client project.',
+        'accessNotConfigured'=>'Enable Gmail Postmaster Tools API in the OAuth client project.',
+        'ACCESS_TOKEN_SCOPE_INSUFFICIENT'=>'Reconnect with the Postmaster read permission.',
+        'insufficientPermissions'=>'Review the granted Postmaster permission and account domain access.',
+        'RATE_LIMIT_EXCEEDED'=>'Google reports a rate limit. Check per-user and project request limits before retrying.',
+        'rateLimitExceeded'=>'Google reports a rate limit. Check per-user and project request limits before retrying.',
+        'userRateLimitExceeded'=>'Google reports a per-user rate limit. Check other clients using this account before retrying.',
+        'quotaExceeded'=>'Google reports a quota limit. Inspect this API’s quota metrics in the OAuth client project.',
+        'QUOTA_EXCEEDED'=>'Google reports a quota limit. Inspect this API’s quota metrics in the OAuth client project.',
+        'dailyLimitExceeded'=>'Google reports a daily quota limit. Check the quota in the OAuth client project.',
+        'domainPolicy'=>'Review the account’s Workspace policy for this service.',
+        'ORG_RESTRICTION_VIOLATION'=>'Review the account’s Workspace policy for this service.',
+        'backendError'=>'Google reports a backend error. Retry later.',
+    ];
+    foreach (['errors','details'] as $field) {
+        if (!is_array($error[$field] ?? null)) continue;
+        foreach ($error[$field] as $item) {
+            $reason = is_array($item) ? ($item['reason'] ?? null) : null;
+            if (is_string($reason) && isset($messages[$reason])) return $prefix.'Reason: '.$reason.'. '.$messages[$reason];
+        }
+    }
+    return $prefix.'Google supplied no recognized safe reason code. The response does not establish an exhausted project quota. Inspect the API error metrics or contact Google support; repeated reconnection is not a diagnosis.';
 }
