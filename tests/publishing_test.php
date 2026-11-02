@@ -56,6 +56,19 @@ $facebook['delivery_method']='manual';check(publishing_capability($facebook)['us
 $instagram=['slug'=>'instagram','account_type'=>'professional','delivery_method'=>'direct'];
 check(!publishing_capability($instagram)['usable'],'Professional branding does not imply OAuth authorization');
 check(publishing_capability($instagram,$identity)['mode']==='direct','Direct declaration is represented distinctly');
+$fbCalls=[];
+$fbDiscovery=publishing_facebook_discover_pages(function(string $cursor)use(&$fbCalls):array{
+    $fbCalls[]=$cursor;
+    if($cursor==='')return ['data'=>[['id'=>'123','name'=>'First','tasks'=>['CREATE_CONTENT'],'access_token'=>'fixture-token']], 'paging'=>['next'=>'https://untrusted.invalid/?access_token=never-follow','cursors'=>['after'=>'opaque+cursor']]];
+    check($cursor==='opaque+cursor','Only the returned opaque cursor is used for continuation');
+    return ['data'=>[['id'=>'123','name'=>'Duplicate','tasks'=>['CREATE_CONTENT'],'access_token'=>'fixture-token'],['id'=>'456','name'=>'Second','tasks'=>['PROFILE_PLUS_CREATE_CONTENT'],'access_token'=>'fixture-token-2'],['id'=>'789','name'=>'No task','tasks'=>['ANALYZE'],'access_token'=>'fixture-secret-3'],['id'=>'101','name'=>'No token','tasks'=>['CREATE_CONTENT']]]];
+});
+check(count($fbCalls)===2&&count($fbDiscovery['resources'])===2,'Short first responses do not truncate Page discovery; duplicates are omitted');
+check($fbDiscovery['diagnostics']['returned']===4&&count($fbDiscovery['diagnostics']['skipped'])===2,'Diagnostics distinguish returned and eligible Pages');
+check(!str_contains(json_encode($fbDiscovery['diagnostics']),'fixture-')&&!str_contains(json_encode($fbDiscovery['resources']),'fixture-'),'Page tokens never appear in diagnostic or resource metadata');
+rejects(fn()=>publishing_facebook_discover_pages(fn($cursor)=>['data'=>[],'paging'=>['next'=>'next','cursors'=>['after'=>'same']]]),'Repeated cursors fail rather than silently truncating');
+rejects(fn()=>publishing_facebook_discover_pages(fn($cursor)=>['data'=>[],'paging'=>['next'=>'next']]),'Missing continuation cursor fails closed');
+rejects(fn()=>publishing_facebook_discover_pages(fn($cursor)=>['error'=>['message'=>'provider error']]),'Invalid responses cannot replace a working connection');
 $pageSet=['service'=>'facebook_pages','status'=>'connected','selected_resource'=>'*','scopes_json'=>'["pages_show_list","pages_read_engagement","pages_manage_posts"]','resources_json'=>'[{"id":"123","name":"Page A","type":"page"},{"id":"456","name":"Page B","type":"page"}]'];
 check(publishing_facebook_page_connection($pageSet,'456')['selected_resource']==='456','An optional Page is selected without mutating the saved set');
 check($pageSet['selected_resource']==='*','Selection is local to the approved destination');
