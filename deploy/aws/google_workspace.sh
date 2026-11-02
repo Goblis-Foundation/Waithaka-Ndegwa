@@ -34,7 +34,7 @@ region=os.environ['WK_MAIL_REGION']; name=os.environ['WK_MAIL_ENV']
 def aws(*args):
     return json.loads(subprocess.check_output(['aws','elasticbeanstalk',*args,'--region',region,'--output','json','--no-cli-pager'],text=True))
 ns='aws:elasticbeanstalk:application:environment'
-desired={'MAIL_TRANSPORT':'smtp','MAIL_FROM':'isaac@waithakandegwa.com','MAIL_FROM_NAME':'Waithaka Ndegwa','MAIL_REPLY_TO':'isaac@waithakandegwa.com','SMTP_HOST':'smtp-relay.gmail.com','SMTP_PORT':'587','SMTP_ENCRYPTION':'tls','SMTP_HELO':'waithakandegwa.com'}
+desired={'CONTACT_RECIPIENT':'isaac@waithakandegwa.com','MAIL_TRANSPORT':'smtp','MAIL_FROM':'isaac@waithakandegwa.com','MAIL_FROM_NAME':'Waithaka Ndegwa','MAIL_REPLY_TO':'isaac@waithakandegwa.com','SMTP_USERNAME':'','SMTP_HOST':'smtp-relay.gmail.com','SMTP_PORT':'587','SMTP_ENCRYPTION':'tls','SMTP_HELO':'waithakandegwa.com'}
 current=aws('describe-configuration-settings','--application-name','waithaka-ndegwa','--environment-name',name)
 options=current['ConfigurationSettings'][0]['OptionSettings']
 values={v['OptionName']:v.get('Value','') for v in options if v['Namespace']==ns}

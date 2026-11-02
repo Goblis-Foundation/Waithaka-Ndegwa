@@ -621,13 +621,14 @@ function contact_rate_limited(): bool {
 }
 function make_reference(string $prefix): string { return strtoupper($prefix).'-'.date('ymd').'-'.strtoupper(substr(bin2hex(random_bytes(6)),0,10)); }
 
+function contact_notification_recipient(): string {return trim((string)app_config('contact.recipient',setting('contact.recipient','')));}
 function send_contact_email(array $m): bool {
-    $to=trim((string)setting('contact.recipient','')); if($to===''||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;
+    $to=contact_notification_recipient(); if($to===''||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;
     $subject=mb_substr('Website message '.$m['reference'].' — '.$m['first_name'].' '.$m['last_name'],0,250);
     $body="New message from waithakandegwa.com\n\nReference: {$m['reference']}\nName: {$m['first_name']} {$m['last_name']}\nEmail: {$m['email']}\nPhone: {$m['phone_code']} {$m['phone']}\nLocation: {$m['city']}, {$m['country']}\n\nMessage:\n{$m['message']}\n";
     $from=trim((string)setting('mail.from','noreply@waithakandegwa.com')); if(!filter_var($from,FILTER_VALIDATE_EMAIL))$from='noreply@waithakandegwa.com';
     $safeReply=str_replace(["\r","\n"],'',$m['email']);
-    if(function_exists('enqueue_email')){try{enqueue_email($to,$subject,email_design('A new website enquiry','<p>A message has been saved in your reader desk.</p><p><strong>Reference:</strong> '.e($m['reference']).'</p><p><strong>From:</strong> '.e($m['first_name'].' '.$m['last_name']).' · '.e($m['email']).'</p><p>'.nl2br(e($m['message'])).'</p>'.email_design_button('Open the reader desk',url('/write/readers')),['name'=>'Waithaka']),'contact:'.$m['reference']);return true;}catch(Throwable $e){error_log('Contact email queue failed for '.$m['reference']);return false;}}
+    if(function_exists('enqueue_email')){try{enqueue_email($to,$subject,email_design('A new website enquiry','<p>A message has been saved in your reader desk.</p><p><strong>Reference:</strong> '.e($m['reference']).'</p><p><strong>From:</strong> '.e($m['first_name'].' '.$m['last_name']).' · '.e($m['email']).'</p><p>'.nl2br(e($m['message'])).'</p>'.email_design_button('Open the reader desk',url('/write/readers')),['name'=>'Waithaka']),'contact:'.$m['reference'],['Reply-To'=>$safeReply]);return true;}catch(Throwable $e){error_log('Contact email queue failed for '.$m['reference']);return false;}}
     $headers=['From: Waithaka Ndegwa Website <'.$from.'>','Reply-To: '.$safeReply,'Content-Type: text/plain; charset=UTF-8'];
     return @mail($to,$subject,$body,implode("\r\n",$headers));
 }

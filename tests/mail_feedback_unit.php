@@ -47,6 +47,8 @@ feedback_reject(fn()=>mail_feedback_verify($body,$loader),'Injected certificate 
 $CONFIG['app_env']='testing';
 $headers=['List-Unsubscribe'=>'<https://www.waithakandegwa.com/newsletter/one-click?token='.str_repeat('a',64).'>','List-Unsubscribe-Post'=>'List-Unsubscribe=One-Click'];
 feedback_check(email_safe_headers($headers)===$headers,'The two RFC 8058 headers must be preserved verbatim.');
+feedback_check(email_safe_headers(['Reply-To'=>'visitor@example.invalid'])===['Reply-To'=>'visitor@example.invalid'],'Validated visitor Reply-To is preserved.');
+foreach(['not-an-address',"visitor@example.invalid\r\nBcc: hidden@example.invalid"]as$badReply)feedback_reject(fn()=>email_safe_headers(['Reply-To'=>$badReply]),'Invalid and injected Reply-To addresses are rejected.');
 foreach([['Bcc'=>'hidden@example.invalid'],['List-Unsubscribe'=>"<https://example.com/>\r\nBcc: bad@example.invalid"],['List-Unsubscribe-Post'=>'List-Unsubscribe=One-Click'],['List-Unsubscribe'=>'<https://user:password@example.com/>']]as$bad)feedback_reject(fn()=>email_safe_headers($bad),'Unsafe or incomplete custom mail headers must be rejected.');
 $args=email_ses_arguments(['to'=>'subscriber@example.invalid','subject'=>'Synthetic edition','html'=>'<p>Fixture only.</p>','headers'=>$headers],str_repeat('f',64));
 feedback_check(count($args['Content']['Simple']['Headers'])===2&&$args['Content']['Simple']['Headers'][0]['Name']==='List-Unsubscribe','SES v2 must receive the approved list headers.');

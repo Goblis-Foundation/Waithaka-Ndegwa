@@ -12,15 +12,20 @@ function contact_guard_reasons(array $input,bool $token,bool $captcha,int $ipCou
 }
 function contact_guard_key(int $id): string {return 'contact.review.'.str_pad((string)$id,20,'0',STR_PAD_LEFT);}
 function contact_guard_meta(int $id): array {return comm_get(contact_guard_key($id));}
-/** Every contact email, including legacy queued acknowledgements, needs an explicit current-owner review. */
+/** Explicit review remains required for suspicious enquiries and legacy queued mail. */
 function contact_guard_email_approved(array $meta,int $owner): bool {
  return $owner>0&&in_array($meta['state']??'',['approved','released'],true)&&($meta['reviewed_by']??0)===$owner&&($meta['email_consent']??false)===true&&is_int($meta['reviewed_at']??null)&&$meta['reviewed_at']>0&&trim((string)($meta['review_note']??''))!=='';
 }
+/** Applies only to new, screened submissions created under this release. */
+function contact_guard_email_authorized(array $meta): bool {
+ return contact_guard_email_approved($meta,(int)(comm_config()['owner']??0))
+  || (($meta['state']??'')==='screened'&&($meta['policy']??'')==='workspace-contact-v1'&&($meta['reasons']??null)===[]&&preg_match('/^[a-f0-9]{64}$/D',(string)($meta['digest']??''))===1);
+}
 function contact_guard_outbox_allowed(string $key,array $payload): bool {
  $receipt=str_starts_with($key,'contact-receipt:');$prefix=$receipt?'contact-receipt:':'contact:';if(!str_starts_with($key,$prefix)||!is_string($payload['to']??null))return false;$reference=substr($key,strlen($prefix));if(!preg_match('/^[A-Z0-9-]{5,32}$/D',$reference))return false;
- $q=db()->prepare('SELECT r.id,c.email FROM reader_enquiries r JOIN contact_messages c ON c.id=r.contact_id WHERE c.reference=? AND NOT EXISTS(SELECT 1 FROM reader_enquiry_trash t WHERE t.enquiry_id=r.id)');$q->execute([$reference]);$row=$q->fetch();if(!$row)return false;
- $meta=contact_guard_meta((int)$row['id']);if(!contact_guard_email_approved($meta,(int)(comm_config()['owner']??0))){if(!$meta||in_array($meta['state']??'',['approved','released'],true)){$meta=$meta+['id'=>(int)$row['id'],'version'=>0,'created'=>time(),'reasons'=>[]];$meta['state']='held';$meta['reasons'][]='Legacy contact email requires current-owner review';$meta['version']=(int)($meta['version']??0)+1;comm_put(contact_guard_key((int)$row['id']),$meta);}return false;}
- $to=$receipt?(string)$row['email']:trim((string)setting('contact.recipient',''));return $to!==''&&hash_equals(strtolower(trim($to)),strtolower(trim($payload['to'])));
+ $q=db()->prepare('SELECT r.id,c.email,c.message FROM reader_enquiries r JOIN contact_messages c ON c.id=r.contact_id WHERE c.reference=? AND NOT EXISTS(SELECT 1 FROM reader_enquiry_trash t WHERE t.enquiry_id=r.id)');$q->execute([$reference]);$row=$q->fetch();if(!$row)return false;
+ $meta=contact_guard_meta((int)$row['id']);if(!contact_guard_email_authorized($meta)||(($meta['state']??'')==='screened'&&!hash_equals($meta['digest'],contact_guard_digest($row)))){if(!$meta||in_array($meta['state']??'',['approved','released','screened'],true)){$meta=$meta+['id'=>(int)$row['id'],'version'=>0,'created'=>time(),'reasons'=>[]];$meta['state']='held';$meta['reasons'][]='Contact email authorization requires current-owner review';$meta['version']=(int)($meta['version']??0)+1;comm_put(contact_guard_key((int)$row['id']),$meta);}return false;}
+ $to=$receipt?(string)$row['email']:contact_notification_recipient();return $to!==''&&hash_equals(strtolower(trim($to)),strtolower(trim($payload['to'])));
 }
 function contact_guard_notify(int $id): void {$r=reader_enquiry($id);if(!$r||!empty($r['is_trashed']))throw new RuntimeException('Enquiry unavailable.');if(!contact_guard_email_approved(contact_guard_meta($id),(int)(comm_config()['owner']??0)))throw new RuntimeException('Review this exact enquiry before queuing contact email.');$values=reader_contact_values($r,['enquiry_type'=>$r['enquiry_type']]);reader_contact_notifications($id,$values);contact_delivery_register((int)$r['contact_id'],$r['reference']);}
 function contact_guard_receive(array $m,array $input,bool $token,bool $captcha): int {
@@ -31,15 +36,16 @@ function contact_guard_receive(array $m,array $input,bool $token,bool $captcha):
  $q=db()->prepare('SELECT COUNT(*) FROM contact_messages WHERE ip_hash=? AND created_at>=DATE_SUB(NOW(),INTERVAL 1 MINUTE)');$q->execute([$hash]);$ip=(int)$q->fetchColumn();
  $q=db()->prepare('SELECT SUM(created_at>=DATE_SUB(NOW(),INTERVAL 1 HOUR)) hour_count,COUNT(*) day_count FROM contact_messages WHERE LOWER(email)=? AND created_at>=DATE_SUB(NOW(),INTERVAL 1 DAY)');$q->execute([$sender]);$counts=$q->fetch();
  $digest=contact_guard_digest($values);$q=db()->prepare('SELECT id,email,message FROM contact_messages WHERE LOWER(email)=? AND created_at>=DATE_SUB(NOW(),INTERVAL '.$cfg['duplicate_hours'].' HOUR) ORDER BY id DESC LIMIT 1000');$q->execute([$sender]);$duplicate=false;foreach($q->fetchAll()as$prior)if(hash_equals($digest,contact_guard_digest($prior))){$duplicate=true;break;}
- $reasons=contact_guard_reasons($input,$token,$captcha,$ip,(int)$counts['hour_count'],(int)$counts['day_count'],$duplicate,$cfg);if($ip>=5||(int)$counts['hour_count']>=$cfg['sender_hour']||(int)$counts['day_count']>=$cfg['sender_day']||$duplicate)throw new InvalidArgumentException('An enquiry was already received recently. Please keep its reference or try again later.');if(is_int($input['_contact_age']??null)&&$input['_contact_age']<2)$reasons[]='Form completed unusually quickly';$reasons[]='Owner review required before contact email';$id=reader_contact_submit($values,$input,false);
- $meta=['id'=>$id,'state'=>'held','reasons'=>$reasons,'version'=>1,'created'=>time(),'digest'=>$digest];comm_put(contact_guard_key($id),$meta);
- db()->prepare("UPDATE reader_enquiries SET notification_state='held' WHERE id=?")->execute([$id]);
+ $reasons=contact_guard_reasons($input,$token,$captcha,$ip,(int)$counts['hour_count'],(int)$counts['day_count'],$duplicate,$cfg);if($ip>=5||(int)$counts['hour_count']>=$cfg['sender_hour']||(int)$counts['day_count']>=$cfg['sender_day']||$duplicate)throw new InvalidArgumentException('An enquiry was already received recently. Please keep its reference or try again later.');if(is_int($input['_contact_age']??null)&&$input['_contact_age']<2)$reasons[]='Form completed unusually quickly';$id=reader_contact_submit($values,$input,false);
+ $meta=['id'=>$id,'state'=>$reasons?'held':'screened','policy'=>'workspace-contact-v1','reasons'=>$reasons,'version'=>1,'created'=>time(),'digest'=>$digest];comm_put(contact_guard_key($id),$meta);
+ if($reasons){db()->prepare("UPDATE reader_enquiries SET notification_state='held' WHERE id=?")->execute([$id]);}
+ else{reader_contact_notifications($id,$values);$row=reader_enquiry($id);contact_delivery_register((int)$row['contact_id'],$values['reference']);}
  return $id;});});
 }
 /** Old pending contact mail can be individually reviewed without releasing an unrelated backlog. */
 function contact_guard_review_candidate(int $id): array {
  $row=reader_enquiry($id);if(!$row||!empty($row['is_trashed']))return [];
- $meta=contact_guard_meta($id);if(in_array($meta['state']??'',['held','retained'],true)||contact_guard_email_approved($meta,(int)(comm_config()['owner']??0)))return $meta;
+ $meta=contact_guard_meta($id);if(in_array($meta['state']??'',['held','retained'],true)||contact_guard_email_authorized($meta))return $meta;
  $ids=contact_delivery_ids((int)$row['contact_id'],$row['reference']);if(!$ids)return $meta;
  $q=db()->prepare("SELECT COUNT(*) FROM email_outbox WHERE id IN (".implode(',',array_fill(0,count($ids),'?')).") AND status='pending'");$q->execute($ids);if(!(int)$q->fetchColumn())return $meta;
  $meta=$meta+['id'=>$id,'version'=>0,'created'=>time(),'reasons'=>[]];$meta['state']='held';$meta['reasons'][]='Pending contact email requires current-owner review';return $meta;
