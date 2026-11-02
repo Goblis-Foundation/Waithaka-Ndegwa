@@ -86,7 +86,11 @@ function readiness_config_checks(array $config,array $capabilities): array {
     $canonical=readiness_https_url($config['base_url']??null)
         &&($config['app_env']??'production')==='production'
         &&($config['force_canonical']??true);
-    $checks[]=readiness_check('canonical','Canonical HTTPS address',$canonical?'ok':'attention',$canonical?'HTTPS canonical routing is configured':'Review canonical HTTPS configuration','Verify the live certificates and all domain redirects through the deployed edge before cutover.');
+    $canonicalSummary=$canonical?'HTTPS canonical routing is configured'
+        : (!readiness_https_url($config['base_url']??null)?'Canonical website address needs a valid HTTPS URL'
+            : (($config['app_env']??'production')!=='production'?'Application canonical routing is inactive outside production'
+                :'Application canonical routing is disabled; verify edge redirects'));
+    $checks[]=readiness_check('canonical','Canonical HTTPS address',$canonical?'ok':'attention',$canonicalSummary,'This checks application configuration only. Edge redirects and live certificates need separate verification.');
     $proxies=$config['trusted_proxies']??[];$proxiesValid=is_array($proxies)&&$proxies!==[];
     if($proxiesValid)foreach($proxies as$range)if(!readiness_proxy_valid($range))$proxiesValid=false;
     $checks[]=readiness_check('proxy','Trusted proxy boundary',$proxiesValid?'ok':'attention',$proxiesValid?'Explicit proxy ranges are configured':'Proxy ranges need deployment review','Only the actual proxy network belongs here. The page does not test security groups, forwarded headers or origin access.');
