@@ -30,6 +30,7 @@ file_put_contents($out.'/public-home.html',ef_render('layout',['page'=>'home','c
 function comm_config():array{return ['enabled'=>false,'owner'=>0];}
 $_SERVER['REQUEST_URI']='/contact';
 file_put_contents($out.'/public-contact.html',ef_render('layout',['page'=>'contact','content'=>ef_render('contact',['contactValues'=>['country'=>'Kenya','phone_code'=>'+254'],'contactReceipt'=>null]),'suppressAnalytics'=>true]));
+file_put_contents($out.'/public-contact-sent.html',ef_render('layout',['page'=>'contact','content'=>ef_render('contact',['contactValues'=>['country'=>'Kenya','phone_code'=>'+254'],'contactReceipt'=>['first'=>'Fixture reader','reference'=>'WK-CONTACT-FIXTURE']]),'suppressAnalytics'=>true]));
 $_SERVER['REQUEST_URI']='/explore';
 $publicPage='<article class="ux-page"><h1>Public page layout</h1><p>Equivalent public page gutters and content width.</p></article>';
 file_put_contents($out.'/public-explore-layout.html',ef_render('layout',['page'=>'explore','content'=>$publicPage,'suppressAnalytics'=>true]));

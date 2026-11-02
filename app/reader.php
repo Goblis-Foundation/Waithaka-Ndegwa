@@ -238,7 +238,7 @@ function reader_contact_notifications(int $id,array $values): void {
         try { $pdo->prepare("UPDATE reader_enquiries SET notification_state='failed' WHERE id=?")->execute([$id]); } catch (Throwable $ignored) { /* The committed enquiry remains the authoritative receipt. */ }
     }
     try {
-        $html=email_design('Thank you for getting in touch.','<p>Your message has been received and saved for review.</p><p style="padding:16px;background:#f3f1eb;border-left:3px solid #be955f"><strong>Your reference</strong><br>'.e($values['reference']).'</p><p>I appreciate you taking the time to write. If a response is needed, I will follow up using the contact details you provided.</p><p>Please keep this reference if you contact me about the same enquiry.</p>',['name'=>$values['first_name'],'preheader'=>'Your enquiry has been received.']);
+        $html=email_design('Thank you for getting in touch.','<p>Your message has been received and saved for review.</p><p style="padding:16px;background:#f3f1eb;border-left:3px solid #be955f"><strong>Your reference</strong><br>'.e($values['reference']).'</p><p>I appreciate you taking the time to write. If a response is needed, I will follow up using the contact details you provided.</p><p>Please keep this reference if you contact me about the same enquiry.</p>',['name'=>'there','preheader'=>'Your enquiry has been received.']);
         enqueue_email($values['email'],'Message received · '.$values['reference'].' · Waithaka Ndegwa',$html,'contact-receipt:'.$values['reference']);
     } catch(Throwable $error){error_log('Enquiry receipt queue failed: '.get_class($error));}
 }

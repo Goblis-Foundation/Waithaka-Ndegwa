@@ -5,8 +5,10 @@ declare(strict_types=1);
 function email_safe_headers(array $headers): array {
     $safe=[];
     foreach($headers as$name=>$value){
-        if(!is_string($name)||!is_string($value)||!in_array($name,['List-Unsubscribe','List-Unsubscribe-Post'],true)||strlen($value)>2000||preg_match('/[\r\n\x00]/',$value))throw new InvalidArgumentException('Invalid email header.');
-        if($name==='List-Unsubscribe'){
+        if(!is_string($name)||!is_string($value)||!in_array($name,['List-Unsubscribe','List-Unsubscribe-Post','Reply-To'],true)||strlen($value)>2000||preg_match('/[\r\n\x00]/',$value))throw new InvalidArgumentException('Invalid email header.');
+        if($name==='Reply-To'){
+            if(!filter_var($value,FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Invalid reply address.');
+        }elseif($name==='List-Unsubscribe'){
             if(!preg_match('~\A<(https?://[^<>\s]+)>\z~',$value,$match)||!filter_var($match[1],FILTER_VALIDATE_URL))throw new InvalidArgumentException('Invalid unsubscribe URL.');
             $parts=parse_url($match[1]);
             if(isset($parts['user'])||isset($parts['pass'])||isset($parts['fragment'])||(($parts['scheme']??'')!=='https'&&app_config('app_env')!=='testing'))throw new InvalidArgumentException('Unsubscribe URLs require HTTPS.');
@@ -39,9 +41,9 @@ function email_ses_arguments(array $payload,string $deliveryKey): array {
     $args=['FromEmailAddress'=>$formatter->addrFormat([$from,$name]),'Destination'=>['ToAddresses'=>[$payload['to']]],'Content'=>['Simple'=>[
         'Subject'=>['Data'=>$payload['subject'],'Charset'=>'UTF-8'], 'Body'=>['Html'=>['Data'=>$payload['html'],'Charset'=>'UTF-8'],'Text'=>['Data'=>$text,'Charset'=>'UTF-8']]]],
         'EmailTags'=>[['Name'=>'delivery-key','Value'=>$deliveryKey]]];
-    foreach(email_safe_headers($payload['headers']??[])as$header=>$value)$args['Content']['Simple']['Headers'][]=['Name'=>$header,'Value'=>$value];
+    foreach(email_safe_headers($payload['headers']??[])as$header=>$value){if($header==='Reply-To')$args['ReplyToAddresses']=[$value];else $args['Content']['Simple']['Headers'][]=['Name'=>$header,'Value'=>$value];}
     if (app_config('mail.ses_configuration_set')) $args['ConfigurationSetName']=app_config('mail.ses_configuration_set');
-    if (filter_var(app_config('mail.reply_to',''),FILTER_VALIDATE_EMAIL)) $args['ReplyToAddresses']=[app_config('mail.reply_to')];
+    if (!isset($args['ReplyToAddresses'])&&filter_var(app_config('mail.reply_to',''),FILTER_VALIDATE_EMAIL)) $args['ReplyToAddresses']=[app_config('mail.reply_to')];
     return $args;
 }
 function email_deliver(array $payload,string $deliveryKey): string {
@@ -62,9 +64,10 @@ function email_deliver(array $payload,string $deliveryKey): string {
     if($helo!==''){if(!preg_match('/\A(?=.{1,253}\z)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\z/i',$helo))throw new RuntimeException('SMTP HELO is invalid.');$mail->Helo=$helo;}
     $mail->Username=(string)app_config('mail.smtp_username',''); $mail->Password=(string)app_config('mail.smtp_password','');
     $mail->Timeout=25; $mail->CharSet='UTF-8';$mail->setFrom($from,$name);$mail->addAddress($payload['to']);
-    if (filter_var(app_config('mail.reply_to',''),FILTER_VALIDATE_EMAIL)) $mail->addReplyTo(app_config('mail.reply_to'));
+    $reply=email_safe_headers($payload['headers']??[])['Reply-To']??app_config('mail.reply_to','');
+    if (filter_var($reply,FILTER_VALIDATE_EMAIL)) $mail->addReplyTo($reply);
     $mail->MessageID='<'.$deliveryKey.'@'.substr(strrchr($from,'@'),1).'>';
-    foreach(email_safe_headers($payload['headers']??[])as$header=>$value)$mail->addCustomHeader($header,$value);
+    foreach(email_safe_headers($payload['headers']??[])as$header=>$value)if($header!=='Reply-To')$mail->addCustomHeader($header,$value);
     $mail->isHTML(true);$mail->Subject=$payload['subject'];$mail->Body=$payload['html'];$mail->AltBody=$text;
     $mail->send();return $mail->getLastMessageID();
 }

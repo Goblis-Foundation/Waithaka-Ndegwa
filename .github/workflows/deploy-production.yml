@@ -146,6 +146,9 @@ jobs:
             --report "$RUNNER_TEMP/live-continuity/mail-config.json" \
             --interval 5 -- bash deploy/aws/google_workspace.sh --enable
 
+      - name: Read scoped contact relay diagnostics
+        run: python3 -B deploy/aws/migration_log_diagnostics.py
+
       - name: Retain public outage evidence, including failed releases
         if: always()
         uses: actions/upload-artifact@v4
