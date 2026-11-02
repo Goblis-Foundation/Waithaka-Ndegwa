@@ -53,8 +53,8 @@ function enterprise_public_profiles(): array {
 function enterprise_public_profile(string $slug): ?array {foreach(enterprise_public_profiles()as$p)if($p['slug']===$slug)return $p;return null;}
 function enterprise_articles(array $ids): array {
  if(!$ids)return [];$ids=array_values(array_filter($ids,static fn($i)=>is_int($i)&&$i>0));if(!$ids)return [];
- $q=db()->prepare("SELECT id,title,slug,standfirst,published_at FROM posts WHERE id IN (".implode(',',array_fill(0,count($ids),'?')).") AND status IN ('published','scheduled') AND published_at IS NOT NULL AND published_at<=? ORDER BY published_at DESC,id DESC");
- $q->execute([...$ids,journeys_now()]);return $q->fetchAll();
+ $q=db()->prepare("SELECT p.id,p.title,p.slug,p.standfirst,p.published_at FROM posts p WHERE p.id IN (".implode(',',array_fill(0,count($ids),'?')).") AND ".published_where()." ORDER BY p.published_at DESC,p.id DESC");
+ $q->execute($ids);return $q->fetchAll();
 }
 function enterprise_sitemap(): array {return array_merge([['loc'=>url('/enterprises')]],array_map(static fn($p)=>['loc'=>url('/enterprises/'.$p['slug']),'lastmod'=>date(DATE_ATOM,$p['reviewed_at'])],enterprise_public_profiles()));}
 function enterprise_dispatch(string $path): bool {
@@ -62,7 +62,8 @@ function enterprise_dispatch(string $path): bool {
   journeys_method(['GET','HEAD']);$profiles=enterprise_public_profiles();$filters=[];foreach(['q','country','stage','sector']as$key)$filters[$key]=is_string($_GET[$key]??null)&&mb_check_encoding($_GET[$key],'UTF-8')?mb_substr(trim($_GET[$key]),0,120):'';
   $countries=array_unique(array_column($profiles,'country'));$sectors=array_unique(array_column($profiles,'sector'));
   $profiles=array_values(array_filter($profiles,static function($p)use($filters){foreach(['country','stage','sector']as$key)if($filters[$key]!==''&&$p[$key]!==$filters[$key])return false;return $filters['q']===''||mb_stripos($p['name'].' '.$p['summary'].' '.$p['sector'],$filters['q'])!==false;}));
-  render('enterprises/index',compact('profiles','filters','countries','sectors')+['page'=>'enterprises','seo'=>['title'=>'Enterprises · Waithaka Ndegwa','description'=>'Follow the targets, successes, challenges and learning of enterprises connected with the Goal2030 journey.','canonical'=>url('/enterprises'),'robots'=>array_filter($filters)?'noindex,follow':'index,follow']]);return true;
+  $enterpriseProgress=impact_display(impact_snapshot('goblis_group'),'startups');
+  render('enterprises/index',compact('profiles','filters','countries','sectors','enterpriseProgress')+['page'=>'enterprises','seo'=>['title'=>'My Enterprise Journey · Waithaka Ndegwa','description'=>'Follow the targets, successes, challenges and learning of enterprises connected with the Goal2030 journey.','canonical'=>url('/enterprises'),'robots'=>array_filter($filters)?'noindex,follow':'index,follow']]);return true;
  }
  if(preg_match('~^/enterprises/([a-z0-9]+(?:-[a-z0-9]+)*)$~D',$path,$m)){
   journeys_method(['GET','HEAD']);$enterprise=enterprise_public_profile($m[1]);if(!$enterprise)not_found();$articles=enterprise_articles($enterprise['post_ids']??[]);

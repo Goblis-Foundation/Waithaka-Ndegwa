@@ -8,7 +8,7 @@ if (!installed()) {
 
 $path = path_only();
 if(srs_dispatch($path)||fitness_dispatch($path)||wa_dispatch($path)||gcs_webhook($path)||gcs_dispatch($path)||gwa_dispatch($path)||yta_dispatch($path)||gmeet_dispatch($path)||mwa_dispatch($path)||ms_dispatch($path))exit;
-if(opportunity_dispatch($path)||enterprise_dispatch($path))exit;
+if(opportunity_dispatch($path)||enterprise_dispatch($path)||article_group_dispatch($path))exit;
 if(monthly_dispatch($path))exit;
 if($path==='/webhooks/paypal')paypal_notifications_webhook();
 if (activation_dispatch($path) || workspace_reports_dispatch($path) || planner_dispatch($path) || communication_mail_dispatch($path) || app_security_dispatch($path) || communication_dispatch($path) || meetings_dispatch($path) || google_workspace_dispatch($path) || impact_writer_route($path) || writer_account_route($path) || studio_dispatch($path) || media_centre_dispatch($path)) exit;
@@ -99,7 +99,7 @@ if (preg_match('~^/my-thoughts/([a-z0-9-]+)$~',$path,$m)) {
         ['@type'=>'ListItem','position'=>3,'name'=>$post['title'],'item'=>$canonical],
     ]];
     render('post',[
-        'page'=>'post','post'=>$post,'related'=>related_posts($post,3),'schema'=>[$article,$breadcrumbs],
+        'page'=>'post','post'=>$post,'articleContext'=>article_public_context($post),'related'=>related_posts($post,3),'schema'=>[$article,$breadcrumbs],
         'seo'=>['title'=>($post['seo_title'] ?: $post['title']).' · Waithaka Ndegwa','description'=>$post['seo_description'] ?: ($post['standfirst'] ?: excerpt($post['content_html'],160)),'canonical'=>$canonical,'image'=>$image,'type'=>'article']
     ]);
     exit;
@@ -397,6 +397,7 @@ if ($path === '/sitemap.xml') {
     $entries=[];
     foreach($static as $s)$entries[]=['loc'=>url($s)];
     foreach($cats as $c)$entries[]=['loc'=>url('/topic/'.$c['slug'])];
+    foreach(article_editable_groups()as$definition)$entries[]=['loc'=>url($definition['path'])];
     foreach($posts as $p)$entries[]=['loc'=>url('/my-thoughts/'.$p['slug']),'lastmod'=>date('c',strtotime($p['updated_at']))];
     if(function_exists('app_sitemap_entries'))$entries=array_merge($entries,app_sitemap_entries());
     $entries=array_merge($entries,enterprise_sitemap(),opportunity_sitemap());

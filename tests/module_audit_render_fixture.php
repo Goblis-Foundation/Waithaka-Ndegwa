@@ -126,3 +126,6 @@ $srsBase=['target'=>['account'=>'Synthetic Search Console owner','property'=>'sc
 file_put_contents($out.'/module-search-reviews-empty.html',ma_page('search_reviews',$srsBase));
 $srsReport=['current'=>['start'=>'2026-10-01','end'=>'2026-10-28'],'previous'=>['start'=>'2026-09-03','end'=>'2026-09-30'],'observed_at'=>'2026-11-01T00:00:00Z','current_sample'=>20,'previous_sample'=>15,'note'=>'Top-row samples only; missing data is unavailable, never zero.','rows'=>[['page'=>'https://www.waithakandegwa.com/my-thoughts/'.str_repeat('long-title-',15),'signal'=>'Clicks declined','clicks'=>15,'prior_clicks'=>40,'reason'=>'Review search intent and indexing. No cause is assumed.']]];
 file_put_contents($out.'/module-search-reviews-saved.html',ma_page('search_reviews',array_replace($srsBase,['schedule'=>array_replace(srs_defaults(),['enabled'=>true,'state'=>'completed','next_at'=>1794168000]),'reports'=>[$srsReport],'connectionMatches'=>true])));
+
+$_SERVER['REQUEST_URI']='/write/new';
+file_put_contents($out.'/module-article-editor.html',ma_page('editor',['post'=>['title'=>'Synthetic editor article','article_groups_json'=>'["personal-experiences"]','content_html'=>'<p>Original synthetic body.</p>'],'categories'=>[['id'=>1,'name'=>'Innovation','slug'=>'innovation']]]));

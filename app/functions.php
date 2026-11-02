@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/owner_identity_aliases.php';
+require_once __DIR__.'/article_groups.php';
 require_once __DIR__.'/location.php';
 require_once __DIR__.'/email_design.php';
 
@@ -333,7 +334,7 @@ function post_tags(int $postId): array { $st=db()->prepare('SELECT t.* FROM tags
 class WriterConflict extends RuntimeException {}
 
 function writer_editable_fields(): array {
-    return ['category_id','title','standfirst','content_html','featured_image','featured_image_alt','featured_image_caption','video_url','series_name','writer_note','source_notes','travel_country','travel_city','seo_title','seo_description','is_selected','published_at'];
+    return ['article_groups_json','category_id','title','standfirst','content_html','featured_image','featured_image_alt','featured_image_caption','video_url','series_name','writer_note','source_notes','travel_country','travel_city','seo_title','seo_description','is_selected','published_at'];
 }
 
 function writer_is_public(array $post): bool {
@@ -373,7 +374,7 @@ function writer_posts(int $limit = 200, int $offset = 0, string $search = ''): a
 }
 
 function writer_post_fields(array $input, array $existing, ?string $image): array {
-    $fields = [];
+    $fields = ['article_groups_json'=>article_group_fields($input,$existing)];
     $limits = ['title'=>240,'standfirst'=>8000,'featured_image_alt'=>500,'featured_image_caption'=>500,'video_url'=>1000,'series_name'=>220,'writer_note'=>16000,'source_notes'=>100000,'travel_country'=>120,'travel_city'=>120,'seo_title'=>255,'seo_description'=>320];
     foreach ($limits as $key=>$limit) {
         if (isset($input[$key]) && !is_string($input[$key])) throw new InvalidArgumentException('Invalid editor field.');

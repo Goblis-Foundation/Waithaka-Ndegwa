@@ -8,6 +8,7 @@ $thoughts=array_values($posts??[]);$featuredThought=$thoughts[0]??null;$archiveT
   </div>
 </section>
 
+<?php include __DIR__.'/partials_article_groups.php'; ?>
 <section class="archive-tools surface"><div class="container archive-tools-inner refined" data-reveal><label class="archive-filter"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg><input type="search" placeholder="Filter what you can see on this page" data-thought-filter autocomplete="off"><kbd>/</kbd></label><select data-thought-sort aria-label="Sort My Thoughts"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="title">Title A–Z</option></select><a href="<?=url('/search')?>">Search words, tags & topics →</a></div></section>
 
 <?php if($featuredThought):?>
