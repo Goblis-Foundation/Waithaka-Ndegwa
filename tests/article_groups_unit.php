@@ -20,9 +20,20 @@ $missing=impact_display([],'startups');ag_check($missing['value']===null,'Missin
 $zero=impact_display(['data'=>['approved_for_publication'=>true,'metrics'=>['startups'=>0],'as_of'=>gmdate('c')]],'startups');ag_check($zero['value']===0,'An approved actual zero remains distinguishable from missing data.');
 $withdrawn=impact_display(['data'=>['approved_for_publication'=>false,'metrics'=>['startups'=>9],'as_of'=>gmdate('c')]],'startups');ag_check($withdrawn['value']===null,'Withdrawn counts are not shown.');
 require __DIR__.'/../app/article_groups_migration.php';
-$authority=['schema_version'=>1,'migration'=>'210_article_groups.sql','sha256'=>str_repeat('a',64),'state'=>'open','account_id'=>'466401734428','region'=>'af-south-1','admin_secret_arn'=>'arn:aws:secretsmanager:af-south-1:466401734428:secret:fixture-only','db_host'=>'fixture.invalid','db_name'=>'fixture_database','release'=>'r17-0123456789ab','expires_at'=>5500];
-ag_check(article_groups_authority($authority,'fixture.invalid','fixture_database',str_repeat('a',64),5000)===$authority['admin_secret_arn'],'Only exact, unexpired deployment authority can resolve the administrator identifier.');
-foreach([['state'=>'retired'],['expires_at'=>5000],['expires_at'=>10000],['db_host'=>'other.invalid'],['db_name'=>'other_database'],['sha256'=>str_repeat('b',64)],['account_id'=>'111111111111'],['region'=>'us-east-1'],['release'=>'unreviewed'],['admin_secret_arn'=>'arn:aws:secretsmanager:us-east-1:111111111111:secret:other'],['password'=>'PRIVATE_CANARY'],['expires_at'=>'5500']]as$change){
- try{article_groups_authority(array_replace($authority,$change),'fixture.invalid','fixture_database',str_repeat('a',64),5000);}catch(RuntimeException){$checks++;continue;}throw new RuntimeException('Invalid deployment authority accepted.');
-}
+$stack=['StackName'=>'waithaka-ndegwa-production-466401734428-data','StackId'=>'arn:aws:cloudformation:af-south-1:466401734428:stack/waithaka-ndegwa-production-466401734428-data/fixture-123','Outputs'=>[['OutputKey'=>'DatabaseHost','OutputValue'=>'fixture.invalid'],['OutputKey'=>'AdminSecretArn','OutputValue'=>'arn:aws:secretsmanager:af-south-1:466401734428:secret:fixture-only']],'Parameters'=>[['ParameterKey'=>'DatabaseName','ParameterValue'=>'fixture_database']]];
+$response=['Stacks'=>[$stack]];
+ag_check(article_groups_stack_authority($response,'fixture.invalid','fixture_database')===$stack['Outputs'][1]['OutputValue'],'Only exact owned-stack metadata resolves the administrator identifier.');
+$variants=[];
+$bad=$response;$bad['Stacks'][0]['StackName']='other-stack';$variants[]=$bad;
+$bad=$response;$bad['Stacks'][0]['StackId']=str_replace('466401734428','111111111111',$stack['StackId']);$variants[]=$bad;
+$bad=$response;$bad['Stacks'][0]['Outputs'][0]['OutputValue']='other.invalid';$variants[]=$bad;
+$bad=$response;$bad['Stacks'][0]['Parameters'][0]['ParameterValue']='other_database';$variants[]=$bad;
+$bad=$response;$bad['Stacks'][0]['Outputs'][1]['OutputValue']='arn:aws:secretsmanager:us-east-1:111111111111:secret:other';$variants[]=$bad;
+$bad=$response;array_pop($bad['Stacks'][0]['Outputs']);$variants[]=$bad;
+$bad=$response;$bad['Stacks'][0]['Outputs'][]=$stack['Outputs'][1];$variants[]=$bad;
+$bad=$response;$bad['Stacks'][0]['Parameters'][]=$stack['Parameters'][0];$variants[]=$bad;
+$variants[]=['Stacks'=>[]];$variants[]=['Stacks'=>[$stack,$stack]];
+$variants[]=$response+['NextToken'=>'unfinished'];
+$bad=$response;$bad['Stacks'][0]['Outputs']='invalid';$variants[]=$bad;
+foreach($variants as$bad){try{article_groups_stack_authority($bad,'fixture.invalid','fixture_database');}catch(RuntimeException){$checks++;continue;}throw new RuntimeException('Foreign or incomplete deployment authority accepted.');}
 echo "PASS: $checks article grouping and verified-progress policy checks.\n";
