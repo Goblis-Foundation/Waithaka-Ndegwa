@@ -119,6 +119,7 @@ function publishing_normalize_draft(array $input): array {
             'platform_options'=>social_options_input($slug,$v['platform_options']??[]),'enabled'=>!empty($v['enabled']),'text'=>trim((string)($v['text']??'')), 'media_url'=>$media,'media_asset_id'=>$assetId,
             'media_type'=>in_array($v['media_type']??'', ['image','video'],true)?$v['media_type']:'image',
             'alt_text'=>mb_substr(trim((string)($v['alt_text']??'')),0,1000),'title'=>mb_substr(trim((string)($v['title']??$title)),0,100),
+            'facebook_page_id'=>$slug==='facebook'?trim((string)($v['facebook_page_id']??'')):'',
             'video_settings_confirmed'=>!empty($v['video_settings_confirmed']),'audience'=>publishing_audience_input($v['audience']??'public'),
             'format'=>in_array($v['format']??'', ['post','reel','story','short','video'],true)?$v['format']:'post',
             'privacy'=>in_array($v['privacy']??'', ['private','unlisted','public'],true)?$v['privacy']:'private',
@@ -171,6 +172,8 @@ function publishing_capability(array $channel, ?array $connection = null, ?array
 function publishing_service_for_channel(string $slug): string { return match($slug){'facebook'=>'facebook_pages','youtube'=>'google_youtube_upload','tiktok'=>'tiktok_business',default=>$slug}; }
 
 function publishing_destination(array $channel, array $variant=[]): array {
+    $pageId = $channel['slug']==='facebook' ? (string)($variant['facebook_page_id']??'') : '';
+    if ($pageId !== '') { $channel['account_type']='page'; $channel['delivery_method']='direct'; }
     $method=$channel['delivery_method'];
     $dest=['slug'=>$channel['slug'],'name'=>$channel['name'],'profile_url'=>$channel['profile_url'],'account_type'=>$channel['account_type'],'method'=>$method];
     if($channel['slug']==='facebook'){$dest['audience']=$variant['audience']??'public';if($dest['audience']==='subscribers'&&$method==='manual'){$link=setting('social.facebook_connect_url','');if(publishing_connect_url_valid($link))$dest['profile_url']=$link;}}
@@ -178,6 +181,8 @@ function publishing_destination(array $channel, array $variant=[]): array {
     $connection=null;$remote=null;
     $nativeMedia=$channel['slug']==='x'&&(($variant['media_url']??'')!==''||!empty($variant['media_asset_id']));
     if ($method!=='manual') $connection=publishing_connection($method==='buffer'?'buffer':($nativeMedia?'x_media':publishing_service_for_channel($channel['slug'])));
+    if ($pageId !== '') $connection=publishing_facebook_page_connection($connection??[], $pageId);
+    if ($channel['slug']==='facebook' && $method==='direct' && ($connection['selected_resource']??'')==='*') throw new RuntimeException('Choose one optional Facebook Page for this publication.');
     if ($method==='buffer') foreach(publishing_buffer_channels($connection) as $item) if($item['id']===$channel['buffer_channel_id']){$remote=$item;break;}
     if($nativeMedia&&$method==='direct'&&$connection){$textAccount=publishing_connection('x');if($textAccount&&($textAccount['status']??'')==='connected'&&($textAccount['selected_resource']??'')!==($connection['selected_resource']??''))throw new RuntimeException('X text and video connections differ. Confirm the same intended account before approving.');}
     if($channel['slug']==='threads'&&$method==='manual'&&!preg_match('~^https://(?:www\.)?threads\.(?:net|com)/@[A-Za-z0-9._]{1,50}/?$~D',$dest['profile_url']))throw new RuntimeException('Save the exact Threads profile URL in Channel routes before approving an assisted Threads post.');
@@ -316,6 +321,7 @@ function publishing_job_connection(array $job): array {
     $st=db()->prepare('SELECT * FROM publishing_connections WHERE id=?');$st->execute([$job['connection_id']]);$connection=$st->fetch();
     $destination=publishing_decode($job['destination_json']);
     if (!$connection||$connection['status']!=='connected') throw new PublishingRemoteException('Reconnect the approved account before continuing.',401);
+    if (($connection['service']??'')==='facebook_pages') $connection=publishing_facebook_page_connection($connection,(string)($destination['resource']??''));
     if ((string)$connection['external_id']!==(string)$job['connection_external_id']||(string)$connection['selected_resource']!==(string)$destination['resource']) throw new RuntimeException('The destination changed after approval. Approve a new revision for the new account.');
     return $connection;
 }

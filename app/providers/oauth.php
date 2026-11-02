@@ -41,7 +41,7 @@ function publishing_services(): array {
         'instagram_comments' => ['name'=>'Instagram comments', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_comments'], 'description'=>'Read comments on your own recent media in a private engagement desk. This permission can also enable moderation at Meta; this site currently reads only. Replies and moderation are completed in Instagram.'],
         'instagram_messages' => ['name'=>'Instagram messages', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_messages'], 'description'=>'Read your professional account’s conversations and selected recent messages on explicit request. No automatic replies, AI processing or message storage. Send replies in Instagram.'],
         'facebook_profile' => ['name'=>'Facebook personal profile', 'provider'=>'facebook', 'scopes'=>['public_profile'], 'description'=>'Confirm your own Facebook identity. Professional-mode profile posting remains assisted, and analytics use native Professional Dashboard reports. A Business Login configuration can also request approved Page-list access. This does not grant automatic profile publishing.'],
-        'facebook_pages' => ['name'=>'Facebook Page discovery', 'provider'=>'facebook', 'scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'], 'description'=>'Discover Pages you manage, then choose a real Page. This cannot publish to your professional-mode profile.'],
+        'facebook_pages' => ['name'=>'Facebook Page discovery', 'provider'=>'facebook', 'scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'], 'description'=>'Connect eligible Pages as optional destinations for individual publications. Your personal-profile default stays unchanged.'],
         'linkedin_analytics' => ['name'=>'LinkedIn member analytics','provider'=>'linkedin','scopes'=>['openid','profile','r_member_postAnalytics'],'description'=>'Separate approved analytics product and member consent. Read aggregate post impressions, reach and reactions; this does not grant publishing permission.'],
         'linkedin' => ['name'=>'LinkedIn member', 'provider'=>'linkedin', 'scopes'=>['openid','profile','w_member_social'], 'description'=>'Requires Sign In with LinkedIn using OpenID Connect and Share on LinkedIn products. Direct delivery supports text and links; use Buffer for media.'],
         'threads'=>['name'=>'Threads profile','provider'=>'threads','scopes'=>['threads_basic','threads_content_publish'],'description'=>'Separate Threads OAuth for reviewed text/link posts and owned public photos or videos. Confirm the returned profile. Carousels and native options remain assisted.'],
@@ -315,15 +315,34 @@ function publishing_confirm_connection(string $service, string $resource, int $u
     if (!$connection || $connection['status'] !== 'pending_confirmation') throw new RuntimeException('Connect this service before choosing its destination.');
     $found = null;
     foreach (publishing_decode($connection['resources_json']) as $item) if ((string)$item['id'] === $resource) { $found = $item; break; }
+    if ($service === 'facebook_pages' && $resource === '*' && publishing_decode($connection['resources_json'])) {
+        foreach (publishing_decode($connection['resources_json']) as $item) if (($item['type'] ?? '') !== 'page') throw new RuntimeException('Only returned Pages can be confirmed.');
+        $found = ['name'=>'All '.count(publishing_decode($connection['resources_json'])).' returned Pages (optional per publication)','type'=>'page'];
+    }
     if (!$found) throw new RuntimeException('Choose a resource returned by the connected provider.');
     if ($service === 'facebook_pages') {
-        $channel = publishing_channel('facebook');
-        if ($channel['account_type'] !== 'page' || ($found['type'] ?? '') !== 'page') throw new RuntimeException('A real Facebook Page is required for this connection.');
+        if (($found['type'] ?? '') !== 'page') throw new RuntimeException('A real Facebook Page is required for this connection.');
     }
     $st=db()->prepare("UPDATE publishing_connections SET status='connected',selected_resource=?,connected_by=? WHERE id=? AND status='pending_confirmation' AND external_id=? AND verified_at=?");
     $st->execute([$resource,$userId,$connection['id'],$connection['external_id'],$connection['verified_at']]);
     if($st->rowCount()!==1)throw new RuntimeException('The observed connection changed. Reload it and review the returned destination again.');
     publishing_event(null,null,'connection_confirmed',publishing_services()[$service]['name'].' destination confirmed: '.mb_substr($found['name'],0,200),$userId);
+}
+
+/** Project a confirmed Page set onto one exact, approved publication destination. */
+function publishing_facebook_page_connection(array $connection, string $pageId): array {
+    if (($connection['service'] ?? '') !== 'facebook_pages' || ($connection['status'] ?? '') !== 'connected' || !preg_match('/^[0-9]+$/D', $pageId)) throw new RuntimeException('Connect and confirm the optional Facebook Pages first.');
+    $selection = (string)($connection['selected_resource'] ?? '');
+    if ($selection !== '*' && $selection !== $pageId) throw new RuntimeException('This Page is outside the confirmed destinations.');
+    $scopes = publishing_decode($connection['scopes_json'] ?? null);
+    foreach (['pages_show_list','pages_read_engagement','pages_manage_posts'] as $scope) if (!in_array($scope,$scopes,true)) throw new RuntimeException('Reconnect Facebook with the required Page permissions.');
+    foreach (publishing_decode($connection['resources_json'] ?? null) as $page) {
+        if ((string)($page['id'] ?? '') === $pageId && ($page['type'] ?? '') === 'page') {
+            $connection['selected_resource'] = $pageId;
+            return $connection;
+        }
+    }
+    throw new RuntimeException('The selected Page is no longer available. Reconnect and review the destination.');
 }
 
 function publishing_access_token(array $connection): string {
