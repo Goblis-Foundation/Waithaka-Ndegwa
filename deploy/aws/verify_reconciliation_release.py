@@ -7,6 +7,7 @@ import urllib.parse
 import urllib.request
 from verify_promotion_release import verify as verify_promotion
 from verify_experience_release import verify as verify_experience
+from monthly_archive_contract import monthly_archive_visible
 
 BASE = 'https://www.waithakandegwa.com'
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -28,7 +29,7 @@ def read(path: str, expected: int = 200):
 def verify() -> None:
     home, _ = read('/')
     archive, _ = read('/monthly-roundup')
-    if 'A new month.' not in archive or '1 November 2026' not in archive:
+    if not monthly_archive_visible(archive, BASE):
         raise RuntimeError('Monthly archive release is not visible')
     for path in ['/contact','/professional-information','/start-here']:
         text, _ = read(path)
