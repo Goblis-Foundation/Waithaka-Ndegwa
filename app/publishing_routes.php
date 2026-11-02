@@ -40,6 +40,11 @@ function publishing_dispatch(string $path): bool {
             $values=[];foreach($providers as$provider)foreach(['client_id','client_secret']as$field){$value=$_POST[$provider.'_'.$field]??'';if(!is_string($value)||strlen($value)>2000||preg_match('/[\\r\\n]/',$value))throw new InvalidArgumentException('A provider credential has an invalid format.');$value=trim($value);if($value!=='')$values['publishing.'.$provider.'.'.$field]=[$value,true];}
             if(in_array('tiktok_business',$providers,true)){$v=$_POST['tiktok_business_authorization_url']??'';if(!is_string($v)||strlen($v)>8000||preg_match('/[\\r\\n]/',$v))throw new InvalidArgumentException('Check the TikTok authorisation address.');if(trim($v)!=='')$values['publishing.tiktok_business.authorization_url']=[trim($v),true];}
             if(isset($_POST['meta_version'])){$version=$_POST['meta_version'];if(!is_string($version)||!preg_match('/^v[0-9]{2}\\.0$/D',$version))throw new InvalidArgumentException('Enter a valid Meta API version.');$values['publishing.meta.version']=[$version,false];}
+            if($setup==='facebook_profile'&&isset($_POST['facebook_profile_config_id'])){
+                $config=$_POST['facebook_profile_config_id'];
+                if(!is_string($config)||($config!==''&&!preg_match('/^[0-9]{5,30}$/D',$config)))throw new InvalidArgumentException('Enter a valid Facebook Login configuration ID.');
+                $values['publishing.facebook_profile.config_id']=[$config,false];
+            }
             db()->beginTransaction();try{foreach($values as$key=>$value)set_setting($key,$value[0],$value[1]);db()->commit();}catch(Throwable $e){if(db()->inTransaction())db()->rollBack();throw $e;}
             if($setup!==''&&($_POST['save_and_connect']??'')==='1')redirect(publishing_oauth_start($setup,$userId));
             flash('success','This provider’s setup was saved securely. Connect the account to authorise its requested features.');redirect(url($setup!==''?'/write/connections#'.$setup:$back));

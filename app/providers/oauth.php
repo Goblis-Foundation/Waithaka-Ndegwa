@@ -40,7 +40,7 @@ function publishing_services(): array {
         'instagram_insights' => ['name'=>'Instagram Insights', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_insights'], 'description'=>'Separate read access for professional-account reach. Publishing keeps its existing connection; confirm the same account before reading Insights.'],
         'instagram_comments' => ['name'=>'Instagram comments', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_comments'], 'description'=>'Read comments on your own recent media in a private engagement desk. This permission can also enable moderation at Meta; this site currently reads only. Replies and moderation are completed in Instagram.'],
         'instagram_messages' => ['name'=>'Instagram messages', 'provider'=>'instagram', 'scopes'=>['instagram_business_basic','instagram_business_manage_messages'], 'description'=>'Read your professional account’s conversations and selected recent messages on explicit request. No automatic replies, AI processing or message storage. Send replies in Instagram.'],
-        'facebook_profile' => ['name'=>'Facebook personal profile', 'provider'=>'facebook', 'scopes'=>['public_profile'], 'description'=>'Confirm your own Facebook identity. Professional-mode profile posting remains assisted, and analytics use native Professional Dashboard reports. This login does not request Page access or grant automatic profile publishing.'],
+        'facebook_profile' => ['name'=>'Facebook personal profile', 'provider'=>'facebook', 'scopes'=>['public_profile'], 'description'=>'Confirm your own Facebook identity. Professional-mode profile posting remains assisted, and analytics use native Professional Dashboard reports. A Business Login configuration can also request approved Page-list access. This does not grant automatic profile publishing.'],
         'facebook_pages' => ['name'=>'Facebook Page discovery', 'provider'=>'facebook', 'scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'], 'description'=>'Discover Pages you manage, then choose a real Page. This cannot publish to your professional-mode profile.'],
         'linkedin_analytics' => ['name'=>'LinkedIn member analytics','provider'=>'linkedin','scopes'=>['openid','profile','r_member_postAnalytics'],'description'=>'Separate approved analytics product and member consent. Read aggregate post impressions, reach and reactions; this does not grant publishing permission.'],
         'linkedin' => ['name'=>'LinkedIn member', 'provider'=>'linkedin', 'scopes'=>['openid','profile','w_member_social'], 'description'=>'Requires Sign In with LinkedIn using OpenID Connect and Share on LinkedIn products. Direct delivery supports text and links; use Buffer for media.'],
@@ -135,6 +135,15 @@ function publishing_oauth_start(string $service, int $userId,bool $calendarEdit=
     } elseif ($provider === 'facebook') {
         $params['scope'] = implode(',',$definition['scopes']);
         $params['auth_type'] = 'rerequest';
+        if($service==='facebook_profile'){
+            $config=trim((string)setting('publishing.facebook_profile.config_id',''));
+            if($config!==''){
+                if(!preg_match('/^[0-9]{5,30}$/D',$config))throw new RuntimeException('Check the Facebook Login configuration ID.');
+                $params['config_id']=$config;
+                $params['override_default_response_type']='true';
+                unset($params['scope']);
+            }
+        }
     } elseif ($provider === 'tiktok') {
         $callback=parse_url($params['redirect_uri']);
         if(($callback['scheme']??'')!=='https' || isset($callback['query']) || isset($callback['fragment']) || strlen($params['redirect_uri'])>=512) throw new RuntimeException('TikTok Login Kit requires a registered, static HTTPS callback address.');
