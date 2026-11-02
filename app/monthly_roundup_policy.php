@@ -58,6 +58,7 @@ function roundup_body(array $window,array $items,bool $email=false,string $archi
         }
     }
     if($email&&$archive!=='')$html.='<p><a href="'.$esc($archive).'">Read the complete '.$esc($window['month']).' roundup ('.count($items).' public updates)</a></p>';
-    $html.='<h2>Into the new month</h2><p>May '.$esc($window['welcome_month']).' bring useful ideas, thoughtful conversations and opportunities to put learning into practice. Thank you for reading and sharing the work.</p><p>Waithaka Ndegwa<br>People · Ideas · Impact<br>www.waithakandegwa.com · @iwaithakaw</p>';
+    $html.='<h2>Into the new month</h2><p>May '.$esc($window['welcome_month']).' bring useful ideas, thoughtful conversations and opportunities to put learning into practice. Thank you for reading and sharing the work.</p>';
+    if(!$email)$html.='<p>Waithaka Ndegwa<br>People · Ideas · Impact<br>www.waithakandegwa.com · @iwaithakaw</p>';
     return $html;
 }

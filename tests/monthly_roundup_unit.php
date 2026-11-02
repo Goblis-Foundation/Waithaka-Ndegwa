@@ -25,7 +25,7 @@ $paid=roundup_item(array_replace($item,['type'=>'partner','sponsored'=>true,'new
 $items=roundup_select([$item,$item,array_replace($item,['public'=>false])],$w,$origin);mr_check(count($items)===1,'Repeated source does not duplicate an entry.');
 $safe=roundup_item($item+['client_email'=>'PRIVATE','phone'=>'PRIVATE','notes'=>'PRIVATE'],$w,$origin);mr_check(!str_contains(json_encode($safe),'PRIVATE'),'Allowlisted public projection only.');
 $html=roundup_body($w,$items,true,$origin.roundup_public_path($w['key']));mr_check(str_contains($html,'Welcome to November 2026.')&&str_contains($html,'October 2026'),'Welcoming article copy uses correct calendar labels.');
-mr_check(str_contains($html,'www.waithakandegwa.com')&&str_contains($html,'@iwaithakaw')&&!str_contains($html,'/contribute'),'Brand footer without a contribution request.');
+mr_check(str_contains($html,$origin.roundup_public_path($w['key']))&&!str_contains($html,'@iwaithakaw')&&!str_contains($html,'<p>Waithaka Ndegwa<br>')&&!str_contains($html,'/contribute'),'Email uses the shared signature without a duplicate handle or contribution request.');
 $closed=$items;$closed[0]['closed']=true;mr_check(str_contains(roundup_body($w,$closed),'Closed —'),'Closed calls labelled rather than promoted as open.');
 mr_check(str_contains(roundup_body($w,[]),'No new public items were recorded'),'No invented achievements in a quiet month.');
 mr_check(str_contains(roundup_policy_text(),'No unrelated queue')&&str_contains(roundup_policy_text(),'one-click unsubscribe'),'Delivery boundary is explicit.');

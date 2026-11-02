@@ -11,7 +11,7 @@ $html=email_design('Thank you for writing.','<p>Your message is recorded.</p>',[
 rc(str_contains($html,'brand-lockup.png?v=20261027')&&str_contains($html,'alt="Waithaka Ndegwa"'),'Approved actual logo, not a generated likeness.');
 rc(str_contains($html,'#073b6a')&&str_contains($html,'#2f6f3e')&&str_contains($html,'#ffffff'),'Blue, green and white email design.');
 rc(str_contains($html,'People · Ideas · Impact')&&!str_contains($html,'MY THOUGHTS · IDEAS INTO IMPACT'),'Slogan is not all capitals.');
-rc(str_contains($html,'Hello Amina,')&&str_contains($html,'@iwaithakaw'),'Personal salutation and handle.');
+rc(str_contains($html,'Hello Amina,')&&!str_contains(strip_tags($html),'@iwaithakaw'),'Personal salutation without a duplicate social handle.');
 foreach(social_links()as$name=>$link)rc(str_contains($html,$link),'Existing social destination retained.');
 $text=email_design_text($html);rc(str_contains($text,'Waithaka Ndegwa')&&str_contains($text,'WN-EXAMPLE'),'Text alternative and reference remain useful without images.');
 rc(!isset(contact_guides()['speaking'])&&count(contact_guides())===5,'Retired speaking invitation is not offered.');
