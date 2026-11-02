@@ -112,3 +112,14 @@ gw_check(google_calendar_identity_label($identityAccount,$identityWho,'isaac@ubu
 foreach([array_replace($identityWho,['sub'=>'another-account']),array_replace($identityWho,['email'=>'isaac@ubunifuinstitute.co.ke']),array_replace($identityWho,['email_verified'=>false]),array_replace($identityWho,['email_verified'=>'true']),array_replace($identityWho,['name'=>"Bad\nname"])]as$wrong){$blocked=false;try{google_calendar_identity_label($identityAccount,$wrong,'isaac@ubunifuinstitute.com');}catch(RuntimeException){$blocked=true;}gw_check($blocked,'Different subject, old address, unverified email or malformed name cannot relabel access.');}
 gw_reject(fn()=>google_calendar_identity_label($identityAccount,$identityWho,"isaac@ubunifuinstitute.com\r\nBcc: other@example.invalid"),'Reject header-bearing identity input.');
 gw_check(mb_strlen(google_calendar_identity_label($identityAccount,array_replace($identityWho,['name'=>str_repeat('名',300)]),'isaac@ubunifuinstitute.com'))<=255,'Renamed labels fit the existing database field without splitting Unicode.');
+
+foreach (['RATE_LIMIT_EXCEEDED','dailyLimitExceeded','SERVICE_DISABLED','ACCESS_TOKEN_SCOPE_INSUFFICIENT'] as $reason) {
+    $raw=json_encode(['error'=>['status'=>'RESOURCE_EXHAUSTED','message'=>'private-token','details'=>[['reason'=>$reason,'metadata'=>['secret'=>'private-token']]]]]);
+    $message=publishing_postmaster_error_message($raw,429);
+    gw_check(str_contains($message,'HTTP 429') && str_contains($message,$reason),'Postmaster safe diagnostic '.$reason);
+    gw_check(!str_contains($message,'private-token'),'Postmaster excludes messages and metadata');
+}
+foreach (['not json','null','{"error":"private-token"}','{"error":{"status":"private-token","errors":"private-token","details":[{"reason":"private-token"}]}}'] as $raw) {
+    $message=publishing_postmaster_error_message($raw,429);
+    gw_check(str_contains($message,'no recognized safe reason') && !str_contains($message,'private-token'),'Postmaster malformed or unknown diagnostic remains private');
+}
