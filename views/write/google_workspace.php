@@ -18,6 +18,7 @@
 <form method="post" action="<?=url('/write/connections/google_youtube_analytics/start')?>"><?=csrf_field()?><button class="wbtn">Connect YouTube Analytics</button></form><p>Watch time and period trends require their own read-only grant, separate from channel totals and uploading.</p></section>
 <section id="search-review" class="pub-card google-search-review">
 <h2>Search visibility · review opportunities</h2>
+<?php if((int)(current_user()['id']??0)===(int)(comm_config()['owner']??0)):?><p><a class="wbtn" href="<?=url('/write/google/search-reviews')?>">Schedule private search reviews →</a></p><?php endif;?>
 <p>Compare eligible published pages across two equal reporting periods. This analysis uses your already authorised Search Console property and does not require wider Google permissions.</p>
 <form method="post" class="google-inline"><?=csrf_field()?><input type="hidden" name="action" value="search-review"><label>Review window<select name="review_days"><option value="28" <?=($searchReview['days']??28)===28?'selected':''?>>28 complete days</option><option value="90" <?=($searchReview['days']??28)===90?'selected':''?>>90 complete days</option></select></label><button class="wbtn primary">Review search signals</button></form>
 <p>On-demand read only; no automatic page edits or indexing requests. <a href="<?=url('/write/connections')?>">Review connected Search Console permissions</a>.</p>

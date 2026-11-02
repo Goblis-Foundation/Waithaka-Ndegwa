@@ -47,3 +47,20 @@ gwd_check(str_ends_with($after['display_name'],'isaac@ubunifuinstitute.com'),'Ve
 $blocked=false;try{google_calendar_refresh_identity((int)$before['id'],$ids[1],'isaac@ubunifuinstitute.com',$identityTransport);}catch(InvalidArgumentException){$blocked=true;}gwd_check($blocked&&$identityReads===1,'Another Writer cannot read or rename the owner connection.');
 $changed=false;try{google_calendar_refresh_identity((int)$before['id'],$ids[0],'isaac@ubunifuinstitute.com',static function($m,$u,$h)use($before):array{db()->prepare('UPDATE google_calendar_accounts SET display_name=? WHERE id=?')->execute(['Concurrent profile update',$before['id']]);return ['data'=>['sub'=>'google-one','email'=>'isaac@ubunifuinstitute.com','email_verified'=>true,'name'=>'Stale name']];});}catch(RuntimeException){$changed=true;}gwd_check($changed&&google_calendar_owned((int)$before['id'],$ids[0])['display_name']==='Concurrent profile update','A stale provider response cannot overwrite a concurrent connection update.');
 echo "PASS: same-subject Google email refresh, exact expected address, ownership, unchanged grants/calendars and concurrent update protection.\n";
+
+// Real encrypted schedule state with a fixture reader; no provider call or publication.
+require_once dirname(__DIR__).'/app/communication.php';
+require_once dirname(__DIR__).'/app/search_review_schedule.php';
+$owner=$ids[0];comm_put('config',['owner'=>$owner]);
+$c=['access_token'=>'fixture-unused-token'];
+db()->prepare("INSERT INTO publishing_connections(service,provider,status,external_id,selected_resource,connected_by,verified_at,scopes_json,credentials_encrypted) VALUES('google_search_console','google','connected','fixture-subject','sc-domain:example.invalid',?,UTC_TIMESTAMP(),'[]',?)")->execute([$owner,encrypt_secret(publishing_json($c))]);
+$input=['enabled'=>'1','consent'=>'1','days'=>'28','cadence'=>'weekly','version'=>'0','connection'=>srs_binding(srs_connection($owner))];
+$time=time();srs_save($owner,$input,$time);
+$report=['title'=>'PRIVATE_SEARCH_REVIEW_CANARY','days'=>28,'rows'=>[],'note'=>'Synthetic sample only'];
+$result=srs_work($time+1,static fn()=> $report,true);
+gwd_check($result['checked']===1&&srs_config()['reports'][0]===$report,'Scheduled summaries persist through the actual encrypted settings layer.');
+$q=db()->prepare("SELECT setting_value,is_secret FROM settings WHERE setting_key='communication.search.review.schedule'");$q->execute();$encrypted=$q->fetch();
+gwd_check((int)$encrypted['is_secret']===1&&!str_contains($encrypted['setting_value'],'PRIVATE_SEARCH_REVIEW_CANARY'),'Schedule and private snapshots are encrypted at rest.');
+srs_save($owner,['days'=>'28','cadence'=>'weekly','version'=>(string)srs_config()['version']],$time+2);
+gwd_check(srs_config()['reports']===[]&&!srs_config()['enabled'],'Disabling clears actual stored summaries.');
+echo "PASS: actual encrypted search schedule persistence and deletion.\n";

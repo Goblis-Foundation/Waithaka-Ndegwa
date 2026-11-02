@@ -54,6 +54,9 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { preparation_stage('calendars',static fn()=>gcs_work()); } catch(Throwable $e) { error_log('Private calendar refresh needs review.'); }
 }
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { preparation_stage('search',static fn()=>srs_work()); } catch(Throwable) { error_log('Scheduled search review needs attention.'); }
+}
 $enabled=$APP_INSTALLED && (bool)app_config('worker_enabled',false);
 $run=$APP_INSTALLED && function_exists('readiness_worker_begin')?readiness_worker_begin($enabled):null;
 if (!$enabled) { echo "{\"enabled\":false}\n"; exit; }

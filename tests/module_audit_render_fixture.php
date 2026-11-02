@@ -118,3 +118,11 @@ foreach(['week','year','empty']as$variant){
 foreach(['providers/http','studio','google_workspace']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
 $_SERVER['REQUEST_URI']='/write/google';
 file_put_contents($out.'/module-google-workspace.html',ma_page('google_workspace',['accounts'=>[['id'=>8,'display_name'=>'Synthetic owner · fixture@old.example.invalid','status'=>'connected','verified_at'=>'2026-10-30 12:00:00','credentials_encrypted'=>'synthetic-fixture-only','calendars_json'=>json_encode([['id'=>'synthetic-calendar','name'=>'Synthetic calendar','timezone'=>'Africa/Nairobi','access'=>'owner']]),'selected_json'=>json_encode(['synthetic-calendar'])]],'health'=>[],'result'=>null,'agenda'=>null,'searchReview'=>null,'draft'=>null,'error'=>'','input'=>'','mode'=>'outline']));
+
+// Search-review schedule fixtures contain public editorial URLs and aggregate sample metrics only.
+require_once dirname(__DIR__).'/app/search_review_schedule.php';
+$_SERVER['REQUEST_URI']='/write/google/search-reviews';
+$srsBase=['target'=>['account'=>'Synthetic Search Console owner','property'=>'sc-domain:example.invalid','fingerprint'=>str_repeat('a',64)],'schedule'=>srs_defaults(),'reports'=>[],'connectionMatches'=>false,'error'=>'','notice'=>''];
+file_put_contents($out.'/module-search-reviews-empty.html',ma_page('search_reviews',$srsBase));
+$srsReport=['current'=>['start'=>'2026-10-01','end'=>'2026-10-28'],'previous'=>['start'=>'2026-09-03','end'=>'2026-09-30'],'observed_at'=>'2026-11-01T00:00:00Z','current_sample'=>20,'previous_sample'=>15,'note'=>'Top-row samples only; missing data is unavailable, never zero.','rows'=>[['page'=>'https://www.waithakandegwa.com/my-thoughts/'.str_repeat('long-title-',15),'signal'=>'Clicks declined','clicks'=>15,'prior_clicks'=>40,'reason'=>'Review search intent and indexing. No cause is assumed.']]];
+file_put_contents($out.'/module-search-reviews-saved.html',ma_page('search_reviews',array_replace($srsBase,['schedule'=>array_replace(srs_defaults(),['enabled'=>true,'state'=>'completed','next_at'=>1794168000]),'reports'=>[$srsReport],'connectionMatches'=>true])));
