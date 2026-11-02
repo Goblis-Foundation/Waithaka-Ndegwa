@@ -1,5 +1,5 @@
 <link rel="stylesheet" href="<?=e(asset('css/google-workspace.css'))?>">
-<main class="write-main google-workspace">
+<main class="write-main google-workspace" data-search-reviews>
 <header class="writer-head"><div><span class="writer-kicker">Private search visibility</span><h1>Scheduled search reviews</h1><p>Find pages whose clicks declined or whose search snippets deserve review.</p></div><a class="wbtn" href="<?=url('/write/google#search-review')?>">Google workspace →</a></header>
 <?php if($error):?><p class="notice error" role="alert"><?=e($error)?></p><?php endif;?>
 <?php if($notice):?><p class="notice" role="status"><?=e($notice)?></p><?php endif;?>
