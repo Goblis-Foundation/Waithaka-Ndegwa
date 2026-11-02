@@ -29,12 +29,14 @@ class HookPackagingTests(unittest.TestCase):
   required=next(ast.literal_eval(node.value) for node in ast.walk(tree) if isinstance(node,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='required' for t in node.targets))
   found=[]
   for hook in (ROOT/'.platform/hooks/postdeploy').glob('*.sh'):
-   for command in re.findall(r'php\s+(bin/[A-Za-z0-9_-]+\.php)',hook.read_text()):
+   for command in re.findall(r'php\s+((?:bin|deploy/aws)/[A-Za-z0-9_-]+\.php)',hook.read_text()):
     found.append(command)
     self.assertTrue((ROOT/command).is_file(),command)
     self.assertTrue(builder.runtime_file(command),command)
     self.assertIn(command,required,command)
   self.assertIn('bin/founder-story-migrate.php',found)
+  self.assertIn('deploy/aws/contact_mail_probe.php',found)
+  self.assertIn('.platform/hooks/postdeploy/33_contact_mail_probe.sh',required)
   for private in ['.env','storage/private.json','bin/adhoc-admin.php']:
    self.assertFalse(builder.runtime_file(private),private)
 class DiagnosticPrivacyTests(unittest.TestCase):
