@@ -56,6 +56,16 @@ $facebook['delivery_method']='manual';check(publishing_capability($facebook)['us
 $instagram=['slug'=>'instagram','account_type'=>'professional','delivery_method'=>'direct'];
 check(!publishing_capability($instagram)['usable'],'Professional branding does not imply OAuth authorization');
 check(publishing_capability($instagram,$identity)['mode']==='direct','Direct declaration is represented distinctly');
+$pageSet=['service'=>'facebook_pages','status'=>'connected','selected_resource'=>'*','scopes_json'=>'["pages_show_list","pages_read_engagement","pages_manage_posts"]','resources_json'=>'[{"id":"123","name":"Page A","type":"page"},{"id":"456","name":"Page B","type":"page"}]'];
+check(publishing_facebook_page_connection($pageSet,'456')['selected_resource']==='456','An optional Page is selected without mutating the saved set');
+check($pageSet['selected_resource']==='*','Selection is local to the approved destination');
+rejects(fn()=>publishing_facebook_page_connection($pageSet,'789'),'Unknown Pages cannot be substituted');
+rejects(fn()=>publishing_facebook_page_connection($pageSet,'*'),'A set is never a publishing destination');
+rejects(fn()=>publishing_facebook_page_connection(array_replace($pageSet,['status'=>'pending_confirmation']),'123'),'Unconfirmed grants cannot publish');
+rejects(fn()=>publishing_facebook_page_connection(array_replace($pageSet,['scopes_json'=>'[]']),'123'),'Missing publishing permission blocks optional Pages');
+rejects(fn()=>publishing_facebook_page_connection(array_replace($pageSet,['selected_resource'=>'123']),'456'),'A single confirmed Page cannot widen to another Page');
+$fbDraft=publishing_normalize_draft(['title'=>'Page choice','variants'=>['facebook'=>['facebook_page_id'=>'456']]]);
+check($fbDraft['variants']['facebook']['facebook_page_id']==='456','Per-publication Page survives saving');
 $pending=$identity;$pending['status']='pending_confirmation';check(!publishing_capability($instagram,$pending)['usable'],'An observed account still requires destination confirmation');
 check(!publishing_capability($instagram,$identity)['usable'],'Generic identity cannot substitute actual Instagram publish scopes');
 $igIdentity=array_replace($identity,['service'=>'instagram','external_id'=>'17840000000000001','selected_resource'=>'17840000000000001','scopes_json'=>'["instagram_business_basic","instagram_business_content_publish"]']);check(publishing_capability($instagram,$igIdentity)['usable'],'Scoped confirmed Instagram identity can use native image/Reel formats');
