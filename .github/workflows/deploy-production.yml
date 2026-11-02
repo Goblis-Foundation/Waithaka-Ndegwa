@@ -133,6 +133,8 @@ jobs:
           unzip -t ../deployment/application.zip >/dev/null
 
       - name: Continue production deployment with live availability guard
+        env:
+          APPROVED_ARTICLE_GROUP_MIGRATION_SHA256: '27720fb1faebac430dd2206e5a02b8aa84087dfef969b3a3249ddc1aeec49f99'
         run: |
           python3 -B deploy/aws/release_continuity.py \
             --report "$RUNNER_TEMP/live-continuity/deployment.json" \

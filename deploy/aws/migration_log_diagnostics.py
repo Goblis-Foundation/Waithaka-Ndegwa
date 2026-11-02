@@ -9,7 +9,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-SAFE=re.compile(r'(Founder migration AWS read failed: [A-Za-z0-9_.-]{1,100}; HTTP [0-9]{1,3}\.|Founder story additive migration applied and verified\.|Founder story migration already verified with runtime read access\.|Could not open input file: bin/founder-story-migrate\.php|Application error [A-F0-9]{12} [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+)')
+SAFE=re.compile(r'(Article grouping migration AWS read failed: [A-Za-z0-9_.-]{1,100}; HTTP [0-9]{1,3}\.|Article grouping (?:additive migration applied and verified|migration already verified with runtime read access)\.|Could not open input file: bin/article-groups-migrate\.php|Founder migration AWS read failed: [A-Za-z0-9_.-]{1,100}; HTTP [0-9]{1,3}\.|Founder story additive migration applied and verified\.|Founder story migration already verified with runtime read access\.|Could not open input file: bin/founder-story-migrate\.php|Application error [A-F0-9]{12} [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+)')
 def safe_lines(text):
  return [m.group(0) for line in text.splitlines() if (m:=SAFE.search(line))]
 def aws(*args):
@@ -32,7 +32,7 @@ def main():
   with urllib.request.urlopen(row['Message'],timeout=30) as response:data=response.read(8*1024*1024)
   if zipfile.is_zipfile(io.BytesIO(data)):
    with zipfile.ZipFile(io.BytesIO(data)) as archive:
-    bodies=[archive.read(info) for info in archive.infolist() if info.file_size<=4*1024*1024 and any(k in info.filename for k in ['eb-engine.log','eb-hooks.log','error_log'])]
+    bodies=[archive.read(info) for info in archive.infolist() if info.file_size<=4*1024*1024 and any(k in info.filename for k in ['eb-engine.log','eb-hooks.log','error_log','error.log','php-fpm'])]
   else:bodies=[data]
   for body in bodies:
    for line in safe_lines(body.decode('utf-8','replace')):print(line)

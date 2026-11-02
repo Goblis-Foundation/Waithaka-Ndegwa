@@ -19,4 +19,10 @@ foreach([['q'=>[]],['topic'=>'../write'],['q'=>str_repeat('x',121)],['q'=>"text\
 $missing=impact_display([],'startups');ag_check($missing['value']===null,'Missing startup reports are unknown, not zero.');
 $zero=impact_display(['data'=>['approved_for_publication'=>true,'metrics'=>['startups'=>0],'as_of'=>gmdate('c')]],'startups');ag_check($zero['value']===0,'An approved actual zero remains distinguishable from missing data.');
 $withdrawn=impact_display(['data'=>['approved_for_publication'=>false,'metrics'=>['startups'=>9],'as_of'=>gmdate('c')]],'startups');ag_check($withdrawn['value']===null,'Withdrawn counts are not shown.');
+require __DIR__.'/../app/article_groups_migration.php';
+$authority=['schema_version'=>1,'migration'=>'210_article_groups.sql','sha256'=>str_repeat('a',64),'state'=>'open','account_id'=>'466401734428','region'=>'af-south-1','admin_secret_arn'=>'arn:aws:secretsmanager:af-south-1:466401734428:secret:fixture-only','db_host'=>'fixture.invalid','db_name'=>'fixture_database','release'=>'r17-0123456789ab','expires_at'=>5500];
+ag_check(article_groups_authority($authority,'fixture.invalid','fixture_database',str_repeat('a',64),5000)===$authority['admin_secret_arn'],'Only exact, unexpired deployment authority can resolve the administrator identifier.');
+foreach([['state'=>'retired'],['expires_at'=>5000],['expires_at'=>10000],['db_host'=>'other.invalid'],['db_name'=>'other_database'],['sha256'=>str_repeat('b',64)],['account_id'=>'111111111111'],['region'=>'us-east-1'],['release'=>'unreviewed'],['admin_secret_arn'=>'arn:aws:secretsmanager:us-east-1:111111111111:secret:other'],['password'=>'PRIVATE_CANARY'],['expires_at'=>'5500']]as$change){
+ try{article_groups_authority(array_replace($authority,$change),'fixture.invalid','fixture_database',str_repeat('a',64),5000);}catch(RuntimeException){$checks++;continue;}throw new RuntimeException('Invalid deployment authority accepted.');
+}
 echo "PASS: $checks article grouping and verified-progress policy checks.\n";

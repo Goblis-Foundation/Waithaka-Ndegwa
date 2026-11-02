@@ -121,7 +121,26 @@ if [[ -f "$SOURCE_DIR/bin/module-audit-migrate.php" ]]; then
     GOOGLE_MIGRATION_REQUIRED=1
   fi
 fi
-if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 || "$TRASH_MIGRATION_REQUIRED" == 1 || "$AUDIT_MIGRATION_REQUIRED" == 1 ]]; then
+# Article groups use the existing recovery-checked, checksum-receipted temporary DDL path.
+LEGACY_MIGRATION_REQUIRED="$GOOGLE_MIGRATION_REQUIRED"
+ARTICLE_MIGRATION_REQUIRED=0
+ARTICLE_MIGRATION_RECEIPT=""
+ARTICLE_AUTHORITY_OPEN=0
+ARTICLE_MIGRATION_FILE="$SOURCE_DIR/app/migrations/210_article_groups.sql"
+if [[ -f "$SOURCE_DIR/bin/article-groups-migrate.php" && -f "$ARTICLE_MIGRATION_FILE" ]]; then
+  ARTICLE_MIGRATION_HASH="$(sha256sum "$ARTICLE_MIGRATION_FILE" | awk '{print $1}')"
+  ARTICLE_MIGRATION_RECEIPT="schema-migrations/210-$ARTICLE_MIGRATION_HASH.json"
+  ARTICLE_AUTHORITY_KEY="release-proofs/schema-migrations/210-$ARTICLE_MIGRATION_HASH.json"
+  if ! aws s3api head-object --bucket "$RELEASE_BUCKET" --key "$ARTICLE_MIGRATION_RECEIPT" --region "$REGION" --no-cli-pager >/dev/null 2>&1; then
+    ARTICLE_MIGRATION_REQUIRED=1
+    GOOGLE_MIGRATION_REQUIRED=1
+  fi
+fi
+ARTICLE_ONLY_RELEASE=0
+if [[ "$BOOTSTRAP_REQUIRED" == 0 && "$LEGACY_MIGRATION_REQUIRED" == 0 && "$ARTICLE_MIGRATION_REQUIRED" == 1 && "${APPROVED_ARTICLE_GROUP_MIGRATION_SHA256:-}" == "$ARTICLE_MIGRATION_HASH" ]]; then
+  ARTICLE_ONLY_RELEASE=1
+fi
+if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 || "$TRASH_MIGRATION_REQUIRED" == 1 || "$AUDIT_MIGRATION_REQUIRED" == 1 || "$ARTICLE_MIGRATION_REQUIRED" == 1 ]]; then
   backup_metadata="$(mktemp)"
   FOUNDER_BACKUP_PROOF="$(mktemp)"
   # Resolve the one database from the owned stack; never enumerate account databases.
@@ -147,6 +166,15 @@ JSON
   local cleanup_status=0
   aws iam put-role-policy --role-name "$INSTANCE_ROLE" --policy-name WaithakaRuntimeAccess --policy-document "file://$cleanup_policy" --no-cli-pager || cleanup_status=$?
   rm -f "$cleanup_policy"
+  if [[ "${ARTICLE_AUTHORITY_OPEN:-0}" == 1 ]]; then
+    local retired_authority; retired_authority="$(mktemp)"
+    python3 - "$retired_authority" "$ARTICLE_MIGRATION_HASH" <<'PYRETIRED'
+import json,sys
+json.dump({'schema_version':1,'migration':'210_article_groups.sql','sha256':sys.argv[2],'state':'retired'},open(sys.argv[1],'w'))
+PYRETIRED
+    aws s3api put-object --bucket "$PRIVATE_BUCKET" --key "$ARTICLE_AUTHORITY_KEY" --body "$retired_authority" --region "$REGION" --no-cli-pager >/dev/null || cleanup_status=$?
+    rm -f "$retired_authority"
+  fi
   return "$cleanup_status"
 }
 if [[ "$GOOGLE_MIGRATION_REQUIRED" == 1 ]]; then
@@ -178,6 +206,21 @@ aws iam attach-role-policy --role-name "$INSTANCE_ROLE" --policy-arn arn:aws:iam
 
 # Upload the immutable application bundle and register a version.
 SHA="$(sha256sum "$APP_ZIP" | awk '{print $1}')"; VERSION="r17-${SHA:0:12}"; KEY="application/$VERSION.zip"
+# This private metadata contains an identifier, not database credentials. It expires in one hour,
+# is bound to the exact migration/database and is retired by the existing EXIT cleanup.
+# Reuse the runtime role's existing private release-proofs read scope; no environment restart is needed.
+if [[ "$ARTICLE_ONLY_RELEASE" == 1 ]]; then
+  ARTICLE_DB_NAME="$(aws cloudformation describe-stacks --stack-name "$DATA_STACK" --region "$REGION" --query "Stacks[0].Parameters[?ParameterKey=='DatabaseName'].ParameterValue | [0]" --output text --no-cli-pager)"
+  [[ "$ARTICLE_DB_NAME" =~ ^[A-Za-z][A-Za-z0-9_]{0,62}$ ]] || fail "Invalid owned database name for the article migration."
+  authority_file="$(mktemp)"
+  python3 - "$authority_file" "$ARTICLE_MIGRATION_HASH" "$ADMIN_SECRET" "$DB_HOST" "$ARTICLE_DB_NAME" "$VERSION" <<'PYAUTHORITY'
+import json,sys,time
+json.dump({'schema_version':1,'migration':'210_article_groups.sql','sha256':sys.argv[2],'state':'open','account_id':'466401734428','region':'af-south-1','admin_secret_arn':sys.argv[3],'db_host':sys.argv[4],'db_name':sys.argv[5],'release':sys.argv[6],'expires_at':int(time.time())+3600},open(sys.argv[1],'w'))
+PYAUTHORITY
+  ARTICLE_AUTHORITY_OPEN=1
+  aws s3api put-object --bucket "$PRIVATE_BUCKET" --key "$ARTICLE_AUTHORITY_KEY" --body "$authority_file" --region "$REGION" --no-cli-pager >/dev/null
+  rm -f "$authority_file"
+fi
 aws s3 cp "$APP_ZIP" "s3://$RELEASE_BUCKET/$KEY" --region "$REGION" --only-show-errors
 aws elasticbeanstalk describe-applications --application-names "$APP_NAME" --region "$REGION" --query 'Applications[0].ApplicationName' --output text --no-cli-pager 2>/dev/null | grep -qx "$APP_NAME" || aws elasticbeanstalk create-application --application-name "$APP_NAME" --description 'Waithaka Ndegwa personal publishing platform' --region "$REGION" --no-cli-pager >/dev/null
 if [[ "$(aws elasticbeanstalk describe-application-versions --application-name "$APP_NAME" --version-labels "$VERSION" --region "$REGION" --query 'ApplicationVersions[0].VersionLabel' --output text --no-cli-pager 2>/dev/null || true)" != "$VERSION" ]]; then
@@ -223,7 +266,7 @@ PY
 # Routine release must preserve the existing application environment options. Reapplying
 # the bootstrap template would reset the approved SMTP relay and restart the sole instance.
 ROUTINE_RELEASE=0
-if [[ "$BOOTSTRAP_REQUIRED" == 0 && "$GOOGLE_MIGRATION_REQUIRED" == 0 ]]; then ROUTINE_RELEASE=1; fi
+if [[ "$BOOTSTRAP_REQUIRED" == 0 && ( "$GOOGLE_MIGRATION_REQUIRED" == 0 || "$ARTICLE_ONLY_RELEASE" == 1 ) ]]; then ROUTINE_RELEASE=1; fi
 
 environment_snapshot(){
   aws elasticbeanstalk describe-environments \
@@ -340,6 +383,15 @@ json.dump({'account_id':'466401734428','migration':'170_founder_story_approval.s
 PYFOUNDER
     aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$FOUNDER_MIGRATION_RECEIPT" --body "$founder_receipt" --region "$REGION" --no-cli-pager >/dev/null
     rm -f "$founder_receipt"
+  fi
+  if [[ "$ARTICLE_MIGRATION_REQUIRED" == 1 ]]; then
+    article_receipt="$(mktemp)"
+    python3 - "$article_receipt" "$ARTICLE_MIGRATION_HASH" "$VERSION" "$FOUNDER_BACKUP_PROOF" <<'PYARTICLE'
+import json,sys,datetime
+json.dump({'account_id':'466401734428','migration':'210_article_groups.sql','sha256':sys.argv[2],'release':sys.argv[3],'verified_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'recovery':json.load(open(sys.argv[4]))},open(sys.argv[1],'w'))
+PYARTICLE
+    aws s3api put-object --bucket "$RELEASE_BUCKET" --key "$ARTICLE_MIGRATION_RECEIPT" --body "$article_receipt" --region "$REGION" --no-cli-pager >/dev/null
+    rm -f "$article_receipt"
   fi
   if [[ "$AUDIT_MIGRATION_REQUIRED" == 1 ]]; then
     audit_receipt="$(mktemp)"
