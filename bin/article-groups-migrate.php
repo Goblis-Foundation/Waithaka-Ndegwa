@@ -11,15 +11,10 @@ if(article_groups_migration_verified(db())){fwrite(STDOUT,"Article grouping migr
 if(!$apply){fwrite(STDOUT,"PLAN: Add the nullable article_groups_json column to posts and record migration 210. Existing articles and private drafts are preserved.\n");exit;}
 $region=(string)app_config('aws_region','');$arn=(string)getenv('DB_ADMIN_SECRET_ARN');
 if($arn===''&&$region==='af-south-1'){
- $bucket=(string)app_config('media.private_bucket','');if($bucket==='')throw new RuntimeException('The private article migration authority is unavailable.');
- $hash=hash_file('sha256',dirname(__DIR__).'/app/migrations/210_article_groups.sql');
- $s3=new \Aws\S3\S3Client(['version'=>'2017-10-17','region'=>$region,'retries'=>2,'http'=>['connect_timeout'=>5,'timeout'=>20]]);
- $authority=$s3->getObject(['Bucket'=>$bucket,'Key'=>'release-proofs/schema-migrations/210-'.$hash.'.json','Range'=>'bytes=0-8191']);
- $body=(string)$authority['Body'];unset($authority);if(strlen($body)>4096)throw new RuntimeException('The article migration authority is too large.');
- $manifest=json_decode($body,true,8,JSON_THROW_ON_ERROR);unset($body);if(!is_array($manifest))throw new RuntimeException('The private article migration authority is invalid.');
- $arn=article_groups_authority($manifest,(string)app_config('db.host'),(string)app_config('db.name'),$hash);unset($manifest);
+ $cloudformation=new \Aws\CloudFormation\CloudFormationClient(['version'=>'2010-05-15','region'=>$region,'retries'=>2,'http'=>['connect_timeout'=>5,'timeout'=>20]]);
+ $stack=$cloudformation->describeStacks(['StackName'=>'waithaka-ndegwa-production-466401734428-data']);
+ $arn=article_groups_stack_authority($stack->toArray(),(string)app_config('db.host'),(string)app_config('db.name'));unset($stack);
 }
-
 if($region!=='af-south-1'||!preg_match('~^arn:aws:secretsmanager:af-south-1:466401734428:secret:[A-Za-z0-9/!_+=.@-]+$~D',$arn))throw new RuntimeException('The exact production database migration identity is required.');
 $client=new \Aws\SecretsManager\SecretsManagerClient(['version'=>'2017-10-17','region'=>$region,'retries'=>2,'http'=>['connect_timeout'=>5,'timeout'=>20]]);
 try {

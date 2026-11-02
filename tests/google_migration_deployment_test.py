@@ -5,33 +5,26 @@ ROOT=Path(__file__).resolve().parents[1]
 SCRIPT=(ROOT/'deploy/aws/fresh_application.sh').read_text()
 FUNCTION=SCRIPT[SCRIPT.index('cleanup_google_migration_access(){'):SCRIPT.index('if [[ "$GOOGLE_MIGRATION_REQUIRED" == 1 ]]; then\n  trap')]
 class MigrationCleanupTests(unittest.TestCase):
-    def invoke(self, enabled, status=0, article=False):
+    def invoke(self, enabled, status=0):
         with tempfile.TemporaryDirectory() as d:
             output=Path(d)/'policy.json'
-            retired=Path(d)/'retired.json'
             program='''set -u
 GOOGLE_MIGRATION_REQUIRED="$ENABLED"
 RUNTIME_SECRET=fixture-runtime-secret
 PUBLIC_BUCKET=fixture-public
 PRIVATE_BUCKET=fixture-private
 INSTANCE_ROLE=fixture-role
-ARTICLE_AUTHORITY_OPEN="$ARTICLE_MODE"
-ARTICLE_MIGRATION_HASH=fixture-hash
-ARTICLE_AUTHORITY_KEY=release-proofs/schema-migrations/fixture.json
-REGION=af-south-1
 aws(){
   while [[ "$#" -gt 0 ]]; do
     if [[ "$1" == --policy-document ]]; then cp "${2#file://}" "$CAPTURE"; break; fi
-    if [[ "$1" == --body ]]; then cp "$2" "$RETIRED"; break; fi
     shift
   done
   return "$AWS_STATUS"
 }
 '''+FUNCTION+'''cleanup_google_migration_access
 '''
-            env=os.environ|{'ENABLED':str(enabled),'AWS_STATUS':str(status),'CAPTURE':str(output),'RETIRED':str(retired),'ARTICLE_MODE':'1' if article else '0'}
+            env=os.environ|{'ENABLED':str(enabled),'AWS_STATUS':str(status),'CAPTURE':str(output)}
             result=subprocess.run(['bash','-c',program],env=env,capture_output=True,text=True)
-            self.retired=json.loads(retired.read_text()) if retired.exists() else None
             return result.returncode,json.loads(output.read_text()) if output.exists() else None
     def test_cleanup_keeps_only_runtime_secret_and_owned_media(self):
         status,policy=self.invoke(1)
@@ -39,13 +32,10 @@ aws(){
         self.assertEqual(policy['Statement'][0]['Resource'],'fixture-runtime-secret')
         encoded=json.dumps(policy)
         self.assertNotIn('admin',encoded.lower())
+        self.assertNotIn('cloudformation',encoded.lower())
         self.assertNotIn('secretsmanager:*',encoded)
         self.assertEqual(len(policy['Statement']),3)
         self.assertIn('fixture-private/media-library/*',encoded)
-    def test_article_authority_is_retired_without_leaving_an_admin_identifier(self):
-        status,_=self.invoke(1,article=True)
-        self.assertEqual(status,0)
-        self.assertEqual(self.retired,{'schema_version':1,'migration':'210_article_groups.sql','sha256':'fixture-hash','state':'retired'})
     def test_cleanup_failure_is_not_reported_as_success(self):
         status,_=self.invoke(1,13)
         self.assertEqual(status,13)
@@ -91,20 +81,27 @@ class ArticleMigrationPlanTests(unittest.TestCase):
             result=subprocess.run(['bash','-eu','-c',block+'printf %s "$ROUTINE_RELEASE"'],env=os.environ|{'BOOTSTRAP_REQUIRED':'0','GOOGLE_MIGRATION_REQUIRED':'1','ARTICLE_ONLY_RELEASE':article},text=True,capture_output=True)
             self.assertEqual(result.returncode,0,result.stderr)
             self.assertEqual(result.stdout,expected)
-    def test_private_authority_metadata_has_no_credentials_and_is_short_lived(self):
-        import time
-        code=SCRIPT.split("<<'PYAUTHORITY'\n",1)[1].split('\nPYAUTHORITY',1)[0]
+    def test_only_the_owned_stack_and_exact_admin_secret_get_one_hour_read_access(self):
+        import datetime as dt
+        code=SCRIPT.split("<<'PYARTICLEACCESS'\n",1)[1].split('\nPYARTICLEACCESS',1)[0]
         with tempfile.TemporaryDirectory() as folder:
-            target=Path(folder)/'authority.json'
-            result=subprocess.run(['python3','-c',code,str(target),'f'*64,'fixture-admin-identifier','fixture.invalid','fixture_database','r17-0123456789ab'],text=True,capture_output=True)
+            target=Path(folder)/'policy.json'
+            runtime='fixture-runtime';admin='fixture-admin';stack='waithaka-ndegwa-production-466401734428-data'
+            target.write_text(json.dumps({'Version':'2012-10-17','Statement':[{'Sid':'RuntimeSecrets','Resource':[runtime,admin]}]}))
+            result=subprocess.run(['python3','-c',code,str(target),runtime,admin,stack],text=True,capture_output=True)
             self.assertEqual(result.returncode,0,result.stderr)
-            record=json.loads(target.read_text())
-            self.assertEqual(record['sha256'],'f'*64)
-            self.assertEqual(record['db_host'],'fixture.invalid')
-            self.assertEqual(record['db_name'],'fixture_database')
-            self.assertEqual(record['state'],'open')
-            self.assertLessEqual(abs(record['expires_at']-time.time()-3600),5)
-            self.assertFalse({'password','username','token','SecretString'}&record.keys())
+            statements=json.loads(target.read_text())['Statement']
+            self.assertEqual(statements[0]['Resource'],[runtime])
+            self.assertNotIn('Condition',statements[0])
+            secret,metadata=statements[1:]
+            self.assertEqual(secret['Resource'],admin)
+            self.assertEqual(secret['Action'],['secretsmanager:GetSecretValue','secretsmanager:DescribeSecret'])
+            self.assertEqual(metadata['Action'],['cloudformation:DescribeStacks'])
+            self.assertEqual(metadata['Resource'],'arn:aws:cloudformation:af-south-1:466401734428:stack/'+stack+'/*')
+            self.assertEqual(secret['Condition'],metadata['Condition'])
+            self.assertEqual(metadata['Condition']['StringEquals'],{'aws:RequestedRegion':'af-south-1'})
+            expiry=dt.datetime.fromisoformat(metadata['Condition']['DateLessThan']['aws:CurrentTime'].replace('Z','+00:00'))
+            self.assertLess(abs((expiry-dt.datetime.now(dt.timezone.utc)).total_seconds()-3600),5)
     def test_article_recovery_check_precedes_temporary_role_access(self):
         guard='if [[ "$FOUNDER_MIGRATION_REQUIRED" == 1 || "$TRASH_MIGRATION_REQUIRED" == 1 || "$AUDIT_MIGRATION_REQUIRED" == 1 || "$ARTICLE_MIGRATION_REQUIRED" == 1 ]]; then'
         self.assertLess(SCRIPT.index(guard),SCRIPT.index('cleanup_google_migration_access(){'))

@@ -125,12 +125,10 @@ fi
 LEGACY_MIGRATION_REQUIRED="$GOOGLE_MIGRATION_REQUIRED"
 ARTICLE_MIGRATION_REQUIRED=0
 ARTICLE_MIGRATION_RECEIPT=""
-ARTICLE_AUTHORITY_OPEN=0
 ARTICLE_MIGRATION_FILE="$SOURCE_DIR/app/migrations/210_article_groups.sql"
 if [[ -f "$SOURCE_DIR/bin/article-groups-migrate.php" && -f "$ARTICLE_MIGRATION_FILE" ]]; then
   ARTICLE_MIGRATION_HASH="$(sha256sum "$ARTICLE_MIGRATION_FILE" | awk '{print $1}')"
   ARTICLE_MIGRATION_RECEIPT="schema-migrations/210-$ARTICLE_MIGRATION_HASH.json"
-  ARTICLE_AUTHORITY_KEY="release-proofs/schema-migrations/210-$ARTICLE_MIGRATION_HASH.json"
   if ! aws s3api head-object --bucket "$RELEASE_BUCKET" --key "$ARTICLE_MIGRATION_RECEIPT" --region "$REGION" --no-cli-pager >/dev/null 2>&1; then
     ARTICLE_MIGRATION_REQUIRED=1
     GOOGLE_MIGRATION_REQUIRED=1
@@ -166,15 +164,6 @@ JSON
   local cleanup_status=0
   aws iam put-role-policy --role-name "$INSTANCE_ROLE" --policy-name WaithakaRuntimeAccess --policy-document "file://$cleanup_policy" --no-cli-pager || cleanup_status=$?
   rm -f "$cleanup_policy"
-  if [[ "${ARTICLE_AUTHORITY_OPEN:-0}" == 1 ]]; then
-    local retired_authority; retired_authority="$(mktemp)"
-    python3 - "$retired_authority" "$ARTICLE_MIGRATION_HASH" <<'PYRETIRED'
-import json,sys
-json.dump({'schema_version':1,'migration':'210_article_groups.sql','sha256':sys.argv[2],'state':'retired'},open(sys.argv[1],'w'))
-PYRETIRED
-    aws s3api put-object --bucket "$PRIVATE_BUCKET" --key "$ARTICLE_AUTHORITY_KEY" --body "$retired_authority" --region "$REGION" --no-cli-pager >/dev/null || cleanup_status=$?
-    rm -f "$retired_authority"
-  fi
   return "$cleanup_status"
 }
 if [[ "$GOOGLE_MIGRATION_REQUIRED" == 1 ]]; then
@@ -193,6 +182,23 @@ cat > "$POLICY_FILE" <<JSON
  ]
 }
 JSON
+# The article hook reads only the owned stack's metadata. Both additional reads expire
+# after one hour independently of cleanup; the permanent runtime secret stays available.
+if [[ "$ARTICLE_ONLY_RELEASE" == 1 ]]; then
+  python3 - "$POLICY_FILE" "$RUNTIME_SECRET" "$ADMIN_SECRET" "$DATA_STACK" <<'PYARTICLEACCESS'
+import json,sys,datetime
+path,runtime,admin,stack=sys.argv[1:]
+policy=json.load(open(path))
+policy['Statement'][0]['Resource']=[runtime]
+expires=(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+condition={'DateLessThan':{'aws:CurrentTime':expires},'StringEquals':{'aws:RequestedRegion':'af-south-1'}}
+policy['Statement'] += [
+ {'Sid':'TemporaryArticleMigrationSecret','Effect':'Allow','Action':['secretsmanager:GetSecretValue','secretsmanager:DescribeSecret'],'Resource':admin,'Condition':condition},
+ {'Sid':'TemporaryArticleMigrationMetadata','Effect':'Allow','Action':['cloudformation:DescribeStacks'],'Resource':'arn:aws:cloudformation:af-south-1:466401734428:stack/'+stack+'/*','Condition':condition}
+]
+json.dump(policy,open(path,'w'))
+PYARTICLEACCESS
+fi
 if [[ "$BOOTSTRAP_REQUIRED" == 0 && "$GOOGLE_MIGRATION_REQUIRED" == 0 ]]; then
   python3 - "$POLICY_FILE" "$RUNTIME_SECRET" <<'PY'
 import json,sys
@@ -206,21 +212,6 @@ aws iam attach-role-policy --role-name "$INSTANCE_ROLE" --policy-arn arn:aws:iam
 
 # Upload the immutable application bundle and register a version.
 SHA="$(sha256sum "$APP_ZIP" | awk '{print $1}')"; VERSION="r17-${SHA:0:12}"; KEY="application/$VERSION.zip"
-# This private metadata contains an identifier, not database credentials. It expires in one hour,
-# is bound to the exact migration/database and is retired by the existing EXIT cleanup.
-# Reuse the runtime role's existing private release-proofs read scope; no environment restart is needed.
-if [[ "$ARTICLE_ONLY_RELEASE" == 1 ]]; then
-  ARTICLE_DB_NAME="$(aws cloudformation describe-stacks --stack-name "$DATA_STACK" --region "$REGION" --query "Stacks[0].Parameters[?ParameterKey=='DatabaseName'].ParameterValue | [0]" --output text --no-cli-pager)"
-  [[ "$ARTICLE_DB_NAME" =~ ^[A-Za-z][A-Za-z0-9_]{0,62}$ ]] || fail "Invalid owned database name for the article migration."
-  authority_file="$(mktemp)"
-  python3 - "$authority_file" "$ARTICLE_MIGRATION_HASH" "$ADMIN_SECRET" "$DB_HOST" "$ARTICLE_DB_NAME" "$VERSION" <<'PYAUTHORITY'
-import json,sys,time
-json.dump({'schema_version':1,'migration':'210_article_groups.sql','sha256':sys.argv[2],'state':'open','account_id':'466401734428','region':'af-south-1','admin_secret_arn':sys.argv[3],'db_host':sys.argv[4],'db_name':sys.argv[5],'release':sys.argv[6],'expires_at':int(time.time())+3600},open(sys.argv[1],'w'))
-PYAUTHORITY
-  ARTICLE_AUTHORITY_OPEN=1
-  aws s3api put-object --bucket "$PRIVATE_BUCKET" --key "$ARTICLE_AUTHORITY_KEY" --body "$authority_file" --region "$REGION" --no-cli-pager >/dev/null
-  rm -f "$authority_file"
-fi
 aws s3 cp "$APP_ZIP" "s3://$RELEASE_BUCKET/$KEY" --region "$REGION" --only-show-errors
 aws elasticbeanstalk describe-applications --application-names "$APP_NAME" --region "$REGION" --query 'Applications[0].ApplicationName' --output text --no-cli-pager 2>/dev/null | grep -qx "$APP_NAME" || aws elasticbeanstalk create-application --application-name "$APP_NAME" --description 'Waithaka Ndegwa personal publishing platform' --region "$REGION" --no-cli-pager >/dev/null
 if [[ "$(aws elasticbeanstalk describe-application-versions --application-name "$APP_NAME" --version-labels "$VERSION" --region "$REGION" --query 'ApplicationVersions[0].VersionLabel' --output text --no-cli-pager 2>/dev/null || true)" != "$VERSION" ]]; then
