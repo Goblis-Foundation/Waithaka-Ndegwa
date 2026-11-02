@@ -288,6 +288,31 @@ function publishing_provider_identity(string $service, array &$token): array {
         $granted = array_column(array_filter($permissions,static fn($p)=>($p['status']??'')==='granted'),'permission');
         foreach (publishing_services()[$service]['scopes'] as $permission) if (!in_array($permission,$granted,true)) throw new RuntimeException('Facebook Page access is missing a required permission.');
         $pages = publishing_facebook_discover_pages(static fn(string $cursor): array => publishing_http('GET',$base.'/me/accounts?fields=id,name,access_token,tasks,link&limit=100'.($cursor!==''?'&after='.rawurlencode($cursor):''),$access)['data']);
+        // Some consented Pages are omitted by /me/accounts. Verify only exact
+        // targets returned for all three approved scopes by this app's token debugger.
+        try {
+            $client=publishing_service_client('facebook_pages');
+            $debug=publishing_http('GET',$base.'/debug_token?'.http_build_query(['input_token'=>$token['access_token']],'','&',PHP_QUERY_RFC3986),publishing_bearer($client['client_id'].'|'.$client['client_secret']))['data']['data']??[];
+            $targets=publishing_facebook_granted_page_ids($debug,$client['client_id'],$id);
+            $pages['diagnostics']['consented_targets']=count($targets);
+            $existing=array_map('strval',array_column($pages['resources'],'id'));
+            $excluded=array_map('strval',array_column($pages['diagnostics']['skipped'],'id'));
+            $missing=array_values(array_diff($targets,$existing,$excluded));
+            if(count($missing)>50)throw new RuntimeException('Too many individually consented Pages for one refresh.');
+            $pages['diagnostics']['direct_verified']=0;
+            foreach($missing as $pageId){
+                try {
+                    $page=publishing_http('GET',$base.'/'.rawurlencode($pageId).'?fields=id,name,access_token,link',$access)['data'];
+                    if((string)($page['id']??'')!==$pageId||!is_string($page['access_token']??null)||$page['access_token']==='')throw new RuntimeException('No matching Page credential.');
+                    $identity=publishing_http('GET',$base.'/me?fields=id',publishing_bearer($page['access_token']))['data'];
+                    if((string)($identity['id']??'')!==$pageId)throw new RuntimeException('Page credential identity differs.');
+                    $pages['resources'][]=['id'=>$pageId,'name'=>mb_substr((string)($page['name']??$pageId),0,255),'type'=>'page','url'=>$page['link']??'https://www.facebook.com/'.$pageId];
+                    $pages['page_tokens'][$pageId]=$page['access_token'];
+                    $pages['diagnostics']['direct_verified']++;
+                }catch(Throwable $e){$pages['diagnostics']['skipped'][]=['id'=>$pageId,'name'=>'Page '.$pageId,'reason'=>'Consent exists, but Facebook did not verify matching Page access.'];}
+            }
+            $pages['diagnostics']['eligible']=count($pages['resources']);
+        }catch(Throwable $e){$pages['diagnostics']['target_check_note']='Individual consent targets could not be verified with the existing app access. The normal Page results remain available.';}
         $resources = $pages['resources'];
         $token['page_tokens'] = $pages['page_tokens'];
         $metadata['page_discovery'] = $pages['diagnostics'];
@@ -295,6 +320,21 @@ function publishing_provider_identity(string $service, array &$token): array {
     } else throw new RuntimeException('Unsupported connection provider.');
     if ($id === '' || strlen($id) > 255) throw new RuntimeException('The provider did not return a usable account identity.');
     return ['id'=>$id,'name'=>mb_substr($name,0,255),'resources'=>$resources,'metadata'=>$metadata];
+}
+
+/** Fail closed on wrong app/user, invalid tokens, or non-targeted scopes. */
+function publishing_facebook_granted_page_ids(array $debug,string $appId,string $userId): array {
+    if(($debug['is_valid']??false)!==true||$appId===''||$userId===''||(string)($debug['app_id']??'')!==$appId||(string)($debug['user_id']??'')!==$userId)throw new RuntimeException('Facebook consent identity could not be verified.');
+    $targets=null;
+    foreach(['pages_show_list','pages_read_engagement','pages_manage_posts'] as $scope){
+        if(!in_array($scope,$debug['scopes']??[],true))throw new RuntimeException('A required Page permission is missing.');
+        $ids=[];
+        foreach($debug['granular_scopes']??[] as $grant)if(($grant['scope']??'')===$scope){
+            foreach($grant['target_ids']??[] as $id){if(!is_string($id)||!preg_match('/^[0-9]{1,40}$/D',$id))throw new RuntimeException('Invalid Page consent target.');$ids[]=$id;}
+        }
+        $targets=$targets===null?$ids:array_intersect($targets,$ids);
+    }
+    return array_values(array_unique($targets??[]));
 }
 
 /** Follow opaque cursors on the fixed accounts endpoint; never follow provider URLs with tokens. */

@@ -56,6 +56,14 @@ $facebook['delivery_method']='manual';check(publishing_capability($facebook)['us
 $instagram=['slug'=>'instagram','account_type'=>'professional','delivery_method'=>'direct'];
 check(!publishing_capability($instagram)['usable'],'Professional branding does not imply OAuth authorization');
 check(publishing_capability($instagram,$identity)['mode']==='direct','Direct declaration is represented distinctly');
+$fbGrant=['is_valid'=>true,'app_id'=>'app-1','user_id'=>'user-1','scopes'=>['pages_show_list','pages_read_engagement','pages_manage_posts'],'granular_scopes'=>[
+ ['scope'=>'pages_show_list','target_ids'=>['123','456','789']],['scope'=>'pages_read_engagement','target_ids'=>['123','456']],['scope'=>'pages_manage_posts','target_ids'=>['123','789']]]];
+check(publishing_facebook_granted_page_ids($fbGrant,'app-1','user-1')===['123'],'Direct Page verification uses the intersection of all required granular grants');
+rejects(fn()=>publishing_facebook_granted_page_ids($fbGrant,'other-app','user-1'),'Another app consent cannot be reused');
+rejects(fn()=>publishing_facebook_granted_page_ids($fbGrant,'app-1','other-user'),'Another user consent cannot be reused');
+rejects(fn()=>publishing_facebook_granted_page_ids(array_replace($fbGrant,['is_valid'=>false]),'app-1','user-1'),'Invalid tokens cannot enumerate additional Pages');
+check(publishing_facebook_granted_page_ids(array_replace($fbGrant,['granular_scopes'=>[]]),'app-1','user-1')===[],'An unscoped grant never implies every Page is authorized');
+rejects(fn()=>publishing_facebook_granted_page_ids(array_replace($fbGrant,['scopes'=>['pages_show_list']]),'app-1','user-1'),'Read-only permission cannot supply publishing destinations');
 $fbCalls=[];
 $fbDiscovery=publishing_facebook_discover_pages(function(string $cursor)use(&$fbCalls):array{
     $fbCalls[]=$cursor;
