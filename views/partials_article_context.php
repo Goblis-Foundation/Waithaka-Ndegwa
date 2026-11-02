@@ -1,0 +1,3 @@
+<?php if($articleContext['groups']||$articleContext['enterprises']):?>
+<aside class="article-reading article-group-context" aria-label="Explore related groups and enterprises"><h2>Keep exploring</h2><ul><?php foreach($articleContext['groups']as$key):$definition=article_groups()[$key];?><li><a href="<?=e(url($definition['path']))?>"><?=e($definition['label'])?></a></li><?php endforeach;?></ul><?php if($articleContext['enterprises']):?><h3>Related enterprises</h3><ul><?php foreach($articleContext['enterprises']as$profile):?><li><a href="<?=e(url('/enterprises/'.$profile['slug']))?>"><?=e($profile['name'])?></a></li><?php endforeach;?></ul><?php endif;?></aside>
+<?php endif;?>

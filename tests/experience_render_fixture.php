@@ -6,7 +6,7 @@ $CONFIG=['app_env'=>'testing','base_url'=>'http://127.0.0.1:8125','timezone'=>'A
 foreach(['functions','location','reader','contact_experience','publishing_desk_policy','commercial_control','experience_workflows','promotion_experience','analytics','discovery','journeys','enterprises']as$m)require_once dirname(__DIR__).'/app/'.$m.'.php';
 function ef_render(string $view,array $data=[]):string{extract($data,EXTR_SKIP);ob_start();include dirname(__DIR__).'/views/'.$view.'.php';return (string)ob_get_clean();}
 function ef_page(string $body,bool $workspace=false):string{
- $styles=$workspace?['write','workspace','workspace-polish','unified-experience']:['site','experience','personal-refresh','brand-refresh','unified-experience'];$head='';foreach($styles as$s)$head.='<link rel="stylesheet" href="/assets/css/'.$s.'.css">';
+ $styles=$workspace?['write','workspace','workspace-polish','unified-experience']:['site','experience','personal-refresh','brand-refresh','unified-experience','article-groups'];$head='';foreach($styles as$s)$head.='<link rel="stylesheet" href="/assets/css/'.$s.'.css">';
  $nav='';if($workspace){$nav='<div class="workspace-top-actions"></div><nav class="workspace-nav">';foreach(ux_workspace_groups()as$group=>$links){$nav.='<details open><summary>'.e($group).'</summary>';foreach($links as$href=>$label)$nav.='<a data-workspace-link href="'.e($href).'">'.e($label).'</a>';$nav.='</details>';}$nav.='</nav>';}
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'.$head.'</head><body class="'.($workspace?'workspace-auth':'page-experience').'">'.$nav.'<main id="'.($workspace?'writer-content':'main').'">'.$body.'</main><script src="/assets/js/unified-experience.js" defer></script></body></html>';
 }
@@ -105,6 +105,17 @@ foreach($fixtures as$key=>[$path,$page,$view,$values]){
     file_put_contents($out.'/sitewide-'.$key.'.html',
         ef_render('layout',['page'=>$page,'content'=>$body,'suppressAnalytics'=>true,
             'privatePage'=>in_array($key,['newsletter','promotion-intake'],true)]));
+}
+foreach(article_editable_groups()as$key=>$definition){
+ $_SERVER['REQUEST_URI']=$definition['path'];
+ $pagination=archive_pagination(1,0,24,$definition['path']);
+ $body=ef_render('article_group',['group'=>$key,'filters'=>['q'=>'','topic'=>''],'categories'=>[['slug'=>'innovation','name'=>'Innovation']],'posts'=>[],'pagination'=>$pagination]);
+ file_put_contents($out.'/sitewide-group-'.$key.'.html',ef_render('layout',['page'=>'thoughts','content'=>$body,'suppressAnalytics'=>true]));
+}
+$_SERVER['REQUEST_URI']='/enterprises';
+foreach(['zero'=>0,'reported'=>7]as$key=>$count){
+ $body=ef_render('enterprises/index',['profiles'=>[],'filters'=>['q'=>'','country'=>'','sector'=>'','stage'=>''],'countries'=>[],'sectors'=>[],'enterpriseProgress'=>['value'=>$count,'status'=>'Source-reported progress','as_of'=>'2026-10-31T20:59:59Z']]);
+ file_put_contents($out.'/sitewide-enterprises-'.$key.'.html',ef_render('layout',['page'=>'enterprises','content'=>$body,'suppressAnalytics'=>true]));
 }
 $_SERVER['REQUEST_URI']='/';
 

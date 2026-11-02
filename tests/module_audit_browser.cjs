@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['search-reviews-empty','search-reviews-saved','newsletter-sender','activation','activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-workspace','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','publishing-overview','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
+ for(const key of ['article-editor','search-reviews-empty','search-reviews-saved','newsletter-sender','activation','activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-workspace','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','publishing-overview','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   if(key==='google-workspace')await page.locator('.google-account-identity').evaluate(e=>{e.open=true;});
   if(key.startsWith('activity-'))await page.locator('main details').evaluateAll(items=>items.forEach(e=>{e.open=true;}));
@@ -153,5 +153,12 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-dashboard-populated.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/dashboard-'+width+'.png',fullPage:true});}}
  if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-activation.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/activation-'+width+'.png',fullPage:true});}}
  if(process.env.EXPERIENCE_EVIDENCE_DIR){await page.goto(host+'module-newsletter-sender.html');for(const width of [390,1363]){await page.setViewportSize({width,height:900});await page.screenshot({path:process.env.EXPERIENCE_EVIDENCE_DIR+'/newsletter-sender-'+width+'.png',fullPage:true});}}
- console.log('PASS: '+checks+' module, login, passkey, no-drop register and progressive-enhancement checks.');await browser.close();
+ console.log('PASS: '+checks+' module, login, passkey, no-drop register and progressive-enhancement checks.');await page.goto(host+'module-article-editor.html');
+ await page.getByRole('textbox',{name:'Article body'}).fill('New synthetic article body');
+ ok((await page.locator('input[name="content_html"]').getAttribute('value')).includes('New synthetic article body'),'Editing the visible body updates the submitted article HTML');
+ await page.getByRole('checkbox',{name:'My Enterprise Journey',exact:true}).check();
+ const selectedGroups=await page.locator('input[name="article_groups[]"]:checked').evaluateAll(els=>els.map(e=>e.value));
+ ok(selectedGroups.includes('personal-experiences')&&selectedGroups.includes('my-enterprise-journey'),'Editor keeps multiple selected reading groups');
+ ok(await page.locator('input[name=article_groups_present]').getAttribute('value')==='1','An explicit grouping marker distinguishes unchecked choices from older clients');
+ await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});

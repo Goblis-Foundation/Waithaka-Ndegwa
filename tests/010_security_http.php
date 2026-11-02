@@ -30,10 +30,18 @@ function response_csrf(array $response):string{if(!preg_match('/name="csrf" valu
 try{
     db()->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['HTTP security test',$email,password_hash($password,PASSWORD_DEFAULT)]);$userId=(int)db()->lastInsertId();
     $category=(int)db()->query('SELECT id FROM categories ORDER BY id LIMIT 1')->fetchColumn();
-    $input=['id'=>0,'title'=>'HTTP original '.bin2hex(random_bytes(4)),'content_html'=>'<p>PUBLIC_SNAPSHOT_MARKER</p>','category_id'=>$category,'published_at'=>date('Y-m-d\TH:i',time()-300)];
+    $input=['article_groups_present'=>'1','article_groups'=>['personal-experiences'],'id'=>0,'title'=>'HTTP original '.bin2hex(random_bytes(4)),'content_html'=>'<p>PUBLIC_SNAPSHOT_MARKER</p>','category_id'=>$category,'published_at'=>date('Y-m-d\TH:i',time()-300)];
     $saved=writer_save_post($input,$userId,true);$postId=$saved['id'];$slug=writer_post_by_id($postId)['slug'];
     $input['id']=$postId;$input['draft_version']=$saved['version'];$input['title']='Private HTTP title';$input['content_html']='<p>PRIVATE_PREVIEW_MARKER</p>';$input['writer_note']='PRIVATE_PLAN_DO_NOT_RENDER';
     $saved=writer_save_post($input,$userId,false);
+    $groupPath='/my-thoughts/group/personal-experiences';
+    $r=request_local($groupPath);http_check($r['status']===200&&str_contains($r['body'],'Personal Experiences')&&str_contains($r['body'],'/my-thoughts/'.$slug),'Public group route links to the original article URL.');
+    http_check(!str_contains($r['body'],'PRIVATE_PREVIEW_MARKER')&&!str_contains($r['body'],'Private HTTP title'),'Grouped archive uses public fields, never the working copy.');
+    $r=request_local($groupPath.'?q=PUBLIC_SNAPSHOT_MARKER');http_check($r['status']===200&&str_contains($r['body'],'noindex,follow')&&str_contains($r['body'],'/my-thoughts/'.$slug),'Group search works across article text and is excluded from indexing.');
+    $r=request_local($groupPath.'?q=%3Cscript%3E');http_check($r['status']===200&&!str_contains($r['body'],'value="<script>"')&&str_contains($r['body'],'value="&lt;script&gt;"'),'Group search safely escapes the retained phrase.');
+    foreach(['/my-thoughts/group/unsupported',$groupPath.'?page[]=2',$groupPath.'?page=999',$groupPath.'?topic=does-not-exist',$groupPath.'?q[]=x']as$invalid){$r=request_local($invalid);http_check($r['status']===404,'Invalid group filters and page shapes fail with 404.');}
+    $r=request_local($groupPath,[]);http_check($r['status']===405,'Public group routes reject writes.');
+    $r=request_local('/my-thoughts/'.$slug);http_check($r['status']===200&&str_contains($r['body'],'Keep exploring')&&str_contains($r['body'],$groupPath),'Canonical articles expose their public group navigation.');
     $token=bin2hex(random_bytes(32));db()->prepare("INSERT INTO media_releases(reference,public_token,title,status,created_by) VALUES(?,?,?,'closed',?)")->execute(['HTTP-'.bin2hex(random_bytes(8)),$token,'Closed fixture',$userId]);$releaseId=(int)db()->lastInsertId();
 
     $r=request_local('/write/preview/'.$postId,null,false);http_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Unauthenticated preview must redirect to login.');

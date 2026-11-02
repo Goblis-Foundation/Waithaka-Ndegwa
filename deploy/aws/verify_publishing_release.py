@@ -59,6 +59,19 @@ def check_pages() -> None:
     health, _ = read('/healthz')
     if json.loads(health).get('ok') is not True:
         raise RuntimeError('Database health is not ready')
+    for group, label in [('personal-experiences','Personal Experiences'),('my-enterprise-journey','My Enterprise Journey'),('ideas-perspectives','Ideas &amp; Perspectives')]:
+        path='/my-thoughts/group/'+group
+        html=read(path)[0].decode('utf-8')
+        if '<h1>'+label+'</h1>' not in html or 'name="topic"' not in html or 'name="q"' not in html or BASE+path not in html:
+            raise RuntimeError('Article group discovery contract is missing: '+path)
+    enterprises=read('/enterprises')[0].decode('utf-8')
+    if 'Progress toward 30 successful startups' not in enterprises or 'enterprise-progress-title' not in enterprises:
+        raise RuntimeError('Enterprise target and approved progress explanation are missing')
+    sitemap=read('/sitemap.xml')[0].decode('utf-8')
+    if any('/my-thoughts/group/'+key not in sitemap for key in ['personal-experiences','my-enterprise-journey','ideas-perspectives']):
+        raise RuntimeError('Article group sitemap entries are missing')
+    read('/my-thoughts/group/unsupported',404)
+    print('PASS: grouped article discovery, enterprise progress, canonical collection routes and sitemap.')
     verify_reconciliation()
     print('PASS: public publishing routes, private intake/client isolation, approved logo hash, finished icon dimensions and database health.')
 

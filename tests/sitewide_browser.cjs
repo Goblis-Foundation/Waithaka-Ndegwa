@@ -14,6 +14,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
  const ok=(value,label)=>{assert.ok(value,label);checks++;};
  const host='http://127.0.0.1:8125/';
  const pages=[
+  'group-personal-experiences','group-my-enterprise-journey','group-ideas-perspectives','enterprises-zero','enterprises-reported',
   'start-here','startup-journeys','founder-stories','resources','watch',
   'enterprises','employment','opportunities','partner-stories',
   'monthly-roundup','newsletter','explore','advertise','advertising-policy','promotion-intake'
