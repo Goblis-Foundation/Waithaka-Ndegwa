@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__).'/response_limits.php';
 
 final class PublishingRemoteException extends RuntimeException {
     public function __construct(string $message, public readonly int $httpStatus = 0, public readonly bool $ambiguous = false) {
@@ -18,12 +19,14 @@ function publishing_http(string $method, string $url, array $headers = [], ?arra
     $fixtureUrl=publishing_http_tiktok_fixture_url($url);
     if($fixtureUrl===$url&&function_exists('publishing_http_tiktok_business_fixture_url'))$fixtureUrl=publishing_http_tiktok_business_fixture_url($url);
     $fixture=$fixtureUrl!==$url;
-    $responseHeaders = [];
+    $responseHeaders = [];$raw='';$headerBytes=0;$oversized=false;
     $ch = curl_init($fixtureUrl);
     $headers[] = 'Accept: application/json';
-    $options = [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => $method, CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 45,
+    $options = [CURLOPT_CUSTOMREQUEST => $method, CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 45,
         CURLOPT_FOLLOWLOCATION => false, CURLOPT_PROTOCOLS => $fixture?CURLPROTO_HTTP:CURLPROTO_HTTPS,
-        CURLOPT_HEADERFUNCTION => static function ($handle, string $line) use (&$responseHeaders): int {
+        CURLOPT_WRITEFUNCTION => static function($handle,string $chunk)use(&$raw,&$oversized):int{$n=response_append_bounded($raw,$chunk,16*1024*1024);if($n!==strlen($chunk))$oversized=true;return $n;},
+        CURLOPT_HEADERFUNCTION => static function ($handle, string $line) use (&$responseHeaders,&$headerBytes,&$oversized): int {
+            $headerBytes+=strlen($line);if($headerBytes>65536){$oversized=true;return 0;}
             $pair = explode(':', $line, 2);
             if (count($pair) === 2) $responseHeaders[strtolower(trim($pair[0]))] = trim($pair[1]);
             return strlen($line);
@@ -35,12 +38,13 @@ function publishing_http(string $method, string $url, array $headers = [], ?arra
     }
     $options[CURLOPT_HTTPHEADER] = $headers;
     curl_setopt_array($ch, $options);
-    $raw = curl_exec($ch);
+    $received = curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     $curlCode = curl_errno($ch);
-    $failed = $raw === false || $curlCode !== 0;
+    $failed = $received === false || $curlCode !== 0;
     curl_close($ch);
     // Do not expose provider bodies: they can echo tokens, media URLs or private account data.
+    if($oversized)throw new PublishingRemoteException('The provider response exceeded the safe size limit. Review the remote outcome before another attempt.',0,$publishingMutation);
     if ($failed) throw new PublishingRemoteException($curlCode === CURLE_OPERATION_TIMEDOUT ? 'The provider request timed out. No complete response was received. Check the remote account before another attempt.' : 'The provider did not return a complete response. Check the remote account before another attempt.', 0, $publishingMutation);
     if ($code >= 300) {
         $message = match (true) {
