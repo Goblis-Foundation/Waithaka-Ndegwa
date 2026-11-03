@@ -3,8 +3,10 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({headless:true});const context=await browser.newContext();const host='http://127.0.0.1:8125/';let writes=0;
  await context.route('**/*',r=>{if(r.request().method()!=='GET'){writes++;return r.abort();}return r.request().url().startsWith(host)?r.continue():r.abort();});
+ await context.route('**/contribute/recent-support',r=>r.fulfill({json:{supporters:[{name:'Synthetic <img src=x onerror=alert(1)>',amount:'25.00',currency:'USD'},{name:'Anonymous',amount:'500.00',currency:'KES'}]}}));
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(host+'support-contribute.html');
+ await page.locator('[data-support-feed-list] li').first().waitFor();assert.equal(await page.locator('[data-support-feed-list] li').count(),2);assert.equal(await page.locator('[data-support-feed-list] img').count(),0);assert.ok(!(await page.locator('input[name=public_support_ack]').isChecked()));
  await page.getByRole('radio',{name:'Company / Institution',exact:true}).check();
  await page.getByLabel('Company or institution name',{exact:true}).fill('Synthetic Institute <img src=x onerror=alert(1)>');
  await page.getByLabel('Purpose',{exact:true}).selectOption('sponsorship');
