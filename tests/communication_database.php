@@ -16,6 +16,16 @@ comm_queue_mail($b,'requested');cd(count(comm_records('mail'))===1,'Durable scop
 cd((int)db()->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn()===0,'Does not drain or fill legacy newsletter/mail queues');
 require dirname(__DIR__).'/app/publishing_automation.php';
 $oldConfig=comm_get('config');$oldPolicy=comm_get('publishing.direct.policy');
+// Exact private busy intervals persist encrypted; no calendar/email mutation occurs.
+$travelConfig=['owner'=>1,'travel_blocks'=>booking_blocks_parse([['start'=>'2026-11-05T09:00','end'=>'2026-11-05T12:00','timezone'=>'Africa/Nairobi']])];
+try{
+ comm_lock('reservations',static fn()=>comm_put('config',$travelConfig));
+ cd(comm_get('config')===$travelConfig,'Private blocks survive encrypted persistence');
+ $stored=db()->query("SELECT setting_value,is_secret FROM settings WHERE setting_key='communication.config'")->fetch();
+ cd((int)$stored['is_secret']===1&&!str_contains($stored['setting_value'],'Africa/Nairobi'),'Travel intervals stay encrypted at rest');
+ cd(booking_blocks_busy(comm_get('config'))===[[strtotime('2026-11-05T06:00Z'),strtotime('2026-11-05T09:00Z')]],'Persisted blocks supply only exact intervals');
+}finally{if($oldConfig)comm_put('config',$oldConfig);else db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['communication.config']);}
+
 try {
  comm_put('config',['owner'=>1]);
  try{publishing_scoped_save(2,['direct_enabled'=>'1','direct_start'=>'2026-11-05','direct_ack'=>'1']);throw new LogicException('Non-owner enabled direct delivery');}catch(InvalidArgumentException){}
