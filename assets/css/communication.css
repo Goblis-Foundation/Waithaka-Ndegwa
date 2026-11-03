@@ -45,3 +45,6 @@
  .comm-editorial-links{justify-content:flex-start}
  .comm-editorial-intro h2{font-size:1.4rem}
 }
+
+/* Nested travel blocks must shrink below fieldset min-content width on phones. */
+.comm-panel .booking-time-blocks,.booking-time-blocks fieldset{min-inline-size:0;max-inline-size:100%;box-sizing:border-box}.booking-time-blocks legend{max-inline-size:100%;white-space:normal;overflow-wrap:anywhere}.booking-time-blocks input{min-width:0}
