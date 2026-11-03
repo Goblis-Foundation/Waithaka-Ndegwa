@@ -14,4 +14,16 @@ $v=comm_vapid();cd(strlen(base64_decode(strtr($v['public'],'-_','+/')))===65,'P-
 $raw=json_encode(['endpoint'=>'https://fcm.googleapis.com/fcm/send/fixture']);comm_save_subscription(1,$raw);cd(count(comm_user_devices(1))===1&&count(comm_user_devices(2))===0,'Device ownership');$d=comm_user_devices(1)[0];try{comm_remove_subscription(2,$d['id']);throw new LogicException('Foreign device removed');}catch(InvalidArgumentException){}comm_remove_subscription(1,$d['id']);cd(comm_user_devices(1)===[],'Owner revocation');
 comm_queue_mail($b,'requested');cd(count(comm_records('mail'))===1,'Durable scoped mail');cd(communication_work()===['enabled'=>false],'No delivery without explicit booking-worker opt-in');
 cd((int)db()->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn()===0,'Does not drain or fill legacy newsletter/mail queues');
+require dirname(__DIR__).'/app/publishing_automation.php';
+$oldConfig=comm_get('config');$oldPolicy=comm_get('publishing.direct.policy');
+try {
+ comm_put('config',['owner'=>1]);
+ try{publishing_scoped_save(2,['direct_enabled'=>'1','direct_start'=>'2026-11-05','direct_ack'=>'1']);throw new LogicException('Non-owner enabled direct delivery');}catch(InvalidArgumentException){}
+ try{publishing_scoped_save(1,['direct_enabled'=>'1','direct_start'=>'2026-11-05']);throw new LogicException('Missing scope acknowledgement accepted');}catch(InvalidArgumentException){}
+ publishing_scoped_save(1,['direct_enabled'=>'1','direct_start'=>'2026-11-05','direct_ack'=>'1']);$p=publishing_scoped_policy();
+ cd($p['enabled']===true&&$p['owner']===1&&$p['start_date']==='2026-11-05','Exact owner policy persists in encrypted settings.');
+ cd($p['after_job']===(int)db()->query('SELECT COALESCE(MAX(id),0) FROM publishing_jobs')->fetchColumn()&&$p['after_revision']===(int)db()->query('SELECT COALESCE(MAX(id),0) FROM publishing_revisions')->fetchColumn(),'Existing jobs and approvals are excluded at save time.');
+ publishing_scoped_save(1,['direct_start'=>'2026-11-05']);cd(publishing_scoped_policy()['enabled']===false,'Disabling is persisted without consent to send.');
+ cd((int)db()->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn()===0,'Configuring independent social delivery never enqueues or releases email.');
+}finally{foreach(['config'=>$oldConfig,'publishing.direct.policy'=>$oldPolicy]as$key=>$value){if($value)comm_put($key,$value);else db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['communication.'.$key]);}}
 echo "PASS: encrypted records, capability authorization, locks, stable notification identity and no unapproved delivery.\n";
