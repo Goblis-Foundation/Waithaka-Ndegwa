@@ -54,6 +54,7 @@ jobs:
           node tests/sitewide_browser.cjs
           node tests/outline_navigation_browser.cjs
           node tests/module_audit_browser.cjs
+          node tests/support_receipts_browser.cjs
           node tests/accessibility_browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
