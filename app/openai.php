@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/response_limits.php';
 final class OpenAiRequestException extends RuntimeException {
  public function __construct(public readonly string $reason,public readonly int $httpStatus=0){parent::__construct(match($reason){
  'not_configured'=>'OpenAI is not configured. Save the website project key in settings.',
@@ -12,6 +13,7 @@ final class OpenAiRequestException extends RuntimeException {
  'quota'=>'OpenAI reports an account quota or billing restriction. Confirm the key’s organisation, project and billing status before sending another request.',
  'rate_limit'=>'OpenAI is temporarily rate limiting this project. Wait before trying another request.',
  'timeout'=>'OpenAI did not complete before the connection ended. Continue manually or try a smaller request later.',
+ 'response_limit'=>'The AI response exceeded the safe size limit. Your source is retained; no automatic retry was made.',
  'connection'=>'The website could not establish a secure connection to OpenAI. Check server connectivity before trying again.',
  'token_limit'=>'OpenAI reached the output limit before finishing. Use a shorter source or a task with a larger output budget.',
  'refused'=>'OpenAI did not return a usable draft for this request. Review the source and continue manually if needed.',
@@ -43,7 +45,7 @@ function openai_generate(string $key,string $model,string $instructions,string $
  $body=['model'=>$model,'instructions'=>$instructions,'input'=>$input,'store'=>false,'max_output_tokens'=>$maxTokens];return openai_send($key,$body,$transport);
 }
 function openai_send(string $key,array $body,?callable $transport=null): string {
- if($transport)$response=$transport($body);else{$ch=curl_init('https://api.openai.com/v1/responses');curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_POSTFIELDS=>json_encode($body,JSON_THROW_ON_ERROR),CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Content-Type: application/json','Accept: application/json'],CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>30,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2]);$raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);$error=curl_errno($ch);curl_close($ch);$data=is_string($raw)?json_decode($raw,true):null;$response=['status'=>$status,'data'=>is_array($data)?$data:[],'curl_error'=>$error];}
+ if($transport)$response=$transport($body);else{$raw='';$oversized=false;$ch=curl_init('https://api.openai.com/v1/responses');curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_WRITEFUNCTION=>static function($handle,string $chunk)use(&$raw,&$oversized):int{$n=response_append_bounded($raw,$chunk,4*1024*1024);if($n!==strlen($chunk))$oversized=true;return $n;},CURLOPT_POSTFIELDS=>json_encode($body,JSON_THROW_ON_ERROR),CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Content-Type: application/json','Accept: application/json'],CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>30,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2]);curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);$error=curl_errno($ch);curl_close($ch);if($oversized)throw new OpenAiRequestException('response_limit');$data=json_decode($raw,true);$response=['status'=>$status,'data'=>is_array($data)?$data:[],'curl_error'=>$error];}
  $status=(int)($response['status']??0);$data=is_array($response['data']??null)?$response['data']:[];$error=(int)($response['curl_error']??0);if($error||$status<200||$status>=300)throw openai_failure($status,$data,$error);return openai_completed_text($data);
 }
 
