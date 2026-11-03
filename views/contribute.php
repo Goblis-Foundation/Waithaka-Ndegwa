@@ -71,3 +71,5 @@ $methodLabels=['mpesa'=>'M-Pesa','pesapal'=>'Card via Pesapal','paypal'=>'PayPal
     <?php endif;?>
   </div>
 </div></section>
+
+<section class="section" aria-labelledby="recent-support-title"><div class="container"><span class="eyebrow">With appreciation</span><h2 id="recent-support-title">Recent support</h2><p>Thank you for helping make independent writing possible. Only verified contributions shared with permission appear here.</p><div data-support-feed data-endpoint="<?=url('/contribute/recent-support')?>"><p data-support-feed-empty>Loading recent support…</p><ul class="support-public-list" data-support-feed-list></ul></div><noscript><p>Enable JavaScript to view the automatically refreshed support feed.</p></noscript></div></section>

@@ -44,6 +44,9 @@ try{
     $r=request_local('/my-thoughts/'.$slug);http_check($r['status']===200&&str_contains($r['body'],'Keep exploring')&&str_contains($r['body'],$groupPath),'Canonical articles expose their public group navigation.');
     $token=bin2hex(random_bytes(32));db()->prepare("INSERT INTO media_releases(reference,public_token,title,status,created_by) VALUES(?,?,?,'closed',?)")->execute(['HTTP-'.bin2hex(random_bytes(8)),$token,'Closed fixture',$userId]);$releaseId=(int)db()->lastInsertId();
 
+    $r=request_local('/contribute/recent-support',null,false);$feed=json_decode($r['body'],true);http_check($r['status']===200&&isset($feed['supporters'])&&str_contains($r['headers']['cache-control']??'','no-store'),'Public support feed is read-only JSON without caching.');
+    $r=request_local('/contribute/recent-support',[],false);http_check($r['status']===405,'Public support feed rejects writes.');
+    $r=request_local('/write/foundation-access',null,false);http_check($r['status']===302,'Foundation handoff requires sign-in.');
     $r=request_local('/write/preview/'.$postId,null,false);http_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/login'),'Unauthenticated preview must redirect to login.');
     http_check(!str_contains($r['body'],'PRIVATE_PREVIEW_MARKER'),'Anonymous preview leaked private content.');
     $r=request_local('/write/login',['email'=>$email,'password'=>$password],false);http_check($r['status']===419,'Missing CSRF token must fail before login.');
@@ -54,6 +57,7 @@ try{
     http_check(!preg_match('/name="trust_device"[^>]*checked/',$r['body']),'Shared-device choice survives rejection.');
     $r=request_local('/write/communication?tab=content');http_check($r['status']===302,'Workspace requires sign-in.');
     $r=request_local('/write/login',['csrf'=>$csrf,'email'=>$email,'password'=>$password]);http_check($r['status']===302&&str_ends_with($r['headers']['location']??'','/write/communication?tab=content'),'Valid login resumes the intended safe workspace.');
+    $r=request_local('/write/foundation-access');http_check($r['status']===403,'Ordinary writer cannot access owner Foundation handoff.');
     $r=request_local('/write/preview/'.$postId);http_check($r['status']===200&&str_contains($r['body'],'PRIVATE_PREVIEW_MARKER'),'Authenticated preview must show private saved draft.');
     http_check(str_contains($r['headers']['cache-control']??'','no-store')&&str_contains($r['headers']['x-robots-tag']??'','noindex'),'Preview must be private, no-store and noindex.');
     http_check(!str_contains($r['body'],'PRIVATE_PLAN_DO_NOT_RENDER')&&!str_contains($r['body'],'googletagmanager.com')&&!str_contains($r['body'],'application/ld+json'),'Preview must exclude private planning notes, analytics and public structured data.');

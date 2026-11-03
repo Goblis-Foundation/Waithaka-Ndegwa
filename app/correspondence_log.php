@@ -32,12 +32,13 @@ function correspondence_page(array $in,int $uid): array {
     return ['view'=>$view,'page'=>$page,'search'=>$search,'status'=>$filter??'','rows'=>$rows,'total'=>$total,'pages'=>max(1,(int)ceil($total/$limit))];
 }
 function correspondence_dispatch(string $path): bool {
-    if($path!=='/write/correspondence'&&$path!=='/write/reconciliation'&&!preg_match('~^/write/correspondence/email/([1-9][0-9]{0,11})/preview$~D',$path,$m))return false;
+    if($path!=='/write/foundation-access'&&$path!=='/write/correspondence'&&$path!=='/write/reconciliation'&&!preg_match('~^/write/correspondence/email/([1-9][0-9]{0,11})/preview$~D',$path,$m))return false;
     require_auth();private_response_headers();journeys_method(['GET','HEAD']);try{$uid=correspondence_owner();}catch(InvalidArgumentException){http_response_code(403);echo 'Owner access required.';return true;}
     if(!empty($m[1])){$q=db()->prepare('SELECT * FROM email_outbox WHERE id=?');$q->execute([(int)$m[1]]);$row=$q->fetch();if(!$row){http_response_code(404);return true;}
         try{$p=correspondence_payload($row);}catch(Throwable){http_response_code(404);return true;}
         header("Content-Security-Policy: sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src ".base_url()."; base-uri 'none'; form-action 'none'; frame-ancestors 'self'");header('Referrer-Policy: no-referrer');header('Content-Type: text/html; charset=UTF-8');echo $p['html'];return true;
     }
+    if($path==='/write/foundation-access'){render_write('foundation_access',['writeTitle'=>'Foundation access']);return true;}
     if($path==='/write/reconciliation'){render_write('reconciliation',['writeTitle'=>'Implementation register','items'=>reconciliation_items()]);return true;}
     try{render_write('correspondence_log',correspondence_page($_GET,$uid)+['writeTitle'=>'Email & response log','error'=>'']);}
     catch(InvalidArgumentException $e){http_response_code(422);render_write('correspondence_log',['writeTitle'=>'Email & response log','view'=>'received','page'=>1,'pages'=>1,'total'=>0,'rows'=>[],'search'=>'','status'=>'','error'=>$e->getMessage()]);}return true;
