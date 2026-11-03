@@ -129,3 +129,9 @@ file_put_contents($out.'/module-search-reviews-saved.html',ma_page('search_revie
 
 $_SERVER['REQUEST_URI']='/write/new';
 file_put_contents($out.'/module-article-editor.html',ma_page('editor',['post'=>['title'=>'Synthetic editor article','article_groups_json'=>'["personal-experiences"]','content_html'=>'<p>Original synthetic body.</p>'],'categories'=>[['id'=>1,'name'=>'Innovation','slug'=>'innovation']]]));
+
+// Travel inputs rendered with synthetic availability only; no real booking or calendar.
+require_once dirname(__DIR__).'/app/booking_blocks.php';
+$blockFixture=['timezone'=>'Africa/Nairobi','travel_blocks'=>booking_blocks_parse([['start'=>'2026-11-05T09:00','end'=>'2026-11-05T12:00','timezone'=>'Africa/Nairobi']])];
+$blockContent='<main class="write-main comm-main"><h1>Booking availability</h1><section class="comm-panel"><form method="post">'.ma_render('booking_blocks',['cfg'=>$blockFixture,'error'=>'']).'<button>Save availability</button></form></section></main>';
+file_put_contents($out.'/module-booking-blocks.html',ma_render('layout',['content'=>$blockContent,'writeTitle'=>'Booking availability','writerShellUser'=>['id'=>7,'name'=>'Synthetic owner','email'=>'fixture@example.invalid']]));
