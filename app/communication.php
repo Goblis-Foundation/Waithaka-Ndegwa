@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/booking_mailboxes.php';
+require_once __DIR__.'/booking_blocks.php';
 
 /** Single-host communication records use the existing encrypted settings store.
  * Each record has its own key. Advisory locks serialize reservation and provider mutations.
@@ -29,6 +30,7 @@ function comm_slot_candidates(array $cfg,array $type,string $date,array $busy,ar
     comm_date($date);$zone=comm_zone($cfg['timezone']);$day=new DateTimeImmutable($date.' 00:00:00',$zone);$today=(new DateTimeImmutable('@'.$now))->setTimezone($zone)->setTime(0,0);
     if($day<$today||$day>$today->modify('+'.(int)$cfg['horizon'].' days')||!in_array((int)$day->format('N'),$cfg['days'],true)||in_array($date,$cfg['excluded_dates'],true))return [];
     $count=0;$buffer=(int)$cfg['buffer']*60;
+    array_push($busy,...booking_blocks_busy($cfg));
     foreach($bookings as$b)if(in_array($b['status'],['requested','creating','confirmed','rescheduling','cancelling','review'],true)){
         $s=(int)$b['start'];$e=(int)$b['end'];$busy[]=[$s-$buffer,$e+$buffer];if((new DateTimeImmutable('@'.$s))->setTimezone($zone)->format('Y-m-d')===$date)$count++;
     }
@@ -130,7 +132,7 @@ function comm_change_booking(string $id,string $action,?int $newStart=null,strin
     });
 }
 function comm_config_input(array $input,int $uid): array {
-    $c=comm_config();$c['owner']=$uid;$c['timezone']=comm_zone($input['timezone']??'Africa/Nairobi')->getName();$c['document_ai']=studio_ai_provider($input['document_ai']??($c['document_ai']??'openai'));
+    $c=booking_blocks_update(comm_config(),$input);$c['owner']=$uid;$c['timezone']=comm_zone($input['timezone']??'Africa/Nairobi')->getName();$c['document_ai']=studio_ai_provider($input['document_ai']??($c['document_ai']??'openai'));
     foreach(['start','end']as$k){$v=$input[$k]??'';if(!is_string($v)||!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$v))throw new InvalidArgumentException('Choose valid working hours.');$c[$k]=$v;}if($c['start']>=$c['end'])throw new InvalidArgumentException('End time must be after start time.');
     foreach(['notice'=>[1,168],'horizon'=>[1,90],'buffer'=>[0,120],'daily_limit'=>[1,20]]as$k=>[$min,$max]){$n=filter_var($input[$k]??null,FILTER_VALIDATE_INT);if($n===false||$n<$min||$n>$max)throw new InvalidArgumentException('Review scheduling limits.');$c[$k]=$n;}
     $c['days']=reader_ids($input['days']??[],7);if(array_diff($c['days'],range(1,7)))throw new InvalidArgumentException('Choose valid weekdays.');
