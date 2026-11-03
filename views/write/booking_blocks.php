@@ -1,4 +1,4 @@
-<fieldset><legend>Travel and partial-day time off</legend>
+<fieldset class="booking-time-blocks"><legend>Travel and partial-day time off</legend>
 <p>Block time for a trip, appointment or other commitment. Each block keeps its own timezone, even if your host timezone changes. The meeting buffer above also applies around these blocks.</p>
 <p>These blocks affect new requests, approvals and rescheduling. Existing bookings are not moved or cancelled; review any conflicting bookings yourself. No location, travel estimate or calendar event is created.</p>
 <input type="hidden" name="travel_blocks_present" value="1">
