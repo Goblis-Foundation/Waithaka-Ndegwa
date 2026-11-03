@@ -16,3 +16,6 @@ $imageBody=openai_document_body('gpt-5.4-mini','Read','Selected image','syntheti
 try{openai_document_body('gpt-5.4-mini','i','c','data','text/html',6000);throw new LogicException('Unsupported document accepted');}catch(InvalidArgumentException){}
 try{openai_document_body('gpt-5.4-mini','i','c',str_repeat('x',4*1024*1024+1),'application/pdf',6000);throw new LogicException('Oversized document accepted');}catch(InvalidArgumentException){}
 echo "PASS: inline PDF/image requests, no remote file URL, no file-storage permission and bounded document input.\n";
+
+$bounded='';oc(response_append_bounded($bounded,'abc',5)===3,'Accept within cap');oc(response_append_bounded($bounded,'de',5)===2&&$bounded==='abcde','Exact cap accepted');oc(response_append_bounded($bounded,'SECRET',5)===0&&$bounded==='abcde','Oversized chunk rejected without retention');
+$utf='';oc(response_append_bounded($utf,'é',1)===0&&$utf==='','Byte limits apply to multibyte text');oe(fn()=>throw new OpenAiRequestException('response_limit'),'response_limit');
