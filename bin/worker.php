@@ -57,6 +57,9 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
 if($APP_INSTALLED && app_config('app_env')==='production'){
     try { preparation_stage('search',static fn()=>srs_work()); } catch(Throwable) { error_log('Scheduled search review needs attention.'); }
 }
+if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { publishing_scoped_work(); } catch(Throwable) { error_log('Approved direct social delivery needs review.'); }
+}
 $enabled=$APP_INSTALLED && (bool)app_config('worker_enabled',false);
 $run=$APP_INSTALLED && function_exists('readiness_worker_begin')?readiness_worker_begin($enabled):null;
 if (!$enabled) { echo "{\"enabled\":false}\n"; exit; }
