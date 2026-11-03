@@ -8,7 +8,7 @@ $CONFIG=['app_env'=>'testing','app_key'=>'local-test-key-not-for-production-use'
         'user'=>getenv('WK_TEST_DB_USER'),'pass'=>getenv('WK_TEST_DB_PASS'),'charset'=>'utf8mb4']];
 $APP_INSTALLED=true;date_default_timezone_set('Africa/Nairobi');
 require dirname(__DIR__).'/app/environment.php';require dirname(__DIR__).'/app/functions.php';require dirname(__DIR__).'/app/readiness.php';
-$checks=0;$ids=[];$outboxId=0;$contactId=0;$suffix=bin2hex(random_bytes(8));$connection='readiness_'.$suffix;
+$checks=0;$ids=[];$outboxId=0;$contactId=0;$subscriberId=0;$suffix=bin2hex(random_bytes(8));$connection='readiness_'.$suffix;
 function ready_db_check(bool $ok,string $message): void { $GLOBALS['checks']++;if(!$ok)throw new RuntimeException($message); }
 try {
     $id=readiness_worker_begin(true);ready_db_check($id!==null,'Enabled worker start should persist.');$ids[]=$id;
@@ -62,9 +62,21 @@ try {
     ready_db_check($diagnostic['category']==='Writer notification','The diagnostic identifies an authenticated stored origin.');
     foreach(['private@example.invalid','PRIVATE_SUBJECT','PRIVATE_BODY',$originKey]as$private)ready_db_check(!str_contains(json_encode($diagnostic),$private),'Owner diagnostic must not expose payload values.');
     ready_db_check(db()->query('SELECT status FROM email_outbox WHERE id='.(int)$outboxId)->fetchColumn()==='pending','Diagnostics never release or suppress queued mail.');
+    db()->prepare("INSERT INTO newsletter_subscribers(email,consent_version,requested_at,created_at,updated_at) VALUES(?,'fixture',UTC_TIMESTAMP(),UTC_TIMESTAMP(),UTC_TIMESTAMP())")->execute([$suffix.'@example.invalid']);$subscriberId=(int)db()->lastInsertId();
+    $tokenHash=hash('sha256','private-token-'.$suffix);
+    db()->prepare("INSERT INTO newsletter_tokens(subscriber_id,purpose,token_hash,expires_at,created_at) VALUES(?,'confirm',?,DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 DAY),UTC_TIMESTAMP())")->execute([$subscriberId,$tokenHash]);
+    db()->prepare('UPDATE email_outbox SET dedupe_key=? WHERE id=?')->execute([hash('sha256','newsletter-confirm:'.$tokenHash),$outboxId]);
+    $sourceTables=['newsletter_tokens','newsletter_subscribers'];
+    $source=readiness_email_sources([$outboxId],$sourceTables);
+    ready_db_check($source[$outboxId]===['label'=>'Expired subscription confirmation','path'=>'/write/newsletter/subscribers/'.$subscriberId],'Expired confirmation links must point to the exact subscriber without exposing tokens.');
+    db()->prepare('UPDATE newsletter_tokens SET expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 DAY) WHERE token_hash=?')->execute([$tokenHash]);
+    ready_db_check(readiness_email_sources([$outboxId],$sourceTables)[$outboxId]['label']==='Subscription confirmation','A future unused token must not be labelled expired.');
+    db()->prepare('UPDATE newsletter_tokens SET used_at=UTC_TIMESTAMP() WHERE token_hash=?')->execute([$tokenHash]);
+    ready_db_check(readiness_email_sources([$outboxId],$sourceTables)[$outboxId]['label']==='Used subscription confirmation','A used confirmation must never look reusable.');
     ready_db_check($snapshot['migrations']['available']&&$snapshot['migrations']['pending']===[]&&$snapshot['migrations']['changed']===[],'Prepared migration checksums should be reported without applying changes.');
 } finally {
     foreach($ids as$id)if($id)db()->prepare('DELETE FROM worker_runs WHERE id=?')->execute([$id]);
+    if($subscriberId)db()->prepare('DELETE FROM newsletter_subscribers WHERE id=?')->execute([$subscriberId]);
     if($contactId)db()->prepare('DELETE FROM contact_messages WHERE id=?')->execute([$contactId]);
     if($outboxId)db()->prepare('DELETE FROM email_outbox WHERE id=?')->execute([$outboxId]);
     db()->prepare('DELETE FROM publishing_connections WHERE service=?')->execute([$connection]);
