@@ -75,3 +75,17 @@
 })();
 
 (()=>{document.querySelectorAll('[data-native-share]').forEach(button=>{if(!navigator.share)return;button.hidden=false;button.addEventListener('click',async()=>{try{await navigator.share({title:button.dataset.shareTitle||document.title,url:document.querySelector('link[rel=canonical]')?.href||location.href});}catch(error){if(error.name!=='AbortError')button.textContent='Use a share link below';}});});const menu=document.querySelector('[data-menu]'),nav=document.querySelector('[data-main-nav]');document.addEventListener('keydown',event=>{if(event.key==='Escape'&&nav?.classList.contains('open')){nav.classList.remove('open');menu?.setAttribute('aria-expanded','false');menu?.setAttribute('aria-label','Open menu');menu?.focus();}});})();
+
+// Public, consented projection only; no receipt tokens or payer metadata in the response.
+document.querySelectorAll('[data-support-feed]').forEach(feed=>{
+  const list=feed.querySelector('[data-support-feed-list]'), empty=feed.querySelector('[data-support-feed-empty]');
+  let busy=false;
+  const refresh=async()=>{if(busy||document.hidden)return;busy=true;try{
+    const response=await fetch(feed.dataset.endpoint,{cache:'no-store',credentials:'omit'});
+    if(!response.ok)throw new Error('Unavailable');
+    const data=await response.json();if(!Array.isArray(data.supporters))throw new Error('Unavailable');
+    const rows=data.supporters.slice(0,12).map(item=>{const row=document.createElement('li'),name=document.createElement('strong'),amount=document.createElement('span');name.textContent=item.name;amount.textContent=item.currency+' '+item.amount;row.append(name,amount);return row;});
+    list.replaceChildren(...rows);empty.hidden=rows.length>0;empty.textContent='Public acknowledgements will appear here as supporters choose to share verified contributions.';
+  }catch{list.replaceChildren();empty.hidden=false;empty.textContent='Recent support is temporarily unavailable. Please check again shortly.';}finally{busy=false;}};
+  refresh();setInterval(refresh,60000);document.addEventListener('visibilitychange',refresh);
+});
