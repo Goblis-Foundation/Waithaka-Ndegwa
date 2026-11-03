@@ -121,3 +121,15 @@ foreach(['zero'=>0,'reported'=>7]as$key=>$count){
 $_SERVER['REQUEST_URI']='/';
 
 echo "Rendered isolated actual-view fixtures. No database, provider or production content accessed.\n";
+
+// Synthetic support identities and receipts; no provider or real customer data.
+require_once dirname(__DIR__).'/app/contribution_receipts.php';
+require_once dirname(__DIR__).'/app/wise_giving.php';
+function comm_get(string $key,array $default=[]): array {return $key==='giving.wise'?['accounts'=>['USD'=>['enabled'=>true,'currency'=>'USD','holder'=>'Synthetic account','bank'=>'Synthetic bank','routing'=>'000000000','account'=>'TEST-ONLY','account_type'=>'Checking']]]:$default;}
+function integration_hub_configured(string $provider): bool {return true;}
+$_SERVER['REQUEST_URI']='/contribute';
+file_put_contents($out.'/support-contribute.html',ef_render('layout',['page'=>'contribute','content'=>ef_render('contribute',['contribution'=>null]),'suppressAnalytics'=>true]));
+$_SERVER['REQUEST_URI']='/contribute/monthly';
+file_put_contents($out.'/support-monthly.html',ef_render('layout',['page'=>'giving','content'=>ef_render('monthly_giving',['error'=>'','management'=>false,'record'=>null,'choices'=>['10.00'=>['id'=>'SYNTHETIC']]]),'suppressAnalytics'=>true]));
+$receiptFixture=['id'=>str_repeat('a',32),'token'=>str_repeat('b',64),'issuer'=>'Isaac Waithaka Ndegwa','identity'=>['type'=>'organisation','name'=>'Synthetic Institute <script>unsafe()</script>','address'=>"Synthetic billing address\nNairobi",'email'=>'PRIVATE-ACCOUNTS@example.invalid','purpose'=>'sponsorship'],'reference'=>'CON-SYNTHETIC','kind'=>'online','method'=>'paypal','amount'=>'25.00','currency'=>'USD'];
+foreach([false,true]as$paid){$_SERVER['REQUEST_URI']='/contribute/receipt/fixture';file_put_contents($out.'/support-receipt-'.(int)$paid.'.html',ef_render('layout',['page'=>'contribute','content'=>ef_render('contribution_receipt',['receipt'=>$receiptFixture,'receiptState'=>['paid'=>$paid,'state'=>$paid?'verified':'pending','at'=>'2026-11-03 10:00:00']]),'suppressAnalytics'=>true,'seo'=>['robots'=>'noindex,nofollow']]));}
