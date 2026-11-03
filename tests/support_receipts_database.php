@@ -8,7 +8,7 @@ $BANK=['USD'=>['enabled'=>true,'account_name'=>'Synthetic receiving account','ac
 function wise_giving_public(): array {global $BANK;return $BANK;}
 function sdcheck(bool $ok,string $why): void {if(!$ok)throw new RuntimeException($why);}
 function sdreject(callable $f): void {try{$f();}catch(InvalidArgumentException){return;}throw new RuntimeException('Expected receipt action rejection.');}
-$oldConfig=comm_config();$oldShort=setting('mpesa.shortcode','');$ids=[];$records=[];$keysBefore=db()->query("SELECT setting_key FROM settings WHERE setting_key LIKE 'communication.giving.%'")->fetchAll(PDO::FETCH_COLUMN);$mailBefore=(int)db()->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn();
+$oldConfig=comm_config();$oldShort=db()->query("SELECT setting_value,is_secret FROM settings WHERE setting_key='mpesa.shortcode'")->fetch();$ids=[];$records=[];$keysBefore=db()->query("SELECT setting_key FROM settings WHERE setting_key LIKE 'communication.giving.%'")->fetchAll(PDO::FETCH_COLUMN);$mailBefore=(int)db()->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn();
 try{
  comm_put('config',['owner'=>1]);set_setting('mpesa.shortcode','SYNTHETIC-ACCOUNT');
  $identity=support_identity(['supporter_type'=>'organisation','support_purpose'=>'sponsorship','organisation_name'=>'PRIVATE_SYNTHETIC_INSTITUTE','receipt_address'=>'PRIVATE_SYNTHETIC_ADDRESS','receipt_email'=>'fixture@example.invalid','receipt_details_ack'=>'1']);
@@ -42,6 +42,6 @@ try{
 }finally{
  foreach($ids as$id)db()->prepare('DELETE FROM contributions WHERE id=?')->execute([$id]);
  $keysAfter=db()->query("SELECT setting_key FROM settings WHERE setting_key LIKE 'communication.giving.%'")->fetchAll(PDO::FETCH_COLUMN);foreach(array_diff($keysAfter,$keysBefore)as$key)db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute([$key]);
- comm_put('config',$oldConfig);set_setting('mpesa.shortcode',$oldShort);
+ comm_put('config',$oldConfig);if($oldShort)db()->prepare('UPDATE settings SET setting_value=?,is_secret=? WHERE setting_key=?')->execute([$oldShort['setting_value'],$oldShort['is_secret'],'mpesa.shortcode']);else db()->prepare('DELETE FROM settings WHERE setting_key=?')->execute(['mpesa.shortcode']);
 }
 echo "PASS: private encrypted receipts, capability checks, verified live payment gates, statement matching, duplicate protection, voiding and reversal.\n";
