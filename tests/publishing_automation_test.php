@@ -29,4 +29,19 @@ $ci=publishing_weekly_route_preview(['slug'=>'linkedin','delivery_method'=>'dire
 pa_check($ci['usable']&&str_contains($ci['status'],'approval and provider check'),'Saved direct route is not published nor unconstrained');
 $source=file_get_contents(dirname(__DIR__).'/app/publishing.php');
 pa_check(str_contains($source,'publishing_weekly_paused_scope(publishing_automation_ids()'),'Global unscoped worker respects weekly pause before selecting new scheduled posts');
+$policy=['enabled'=>true,'start_date'=>'2026-11-05','owner'=>42,'after_job'=>10,'after_revision'=>20];
+$start=publishing_scoped_start('2026-11-05');
+pa_check(gmdate('c',$start)==='2026-11-04T21:00:00+00:00','Independent policy starts at Nairobi midnight.');
+pa_check(!publishing_scoped_ready($policy,true,42,$start-1)&&publishing_scoped_ready($policy,true,42,$start),'Start date cannot release posts early.');
+pa_check(!publishing_scoped_ready($policy,false,42,$start)&&!publishing_scoped_ready($policy,true,43,$start),'Weekly pause and exact owner remain mandatory.');
+$off=$policy;$off['enabled']=false;pa_check(!publishing_scoped_ready($off,true,42,$start),'Independent policy can be paused.');
+$invalid=$policy;$invalid['start_date']='2026-02-30';pa_check(!publishing_scoped_ready($invalid,true,42,$start),'Invalid dates fail closed.');
+$j=['id'=>11,'revision_id'=>21,'method'=>'direct','approved_by'=>42,'created_by'=>42,'status'=>'scheduled','scheduled_at'=>gmdate('Y-m-d H:i:s',$start+60)];
+pa_check(publishing_scoped_job_allowed($j,$policy,$start),'Only new directly approved social work can qualify.');
+foreach(['id'=>10,'revision_id'=>20,'method'=>'manual','approved_by'=>9,'created_by'=>9,'status'=>'ambiguous','scheduled_at'=>'bad']as$key=>$value){$bad=$j;$bad[$key]=$value;pa_check(!publishing_scoped_job_allowed($bad,$policy,$start),'Reject changed or historical job boundary: '.$key);}
+$old=$j;$old['scheduled_at']=gmdate('Y-m-d H:i:s',$start-1);pa_check(!publishing_scoped_job_allowed($old,$policy,$start),'Pre-start scheduled backlog cannot qualify.');
+pa_check(!publishing_scoped_job_allowed($j,$policy,$start+90000),'A missed release older than 24 hours needs renewed scheduling.');
+$accepted=$j;$accepted['status']='delivered';pa_check(publishing_scoped_job_allowed($accepted,$policy,$start+90000),'Provider-accepted selected work can still reconcile without republishing.');
+$code=file_get_contents(dirname(__DIR__).'/app/publishing_automation.php');$scoped=substr($code,strpos($code,'function publishing_scoped_work'));
+pa_check(!str_contains($scoped,'email_work')&&!str_contains($scoped,'publishing_weekly_reminders')&&str_contains($scoped,'publishing_work(10,$allowed)'),'The independent path cannot drain mail or call assisted email reminders.');
 echo "PASS: weekly slots, collision avoidance, DST, bounded platform copy, global worker pause and account readiness.\n";

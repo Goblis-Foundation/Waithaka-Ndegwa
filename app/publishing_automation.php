@@ -168,3 +168,41 @@ function publishing_weekly_reminders(array $jobIds): void {
  $q=db()->prepare('SELECT id FROM email_outbox WHERE dedupe_key IN ('.implode(',',array_fill(0,count($hashes),'?')).')');$q->execute($hashes);$outboxIds=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
  if($outboxIds)email_work(10,null,$outboxIds);
 }
+
+/** Independently approved direct-social work; never processes mail or an old queue. */
+function publishing_scoped_policy(): array {return array_replace(['enabled'=>false,'start_date'=>'2026-11-05','owner'=>0,'after_job'=>0,'after_revision'=>0],comm_get('publishing.direct.policy'));}
+function publishing_scoped_start(string $date): int {
+ $d=DateTimeImmutable::createFromFormat('!Y-m-d',$date,new DateTimeZone('Africa/Nairobi'));
+ if(!$d||$d->format('Y-m-d')!==$date)throw new InvalidArgumentException('Choose a valid start date.');return $d->getTimestamp();
+}
+function publishing_scoped_ready(array $p,bool $weeklyRun,int $owner,int $now): bool {
+ if(($p['enabled']??false)!==true||!$weeklyRun||$owner<1||($p['owner']??0)!==$owner||!is_int($p['after_job']??null)||!is_int($p['after_revision']??null)||$p['after_job']<0||$p['after_revision']<0||!is_string($p['start_date']??null))return false;
+ try{return $now>=publishing_scoped_start($p['start_date']);}catch(Throwable){return false;}
+}
+function publishing_scoped_job_allowed(array $j,array $p,int $now): bool {
+ if(($j['method']??'')!=='direct'||(int)($j['id']??0)<=(int)$p['after_job']||(int)($j['revision_id']??0)<=(int)$p['after_revision']||(int)($j['approved_by']??0)!==(int)$p['owner']||(int)($j['created_by']??0)!==(int)$p['owner'])return false;
+ if(!in_array($j['status']??'',['scheduled','processing','delivered'],true))return false;
+ $at=DateTimeImmutable::createFromFormat('!Y-m-d H:i:s',(string)($j['scheduled_at']??''),new DateTimeZone('UTC'));
+ if(!$at||$at->format('Y-m-d H:i:s')!==($j['scheduled_at']??''))return false;
+ return $j['status']!=='scheduled'||($at->getTimestamp()>=$now-86400&&$at->getTimestamp()>=publishing_scoped_start($p['start_date']));
+}
+function publishing_scoped_save(int $uid,array $in): void {
+ $owner=(int)(comm_config()['owner']??0);if($uid<1||$uid!==$owner)throw new InvalidArgumentException('Owner access required.');
+ $enabled=($in['direct_enabled']??'')==='1';$date=$in['direct_start']??'';if(!is_string($date))throw new InvalidArgumentException('Choose a valid start date.');publishing_scoped_start($date);
+ if($enabled&&($in['direct_ack']??'')!=='1')throw new InvalidArgumentException('Confirm the direct social delivery scope.');
+ comm_lock('publishing.direct.policy',static function()use($uid,$enabled,$date){
+  comm_put('publishing.direct.policy',['enabled'=>$enabled,'start_date'=>$date,'owner'=>$uid,'after_job'=>(int)db()->query('SELECT COALESCE(MAX(id),0) FROM publishing_jobs')->fetchColumn(),'after_revision'=>(int)db()->query('SELECT COALESCE(MAX(id),0) FROM publishing_revisions')->fetchColumn(),'saved_at'=>time()]);
+ });
+}
+function publishing_scoped_work(): void {
+ // Normal worker behaviour remains unchanged when it is explicitly enabled.
+ if(app_config('worker_enabled',false))return;
+ comm_lock('publishing.direct.policy',static function(){
+  $p=publishing_scoped_policy();$now=time();$owner=(int)(comm_config()['owner']??0);$weekly=publishing_weekly_config();
+  if(!publishing_scoped_ready($p,!empty($weekly['run']),$owner,$now))return;
+  $ids=publishing_automation_ids();if(!$ids)return;
+  $q=db()->query('SELECT j.id,j.revision_id,j.method,j.status,j.scheduled_at,r.approved_by,p.created_by FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id WHERE j.id IN ('.implode(',',$ids).')');
+  $allowed=[];foreach($q->fetchAll()as$j)if(publishing_scoped_job_allowed($j,$p,$now))$allowed[]=(int)$j['id'];
+  if($allowed)desk_delivery_gate(static fn()=>publishing_work(10,$allowed));
+ });
+}
