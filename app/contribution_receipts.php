@@ -8,24 +8,24 @@ function support_text(mixed $value,string $label,int $limit,bool $required=false
 function support_identity(array $in): array {
     $kind=$in['supporter_type']??'anonymous';$purpose=$in['support_purpose']??'support';
     if(!in_array($kind,['individual','organisation','anonymous'],true)||!in_array($purpose,['support','sponsorship'],true))throw new InvalidArgumentException('Choose who is supporting and the purpose.');
-    $r=['type'=>$kind,'purpose'=>$purpose,'name'=>'Anonymous supporter','address'=>'','email'=>''];
+    $r=['type'=>$kind,'purpose'=>$purpose,'name'=>'Anonymous supporter','address'=>'','email'=>'','public_share'=>($in['public_support_ack']??'')==='1','public_name'=>'Anonymous'];
     if($kind==='anonymous')return $r; // Discard hidden/stale identity fields, not merely conceal them.
     if(($in['receipt_details_ack']??'')!=='1')throw new InvalidArgumentException('Confirm that the receipt details may be saved privately.');
     if($kind==='organisation')$r['name']=support_text($in['organisation_name']??'','company or institution name',180,true);
-    else{$first=support_text($in['supporter_first']??'','first name',120,true);$middle=support_text($in['supporter_middle']??'','middle name',120);$last=support_text($in['supporter_last']??'','last name',120,true);$r['name']=implode(' ',array_filter([$first,$middle,$last],static fn($x)=>$x!==''));}
+    else{$first=support_text($in['supporter_first']??'','first name',120,true);$middle=support_text($in['supporter_middle']??'','middle name',120);$last=support_text($in['supporter_last']??'','last name',120,true);$r['name']=implode(' ',array_filter([$first,$middle,$last],static fn($x)=>$x!==''));if($r['public_share']&&($in['public_support_name']??'')==='first')$r['public_name']=$first;}
     $r['address']=support_text($in['receipt_address']??'','billing address',1000);$r['email']=support_text($in['receipt_email']??'','accounts contact email',190);
     if($r['email']!==''&&!filter_var($r['email'],FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Enter a valid accounts contact email.');return $r;
 }
 function support_form_values(array $in): array {
-    $out=[];foreach(['supporter_type'=>20,'support_purpose'=>20,'supporter_first'=>120,'supporter_middle'=>120,'supporter_last'=>120,'organisation_name'=>180,'receipt_address'=>1000,'receipt_email'=>190,'receipt_details_ack'=>1]as$key=>$limit)if(is_string($in[$key]??null))$out[$key]=mb_substr($in[$key],0,$limit);
-    return ($out['supporter_type']??'anonymous')==='anonymous'?array_intersect_key($out,array_flip(['supporter_type','support_purpose'])):$out;
+    $out=[];foreach(['supporter_type'=>20,'support_purpose'=>20,'supporter_first'=>120,'supporter_middle'=>120,'supporter_last'=>120,'organisation_name'=>180,'receipt_address'=>1000,'receipt_email'=>190,'receipt_details_ack'=>1,'public_support_ack'=>1,'public_support_name'=>10]as$key=>$limit)if(is_string($in[$key]??null))$out[$key]=mb_substr($in[$key],0,$limit);
+    return ($out['supporter_type']??'anonymous')==='anonymous'?array_intersect_key($out,array_flip(['supporter_type','support_purpose','public_support_ack','public_support_name'])):$out;
 }
 function support_purpose(array $identity): string {return ($identity['purpose']??'support')==='sponsorship'?'Sponsorship of independent writing':'Support for independent writing';}
 function support_receipt_key(string $id): string {if(!preg_match('/^[a-f0-9]{32}$/D',$id))throw new InvalidArgumentException('Receipt unavailable.');return 'giving.receipt.'.$id;}
 function support_receipt_url(array $r): string {return url('/contribute/receipt/'.$r['id'].'/'.$r['token']);}
 function support_receipt_new(array $identity,array $payment): array {
     $r=['id'=>bin2hex(random_bytes(16)),'token'=>bin2hex(random_bytes(32)),'identity'=>$identity,'created'=>time(),'issuer'=>'Isaac Waithaka Ndegwa']+$payment;
-    comm_put(support_receipt_key($r['id']),$r);return $r;
+    comm_put(support_receipt_key($r['id']),$r);if(!empty($identity['public_share']))comm_put('giving.public.'.sprintf('%010d',$r['created']).'.'.$r['id'],['id'=>$r['id']]);return $r;
 }
 function support_receipt_attach(int $id,array $identity): array {
     $q=db()->prepare('SELECT id,reference,method,amount,currency FROM contributions WHERE id=?');$q->execute([$id]);$payment=$q->fetch();if(!$payment)throw new RuntimeException('Contribution record unavailable.');
@@ -85,12 +85,26 @@ function support_receipt_void(string $id,array $in,int $uid): void {
     $reason=support_text($in['void_reason']??'','void reason',1000,true);if(($in['void_ack']??'')!=='1')throw new InvalidArgumentException('Confirm voiding this receipt record.');
     comm_lock('giving.bank.receipts',static function()use($id,$reason,$uid){$r=comm_get(support_receipt_key($id));if(!$r)throw new InvalidArgumentException('Receipt unavailable.');$r['voided_at']=time();$r['voided_by']=$uid;$r['void_reason']=$reason;comm_put(support_receipt_key($id),$r);});
 }
+/** Public projection deliberately excludes receipt capabilities and private payer details. */
+function support_public_item(array $r): ?array {
+    if(empty($r['identity']['public_share'])||!empty($r['public_hidden_at'])||!support_receipt_state($r)['paid'])return null;
+    return ['name'=>(string)($r['identity']['public_name']??'Anonymous'),'amount'=>payment_decimal($r['amount']),'currency'=>(string)$r['currency']];
+}
+function support_public_feed(): array {
+    $q=db()->prepare('SELECT setting_value FROM settings WHERE setting_key LIKE ? ORDER BY setting_key DESC LIMIT 60');$q->execute(['communication.giving.public.%']);$out=[];
+    foreach($q->fetchAll()as$row){try{$index=json_decode(decrypt_secret($row['setting_value']),true,8,JSON_THROW_ON_ERROR);$r=comm_get(support_receipt_key($index['id']));if($r&&($item=support_public_item($r)))$out[]=$item;}catch(InvalidArgumentException|JsonException){continue;}if(count($out)===12)break;}return $out;
+}
+function support_public_hide(string $id,int $uid): void {
+    if($uid<=0||$uid!==(int)(comm_config()['owner']??0))throw new InvalidArgumentException('Owner access required.');
+    comm_lock('giving.bank.receipts',static function()use($id,$uid){$r=comm_get(support_receipt_key($id));if(!$r)throw new InvalidArgumentException('Receipt unavailable.');$r['public_hidden_at']=time();$r['public_hidden_by']=$uid;comm_put(support_receipt_key($id),$r);});
+}
 function support_receipts_dispatch(string $path): bool {
+    if($path==='/contribute/recent-support'){journeys_method(['GET','HEAD']);header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');header('X-Robots-Tag: noindex, nofollow');echo json_encode(['supporters'=>support_public_feed()],JSON_THROW_ON_ERROR|JSON_HEX_TAG|JSON_HEX_AMP);return true;}
     $owner=$path==='/write/contribution-receipts';
     if(!$owner&&!preg_match('~^/contribute/receipt/([a-f0-9]{32})/([a-f0-9]{64})$~D',$path,$m))return false;
     private_response_headers();journeys_method($owner?['GET','HEAD','POST']:['GET','HEAD']);
     if($owner){require_auth();$uid=(int)current_user()['id'];if($uid!==(int)(comm_config()['owner']??0)){http_response_code(403);echo 'Owner access required.';return true;}$error='';
-        if(is_post()){verify_csrf();try{if(($_POST['action']??'verify')==='void'){support_receipt_void((string)($_POST['receipt_id']??''),$_POST,$uid);flash('success','Receipt voided. The payment and statement claim remain unchanged.');}else{support_bank_verify((string)($_POST['receipt_id']??''),$_POST,$uid);flash('success','Statement checked and receipt available.');}redirect(url($path));}catch(InvalidArgumentException|RuntimeException $e){$error=$e->getMessage();}}
+        if(is_post()){verify_csrf();try{if(($_POST['action']??'verify')==='hide'){support_public_hide((string)($_POST['receipt_id']??''),$uid);flash('success','Public acknowledgement removed. The private receipt is unchanged.');}elseif(($_POST['action']??'verify')==='void'){support_receipt_void((string)($_POST['receipt_id']??''),$_POST,$uid);flash('success','Receipt voided. The payment and statement claim remain unchanged.');}else{support_bank_verify((string)($_POST['receipt_id']??''),$_POST,$uid);flash('success','Statement checked and receipt available.');}redirect(url($path));}catch(InvalidArgumentException|RuntimeException $e){$error=$e->getMessage();}}
         $rows=comm_records('giving.receipt',2000);usort($rows,static fn($a,$b)=>$b['created']<=>$a['created']);$total=count($rows);$page=filter_var($_GET['page']??1,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100]])?:1;$rows=array_slice($rows,($page-1)*20,20);render_write('contribution_receipts',['writeTitle'=>'Support receipts','rows'=>$rows,'error'=>$error,'receiptPage'=>$page,'receiptTotal'=>$total]);return true;
     }
     try{$receipt=support_receipt_read($m[1],$m[2]);$receiptState=support_receipt_state($receipt);}catch(InvalidArgumentException){http_response_code(404);echo 'Receipt unavailable.';return true;}
