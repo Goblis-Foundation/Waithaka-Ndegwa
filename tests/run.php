@@ -314,6 +314,7 @@ try {
                   'communication_mail_unit.php'=>'Mailbox privacy and draft header boundaries',
                   'app_security_unit.php'=>'Passkey origin, challenge and assertion verification',
                   'communication_unit.php'=>'Availability, DST and notification boundaries',
+                  'support_receipts_unit.php'=>'Individual and institution receipt identity',
                   'workspace_reports_unit.php'=>'Private reports, weekly routines and booking review gates',
                   'planner_unit.php'=>'Daily program parsing, timezone, maps and trust boundaries',
                   'meetings_unit.php'=>'Meeting account, read permissions and join-link boundaries',
@@ -401,6 +402,7 @@ try {
                 'owner_alias' => 'owner_identity_database.php',
                 'google' => 'google_workspace_database.php',
                 'communication' => 'communication_database.php',
+                'support_receipts' => 'support_receipts_database.php',
                 'planner' => 'planner_database.php',
                 'http' => '010_security_http.php',
             ];
