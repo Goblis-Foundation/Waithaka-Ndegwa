@@ -194,15 +194,43 @@ function publishing_scoped_save(int $uid,array $in): void {
   comm_put('publishing.direct.policy',['enabled'=>$enabled,'start_date'=>$date,'owner'=>$uid,'after_job'=>(int)db()->query('SELECT COALESCE(MAX(id),0) FROM publishing_jobs')->fetchColumn(),'after_revision'=>(int)db()->query('SELECT COALESCE(MAX(id),0) FROM publishing_revisions')->fetchColumn(),'saved_at'=>time()]);
  });
 }
+/** Store only operational counts, bound to the policy that authorised this run. */
+function publishing_scoped_heartbeat(array $p,string $state,int $at,array $result=[]): array {
+ $binding=hash('sha256',json_encode(array_intersect_key($p,array_flip(['enabled','start_date','owner','after_job','after_revision','saved_at'])),JSON_THROW_ON_ERROR));
+ $out=['policy'=>$binding,'state'=>in_array($state,['running','completed','failed','busy'],true)?$state:'failed','at'=>$at,'counts'=>[]];
+ foreach(['processed','published','checked','attention']as$key)if(isset($result[$key])&&is_int($result[$key])&&$result[$key]>=0)$out['counts'][$key]=min(1000000,$result[$key]);
+ return $out;
+}
+function publishing_scoped_health(array $p,array $heartbeat,bool $weeklyRun,int $owner,int $now,bool $globalWorker=false): array {
+ $out=['state'=>'disabled','summary'=>'Independent delivery is disabled','at'=>0,'counts'=>[]];
+ if($globalWorker)return array_replace($out,['state'=>'global','summary'=>'The global delivery worker handles publishing; review Operations']);
+ if(empty($p['enabled']))return $out;
+ if(!$weeklyRun)return array_replace($out,['state'=>'paused','summary'=>'The weekly queue is paused']);
+ try{$start=publishing_scoped_start((string)($p['start_date']??''));}catch(Throwable){return array_replace($out,['state'=>'blocked','summary'=>'The saved start date needs review']);}
+ if(!publishing_scoped_ready($p,true,$owner,max($now,$start)))return array_replace($out,['state'=>'blocked','summary'=>'The saved owner or delivery policy needs review']);
+ if($now<$start)return array_replace($out,['state'=>'scheduled','summary'=>'Waiting for the start date · '.$p['start_date'].' · Africa/Nairobi']);
+ $expected=publishing_scoped_heartbeat($p,'running',$now);
+ $at=$heartbeat['at']??0;
+ if(!is_int($at)||$at<1||$at>$now+60||!is_string($heartbeat['policy']??null)||!hash_equals($expected['policy'],$heartbeat['policy']))return array_replace($out,['state'=>'unverified','summary'=>'No timer check recorded for the current policy']);
+ $safe=publishing_scoped_heartbeat($p,(string)($heartbeat['state']??''),$at,is_array($heartbeat['counts']??null)?$heartbeat['counts']:[]);$out['at']=$at;$out['counts']=$safe['counts'];
+ $state=$safe['state'];$age=max(0,$now-$at);
+ if($state==='failed')return array_replace($out,['state'=>'failed','summary'=>'The last direct-social cycle failed; review Operations and job outcomes']);
+ if($age>900)return array_replace($out,['state'=>'stale','summary'=>$state==='running'?'A direct-social cycle stopped reporting':'No recent direct-social timer check']);
+ return array_replace($out,['state'=>$state,'summary'=>match($state){'running'=>'Direct-social cycle in progress','busy'=>'Another publishing worker is active; waiting for the next check',default=>'Direct-social cycle completed; counts are not a guarantee of publication'}]);
+}
 function publishing_scoped_work(): void {
  // Normal worker behaviour remains unchanged when it is explicitly enabled.
  if(app_config('worker_enabled',false))return;
  comm_lock('publishing.direct.policy',static function(){
   $p=publishing_scoped_policy();$now=time();$owner=(int)(comm_config()['owner']??0);$weekly=publishing_weekly_config();
   if(!publishing_scoped_ready($p,!empty($weekly['run']),$owner,$now))return;
-  $ids=publishing_automation_ids();if(!$ids)return;
-  $q=db()->query('SELECT j.id,j.revision_id,j.method,j.status,j.scheduled_at,r.approved_by,p.created_by FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id WHERE j.id IN ('.implode(',',$ids).')');
-  $allowed=[];foreach($q->fetchAll()as$j)if(publishing_scoped_job_allowed($j,$p,$now))$allowed[]=(int)$j['id'];
-  if($allowed)desk_delivery_gate(static fn()=>publishing_work(10,$allowed));
+  comm_put('publishing.direct.heartbeat',publishing_scoped_heartbeat($p,'running',$now));
+  try{
+   $ids=publishing_automation_ids();$allowed=[];
+   if($ids){$q=db()->query('SELECT j.id,j.revision_id,j.method,j.status,j.scheduled_at,r.approved_by,p.created_by FROM publishing_jobs j JOIN publishing_revisions r ON r.id=j.revision_id JOIN publishing_packages p ON p.id=r.package_id WHERE j.id IN ('.implode(',',$ids).')');
+    foreach($q->fetchAll()as$j)if(publishing_scoped_job_allowed($j,$p,$now))$allowed[]=(int)$j['id'];}
+   $result=$allowed?desk_delivery_gate(static fn()=>publishing_work(10,$allowed)):['processed'=>0,'published'=>0,'checked'=>0,'attention'=>0];
+   comm_put('publishing.direct.heartbeat',publishing_scoped_heartbeat($p,!empty($result['busy'])?'busy':'completed',time(),$result));
+  }catch(Throwable $e){comm_put('publishing.direct.heartbeat',publishing_scoped_heartbeat($p,'failed',time()));throw $e;}
  });
 }
