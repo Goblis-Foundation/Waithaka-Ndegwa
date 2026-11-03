@@ -116,6 +116,12 @@ try {
     td_reject(fn()=>publishing_access_token(publishing_connection('tiktok_read')),'A prior process crash checkpoint cannot be silently resumed');
     td_check(publishing_connection('tiktok_read')['status']==='reconnect','Crash recovery makes the required reconnection visible in Connections');
     td_check(td_state()['refreshes']===1,'Crash recovery issues no second renewal request');
+    foreach(['oversized_body','oversized_headers']as$mode)foreach([false,true]as$mutation){
+        $state=td_state();$state['mode']=$mode;$before=count($state['requests']);td_write_state($state);
+        try{publishing_http($mutation?'POST':'GET','https://open.tiktokapis.com/v2/user/info/',[],null,false,$mutation);throw new LogicException('Oversized response accepted');}
+        catch(PublishingRemoteException $e){td_check($e->ambiguous===$mutation&&str_contains($e->getMessage(),'safe size limit')&&!str_contains($e->getMessage(),'private'),'Streaming limit preserves mutation ambiguity and private-body exclusion');}
+        td_check(count(td_state()['requests'])===$before+1,'Oversized responses are never automatically retried');
+    }
     echo "TikTok OAuth/report/database checks passed: {$ttChecks}\n";
 } finally {
     putenv('TIKTOK_TEST_BASE_URL');
