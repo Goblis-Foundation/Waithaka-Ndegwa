@@ -44,4 +44,28 @@ pa_check(!publishing_scoped_job_allowed($j,$policy,$start+90000),'A missed relea
 $accepted=$j;$accepted['status']='delivered';pa_check(publishing_scoped_job_allowed($accepted,$policy,$start+90000),'Provider-accepted selected work can still reconcile without republishing.');
 $code=file_get_contents(dirname(__DIR__).'/app/publishing_automation.php');$scoped=substr($code,strpos($code,'function publishing_scoped_work'));
 pa_check(!str_contains($scoped,'email_work')&&!str_contains($scoped,'publishing_weekly_reminders')&&str_contains($scoped,'publishing_work(10,$allowed)'),'The independent path cannot drain mail or call assisted email reminders.');
+// Operational evidence must not become a store of provider messages or private content.
+$hb=publishing_scoped_heartbeat($policy,'completed',$start,['processed'=>2,'published'=>1,'checked'=>0,'attention'=>1,'body'=>'private','error'=>'token','recipient'=>'private@example.invalid']);
+pa_check(array_keys($hb['counts'])===['processed','published','checked','attention']&&!str_contains(json_encode($hb),'private'),'Heartbeat only retains allowlisted numeric metrics.');
+pa_check(publishing_scoped_health($policy,$hb,true,42,$start-1)['state']==='scheduled','Before launch is waiting, not failed.');
+pa_check(publishing_scoped_health($policy,$hb,true,42,$start)['state']==='completed','Fresh current-policy cycle is visible.');
+pa_check(publishing_scoped_health($policy,$hb,true,42,$start+901)['state']==='stale','A missing timer becomes stale.');
+pa_check(publishing_scoped_health($policy,$hb,false,42,$start)['state']==='paused','Pause takes precedence over old successful evidence.');
+pa_check(publishing_scoped_health($policy,$hb,true,43,$start)['state']==='blocked','Owner changes invalidate readiness.');
+$changed=$policy;$changed['after_job']=11;pa_check(publishing_scoped_health($changed,$hb,true,42,$start)['state']==='unverified','A new policy cannot inherit an old successful heartbeat.');
+$future=$hb;$future['at']=$start+61;pa_check(publishing_scoped_health($policy,$future,true,42,$start)['at']===0,'Future evidence cannot establish freshness.');
+$failed=publishing_scoped_heartbeat($policy,'failed',$start);pa_check(publishing_scoped_health($policy,$failed,true,42,$start)['state']==='failed','Failed cycle remains distinct from completion.');
+$running=publishing_scoped_heartbeat($policy,'running',$start);pa_check(publishing_scoped_health($policy,$running,true,42,$start+901)['state']==='stale','Interrupted cycle is visible.');
+pa_check(publishing_scoped_health($policy,$hb,true,42,$start,true)['state']==='global','Global worker is identified as the active route.');
+pa_check(publishing_scoped_heartbeat($policy,'completed',$start,['published'=>'9','processed'=>-1])['counts']===[],'Invalid counter types are rejected.');
+// Exercise the actual empty-queue worker path without SQL or external delivery.
+$records=['publishing.direct.policy'=>array_replace($policy,['start_date'=>'2000-01-01'])];$throwIds=false;
+function app_config(string $key,mixed $default=null):mixed{return $default;}
+function comm_config():array{return ['owner'=>42];}
+function comm_lock(string $key,callable $work):mixed{return $work();}
+function comm_get(string $key):array{global $records,$throwIds;if($throwIds&&$key==='publishing.weekly.jobs')throw new RuntimeException('sensitive provider context');return $records[$key]??[];}
+function comm_put(string $key,array $value):void{global $records;$records[$key]=$value;}
+publishing_scoped_work();pa_check($records['publishing.direct.heartbeat']['state']==='completed'&&$records['publishing.direct.heartbeat']['counts']['published']===0,'An empty checked queue records a successful cycle, not a missing heartbeat.');
+$throwIds=true;try{publishing_scoped_work();throw new LogicException('Failure swallowed');}catch(RuntimeException $e){pa_check($e->getMessage()==='sensitive provider context','The worker still propagates its failure.');}
+pa_check($records['publishing.direct.heartbeat']['state']==='failed'&&!str_contains(json_encode($records['publishing.direct.heartbeat']),'sensitive'),'Failed worker persists no provider details.');
 echo "PASS: weekly slots, collision avoidance, DST, bounded platform copy, global worker pause and account readiness.\n";
