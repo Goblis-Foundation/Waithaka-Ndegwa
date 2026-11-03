@@ -54,6 +54,14 @@ try {
     }
     ready_db_check(readiness_email_sources([$outboxId],[])===[],'Missing source tables must not fabricate a source.');
     ready_db_check(db()->query('SELECT status FROM email_outbox WHERE id='.(int)$outboxId)->fetchColumn()==='pending','Source resolution is read-only.');
+    $diagnostic=readiness_email_diagnostic($outboxId);
+    ready_db_check($diagnostic['category']==='Message origin could not be read','Malformed encrypted payloads return a safe diagnostic.');
+    $originKey='notify:'.$suffix;
+    db()->prepare('UPDATE email_outbox SET dedupe_key=?,payload=? WHERE id=?')->execute([hash('sha256',$originKey),encrypt_secret(json_encode(['dedupe_key'=>$originKey,'to'=>'private@example.invalid','subject'=>'PRIVATE_SUBJECT','html'=>'PRIVATE_BODY'])),$outboxId]);
+    $diagnostic=readiness_email_diagnostic($outboxId);
+    ready_db_check($diagnostic['category']==='Writer notification','The diagnostic identifies an authenticated stored origin.');
+    foreach(['private@example.invalid','PRIVATE_SUBJECT','PRIVATE_BODY',$originKey]as$private)ready_db_check(!str_contains(json_encode($diagnostic),$private),'Owner diagnostic must not expose payload values.');
+    ready_db_check(db()->query('SELECT status FROM email_outbox WHERE id='.(int)$outboxId)->fetchColumn()==='pending','Diagnostics never release or suppress queued mail.');
     ready_db_check($snapshot['migrations']['available']&&$snapshot['migrations']['pending']===[]&&$snapshot['migrations']['changed']===[],'Prepared migration checksums should be reported without applying changes.');
 } finally {
     foreach($ids as$id)if($id)db()->prepare('DELETE FROM worker_runs WHERE id=?')->execute([$id]);
