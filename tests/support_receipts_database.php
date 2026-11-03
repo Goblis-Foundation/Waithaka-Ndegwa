@@ -21,8 +21,12 @@ try{
  sdcheck(!support_receipt_state($r)['paid'],'Checkout intent cannot issue receipt');
  db()->prepare("UPDATE contributions SET status='completed' WHERE id=?")->execute([$id]);db()->prepare("UPDATE payment_reconciliation SET state='verified',verification_level='amount_currency_status',verified_at=NOW() WHERE contribution_id=?")->execute([$id]);
  sdcheck(support_receipt_state($r)['paid'],'Matching live verified payment permits receipt');
- db()->prepare("UPDATE payment_reconciliation SET provider_environment='sandbox' WHERE contribution_id=?")->execute([$id]);sdcheck(!support_receipt_state($r)['paid'],'Sandbox never issues live paid receipt');
- db()->prepare("UPDATE payment_reconciliation SET provider_environment='live',state='reversed' WHERE contribution_id=?")->execute([$id]);sdcheck(!support_receipt_state($r)['paid'],'Reversal invalidates receipt');
+ sdcheck(support_public_feed()===[],'Existing private verified receipts never enter public feed');
+ $publicIdentity=support_identity(['supporter_type'=>'individual','supporter_first'=>'Synthetic','supporter_last'=>'PRIVATE_SURNAME','receipt_details_ack'=>'1','public_support_ack'=>'1','public_support_name'=>'first']);$publicReceipt=support_receipt_attach($id,$publicIdentity);
+ sdcheck(support_public_feed()===[['name'=>'Synthetic','amount'=>'25.00','currency'=>'USD']],'Verified consented contribution exposes first name, amount and currency only');
+
+ db()->prepare("UPDATE payment_reconciliation SET provider_environment='sandbox' WHERE contribution_id=?")->execute([$id]);sdcheck(!support_receipt_state($r)['paid'],'Sandbox never issues live paid receipt');sdcheck(support_public_feed()===[],'Sandbox excluded from public feed');
+ db()->prepare("UPDATE payment_reconciliation SET provider_environment='live',state='reversed' WHERE contribution_id=?")->execute([$id]);sdcheck(!support_receipt_state($r)['paid'],'Reversal invalidates receipt');sdcheck(support_public_feed()===[],'Reversed support disappears on next read');support_public_hide($publicReceipt['id'],1);sdreject(fn()=>support_public_hide($publicReceipt['id'],2));
  db()->prepare("UPDATE payment_reconciliation SET state='verified' WHERE contribution_id=?")->execute([$id]);db()->prepare("UPDATE contributions SET amount='26.00' WHERE id=?")->execute([$id]);sdcheck(!support_receipt_state($r)['paid'],'Changed financial identity fails closed');
  db()->prepare("UPDATE contributions SET amount='25.00',method='mpesa' WHERE id=?")->execute([$id]);$r['method']='mpesa';$r['receiving_fingerprint']=hash('sha256','mpesa|SYNTHETIC-ACCOUNT');comm_put(support_receipt_key($r['id']),$r);db()->prepare("UPDATE payment_reconciliation SET verification_level='status_only' WHERE contribution_id=?")->execute([$id]);
  sdcheck(!support_receipt_state($r)['paid']&&support_receipt_state($r)['can_verify'],'M-Pesa status-only evidence awaits statement');
