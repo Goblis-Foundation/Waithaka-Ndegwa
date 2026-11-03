@@ -36,6 +36,12 @@ try {
         ready_db_check(!str_contains($encoded,$secret),'Operational diagnostics must never include secrets, payloads or raw errors.');
     ready_db_check((int)db()->query('SELECT COUNT(*) FROM worker_runs')->fetchColumn()===$before,'Reading operations must not create a worker run.');
     ready_db_check(db()->query('SELECT status FROM email_outbox WHERE id='.(int)$outboxId)->fetchColumn()==='ambiguous','Reading operations must not retry or settle email.');
+    db()->prepare("UPDATE email_outbox SET status='pending',error_code='contact_owner_review' WHERE id=?")->execute([$outboxId]);
+    $pendingSnapshot=readiness_snapshot();
+    $pendingRows=array_values(array_filter($pendingSnapshot['email']['pending_review'],static fn($row)=>(int)$row['id']===$outboxId));
+    ready_db_check(count($pendingRows)===1 && $pendingRows[0]['reason']==='Contact message awaits owner review.','Pending messages need an individual safe review reason.');
+    ready_db_check(!array_key_exists('error_code',$pendingRows[0]) && !str_contains(json_encode($pendingSnapshot),'PRIVATE_RECIPIENT_MESSAGE_AND_TOKEN'),'Pending review must not expose payloads or raw errors.');
+    ready_db_check(db()->query('SELECT status FROM email_outbox WHERE id='.(int)$outboxId)->fetchColumn()==='pending','Pending inspection must not release or suppress a message.');
     ready_db_check($snapshot['migrations']['available']&&$snapshot['migrations']['pending']===[]&&$snapshot['migrations']['changed']===[],'Prepared migration checksums should be reported without applying changes.');
 } finally {
     foreach($ids as$id)if($id)db()->prepare('DELETE FROM worker_runs WHERE id=?')->execute([$id]);
