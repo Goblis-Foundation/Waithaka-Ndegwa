@@ -126,8 +126,8 @@ function readiness_worker_health(?array $last,bool $enabled,int $now): array {
 function readiness_snapshot(): array {
     $config=(array)app_config();$now=time();$tables=[];$dbReady=false;
     $result=['generated_at'=>gmdate('Y-m-d H:i:s',$now),'checks'=>[],'migrations'=>['pending'=>[],'changed'=>[],'available'=>false],
-        'publishing'=>['available'=>false,'counts'=>[],'overdue'=>0,'stale'=>0,'attention'=>[]],
-        'email'=>['available'=>false,'counts'=>[],'overdue'=>0,'stale'=>0,'attention'=>[]],
+        'publishing'=>['available'=>false,'counts'=>[],'overdue'=>0,'stale'=>0,'attention'=>[],'pending_review'=>[]],
+        'email'=>['available'=>false,'counts'=>[],'overdue'=>0,'stale'=>0,'attention'=>[],'pending_review'=>[]],
         'connections'=>[],'worker'=>['available'=>false,'latest'=>null,'recent'=>[],'enabled'=>(bool)($config['worker_enabled']??false)]];
     try {
         db()->query('SELECT 1');
@@ -167,6 +167,16 @@ function readiness_snapshot(): array {
                     if(in_array($row['status'],['pending','sending','sent','ambiguous','failed','suppressed'],true))$result['email']['counts'][$row['status']]=(int)$row['total'];
                 $result['email']['overdue']=(int)db()->query("SELECT COUNT(*) FROM email_outbox WHERE status='pending' AND available_at<DATE_SUB(NOW(),INTERVAL 15 MINUTE)")->fetchColumn();
                 $result['email']['stale']=(int)db()->query("SELECT COUNT(*) FROM email_outbox WHERE status='sending' AND (claimed_at IS NULL OR claimed_at<DATE_SUB(NOW(),INTERVAL 15 MINUTE))")->fetchColumn();
+                $pending=db()->query("SELECT id,created_at,available_at,attempts,error_code FROM email_outbox WHERE status='pending' ORDER BY created_at,id LIMIT 20")->fetchAll();
+                foreach($pending as $row) {
+                    $row['reason']=match($row['error_code']) {
+                        'contact_owner_review'=>'Contact message awaits owner review.',
+                        'newsletter_paused'=>'Newsletter campaign is paused.',
+                        default=>(!app_config('worker_enabled',false)?'Delivery worker is paused; review this message before enabling delivery.':'Queued; review its source and current consent before delivery.')
+                    };
+                    unset($row['error_code']);
+                    $result['email']['pending_review'][]=$row;
+                }
                 $rows=db()->query("SELECT id,status,created_at,sent_at,error_code FROM email_outbox WHERE status IN ('ambiguous','failed') OR error_code='bookkeeping_pending' ORDER BY id DESC LIMIT 20")->fetchAll();
                 foreach($rows as$row) {
                     $row['reason']=match($row['error_code']){'bookkeeping_pending'=>'Delivery acknowledged; local bookkeeping needs reconciliation','worker_interrupted'=>'Worker interrupted; provider outcome must be checked',default=>'Provider outcome requires review'};
