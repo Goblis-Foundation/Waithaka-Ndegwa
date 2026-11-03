@@ -14,13 +14,13 @@ $navigation=[
 if((int)($wu['id']??0)!==(int)(comm_config()['owner']??0))unset($navigation['Manage workspace']['/write/activation']);
 $groupIcons=['Daily work'=>'M3 4h10v10H3z M5 2v4 M11 2v4 M3 8h10','Create & publish'=>'M3 12l1-4 7-7 3 3-7 7z M10 2l3 3 M3 14h11','Publishing desk'=>'M2 5h12v9H2z M6 5V2h4v3 M2 9h12','Audience'=>'M6 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4 M1 14v-2a4 4 0 0 1 8 0v2 M11 3a2 2 0 0 1 0 4 M11 10h1a3 3 0 0 1 3 3v1','Journeys & impact'=>'M2 14V9h3v5 M7 14V6h3v8 M12 14V2h3v12','Manage workspace'=>'M8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6 M8 1v2 M8 13v2 M1 8h2 M13 8h2 M3 3l1 1 M12 12l1 1 M3 13l1-1 M12 4l1-1'];
 $activeLink='/write';$activeLength=0;foreach($navigation as$links)foreach($links as$link=>$label){if(str_contains($link,'#'))continue;if(($writerPath===$link||($link!=='/write'&&str_starts_with($writerPath,$link.'/')))&&strlen($link)>$activeLength){$activeLink=$link;$activeLength=strlen($link);}}
-$financeWorkspace=$writerPath==='/write/wise'||$writerPath==='/write/monthly-support'||preg_match('~^/write/integration/(?:paypal|pesapal|mpesa)(?:/|$)~',$writerPath)===1;
+$financeWorkspace=$writerPath==='/write/wise'||$writerPath==='/write/monthly-support'||$writerPath==='/write/contribution-receipts'||preg_match('~^/write/integration/(?:paypal|pesapal|mpesa)(?:/|$)~',$writerPath)===1;
 if($financeWorkspace||str_starts_with($writerPath,'/write/integration/'))$activeLink='/write/connections';
 if(str_starts_with($writerPath,'/write/edit/'))$activeLink='/write#library';
 if(str_starts_with($writerPath,'/write/client-contact/'))$activeLink='/write/desk';
 if($writerPath==='/write/communication'&&($_GET['tab']??'')==='content')$activeLink='/write/communication?tab=content';
 $activeGroup='Daily work';foreach($navigation as$group=>$links)if(array_key_exists($activeLink,$links))$activeGroup=$group;
-$sectionLinks=$financeWorkspace?['/write/connections#integrations-finance'=>'Finance integrations','/write/wise'=>'Wise','/write/integration/paypal'=>'PayPal','/write/integration/pesapal'=>'PesaPal · cards','/write/monthly-support'=>'Monthly support']:($navigation[$activeGroup]??[]);
+$sectionLinks=$financeWorkspace?['/write/connections#integrations-finance'=>'Finance integrations','/write/wise'=>'Wise','/write/integration/paypal'=>'PayPal','/write/integration/pesapal'=>'PesaPal · cards','/write/monthly-support'=>'Monthly support','/write/contribution-receipts'=>'Support receipts']:($navigation[$activeGroup]??[]);
 $sectionCurrent=$financeWorkspace?$writerPath:$activeLink;
 ?>
 <aside class="workspace-sidebar"><nav id="writer-navigation" class="write-nav workspace-nav" aria-label="Writer navigation">

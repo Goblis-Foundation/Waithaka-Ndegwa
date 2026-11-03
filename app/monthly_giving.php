@@ -52,11 +52,11 @@ function monthly_refresh(string $token): array {
  });
 }
 function monthly_start(array $in): string {
- $choices=monthly_paypal_choices();$amount=payment_decimal($in['amount']??'10');
+ $identity=support_identity($in);$choices=monthly_paypal_choices();$amount=payment_decimal($in['amount']??'10');
  if(!isset($choices[$amount])||empty($in['monthly_ack']))throw new InvalidArgumentException('Choose an available monthly amount and confirm recurring support.');
  if(!journeys_rate_limit('monthly-start',ip_hash(),5,3600))throw new InvalidArgumentException('Please wait before requesting another subscription.');
  $currentPlan=http_json('GET',paypal_base().'/v1/billing/plans/'.$choices[$amount]['id'],['Authorization: Bearer '.paypal_token()]);if(!monthly_paypal_plan_matches($currentPlan,(string)(monthly_paypal_cfg()['product']??''),$amount))throw new RuntimeException('This monthly amount needs re-verification. Please choose another amount or give once.');
- $token=bin2hex(random_bytes(32));$r=['token'=>$token,'id'=>'MONTHLY-'.strtoupper(bin2hex(random_bytes(12))),'amount'=>$amount,'currency'=>'USD','plan'=>$choices[$amount]['id'],'fingerprint'=>paypal_connection_fingerprint(),'status'=>'CREATING','created'=>time(),'checked'=>0];monthly_save($r);
+ $token=bin2hex(random_bytes(32));$r=['identity'=>$identity,'token'=>$token,'id'=>'MONTHLY-'.strtoupper(bin2hex(random_bytes(12))),'amount'=>$amount,'currency'=>'USD','plan'=>$choices[$amount]['id'],'fingerprint'=>paypal_connection_fingerprint(),'status'=>'CREATING','created'=>time(),'checked'=>0];monthly_save($r);
  try{
   $back=url('/contribute/monthly/manage/'.$token);
   $s=http_json('POST',paypal_base().'/v1/billing/subscriptions',['Authorization: Bearer '.paypal_token(),'PayPal-Request-Id: wnsub-'.substr(hash('sha256',$r['id']),0,30),'Prefer: return=representation'],['plan_id'=>$r['plan'],'custom_id'=>$r['id'],'application_context'=>['brand_name'=>'Waithaka Ndegwa','shipping_preference'=>'NO_SHIPPING','user_action'=>'SUBSCRIBE_NOW','return_url'=>$back,'cancel_url'=>$back]]);
@@ -97,7 +97,7 @@ function monthly_dispatch(string $path): bool {
  }
  if($path!=='/contribute/monthly'&&!preg_match('~^/contribute/monthly/manage/([a-f0-9]{64})$~D',$path,$m))return false;
  private_response_headers();journeys_method(['GET','HEAD','POST']);header('Referrer-Policy: no-referrer');$error='';$record=null;
- if(isset($m[1])){try{$record=monthly_record($m[1]);if(is_post()){verify_csrf();if(($_POST['action']??'')==='cancel'){if(empty($_POST['cancel_ack']))throw new InvalidArgumentException('Confirm cancellation of future monthly support.');$record=monthly_cancel($m[1]);}elseif(($_POST['action']??'')==='refresh')$record=monthly_refresh($m[1]);else throw new InvalidArgumentException('Choose an action.');}elseif(($record['checked']??0)<time()-30&&isset($record['subscription']))$record=monthly_refresh($m[1]);}catch(Throwable $e){$error=$e->getMessage();}}
+ if(isset($m[1])){try{$record=monthly_record($m[1]);if(is_post()){verify_csrf();if(($_POST['action']??'')==='cancel'){if(empty($_POST['cancel_ack']))throw new InvalidArgumentException('Confirm cancellation of future monthly support.');$record=monthly_cancel($m[1]);}elseif(($_POST['action']??'')==='refresh')$record=monthly_refresh($m[1]);elseif(($_POST['action']??'')==='receipt'){$record=monthly_refresh($m[1]);redirect(support_receipt_url(support_monthly_receipt($m[1])));}else throw new InvalidArgumentException('Choose an action.');}elseif(($record['checked']??0)<time()-30&&isset($record['subscription']))$record=monthly_refresh($m[1]);}catch(Throwable $e){$error=$e->getMessage();}}
  elseif(is_post()){verify_csrf();try{redirect(monthly_start($_POST));}catch(Throwable $e){$error=$e->getMessage();}}
- render('monthly_giving',['page'=>'giving','privatePage'=>true,'suppressAnalytics'=>true,'error'=>$error,'record'=>$record,'management'=>isset($m[1]),'choices'=>monthly_paypal_choices(),'seo'=>['title'=>'Monthly writing support · Waithaka Ndegwa','description'=>'Choose voluntary monthly support and manage it securely.','canonical'=>url('/contribute/monthly'),'robots'=>'noindex,nofollow']]);return true;
+ render('monthly_giving',['page'=>'giving','privatePage'=>true,'suppressAnalytics'=>true,'error'=>$error,'supportValues'=>$error!==''?support_form_values($_POST):[],'record'=>$record,'management'=>isset($m[1]),'choices'=>monthly_paypal_choices(),'seo'=>['title'=>'Monthly writing support · Waithaka Ndegwa','description'=>'Choose voluntary monthly support and manage it securely.','canonical'=>url('/contribute/monthly'),'robots'=>'noindex,nofollow']]);return true;
 }

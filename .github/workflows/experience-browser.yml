@@ -1,9 +1,9 @@
 name: Experience browser checks
 on:
   push:
-    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/module_audit*', 'tests/accessibility_browser.cjs', 'tests/public_layout_browser.cjs', 'tests/sitewide_css_contract_test.py', 'deploy/aws/public_css_contract.py', 'deploy/aws/verify_public_journeys.py', '.github/workflows/experience-browser.yml']
+    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/module_audit*', 'tests/support_receipts*', 'tests/accessibility_browser.cjs', 'tests/public_layout_browser.cjs', 'tests/sitewide_css_contract_test.py', 'deploy/aws/public_css_contract.py', 'deploy/aws/verify_public_journeys.py', '.github/workflows/experience-browser.yml']
   pull_request:
-    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/module_audit*', 'tests/accessibility_browser.cjs', 'tests/public_layout_browser.cjs', 'tests/sitewide_css_contract_test.py', 'deploy/aws/public_css_contract.py', 'deploy/aws/verify_public_journeys.py', '.github/workflows/experience-browser.yml']
+    paths: ['app/**', 'views/**', 'assets/**', 'tests/experience*', 'tests/module_audit*', 'tests/support_receipts*', 'tests/accessibility_browser.cjs', 'tests/public_layout_browser.cjs', 'tests/sitewide_css_contract_test.py', 'deploy/aws/public_css_contract.py', 'deploy/aws/verify_public_journeys.py', '.github/workflows/experience-browser.yml']
 permissions:
   contents: read
 concurrency:
@@ -54,6 +54,7 @@ jobs:
           node tests/sitewide_browser.cjs
           node tests/outline_navigation_browser.cjs
           node tests/module_audit_browser.cjs
+          node tests/support_receipts_browser.cjs
           node tests/accessibility_browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()

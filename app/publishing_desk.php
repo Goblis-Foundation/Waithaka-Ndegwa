@@ -142,7 +142,7 @@ function desk_quote(string $id,array $in,int $uid): array {
         if($times[0]<time()+86400)throw new InvalidArgumentException('Allow at least 24 hours for payment and approvals before the first slot.');
         if(desk_closed($r,end($times)))throw new InvalidArgumentException('The campaign would run after the opportunity or offer expires.');
         desk_capacity($times,$channels);$oid=bin2hex(random_bytes(16));$seller=['name'=>$cfg['seller'],'email'=>$cfg['billing_email'],'address'=>$cfg['invoice_address'],'tax_note'=>$cfg['tax_note']];
-        unset($quote['hash']);$quote['original_schedule']=$times;$quote['supplier']=$seller;$quote['hash']=hash('sha256',json_encode($quote,JSON_THROW_ON_ERROR));
+        unset($quote['hash']);$quote['original_schedule']=$times;$quote['supplier']=$seller;$quote['payer']=['name'=>$r['client']['business'],'contact'=>$r['client']['name'],'email'=>$r['client']['email']];$quote['hash']=hash('sha256',json_encode($quote,JSON_THROW_ON_ERROR));
         $o=['id'=>$oid,'record'=>$r['id'],'client_email'=>$r['client']['email'],'quote'=>$quote,'times'=>$times,'state'=>'quoted','created'=>time(),'hold_until'=>min(time()+72*3600,$times[0]-3600),'accepted_hash'=>null,'seller'=>$seller,'payments'=>[],'campaign'=>[]];
         comm_put('desk.order.'.$oid,$o);$r['orders'][]=$oid;$r['order']=$oid;$r=desk_store($r,'quote_created',(string)$uid);desk_send_client($r,'Your sponsored publishing quotation');return $o;
     });

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/payment_integrity.php';
+require_once __DIR__.'/contribution_receipts.php';
 require_once __DIR__.'/paypal_notifications.php';
 require_once __DIR__.'/monthly_giving.php';
 require_once __DIR__.'/openai.php';

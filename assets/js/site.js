@@ -48,6 +48,11 @@
 
   const anonymous=document.querySelector('[data-anonymous-toggle]'),identity=document.querySelector('[data-optional-identity]');
   const syncAnonymous=()=>{if(identity&&anonymous)identity.hidden=anonymous.checked};anonymous?.addEventListener('change',syncAnonymous);syncAnonymous();
+  document.querySelectorAll('[data-support-identity]').forEach(root=>{
+    const sync=()=>{const kind=root.querySelector('[name=supporter_type]:checked')?.value||'anonymous';root.querySelectorAll('[data-support-fields]').forEach(panel=>{const active=panel.dataset.supportFields===kind||(panel.dataset.supportFields==='named'&&kind!=='anonymous');panel.hidden=!active;panel.querySelectorAll('input,textarea,select').forEach(el=>{el.disabled=!active;if(el.hasAttribute('data-support-required'))el.required=active;});});
+      const value=name=>root.querySelector('[name='+name+']')?.value.trim()||'';const name=kind==='organisation'?value('organisation_name'):kind==='individual'?['supporter_first','supporter_middle','supporter_last'].map(value).filter(Boolean).join(' '):'Anonymous supporter';root.querySelector('[data-receipt-name]').textContent=name||(kind==='organisation'?'Your company or institution':'Your name');root.querySelector('[data-receipt-purpose]').textContent=value('support_purpose')==='sponsorship'?'Sponsorship of independent writing':'Support for independent writing';};
+    root.addEventListener('input',sync);root.addEventListener('change',sync);sync();
+  });
   const contactType=document.querySelector('[data-card-contact-type]'),paymentContact=document.querySelector('[data-card-payment-contact]');
   const syncCardContact=()=>{if(!contactType||!paymentContact)return;const phone=contactType.value==='phone';paymentContact.type=phone?'tel':'email';paymentContact.placeholder=phone?'+254 7XX XXX XXX':'you@example.com';paymentContact.autocomplete=phone?'tel':'email';};contactType?.addEventListener('change',syncCardContact);syncCardContact();
 
