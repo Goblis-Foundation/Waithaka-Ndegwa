@@ -15,6 +15,10 @@ if($path==='/_health') {
     echo '{"fixture":true}';exit;
 }
 $state['requests'][]=['path'=>$path,'method'=>$method,'fields'=>$_GET['fields']??null];
+if(in_array($state['mode']??'', ['oversized_body','oversized_headers'],true)) {
+ $save();if($state['mode']==='oversized_headers'){for($n=0;$n<20;$n++)header('X-Fixture-'.$n.': '.str_repeat('h',4096));echo '{}';}
+ else{echo '{"private":"';for($n=0;$n<70;$n++)echo str_repeat('x',262144);echo '"}';}exit;
+}
 if($path==='/v2/oauth/token/'&&$method==='POST') {
     if(!str_starts_with((string)($_SERVER['CONTENT_TYPE']??''),'application/x-www-form-urlencoded'))$reply(400,['error'=>'invalid_request']);
     if(($_POST['client_key']??'')!==$state['client_key']||!hash_equals($state['client_secret'],(string)($_POST['client_secret']??''))||isset($_POST['client_id']))$reply(401,['error'=>'invalid_client']);
