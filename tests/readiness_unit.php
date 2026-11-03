@@ -60,4 +60,23 @@ readiness_test(readiness_worker_health(['state'=>'running','heartbeat_at'=>'2026
 readiness_test(readiness_worker_health(['state'=>'failed','heartbeat_at'=>'2026-10-21 11:59:00'],true,$now)['state']==='blocked','Recent failure is not readiness.');
 readiness_test(readiness_worker_health(['state'=>'disabled','heartbeat_at'=>'2026-10-21 11:59:00'],false,$now)['state']==='disabled','Intentionally paused work remains distinct from timer failure.');
 readiness_test(readiness_worker_health(['state'=>'disabled','heartbeat_at'=>'2026-10-21 11:59:00'],true,$now)['state']==='attention','Enabled web config with a paused worker must show disagreement.');
+foreach(['newsletter-confirm:abc'=>'Subscription confirmation','contact:WK-123'=>'Contact notification','contact-receipt:WK-123'=>'Contact acknowledgement','notify:abc'=>'Writer notification','reader-link:abc'=>'Private reader access link']as$key=>$category){
+    $origin=readiness_email_origin(['dedupe_key'=>$key,'to'=>$secret,'html'=>$secret,'subject'=>$secret],hash('sha256',$key));
+    readiness_test($origin['category']===$category,'Known origins must produce their fixed category.');
+    readiness_test(!str_contains(json_encode($origin),$secret)&&!str_contains(json_encode($origin),$key),'Payload values and original keys must never leave the classifier.');
+}
+readiness_test(readiness_email_origin(['dedupe_key'=>'notify:abc'],hash('sha256','different'))['category']==='Message origin could not be verified','Mismatched storage keys must fail closed.');
+readiness_test(readiness_email_origin(['dedupe_key'=>['notify:abc']],str_repeat('a',64))['category']==='Message origin could not be verified','Malformed keys must fail closed.');
+readiness_test(readiness_email_origin(['dedupe_key'=>'new-unsafe:secret'],hash('sha256','new-unsafe:secret'))['category']==='Unrecognized message origin','Unknown categories must never echo their key.');
+function require_auth():void{$GLOBALS['origin_auth']=true;}
+function comm_config():array{return ['owner'=>42];}
+function current_user():array{return ['id'=>$GLOBALS['origin_actor']??9];}
+require dirname(__DIR__).'/app/readiness_routes.php';
+$_SERVER['REQUEST_METHOD']='GET';ob_start();readiness_dispatch('/write/operations/email/1');$denied=ob_get_clean();
+readiness_test(http_response_code()===403&&$denied==='Owner access required.'&&!empty($GLOBALS['origin_auth']),'Other authenticated Writers must be rejected before reading or decrypting an email.');
+$GLOBALS['origin_actor']=42;$_SERVER['REQUEST_METHOD']='POST';ob_start();readiness_dispatch('/write/operations/email/1');ob_end_clean();
+readiness_test(http_response_code()===405,'Origin diagnostics cannot mutate queue records.');
+http_response_code(200);$_SERVER['REQUEST_METHOD']='HEAD';
+readiness_test(readiness_dispatch('/write/operations/email/1')&&http_response_code()===200,'Owner HEAD must not read a payload or render a view.');
+readiness_test(!readiness_dispatch('/write/operations/email/0')&&!readiness_dispatch('/write/operations/email/999999999999999999999999'),'Invalid and overflowing queue IDs are rejected.');
 echo "Readiness unit checks passed: $checks\n";
