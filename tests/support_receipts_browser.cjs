@@ -19,7 +19,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
  const sentFields=await page.locator('[data-contribution-form]').evaluate(f=>Array.from(new FormData(f).keys()));
  for(const key of ['organisation_name','supporter_first','supporter_last','receipt_address','receipt_email'])assert.ok(!sentFields.includes(key));
  await page.getByRole('radio',{name:'Company / Institution',exact:true}).check();
- await page.locator('input[name=method][value=wise]').check();
+ await page.locator('.payment-tabs label').filter({has:page.locator('input[name=method][value=wise]')}).click();assert.equal(await page.locator('input[name=method][value=wise]').isChecked(),true);
  assert.ok(await page.getByRole('button',{name:'Create private bank reference'}).isVisible());
  assert.ok(await page.getByLabel('Company or institution name',{exact:true}).isEnabled());
  for(const file of ['support-contribute','support-monthly','support-receipt-0','support-receipt-1']){
