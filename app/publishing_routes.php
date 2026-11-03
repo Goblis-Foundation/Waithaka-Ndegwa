@@ -157,7 +157,7 @@ function publishing_dispatch(string $path): bool {
         }
         if($path==='/write/publishing/automation'){
             journeys_method(['GET','HEAD','POST']);
-            if(is_post()){comm_put('publishing.weekly',publishing_weekly_input($_POST));flash('success','Weekly publishing preferences saved. Existing delivery times are unchanged.');redirect(url($path));}
+            if(is_post()){if(($_POST['action']??'')==='direct-policy'){publishing_scoped_save($userId,$_POST);flash('success','Direct social delivery policy saved. Only subsequently approved and queued weekly direct jobs can qualify.');}else{comm_put('publishing.weekly',publishing_weekly_input($_POST));flash('success','Weekly publishing preferences saved. Existing delivery times are unchanged.');}redirect(url($path));}
             render_write('publishing_automation',['writeTitle'=>'Publishing schedule','cfg'=>publishing_weekly_config(),'heartbeat'=>comm_get('publishing.weekly.heartbeat'),'overview'=>publishing_weekly_overview()]);return true;
         }
         if($path==='/write/publishing/prepare'&&is_post()){
