@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  await context.route('**/*',route=>route.request().url().startsWith('http://127.0.0.1:8125/')?route.continue():route.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
  const host='http://127.0.0.1:8125/';const layoutFailures=[];
- for(const key of ['article-editor','search-reviews-empty','search-reviews-saved','newsletter-sender','activation','activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-workspace','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','publishing-overview','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
+ for(const key of ['booking-blocks','article-editor','search-reviews-empty','search-reviews-saved','newsletter-sender','activation','activity-week','activity-year','activity-empty','dashboard-populated','dashboard-empty','dashboard-unknown','dashboard-collaborator','login','login-error','program','desk-0','desk-1','impact','register','google-workspace','google-actions','google-new','google-review','google-sync','google-meet','google-meet-select','google-meet-saved','youtube','youtube-playlist','youtube-playlist_item','youtube-caption','youtube-thumbnail','youtube-moderate','youtube-review','youtube-pending','publishing-studio','publishing-overview','community-settings','instagram-reel-new','instagram-reel-confirmed','verify','auth-settings','directory']){
   await page.goto(host+'module-'+key+'.html');
   if(key==='google-workspace')await page.locator('.google-account-identity').evaluate(e=>{e.open=true;});
   if(key.startsWith('activity-'))await page.locator('main details').evaluateAll(items=>items.forEach(e=>{e.open=true;}));
@@ -21,6 +21,11 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   }
  }
  ok(layoutFailures.length===0,'Module layouts: '+JSON.stringify(layoutFailures));
+ await page.goto(host+'module-booking-blocks.html');
+ ok(await page.getByLabel('Starts',{exact:true}).count()===2,'Existing travel block and one blank row render');
+ ok(await page.getByLabel('Block timezone',{exact:true}).first().inputValue()==='Africa/Nairobi','Saved block timezone is preserved');
+ ok(await page.getByLabel('Starts',{exact:true}).first().inputValue()==='2026-11-05T09:00','Saved instant displays in its selected zone');
+ ok((await page.locator('main').innerText()).includes('Existing bookings are not moved or cancelled'),'Owner sees existing-booking limit');
  await page.goto(host+'module-search-reviews-empty.html');
  ok(await page.getByRole('button',{name:'Save review preferences'}).isVisible(),'Scheduled read setup is explicit');
  ok(await page.locator('input[name=consent]').count()===1,'Scheduled reads require their own consent');
