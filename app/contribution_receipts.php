@@ -41,7 +41,7 @@ function support_receipt_state(array $r): array {
     if(!empty($r['voided_at']))return ['paid'=>false,'state'=>'void','at'=>null,'can_verify'=>false];
     if($r['kind']==='monthly'){
         try{$subscription=monthly_record($r['monthly_token']);}catch(InvalidArgumentException){return ['paid'=>false,'state'=>'review','at'=>null,'can_verify'=>false];}
-        $match=($subscription['subscription']??'')===$r['subscription']&&hash_equals((string)($subscription['fingerprint']??''),$r['account_fingerprint'])&&empty($subscription['review']);
+        $match=($r['provider_environment']??'')==='live'&&($subscription['subscription']??'')===$r['subscription']&&hash_equals((string)($subscription['fingerprint']??''),$r['account_fingerprint'])&&empty($subscription['review']);
         return ['paid'=>$match&&($r['state']??'')==='verified','state'=>$match?($r['state']??'pending'):'review','at'=>$r['verified_at']??null,'can_verify'=>$match&&($r['state']??'')==='pending'];
     }
     if($r['kind']==='bank')return ['paid'=>($r['state']??'')==='verified','state'=>$r['state']??'pending','at'=>$r['verified_at']??null,'can_verify'=>($r['state']??'')==='pending'];
@@ -64,7 +64,7 @@ function support_bank_verify(string $id,array $in,int $uid): void {
         $tx=support_text($in['transaction']??'','statement reference',180,true);$amount=payment_decimal($in['verified_amount']??'');
         if(($in['bank_ack']??'')!=='1'||($in['verified_currency']??'')!==$r['currency']||!payment_equal($amount,$r['amount']))throw new InvalidArgumentException('Check the statement, amount and currency against this record.');
         if($r['kind']==='bank'){$account=wise_giving_public()[$r['currency']]??null;if(!$account||!hash_equals($r['account_fingerprint'],hash('sha256',json_encode($account,JSON_THROW_ON_ERROR))))throw new InvalidArgumentException('Receiving details changed. Reconcile the original account before issuing a receipt.');}
-        elseif($r['kind']==='monthly'){if(!hash_equals($r['account_fingerprint'],paypal_connection_fingerprint()))throw new InvalidArgumentException('Review the original PayPal receiving account before issuing this receipt.');}
+        elseif($r['kind']==='monthly'){if(payment_provider_environment('paypal')!=='live'||!hash_equals($r['account_fingerprint'],paypal_connection_fingerprint()))throw new InvalidArgumentException('Review the original PayPal receiving account before issuing this receipt.');}
         else{$short=setting('mpesa.shortcode','');if($short===''||empty($r['receiving_fingerprint'])||!hash_equals($r['receiving_fingerprint'],hash('sha256','mpesa|'.$short)))throw new InvalidArgumentException('Verify the original receiving M-Pesa account first.');$r['account_fingerprint']=hash('sha256','mpesa|'.$short);}
         $key='giving.bank.transaction.'.hash('sha256',$r['account_fingerprint'].'|'.$tx);$pdo=db();$pdo->beginTransaction();
         try{if(comm_get($key))throw new InvalidArgumentException('This statement transaction already has a receipt.');
@@ -75,9 +75,9 @@ function support_bank_verify(string $id,array $in,int $uid): void {
 function support_monthly_receipt(string $token): array {
     return comm_lock('giving.monthly.receipts',static function()use($token){
         $subscription=monthly_record($token);$last=$subscription['last_payment']??[];
-        if(empty($subscription['identity'])||empty($subscription['subscription'])||!empty($subscription['review'])||($last['currency']??'')!==$subscription['currency']||!payment_equal($last['amount']??null,$subscription['amount'])||!is_string($last['time']??null)||!($paidAt=strtotime($last['time']))||$paidAt>time()+60)throw new InvalidArgumentException('A matching reported instalment and saved receipt identity are required first.');
+        if(payment_provider_environment('paypal')!=='live'||empty($subscription['identity'])||empty($subscription['subscription'])||!empty($subscription['review'])||($last['currency']??'')!==$subscription['currency']||!payment_equal($last['amount']??null,$subscription['amount'])||!is_string($last['time']??null)||!($paidAt=strtotime($last['time']))||$paidAt>time()+60)throw new InvalidArgumentException('A matching reported instalment and saved receipt identity are required first.');
         $index='giving.monthly.receipt.'.hash('sha256',$subscription['fingerprint'].'|'.$subscription['subscription'].'|'.$last['time']);$prior=comm_get($index);if($prior)return support_receipt_read($prior['id'],$prior['token']);
-        $pdo=db();$pdo->beginTransaction();try{$r=support_receipt_new($subscription['identity'],['kind'=>'monthly','reference'=>make_reference('MONTHLY'),'method'=>'paypal','amount'=>$last['amount'],'currency'=>$last['currency'],'state'=>'pending','monthly_token'=>$token,'subscription'=>$subscription['subscription'],'account_fingerprint'=>$subscription['fingerprint'],'reported_payment_at'=>$paidAt]);comm_put($index,['id'=>$r['id'],'token'=>$r['token']]);$pdo->commit();return $r;}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+        $pdo=db();$pdo->beginTransaction();try{$r=support_receipt_new($subscription['identity'],['kind'=>'monthly','provider_environment'=>'live','reference'=>make_reference('MONTHLY'),'method'=>'paypal','amount'=>$last['amount'],'currency'=>$last['currency'],'state'=>'pending','monthly_token'=>$token,'subscription'=>$subscription['subscription'],'account_fingerprint'=>$subscription['fingerprint'],'reported_payment_at'=>$paidAt]);comm_put($index,['id'=>$r['id'],'token'=>$r['token']]);$pdo->commit();return $r;}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
     });
 }
 function support_receipt_void(string $id,array $in,int $uid): void {
