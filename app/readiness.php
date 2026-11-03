@@ -123,6 +123,40 @@ function readiness_worker_health(?array $last,bool $enabled,int $now): array {
     if(($last['state']??'')==='disabled')return ['state'=>'attention','summary'=>'Configuration enables work, but the latest invocation was paused','age'=>$age];
     return ['state'=>$age>300?'attention':'ok','summary'=>$age>300?'The worker has not reported in the last five minutes':'The worker completed recently','age'=>$age];
 }
+/** Owner diagnostics return fixed labels only, never the payload or a capability URL. */
+function readiness_email_origin(array $payload,string $storedKey): array {
+    $unknown=['category'=>'Unrecognized message origin','guidance'=>'Keep this message pending until its original purpose and recipient approval are established.'];
+    $key=$payload['dedupe_key']??null;
+    if(!is_string($key)||$key===''||strlen($key)>4096||!hash_equals($storedKey,hash('sha256',$key)))return ['category'=>'Message origin could not be verified','guidance'=>'Review the private queue record; do not retry or release this message.'];
+    $types=[
+        'newsletter-confirm:'=>['Subscription confirmation','Check the subscription record and confirmation expiry. An expired request needs a new subscription request, not release of the old email.'],
+        'newsletter-lifecycle:'=>['Subscription status notification','Review the current subscription preference and original notification before any delivery.'],
+        'newsletter-campaign:'=>['Newsletter edition delivery','Review the approved edition, current consent, suppression and frozen audience.'],
+        'contact-receipt:'=>['Contact acknowledgement','Review the original enquiry and its current contact-email approval.'],
+        'contact:'=>['Contact notification','Review the original enquiry and its current contact-email approval.'],
+        'reader-link:'=>['Private reader access link','Check the linked request and expiry. Do not release an old private access link.'],
+        'publishing:'=>['Publishing reminder','Review the publishing job and whether the task is still outstanding.'],
+        'note-report:'=>['Private report email','Review the original report version and exact recipient approval.'],
+        'desk:'=>['Private client access link','Review the client record and access-link expiry before any delivery.'],
+        'desk.receipt.'=>['Commercial payment receipt','Reconcile the original order and provider-confirmed payment before any delivery.'],
+        'opportunity:'=>['Opportunity review notification','Review the original opportunity version, recipient and current closing date.'],
+        'notify:'=>['Writer notification','Review the original application event and whether the notification is still relevant.'],
+    ];
+    foreach($types as$prefix=>[$category,$guidance])if(str_starts_with($key,$prefix)&&strlen($key)>strlen($prefix))return compact('category','guidance');
+    return $unknown;
+}
+function readiness_email_diagnostic(int $id): ?array {
+    $q=db()->prepare('SELECT id,status,created_at,attempts,dedupe_key,payload FROM email_outbox WHERE id=?');$q->execute([$id]);$row=$q->fetch();if(!$row)return null;
+    $origin=['category'=>'Message origin could not be read','guidance'=>'Keep this message pending and review the private queue record.'];
+    try {
+        if(strlen((string)$row['payload'])>1000000)throw new RuntimeException('Oversized payload.');
+        $payload=json_decode(decrypt_secret($row['payload']),true,32,JSON_THROW_ON_ERROR);
+        if(is_array($payload))$origin=readiness_email_origin($payload,(string)$row['dedupe_key']);
+    }catch(Throwable){/* Never expose decryption errors or message text. */}
+    return ['id'=>(int)$row['id'],'created_at'=>$row['created_at'],'attempts'=>(int)$row['attempts'],
+        'status'=>in_array($row['status'],['pending','sending','sent','ambiguous','failed','suppressed'],true)?$row['status']:'unknown']+$origin;
+}
+
 /** Resolve only relational source IDs; never decrypt an outbox payload to build a link. */
 function readiness_email_sources(array $ids,array $tables): array {
     $ids=array_values(array_unique(array_filter(array_map('intval',$ids),static fn($id)=>$id>0)));
@@ -135,6 +169,10 @@ function readiness_email_sources(array $ids,array $tables): array {
     if(!array_diff(['newsletter_deliveries','newsletter_campaigns'],$tables)) {
         $q=db()->prepare("SELECT d.outbox_id id,d.campaign_id source_id FROM newsletter_deliveries d JOIN newsletter_campaigns c ON c.id=d.campaign_id WHERE d.outbox_id IN ($marks)");
         $q->execute($ids);foreach($q->fetchAll()as$row)$matches[(int)$row['id']][]=['label'=>'Newsletter edition','path'=>'/write/newsletter/'.(int)$row['source_id'].'/report'];
+    }
+    if(!array_diff(['newsletter_tokens','newsletter_subscribers'],$tables)) {
+        $q=db()->prepare("SELECT e.id,t.subscriber_id source_id,CASE WHEN t.used_at IS NOT NULL THEN 'Used subscription confirmation' WHEN t.expires_at IS NULL OR t.expires_at<=UTC_TIMESTAMP() THEN 'Expired subscription confirmation' ELSE 'Subscription confirmation' END source_label FROM email_outbox e JOIN newsletter_tokens t ON e.dedupe_key=SHA2(CONCAT('newsletter-confirm:',t.token_hash),256) JOIN newsletter_subscribers s ON s.id=t.subscriber_id WHERE t.purpose='confirm' AND e.id IN ($marks)");
+        $q->execute($ids);foreach($q->fetchAll()as$row)$matches[(int)$row['id']][]=['label'=>$row['source_label'],'path'=>'/write/newsletter/subscribers/'.(int)$row['source_id']];
     }
     $sources=[];foreach($matches as$id=>$rows)if(count($rows)===1)$sources[$id]=$rows[0];
     return $sources;
