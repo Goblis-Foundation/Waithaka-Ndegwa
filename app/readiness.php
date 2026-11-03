@@ -123,10 +123,27 @@ function readiness_worker_health(?array $last,bool $enabled,int $now): array {
     if(($last['state']??'')==='disabled')return ['state'=>'attention','summary'=>'Configuration enables work, but the latest invocation was paused','age'=>$age];
     return ['state'=>$age>300?'attention':'ok','summary'=>$age>300?'The worker has not reported in the last five minutes':'The worker completed recently','age'=>$age];
 }
+/** Resolve only relational source IDs; never decrypt an outbox payload to build a link. */
+function readiness_email_sources(array $ids,array $tables): array {
+    $ids=array_values(array_unique(array_filter(array_map('intval',$ids),static fn($id)=>$id>0)));
+    if(!$ids)return [];
+    $marks=implode(',',array_fill(0,count($ids),'?'));$matches=[];
+    if(!array_diff(['contact_messages','reader_enquiries','reader_enquiry_trash'],$tables)) {
+        $q=db()->prepare("SELECT e.id,r.id source_id,CASE WHEN e.dedupe_key=SHA2(CONCAT('contact-receipt:',c.reference),256) THEN 'Contact acknowledgement' ELSE 'Contact notification' END source_label FROM email_outbox e JOIN contact_messages c ON (e.dedupe_key=SHA2(CONCAT('contact:',c.reference),256) OR e.dedupe_key=SHA2(CONCAT('contact-receipt:',c.reference),256)) JOIN reader_enquiries r ON r.contact_id=c.id WHERE e.id IN ($marks) AND NOT EXISTS(SELECT 1 FROM reader_enquiry_trash t WHERE t.enquiry_id=r.id)");
+        $q->execute($ids);foreach($q->fetchAll()as$row)$matches[(int)$row['id']][]=['label'=>$row['source_label'],'path'=>'/write/readers/enquiries/'.(int)$row['source_id']];
+    }
+    if(!array_diff(['newsletter_deliveries','newsletter_campaigns'],$tables)) {
+        $q=db()->prepare("SELECT d.outbox_id id,d.campaign_id source_id FROM newsletter_deliveries d JOIN newsletter_campaigns c ON c.id=d.campaign_id WHERE d.outbox_id IN ($marks)");
+        $q->execute($ids);foreach($q->fetchAll()as$row)$matches[(int)$row['id']][]=['label'=>'Newsletter edition','path'=>'/write/newsletter/'.(int)$row['source_id'].'/report'];
+    }
+    $sources=[];foreach($matches as$id=>$rows)if(count($rows)===1)$sources[$id]=$rows[0];
+    return $sources;
+}
+
 function readiness_snapshot(): array {
     $config=(array)app_config();$now=time();$tables=[];$dbReady=false;
     $result=['generated_at'=>gmdate('Y-m-d H:i:s',$now),'checks'=>[],'migrations'=>['pending'=>[],'changed'=>[],'available'=>false],
-        'publishing'=>['available'=>false,'counts'=>[],'overdue'=>0,'stale'=>0,'attention'=>[],'pending_review'=>[]],
+        'publishing'=>['available'=>false,'counts'=>[],'overdue'=>0,'stale'=>0,'attention'=>[]],
         'email'=>['available'=>false,'counts'=>[],'overdue'=>0,'stale'=>0,'attention'=>[],'pending_review'=>[]],
         'connections'=>[],'worker'=>['available'=>false,'latest'=>null,'recent'=>[],'enabled'=>(bool)($config['worker_enabled']??false)]];
     try {
@@ -168,7 +185,9 @@ function readiness_snapshot(): array {
                 $result['email']['overdue']=(int)db()->query("SELECT COUNT(*) FROM email_outbox WHERE status='pending' AND available_at<DATE_SUB(NOW(),INTERVAL 15 MINUTE)")->fetchColumn();
                 $result['email']['stale']=(int)db()->query("SELECT COUNT(*) FROM email_outbox WHERE status='sending' AND (claimed_at IS NULL OR claimed_at<DATE_SUB(NOW(),INTERVAL 15 MINUTE))")->fetchColumn();
                 $pending=db()->query("SELECT id,created_at,available_at,attempts,error_code FROM email_outbox WHERE status='pending' ORDER BY created_at,id LIMIT 20")->fetchAll();
+                $sources=[];try{$sources=readiness_email_sources(array_column($pending,'id'),$tables);}catch(Throwable){/* Source lookup failure must not hide queue status. */}
                 foreach($pending as $row) {
+                    $row['source']=$sources[(int)$row['id']]??null;
                     $row['reason']=match($row['error_code']) {
                         'contact_owner_review'=>'Contact message awaits owner review.',
                         'newsletter_paused'=>'Newsletter campaign is paused.',
