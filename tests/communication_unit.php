@@ -18,3 +18,30 @@ $sw=file_get_contents(dirname(__DIR__).'/sw.js');cc(!str_contains($sw,"caches.pu
 echo "PASS: availability, DST, reservation states, buffers, quiet hours and notification boundaries.\n";
 
 $b=['id'=>'fixture','join'=>''];$e=['extendedProperties'=>['private'=>['websiteBooking'=>'fixture']],'conferenceData'=>['createRequest'=>['status'=>['statusCode'=>'pending']]]];cc(comm_conference_result($b,$e)['conference_status']==='pending','Async conference remains pending');$e['hangoutLink']='https://meet.google.com/abc-defg-hij';cc(comm_conference_result($b,$e)['conference_status']==='ready','Async conference becomes joinable');$e['extendedProperties']['private']['websiteBooking']='different';$failed=false;try{comm_conference_result($b,$e);}catch(RuntimeException){$failed=true;}cc($failed,'Reject a different meeting identity');
+
+// Private travel/time-off intervals use exact instants and the same public slot gate.
+$blocks=booking_blocks_parse([['start'=>'2026-10-26T10:00','end'=>'2026-10-26T11:00','timezone'=>'Africa/Nairobi']]);
+cc($blocks[0]['start']===strtotime('2026-10-26T07:00:00Z'),'Nairobi travel time converted to UTC');
+$travel=['timezone'=>'Africa/Nairobi','days'=>[1,2,3,4,5],'start'=>'09:00','end'=>'12:00','notice'=>1,'horizon'=>30,'buffer'=>15,'daily_limit'=>3,'excluded_dates'=>[],'travel_blocks'=>$blocks];
+$slots=comm_slot_candidates($travel,['minutes'=>30],'2026-10-26',[],[],strtotime('2026-10-25T00:00:00Z'));
+cc($slots===[strtotime('2026-10-26T06:00:00Z'),strtotime('2026-10-26T06:15:00Z'),strtotime('2026-10-26T08:15:00Z'),strtotime('2026-10-26T08:30:00Z')],'Travel blocks remove overlap plus buffer but preserve exact boundary slots');
+cc(booking_blocks_parse([['start'=>'','end'=>'','timezone'=>'']])===[],'Blank rows remove blocks');
+cc(count(booking_blocks_parse([['start'=>'2026-10-26T10:00','end'=>'2026-10-26T11:00','timezone'=>'Africa/Nairobi'],['start'=>'2026-10-26T07:00','end'=>'2026-10-26T08:00','timezone'=>'UTC']]))===1,'Equal instants deduplicate across timezones');
+foreach([
+ ['start'=>'2026-02-30T10:00','end'=>'2026-03-01T11:00','timezone'=>'Africa/Nairobi'],
+ ['start'=>'2026-10-26T10:00','end'=>'2026-10-26T10:00','timezone'=>'Africa/Nairobi'],
+ ['start'=>'2026-10-26T10:00','end'=>'2027-10-26T11:00','timezone'=>'Africa/Nairobi'],
+ ['start'=>'2026-10-26T10:00','end'=>'','timezone'=>'Africa/Nairobi'],
+ ['start'=>[],'end'=>'2026-10-26T11:00','timezone'=>'Africa/Nairobi'],
+ ['start'=>'2026-03-08T02:30','end'=>'2026-03-08T04:00','timezone'=>'America/New_York'],
+ ['start'=>'2026-11-01T01:30','end'=>'2026-11-01T04:00','timezone'=>'America/New_York'],
+]as$r)reject(fn()=>booking_blocks_parse([$r]));
+reject(fn()=>booking_blocks_parse(array_fill(0,21,[])));
+$cross=booking_blocks_parse([['start'=>'2026-10-25T22:00','end'=>'2026-10-26T04:00','timezone'=>'America/New_York']]);
+cc($cross[0]['start']===strtotime('2026-10-26T02:00Z')&&$cross[0]['end']===strtotime('2026-10-26T08:00Z'),'Overnight foreign-zone travel remains exact');
+$wide=booking_blocks_parse([['start'=>'2026-11-01T00:00','end'=>'2026-11-01T04:00','timezone'=>'America/New_York']]);cc($wide[0]['end']-$wide[0]['start']===5*3600,'Unambiguous boundaries cover DST transition');
+cc(booking_blocks_update($travel,[])===$travel,'Old form retains blocks');
+$changed=booking_blocks_update($travel,['travel_blocks_present'=>'1','travel_blocks_revision'=>booking_blocks_revision($travel),'travel_blocks'=>[]]);cc($changed['travel_blocks']===[],'Current version can explicitly clear blocks');
+try{booking_blocks_update($travel,['travel_blocks_present'=>'1','travel_blocks_revision'=>booking_blocks_revision([]),'travel_blocks'=>[]]);throw new LogicException('Stale form erased blocks');}catch(RuntimeException){}
+try{booking_blocks_busy(['travel_blocks'=>[['start'=>'invalid','end'=>1]]]);throw new LogicException('Malformed stored block opened availability');}catch(RuntimeException){}
+echo "PASS: private travel blocks, buffers, timezone/DST validation, stale updates and fail-closed availability.\n";
