@@ -6,7 +6,7 @@ require_once dirname(__DIR__).'/app/curated_opportunities_release.php';
 $n=0;
 function coa(bool $ok,string $message):void{if(!$ok)throw new RuntimeException($message);$GLOBALS['n']++;}
 $catalog=curated_release_catalog();coa(count($catalog['entries'])===16,'Exactly sixteen distinct entries.');
-$seen=[];$noticeCount=0;
+$seen=[];$notices=[];
 foreach($catalog['entries']as$entry){
     coa(!isset($seen[$entry['slug']]),'No duplicate slug.');$seen[$entry['slug']]=true;
     $input=curated_release_input($entry,$catalog['checked_on']);$fields=desk_fields($input,'opportunity',true);
@@ -20,12 +20,12 @@ foreach($catalog['entries']as$entry){
     coa(!preg_match('~<script|<iframe|Research cut-off|PRIVATE-EDITORIAL~i',$body),'No scripts or internal research footers.');
     $dom=new DOMDocument();$old=libxml_use_internal_errors(true);$dom->loadHTML('<?xml encoding="UTF-8"><html><body>'.$body.'</body></html>',LIBXML_NONET);libxml_clear_errors();libxml_use_internal_errors($old);
     foreach($dom->getElementsByTagName('a')as$link){coa(str_starts_with($link->getAttribute('href'),'https://'),'Public HTTPS destinations only.');coa($link->getAttribute('target')==='_blank'&&str_contains($link->getAttribute('rel'),'noopener'),'External links are explicit safe new-tab links.');}
-    if($entry['notice']!==''){$noticeCount++;coa(str_contains(plain_text($body),$entry['notice']),'Verification limitations remain public.');}
+    if($entry['notice']!==''){$notices[]=$entry['slug'];coa(str_contains(plain_text($body),$entry['notice']),'Verification limitations remain public.');}
     $post=['title'=>$entry['title'],'standfirst'=>$entry['summary'],'content_html'=>$body,'category_id'=>1];
     $r=['state'=>'draft','kind'=>'opportunity','fields'=>$fields,'creatives'=>[]];
     coa(in_array('Your approval must match the current article, facts and creatives.',desk_publish_errors($r,$post),true),'Native approval guard is not bypassed.');
 }
-coa($noticeCount===6,'Six entries carry explicit source/terms limitations.');
+$expected=['kac-afrika-growth-stage-sme-debt-financing','icoyaca-fifth-anniversary-microgrants-2026','bridge-in-agriculture-pitch-competition-2026','sustech4africa-uganda-boost-camp-2027','hbs-africa-business-club-new-venture-competition-2027','easteco-coywa-entrepreneurship-training-2026','mo-ibrahim-leadership-fellowship-uneca-2027'];sort($notices);sort($expected);coa($notices===$expected,'Every one of the seven identified source/terms limitations is disclosed.');
 $all=json_encode($catalog,JSON_THROW_ON_ERROR);
 foreach(['SBLC','not cash','paid','US$500','US$100,000','EUR15,000','US$250']as$term)coa(str_contains($all,$term),'Material financing distinction retained: '.$term);
 $hook=(string)file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/37_curated_opportunities.sh');coa(str_contains($hook,'curated_release_import'),'Deployment calls only the reviewed native importer.');
