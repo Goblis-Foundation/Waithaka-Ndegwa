@@ -15,6 +15,26 @@
   </div>
 </section>
 
+
+<?php if(!empty($openingEssay)): ?>
+<section class="section inaugural-section" aria-labelledby="inaugural-essay-heading">
+  <div class="container inaugural-grid">
+    <div class="inaugural-art" data-reveal>
+      <img <?=responsive_image_attrs(featured_image_url($openingEssay['featured_image']),'(max-width: 820px) 100vw, 48vw')?> alt="<?=e($openingEssay['featured_image_alt']?:'Waithaka Ndegwa speaking at an event')?>" loading="lazy" decoding="async">
+      <div class="inaugural-image-note">From Endarasha, Kenya · A journey of purpose</div>
+    </div>
+    <div class="inaugural-copy" data-reveal>
+      <span class="inaugural-kicker">01 / The opening story</span>
+      <h2 id="inaugural-essay-heading"><?=e($openingEssay['title'])?></h2>
+      <p class="inaugural-summary"><?=e($openingEssay['standfirst'])?></p>
+      <p>This is where I begin: with the people and places that shaped me, the lessons of building and starting again, and the belief that meaningful opportunity grows through shared effort.</p>
+      <div class="inaugural-actions"><a class="button button-primary" href="<?=url('/my-thoughts/impact-driven-inspiration')?>">Read my first story →</a><a class="text-link" href="<?=url('/newsletter')?>">Follow the journey →</a></div>
+      <p class="inaugural-byline">By Waithaka Ndegwa <span aria-hidden="true">·</span> Personal Experiences</p>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <?php include __DIR__.'/partials_article_groups.php'; ?>
 <section class="section surface personal-home-story"><div class="container personal-story-grid"><div><span class="eyebrow">The person behind the work</span><h2>Not a straight line.<br>Still moving forward.</h2></div><div class="personal-story-copy"><p>Born in Nyeri Town, raised around Gakanga and Charity in Endarasha, and later supported through Bosco Boys Nairobi by the Salesians of Don Bosco, who paid for my full high school education, I have learned how much a timely opportunity can change a life.</p><p>I have also failed in business. Late salaries, delays in paying suppliers, difficult financing and unpaid invoices have taught me lessons I now bring to a leaner, more deliberate startup journey. I want to walk that journey with my readers as we work towards Goal 2030.</p><a class="text-link" href="<?=url('/about')?>">Read my story, lessons and commitments →</a></div></div></section>
 
@@ -31,7 +51,7 @@
   </div>
 </section>
 <?php else:?>
-<section class="section surface"><div class="container benchmark-focus"><div><span class="eyebrow">Current focus · July 2026–June 2030</span><h2>From capability to opportunity.</h2><p>My commitments connect venture creation through Goblis Group, social enterprise incubation through Ubunifu Institute, and market access through Goblis Foundation’s AfriTrace Link.</p><p>These are ambitions for the period, with progress published as approved source reports become available.</p><a class="text-link" href="#goals-2030">Explore the commitments and reporting method →</a></div><aside><h3>Follow the work as it develops</h3><p>The first long-form thought and startup journey are being prepared. In the meantime, use a practical worksheet to examine your own idea.</p><a class="text-link" href="<?=url('/resources/problem-interview-worksheet')?>">Prepare a problem interview →</a></aside></div></section>
+<section class="section surface"><div class="container benchmark-focus"><div><span class="eyebrow">Current focus · July 2026–June 2030</span><h2>From capability to opportunity.</h2><p>My commitments connect venture creation through Goblis Group, social enterprise incubation through Ubunifu Institute, and market access through Goblis Foundation’s AfriTrace Link.</p><p>These are ambitions for the period, with progress published as approved source reports become available.</p><a class="text-link" href="#goals-2030">Explore the commitments and reporting method →</a></div><aside><h3>Follow the work as it develops</h3><p>New long-form thoughts and startup journeys are being prepared. In the meantime, use a practical worksheet to examine your own idea.</p><a class="text-link" href="<?=url('/resources/problem-interview-worksheet')?>">Prepare a problem interview →</a></aside></div></section>
 <?php endif;?>
 <section class="section experience-explore"><div class="container"><span class="eyebrow">Choose your starting point</span><h2>Find the part of the journey that speaks to you.</h2><div class="experience-grid">
 <?php foreach([['/my-thoughts','Read My Thoughts','Personal reflections on enterprise, work, places and the lessons that change a point of view.'],['/startup-journeys','Follow a venture','Read the experiments, decisions and evidence behind a venture as its journey is published.'],['/start-here','Find your starting point','Explore practical resources, founder stories and ways to take part in the learning.']] as $item):?><a class="experience-card" href="<?=url($item[0])?>"><h3><?=e($item[1])?> →</h3><p><?=e($item[2])?></p></a><?php endforeach;?></div></div></section>
