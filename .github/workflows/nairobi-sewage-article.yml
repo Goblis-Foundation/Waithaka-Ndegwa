@@ -32,7 +32,7 @@ jobs:
           php-version: '8.4'
           extensions: dom, mbstring
           coverage: none
-      - name: Validate approved article and all five image assets
+      - name: Validate approved article and header-only media scope
         run: |
           php -l bin/publish-nairobi-sewage-article.php
           php -l app/nairobi_sewage_article.php
@@ -48,7 +48,7 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/article-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
           "$RUNNER_TEMP/article-browser/node_modules/.bin/playwright" install --with-deps chromium
-      - name: Verify the live article and its original photographs
+      - name: Verify the live article and approved header
         if: github.event_name == 'workflow_run'
         env:
           NODE_PATH: ${{ runner.temp }}/article-browser/node_modules

@@ -1,17 +1,17 @@
-# Nairobi sewage article - prepared, not deployed
+# Nairobi sewage article publication
 
-The owner approved the generated composite as the header and requested all four original Apeldoorn photographs in the body. This branch contains the complete sourced article, metadata, layout, one-time CLI publisher and acceptance checks. No existing article is overwritten; no homepage article promotion, email send or social dispatch is added.
+## Latest owner instruction
 
-## Blocking prerequisite
+Proceed with deployment. The other photographs are optional; use the approved header alone if their transfer does not work. No additional approval is needed to publish this article through the normal protected release flow.
 
-The attempted automated image-transfer workflows were blocked. They were not created and are not part of this release. Do not retry that route or weaken the image checks. The five approved JPEGs must be uploaded using the standard authenticated repository file uploader into `assets/images/articles/nairobi-sewage/` on this branch. Their exact names, sizes, dimensions and SHA-256 hashes are declared in the article JSON manifest. The supplied photo ZIP contains only these five files.
+## Release scope
 
-Until the images are present, dedicated article tests and release packaging intentionally reject the incomplete package. Keep the PR in draft and do not merge. After the normal authorised upload, require all CI checks and review before the standard production deployment, then inspect the live article and browser evidence.
+The complete researched article and twelve chapters are retained under `the-gold-that-is-nairobis-sewage`. The approved header is supplied locally as a checksum-verified 960 x 540 AVIF. The four optional source figure blocks and captions are removed during one-time publication; all other source bytes remain unchanged. The archival HTML is not a public rendered page. No body photo placeholders, external image dependencies or temporary transfer workflow are introduced.
 
-## Editorial review
+The publisher remains fixed to the new slug, transactional, advisory-locked and idempotent. Existing Writer records and later editorial changes are not overwritten. The article stays under My Thoughts, National Infrastructure, Personal Experiences and Ideas & Perspectives. No homepage placement, email send or social dispatch is performed.
 
-The owner supplied the personal visit narrative and location. No visit date is invented. The draft distinguishes aerobic water treatment from anaerobic digestion, uses primary evidence for Apeldoorn's gas-engine electricity/heat generation, corrects struvite chemistry to magnesium ammonium phosphate and omits the unsupported nuclear-cooling assertion. It does not label all Ruai boreholes unsafe without testing, or equate discharged water with potable water. Ukambani irrigation is presented as a feasibility proposition.
+## Validation
 
-The approved header is explicitly labelled an AI-generated composite. The four supplied photos retain their exact original JPEG bytes; the bulk-bag photo does not establish the material's composition or approved use. No separate research-cutoff footer appears in the public article.
+The dedicated checks now validate the owner's header-only scope rather than the superseded five-image requirement. They retain article length, twelve headings, primary evidence links, corrected chemistry, reuse safety qualifications, disclosure and homepage safeguards. They also prove that only the four known optional figure blocks are removed. The production bundle verifies every asset in the revised manifest. Live browser acceptance checks HTTP 200, exact asset checksum and MIME, actual browser image decoding, intrinsic proportions at five widths, metadata, chapter links, source links, archive entry and absence from the homepage.
 
-Sources in the article include Vallei en Veluwe, 2G, EPA, VITO, WHO, NEMA, the Nairobi Rivers Commission, the World Bank, PIDG and the Government Advertising Agency/AWWDA. The Naivasha expansion is described as construction, and the Dandora notice as procurement, not as completed facilities.
+Final deployment status must be established from the production workflow and its live acceptance evidence, not inferred from this document.

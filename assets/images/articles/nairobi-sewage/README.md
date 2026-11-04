@@ -1,7 +1,7 @@
-# Approved article images - upload required before release
+# Approved Nairobi sewage article header
 
-The connected image-transfer workflow was blocked. Do not weaken asset checks or merge with missing images. Use the ordinary authenticated GitHub file uploader to add the five JPEG files from `Waithaka Nairobi sewage article - five approved image assets.zip` into this directory on the publication branch.
+The owner explicitly authorised using the approved header without the other photographs so their transfer does not delay publication. The original four-photo layout remains in the archival article source; the one-time publisher removes only those four known figure blocks and captions. It does not alter the prose, source links or later Writer edits.
 
-The exact filenames, byte sizes, dimensions and SHA-256 hashes are in `app/content/the-gold-that-is-nairobis-sewage.json`. The four body JPEGs are unchanged originals; `header-approved.jpg` is a full-frame JPEG conversion of the approved generated composite. No generated replacements for the original photographs are authorised.
+`header-approved.avif` is the approved generated montage, resized without cropping to 960 x 540 and encoded for fast delivery. Size: 21,547 bytes. SHA-256: `3be5c46f218be5c17724e299c8d15bf15c6b47e9a5b81b1ceb49983895763a13`. Git blob: `c3d13edb46e90e9180757fbba3cf7c81d90c06fe`. The image is identified as an AI-generated editorial composite, not documentary photography or proof of potable-water output.
 
-After upload, require application and dedicated article checks to pass. Then use the normal reviewed merge and production-deployment process, followed by live article acceptance. Do not report this article as live before then.
+No body photograph is required by this release, and no unavailable image URL is emitted in the published article. The source file and checksum are checked before publication and after production deployment.

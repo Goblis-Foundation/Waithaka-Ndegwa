@@ -27,7 +27,7 @@ try{
         $q->execute([(int)$writer,(int)$category,$meta['title'],$slug,$meta['standfirst'],$package['body'],$meta['featured_image'],$meta['featured_image_alt'],$meta['featured_image_caption'],'Cities, Water and Enterprise',$meta['seo_title'],$meta['seo_description'],json_encode($meta['article_groups'],JSON_THROW_ON_ERROR)]);
         $id=(int)$pdo->lastInsertId();assign_tags($id,$meta['tags']);
         $pdo->commit();$created=true;
-        fwrite(STDOUT,"Published the approved Nairobi sewage article with its header and four original photographs.\n");
+        fwrite(STDOUT,"Published the approved Nairobi sewage article with its approved header only.\n");
     }
 }catch(Throwable $error){if($pdo->inTransaction())$pdo->rollBack();throw $error;}
 finally{$pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$lock]);}
