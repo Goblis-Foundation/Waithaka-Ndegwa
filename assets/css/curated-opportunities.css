@@ -1,0 +1,15 @@
+/* Native editorial headers: selectable text, no copied logos or artificial photos. */
+.desk-article.curated-opportunity>header{position:relative;isolation:isolate;padding:clamp(24px,5vw,64px);border-radius:18px;background:linear-gradient(125deg,#103f3e,#173a64);color:#fff;overflow:hidden;margin-bottom:28px}
+.desk-article.curated-opportunity>header:after{content:"";position:absolute;width:360px;height:360px;right:-190px;bottom:-180px;border:45px solid #ffffff0d;border-radius:50%;z-index:-1}
+.desk-article.curated-opportunity>header h1{color:#fff;font-size:clamp(1.9rem,4.5vw,3.6rem);line-height:1.12;max-width:23ch;text-wrap:balance}
+.desk-article.curated-opportunity>header .desk-kicker{color:#bfe9db;letter-spacing:.12em;font-size:.75rem}
+.desk-article.curated-opportunity>header .desk-standfirst{color:#eef5f5;max-width:65ch;line-height:1.7}
+.desk-article.curated-opportunity>header .desk-note{color:#d8e4ea}
+.curated-support{display:inline-block;border-top:1px solid #ffffff40;padding-top:18px;margin-top:16px;font-size:1.05rem;font-weight:650;max-width:56ch}
+.curated-notice{padding:18px 22px;margin:20px 0;border-left:4px solid #b37d24;background:#fff7e6;border-radius:0 10px 10px 0;line-height:1.7;color:#4d3c1f}
+.curated-opportunity .desk-facts{gap:18px}.curated-opportunity .desk-facts dd{line-height:1.65;overflow-wrap:anywhere}
+.curated-opportunity .desk-prose{max-width:76ch;margin-inline:auto;font-size:1.08rem;line-height:1.85}.curated-opportunity .desk-prose h2{margin-top:32px;line-height:1.25}
+.curated-opportunity .desk-prose li{margin-block:8px}.curated-opportunity .desk-prose a{overflow-wrap:anywhere;text-underline-offset:3px}
+.curated-card-band{height:8px;background:linear-gradient(90deg,#167a65,#24558e);border-radius:12px 12px 0 0;margin:-1px -1px 16px}
+@media(max-width:600px){.desk-article.curated-opportunity>header{padding:24px 20px;border-radius:12px}.curated-opportunity .desk-prose{font-size:1rem}.curated-opportunity .desk-facts{grid-template-columns:minmax(0,1fr)}}
+@media print{.desk-article.curated-opportunity>header{background:#fff;color:#111;border:1px solid #aaa}.desk-article.curated-opportunity>header :is(h1,p){color:#111!important}.desk-article.curated-opportunity>header:after{display:none}}
