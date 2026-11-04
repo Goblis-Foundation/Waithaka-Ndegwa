@@ -1,0 +1,41 @@
+name: Homepage and article live acceptance
+on:
+  push:
+    branches: ['verify/home-article-presentation-20261104']
+    paths: ['tests/home_article_live_acceptance.cjs', '.github/workflows/home-article-live-acceptance.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: home-article-live-acceptance
+  cancel-in-progress: true
+jobs:
+  acceptance:
+    name: Read-only article presentation acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install isolated browser
+        run: |
+          npm install --prefix "$RUNNER_TEMP/home-article-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/home-article-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify homepage, full photographs and article archive without submissions
+        env:
+          NODE_PATH: ${{ runner.temp }}/home-article-browser/node_modules
+          EVIDENCE_DIR: ${{ runner.temp }}/home-article-evidence
+        run: node tests/home_article_live_acceptance.cjs
+      - name: Retain exact read-only browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-article-live-evidence
+          path: ${{ runner.temp }}/home-article-evidence
+          if-no-files-found: warn
+          retention-days: 7
