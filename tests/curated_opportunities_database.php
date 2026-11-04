@@ -13,7 +13,7 @@ $n=0;function cda(bool $ok,string $message):void{if(!$ok)throw new RuntimeExcept
 $pdo=db();$pdo->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['Curated fixture editor','curated-fixture@example.com',password_hash(bin2hex(random_bytes(12)),PASSWORD_DEFAULT)]);$uid=(int)$pdo->lastInsertId();$config=comm_config();$config['owner']=$uid;comm_put('config',$config);
 $catalog=curated_release_catalog();$catalog['checked_on']=date('Y-m-d');
 // Future fixture dates keep database tests reusable. Production uses the unchanged source catalog.
-foreach($catalog['entries']as&$entry)if($entry['deadline_iso']!==null)$entry['deadline_iso']=(new DateTimeImmutable('+5 days'))->format('Y-m-d\TH:i:00P');unset($entry);
+foreach($catalog['entries']as&$entry)$entry['deadline_iso']=(new DateTimeImmutable('+5 days'))->format('Y-m-d\TH:i:00P');unset($entry);
 $mailBefore=(int)$pdo->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn();$jobsBefore=(int)$pdo->query('SELECT COUNT(*) FROM publishing_jobs')->fetchColumn();
 $first=curated_release_import($uid,$catalog);cda(count($first)===16,'All entries handled.');
 foreach($first as$i=>$item){

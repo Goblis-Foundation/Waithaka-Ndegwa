@@ -11,7 +11,7 @@ require_once dirname(__DIR__).'/app/publishing_desk.php';require_once dirname(__
 set_error_handler(static function(int $severity,string $message,string $file,int $line):bool{if(error_reporting()&$severity)throw new ErrorException($message,0,$severity,$file,$line);return false;});
 $n=0;function ogd(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);$GLOBALS['n']++;}
 $pdo=db();$pdo->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)')->execute(['Lifecycle fixture editor','lifecycle-fixture@example.com',password_hash(bin2hex(random_bytes(12)),PASSWORD_DEFAULT)]);$uid=(int)$pdo->lastInsertId();$config=comm_config();$config['owner']=$uid;comm_put('config',$config);
-$catalog=curated_release_catalog();$catalog['checked_on']=date('Y-m-d');$guides=opportunity_guides_catalog();foreach($catalog['entries']as&$e)if($e['deadline_iso']!==null)$e['deadline_iso']=(new DateTimeImmutable('+5 days'))->format('Y-m-d\TH:i:00P');unset($e);
+$catalog=curated_release_catalog();$catalog['checked_on']=date('Y-m-d');$guides=opportunity_guides_catalog();foreach($catalog['entries']as&$e)$e['deadline_iso']=(new DateTimeImmutable('+5 days'))->format('Y-m-d\TH:i:00P');unset($e);
 $initial=curated_release_import($uid,$catalog);opportunity_guides_upgrade($uid,$catalog,$guides);ol_install();
 $mail=(int)$pdo->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn();$jobs=(int)$pdo->query('SELECT COUNT(*) FROM publishing_jobs')->fetchColumn();
 $now=time();$r=desk_get($initial[0]['record']);$id=$r['id'];$oldDate=$r['published_at'];$oldSlug=$r['slug'];

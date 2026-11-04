@@ -14,6 +14,7 @@ function ol_boundary(array $r): array {
     $f=$r['fields']??[];
     if(($r['kind']??'')!=='opportunity')return ['at'=>$f['offer_expires']??null,'precision'=>'exact'];
     if(isset($f['deadline']))return ['at'=>(int)$f['deadline'],'precision'=>'exact'];
+    if(($f['deadline_mode']??'')==='rolling')return ['at'=>null,'precision'=>'unknown'];
     $seed=ol_seed($r);$date=(string)(($f['deadline_date']??'')!==''?$f['deadline_date']:($seed['date']??''));
     if($date===''||!ol_date_valid($date))return ['at'=>null,'precision'=>'unknown'];
     // UTC-12 is the last civil timezone to finish a calendar day. This is an

@@ -24,4 +24,5 @@ $r['state']='withdrawn';olt(ol_status($r,$at)==='Withdrawn'&&!ol_archived($r,$at
 $r=['kind'=>'sponsored','state'=>'published','fields'=>['offer_expires'=>$at,'sponsored'=>true]];olt(ol_closed($r,$at)&&!ol_archived($r,$at+100*86400),'Commercial offer expiry unchanged, no automatic commercial archival.');
 $r=['kind'=>'opportunity','slug'=>'brahmam-global-innovation-grand-challenge-2026','state'=>'published','fields'=>['deadline'=>null,'deadline_date'=>'']];olt(ol_boundary($r)['precision']==='date','Legacy date-only source seed applies.');
 $r['fields']['deadline']=$at;olt(ol_boundary($r)['precision']==='exact','Reviewed exact deadline overrides date-only seed.');
+$r['fields']['deadline']=null;$r['fields']['deadline_mode']='rolling';olt(ol_boundary($r)['at']===null,'Explicit rolling status overrides a legacy date seed.');
 echo 'PASS: '.$n." deterministic closure, precision, archive and cadence checks.\n";
