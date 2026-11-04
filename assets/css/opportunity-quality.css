@@ -1,0 +1,8 @@
+.desk-support-callout{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,240px);gap:24px;align-items:center;padding:clamp(22px,4vw,38px);margin:32px 0;border:1px solid #cddfd5;border-radius:16px;background:#f3f8f4;color:#193c32;clear:both;box-sizing:border-box}
+.desk-support-callout h2{font-size:clamp(1.35rem,2.4vw,1.9rem);line-height:1.25;margin:8px 0 16px;color:#193c32;text-wrap:balance}
+.desk-support-callout p{max-width:70ch;line-height:1.7;margin:0 0 14px}.desk-support-callout .desk-kicker{font-size:.73rem;letter-spacing:.08em;color:#426256}
+.desk-support-callout .desk-support-note{font-size:.88rem;color:#405e51;margin-bottom:0}.desk-support-action .desk-button{min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:12px;background:#fff;color:#174b38;border:1px solid #47735e;text-decoration:none;white-space:normal}
+.desk-support-action p{font-size:.83rem;color:#405e51;margin:14px 0 0}.desk-support-callout a:focus-visible{outline:3px solid #276b51;outline-offset:4px}
+.curated-opportunity .desk-prose h2{scroll-margin-top:120px}.curated-opportunity .desk-prose p{margin-bottom:1.25em}.curated-opportunity .desk-prose em{font-style:normal;color:#4f6059}
+@media(max-width:680px){.desk-support-callout{grid-template-columns:minmax(0,1fr);gap:20px}.desk-support-action .desk-button{width:100%;box-sizing:border-box}}
+@media print{.desk-support-callout{display:none}}

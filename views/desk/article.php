@@ -1,6 +1,7 @@
 <?php
 $f=$record['fields'];$sponsored=!empty($f['sponsored']);$closed=desk_closed($record);$destination=$record['kind']==='opportunity'?$f['apply_url']:$f['purchase_url'];
 $curated=($record['curated_release']??'')==='africa-opportunities-20261104';
+$showSupport=$record['kind']==='opportunity'&&!$sponsored&&!$preview;
 $body=sanitize_html((string)$post['content_html']);
 if($sponsored){$dom=new DOMDocument();$old=libxml_use_internal_errors(true);try{$dom->loadHTML('<?xml encoding="UTF-8"><div id="desk-body">'.$body.'</div>',LIBXML_HTML_NOIMPLIED|LIBXML_HTML_NODEFDTD|LIBXML_NONET);foreach($dom->getElementsByTagName('a')as$a)$a->setAttribute('rel','sponsored noopener noreferrer');$node=$dom->getElementById('desk-body');$body='';if($node)foreach($node->childNodes as$child)$body.=$dom->saveHTML($child);}finally{libxml_clear_errors();libxml_use_internal_errors($old);}}
 $banner=$preview?($record['creatives']['landscape']??null):($record['public']['creatives']['landscape']??null);
@@ -10,6 +11,7 @@ elseif(!empty($post['featured_image'])){$seo['image']=featured_image_url($post['
 ?>
 <link rel="stylesheet" href="<?=e(asset('css/publishing-desk.css'))?>">
 <?php if($curated):?><link rel="stylesheet" href="<?=e(asset('css/curated-opportunities.css'))?>"><?php endif;?>
+<?php if($showSupport):?><link rel="stylesheet" href="<?=e(asset('css/opportunity-quality.css'))?>"><?php endif;?>
 <article class="desk desk-public desk-article<?=$curated?' curated-opportunity':''?>">
 <?php if($preview):?><p class="desk-alert">Private preview. This draft is not a publication approval.</p><?php endif;?>
 <header><p class="desk-kicker"><?=e($sponsored?'Sponsored feature — paid promotional content for '.$f['sponsor_name']:(desk_types()[$f['type']]??'Opportunity'))?></p><h1><?=e($post['title'])?></h1><p class="desk-standfirst"><?=e($post['standfirst'])?></p><?php if($curated&&!empty($f['support_label'])):?><p class="curated-support"><?=e($f['support_label'])?></p><?php endif;?><p class="desk-note">Waithaka Ndegwa<?=!empty($record['published_at'])?' · '.e(date('j M Y',$record['published_at'])):''?></p></header>
@@ -21,5 +23,6 @@ elseif(!empty($post['featured_image'])){$seo['image']=featured_image_url($post['
 <footer class="desk-card desk-cta"><h2><?=$record['kind']==='opportunity'?'Check the details with the official provider.':'Speak directly with the provider.'?></h2><p><?=$record['kind']==='opportunity'?'The provider determines eligibility, selection and any changes to this opportunity. Publishing a listing is not a funding or admission guarantee.':'The named client is responsible for its offering, customer orders and fulfilment. This is a paid feature, not an independent product endorsement.'?></p>
 <?php if(!$closed&&$destination):?><a class="desk-button primary" href="<?=e($destination)?>" target="_blank" rel="<?=$sponsored?'sponsored ':''?>noopener noreferrer"><?=e($f['cta_label']?:($record['kind']==='opportunity'?'Apply / register with the official provider':'Enquire with the provider'))?> ↗</a><?php endif;?>
 <?php if($f['source_url']):?><p><a href="<?=e($f['source_url'])?>" target="_blank" rel="<?=$sponsored?'sponsored ':''?>noopener noreferrer">Official source ↗</a><?=!empty($f['verified_on'])?' · Source checked '.e($f['verified_on']):''?></p><?php endif;?><p class="desk-note">www.waithakandegwa.com · @iwaithakaw</p></footer>
+<?php if($showSupport)require __DIR__.'/partials_opportunity_support.php';?>
 <div class="desk-actions"><a href="<?=url('/opportunities')?>">More opportunities</a><a href="<?=url('/partner-stories')?>">Partner stories</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=<?=rawurlencode(url(desk_path($record)))?>" rel="noopener noreferrer" target="_blank">Share on LinkedIn</a></div>
 </article>
