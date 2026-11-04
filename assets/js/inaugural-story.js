@@ -9,13 +9,16 @@
   const adapt = () => { if (details) details.open = !mobile.matches; };
   adapt();
   mobile.addEventListener?.('change', adapt);
-  const headingFor = link => document.getElementById(decodeURIComponent(link.hash.slice(1)));
+  const fromHash = hash => {
+    try { return document.getElementById(decodeURIComponent(hash.slice(1))); }
+    catch (_) { return null; }
+  };
   const mark = id => links.forEach(link => {
     if (link.hash === '#' + id) link.setAttribute('aria-current', 'location');
     else link.removeAttribute('aria-current');
   });
   links.forEach(link => link.addEventListener('click', () => {
-    const target = headingFor(link);
+    const target = fromHash(link.hash);
     if (!target) return;
     if (details && mobile.matches) details.open = false;
     target.tabIndex = -1;
@@ -27,10 +30,8 @@
       const visible = entries.filter(entry => entry.isIntersecting).sort((a,b) => a.boundingClientRect.top - b.boundingClientRect.top);
       if (visible[0]) mark(visible[0].target.id);
     }, {rootMargin: '-110px 0px -50% 0px', threshold: 0});
-    links.forEach(link => { const heading = headingFor(link); if (heading) observer.observe(heading); });
+    links.forEach(link => { const heading = fromHash(link.hash); if (heading) observer.observe(heading); });
   }
-  if (location.hash) {
-    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-    if (target && article.contains(target)) mark(target.id);
-  }
+  const target = fromHash(location.hash);
+  if (target && article.contains(target)) mark(target.id);
 })();

@@ -8,7 +8,7 @@ $storyHeroAlt = 'A moment in conversation, with hands raised while making a poin
 <header class="story-header container" id="story-top">
   <div class="story-header-copy">
     <div class="story-kicker"><a href="<?=e(url('/my-thoughts'))?>">My Thoughts</a><span aria-hidden="true"> / </span><span>A personal journey</span></div>
-    <h1><span class="story-title-main"><?=e($storyTitle[0])?></span><?php if(isset($storyTitle[1])):?><span class="story-title-rest">: <?=e(trim($storyTitle[1]))?></span><?php endif;?></h1>
+    <h1><span class="story-title-main"><?=e($storyTitle[0])?></span><?php if(isset($storyTitle[1])):?><span class="story-title-rest"><span hidden>: </span><?=e(trim($storyTitle[1]))?></span><?php endif;?></h1>
     <?php if(!empty($post['standfirst'])):?><p class="story-standfirst"><?=e($post['standfirst'])?></p><?php endif;?>
     <div class="story-byline"><a href="<?=e(url('/about'))?>" rel="author">Waithaka Ndegwa</a><span><time datetime="<?=e(date('c',strtotime($post['published_at'])))?>"><?=e(format_date($post['published_at']))?></time><span aria-hidden="true"> · </span><?=reading_time($post['content_html'])?> min read</span></div>
     <div class="story-header-actions"><a class="button button-primary" href="#story-beginning">Begin the story <span aria-hidden="true">↓</span></a><a class="story-text-link" href="#story-chapters">Explore the chapters <span aria-hidden="true">↓</span></a></div>

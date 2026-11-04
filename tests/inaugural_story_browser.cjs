@@ -19,6 +19,8 @@ const path=require('node:path');
    await page.setViewportSize({width,height:1000});
    const response=await page.goto(base+articlePath,{waitUntil:'networkidle'});
    assert.equal(response.status(),200,'Article returns HTTP 200');
+   // This isolated test browser declines analytics; it never changes a user's preferences.
+   const consent=page.locator('[data-consent="necessary"]');if(await consent.isVisible())await consent.click();
    assert.equal(await page.locator('[data-inaugural-story]').count(),1,'Actual redesigned article is present');
    assert.equal(await page.locator('main h1').count(),1,'Single article H1');
    assert.equal((await page.locator('main h1').textContent()).replace(/\s+/g,' ').trim(),'Impact-Driven Inspiration: My Journey, Purpose and an Invitation to Connect','Original title preserved');
@@ -48,6 +50,14 @@ const path=require('node:path');
    const position=await page.locator('.story-chapter h2').first().evaluate(el=>el.getBoundingClientRect().top);
    assert.ok(position>=90&&position<200,'Chapter navigation clears the sticky site header');
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'No horizontal overflow');
+   if(live){
+    assert.equal(await page.locator('link[rel=canonical]').getAttribute('href'),base+articlePath,'Canonical is unchanged');
+    assert.ok(await page.locator('.article-footer .share-panel').count(),'Existing sharing controls remain');
+    assert.ok(await page.locator('.article-footer a[href$="/newsletter"]').count(),'Existing email subscription remains');
+    assert.ok(await page.locator('.article-footer a[href$="/contribute"]').count(),'Existing support route remains');
+    const schema=await page.locator('script[type="application/ld+json"]').allTextContents();
+    assert.ok(schema.some(text=>JSON.stringify(JSON.parse(text)).includes('BlogPosting')),'Existing article structured data remains');
+   }
    await page.evaluate(()=>scrollTo(0,0));
    if([390,1440].includes(width)){
     await page.screenshot({path:path.join(out,'article-'+width+'.png'),fullPage:true});
