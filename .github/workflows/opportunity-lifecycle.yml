@@ -1,0 +1,85 @@
+name: Opportunity lifecycle checks
+on:
+  pull_request:
+    paths:
+      - 'app/opportunity_lifecycle*.php'
+      - 'app/content/opportunity-lifecycle-sources.json'
+      - 'app/publishing_desk*.php'
+      - 'views/desk/**'
+      - 'views/write/opportunity_reviews.php'
+      - 'bin/worker.php'
+      - 'tests/opportunity_lifecycle*'
+      - '.github/workflows/opportunity-lifecycle.yml'
+  workflow_run:
+    workflows: ['Deploy production']
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lifecycle:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: wk-ci-fixture-only
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pwk-ci-fixture-only --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, curl, dom, mbstring, fileinfo, openssl, gd, zip
+          tools: composer:v2
+          coverage: none
+      - name: Install locked application dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --no-scripts --no-plugins
+      - name: Validate closure, precision and retention boundaries
+        run: |
+          php -l app/opportunity_lifecycle.php
+          php -l app/opportunity_lifecycle_policy.php
+          bash -n .platform/hooks/postdeploy/39_opportunity_lifecycle.sh
+          php tests/opportunity_lifecycle_test.php
+      - name: Rehearse source checks, reviews and lifecycle transitions
+        env:
+          WK_TEST_ALLOW_WRITES: '1'
+          WK_TEST_DB_HOST: 127.0.0.1
+          WK_TEST_DB_PORT: ${{ job.services.mysql.ports[3306] }}
+          WK_TEST_DB_USER: root
+          WK_TEST_DB_PASS: wk-ci-fixture-only
+        run: php tests/opportunity_lifecycle_database.php
+      - uses: actions/setup-node@v7
+        if: github.event_name == 'workflow_run'
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install isolated read-only browser
+        if: github.event_name == 'workflow_run'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/lifecycle-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/lifecycle-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Check actual public lifecycle views without submissions
+        if: github.event_name == 'workflow_run'
+        env:
+          NODE_PATH: ${{ runner.temp }}/lifecycle-browser/node_modules
+          ARTICLE_EVIDENCE_DIR: ${{ runner.temp }}/opportunity-lifecycle-evidence
+        run: node tests/opportunity_lifecycle_browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'workflow_run'
+        with:
+          name: opportunity-lifecycle-live-evidence
+          path: ${{ runner.temp }}/opportunity-lifecycle-evidence
+          if-no-files-found: ignore
+          retention-days: 14
