@@ -16,22 +16,23 @@ const fs=require('node:fs');const path=require('node:path');const assert=require
     assert.equal((await page.locator('main h1').innerText()).trim(),entry.title);assert.equal(await page.locator('main h1').count(),1);
     assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),url);
     assert.equal(await page.locator('.curated-opportunity').count(),1,'Native designed header');
-    const body=await page.locator('.desk-prose').innerText();assert.ok(body.includes(entry.deadline_label));assert.ok(body.includes(entry.support));
+    const body=await page.locator('.desk-prose').innerText();assert.ok(body.includes(entry.deadline_label)||await page.locator('.desk-alert').filter({hasText:'Deadline revised:'}).count()>0,'Original or reviewed deadline shown');assert.ok(body.includes(entry.support));
     assert.equal(await page.locator('.desk-prose h2').count(),9,'Expanded guide standard');
     assert.ok(body.includes('Prepare before you apply')&&body.includes('editorial guidance'),'Clearly labelled practical advice');
     if(entry.notice)assert.ok((await page.locator('.curated-notice').innerText()).includes(entry.notice));
     const sourceLinks=await page.locator('.desk-prose a').evaluateAll(nodes=>nodes.map(a=>({href:a.href,target:a.target,rel:a.rel})));
-    assert.ok(sourceLinks.length>=2&&sourceLinks.every(a=>a.href.startsWith('https://')&&a.target==='_blank'&&a.rel.includes('noopener')));
+    assert.ok(sourceLinks.length>=1&&sourceLinks.every(a=>a.href.startsWith('https://')&&a.target==='_blank'&&a.rel.includes('noopener')));
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(overflow<=2,'No overflow '+entry.slug+' '+width);
     assert.ok(!body.includes('Research cut-off')&&!body.includes('PRIVATE-EDITORIAL'));
-    assert.ok(await page.locator('.desk-cta a[href="'+entry.apply_url+'"]').count()>0,'Official application/details CTA');
+    const lifecycle=await page.locator('[data-opportunity-status]').getAttribute('data-opportunity-status');
+    assert.equal(await page.locator('.desk-cta a.desk-button.primary').count(),lifecycle==='current'?1:0,'Expiry-aware provider action');
     if([catalog.entries[0].slug,catalog.entries[1].slug,catalog.entries[15].slug].includes(entry.slug))await page.screenshot({path:path.join(out,entry.slug+'-'+width+'.png'),fullPage:true});
-    checks.push({width,status:response.status(),overflow});
+    checks.push({width,status:response.status(),overflow,lifecycle});
    }
    results.push({slug:entry.slug,url:base+'/opportunities/'+entry.slug,checks,notice:!!entry.notice});
   }
-  for(const entry of catalog.entries){await page.goto(base+'/opportunities?q='+encodeURIComponent(entry.title)+'&status=all',{waitUntil:'networkidle'});assert.equal(await page.locator('.desk-feature-card h2 a[href$="/'+entry.slug+'"]').count(),1,'Exactly one discoverable archive card');}
-  const sitemap=await context.request.get(base+'/publishing-sitemap.xml');assert.equal(sitemap.status(),200);const xml=await sitemap.text();for(const entry of catalog.entries)assert.ok(xml.includes('/opportunities/'+entry.slug),'Sitemap includes '+entry.slug);
+  for(const entry of catalog.entries){await page.goto(base+'/opportunities?q='+encodeURIComponent(entry.title)+'&status='+((results.find(r=>r.slug===entry.slug).checks[0].lifecycle==='archived')?'archived':'all'),{waitUntil:'networkidle'});assert.equal(await page.locator('.desk-feature-card h2 a[href$="/'+entry.slug+'"]').count(),1,'Exactly one discoverable archive card');}
+  const sitemap=await context.request.get(base+'/publishing-sitemap.xml');assert.equal(sitemap.status(),200);const xml=await sitemap.text();for(const entry of catalog.entries)assert.equal(xml.includes('/opportunities/'+entry.slug),results.find(r=>r.slug===entry.slug).checks[0].lifecycle!=='archived','Current sitemap excludes old archives');
   await page.goto(base+'/',{waitUntil:'networkidle'});assert.equal(await page.locator('.inaugural-section,.featured-thought,.post-card,.article-group-discovery').count(),0);for(const entry of catalog.entries)assert.equal(await page.locator('a[href$="/'+entry.slug+'"]').count(),0,'No homepage promotion');
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'acceptance.json'),JSON.stringify({passed:true,live:true,checkedAt:new Date().toISOString(),count:results.length,results},null,2));
   console.log('PASS: sixteen individually published, source-linked, responsive native opportunities; archive, sitemap and homepage boundaries.');

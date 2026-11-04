@@ -19,21 +19,21 @@ const {chromium}=require('playwright');const fs=require('node:fs');const path=re
     if(entry.notice)assert.ok((await page.locator('.curated-notice').innerText()).includes(entry.notice),'Existing limitation preserved');
     const support=page.locator('[data-opportunity-support]');assert.equal(await support.count(),1);assert.ok((await support.innerText()).includes('entirely voluntary'));assert.ok((await support.innerText()).includes('not an application fee'));
     assert.equal(await support.locator('a').getAttribute('href'),base+'/contribute');assert.equal(await support.locator('form,input').count(),0);
-    const official=page.locator('.desk-cta a.desk-button.primary');assert.equal(await official.getAttribute('href'),entry.apply_url);assert.equal(await official.getAttribute('target'),'_blank');
+    const lifecycle=await page.locator('[data-opportunity-status]').getAttribute('data-opportunity-status');const official=page.locator('.desk-cta a.desk-button.primary');assert.equal(await official.count(),lifecycle==='current'?1:0);if(lifecycle==='current'){assert.equal(await official.getAttribute('href'),entry.apply_url);assert.equal(await official.getAttribute('target'),'_blank');}
     assert.equal(await page.locator('link[rel=canonical]').getAttribute('href'),url);
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(overflow<=2,'No overflow '+entry.slug+' '+width);
     const order=await page.evaluate(()=>!!(document.querySelector('.desk-cta').compareDocumentPosition(document.querySelector('[data-opportunity-support]'))&Node.DOCUMENT_POSITION_FOLLOWING));assert.ok(order,'Application action precedes optional support');
     if(index===0){await page.locator('.desk-article>header').screenshot({path:path.join(out,'header-'+width+'.png')});await support.screenshot({path:path.join(out,'support-'+width+'.png')});await page.screenshot({path:path.join(out,'article-'+width+'.png'),fullPage:true});}
-    results.push({slug:entry.slug,width,status:response.status(),words,overflow,support:true});
+    results.push({slug:entry.slug,width,status:response.status(),words,overflow,support:true,lifecycle});
    }
    const archive=await page.goto(base+'/opportunities',{waitUntil:'networkidle'});assert.equal(archive.status(),200);assert.equal(await page.locator('[data-opportunity-support]').count(),1);
-   for(const e of data.entries)assert.ok(await page.locator('a[href$="/opportunities/'+e.slug+'"]').count()>0,'Archive retains '+e.slug);
+   for(const e of data.entries){const status=results.find(r=>r.slug===e.slug).lifecycle;await page.goto(base+'/opportunities?q='+encodeURIComponent(e.title)+'&status='+(status==='archived'?'archived':'all'),{waitUntil:'networkidle'});assert.equal(await page.locator('.desk-feature-card h2 a[href$="/'+e.slug+'"]').count(),1,'Listing remains discoverable in the correct lifecycle view');}await page.goto(base+'/opportunities',{waitUntil:'networkidle'});
    await page.locator('[data-opportunity-support]').screenshot({path:path.join(out,'directory-support-'+width+'.png')});
   }
   for(const width of [360,768,1024]){await page.setViewportSize({width,height:1000});await page.goto(base+'/opportunities/'+data.entries[0].slug,{waitUntil:'networkidle'});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));}
   const contribution=await page.goto(base+'/contribute',{waitUntil:'networkidle'});assert.equal(contribution.status(),200,'Existing contribution journey accessible');
   await page.goto(base+'/partner-stories',{waitUntil:'networkidle'});assert.equal(await page.locator('[data-opportunity-support]').count(),0,'No request in paid-feature directory');
-  const sitemap=await context.request.get(base+'/publishing-sitemap.xml');assert.equal(sitemap.status(),200);const xml=await sitemap.text();for(const e of data.entries)assert.ok(xml.includes('/opportunities/'+e.slug));
+  const sitemap=await context.request.get(base+'/publishing-sitemap.xml');assert.equal(sitemap.status(),200);const xml=await sitemap.text();for(const e of data.entries)assert.equal(xml.includes('/opportunities/'+e.slug),results.find(r=>r.slug===e.slug).lifecycle!=='archived');
   await page.goto(base+'/',{waitUntil:'networkidle'});for(const e of data.entries)assert.equal(await page.locator('a[href$="/opportunities/'+e.slug+'"]').count(),0,'No homepage promotion');
   assert.deepEqual(errors,[],'No page JavaScript errors');
   fs.writeFileSync(path.join(out,'acceptance.json'),JSON.stringify({passed:true,live:true,checkedAt:new Date().toISOString(),pages:16,results,providerLinksPreserved:true,voluntarySupport:true,noPaymentSubmitted:true},null,2));

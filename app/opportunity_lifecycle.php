@@ -47,12 +47,12 @@ function ol_analyse(array $r,array $texts): array {
     return ol_ai_parse((string)openai_text($instructions,json_encode(['listing'=>$material,'sources'=>$texts],JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR),1300,true),$texts);
 }
 function ol_scan(array $r,array $m,array $cfg,?callable $fetch=null,?callable $ai=null,?int $now=null): array {
-    $now??=time();$sources=ol_sources($r);$texts=[];$m['last_attempt']=$now;$m['sources']=$sources;$m['next_check']=$now+(ol_interval(ol_public_record($r),$now)??7*86400);
+    $now??=time();$sources=ol_sources($r);$texts=[];$m['last_attempt']=$now;$m['attempted_sources']=$sources;$m['next_check']=$now+(ol_interval(ol_public_record($r),$now)??7*86400);
     try{if(!$sources)throw new RuntimeException('source_missing');foreach($sources as$url)$texts[]=($fetch??'ol_fetch_source')($url);}
     catch(Throwable){$m['fetch_state']='needs_review';$m['failures']=(int)($m['failures']??0)+1;$m['next_check']=$now+max(6*3600,min(86400,$m['next_check']-$now));return $m;}
     $hash=hash('sha256',json_encode($texts,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));$m['fetch_state']='checked';$m['last_success']=$now;$m['failures']=0;
     if(($m['source_hash']??'')!==$hash){$m['previous_hash']=$m['source_hash']??null;$m['source_changed_at']=$now;$m['previous_texts']=$m['texts']??[];}
-    $m['source_hash']=$hash;$m['texts']=$texts;
+    $m['source_hash']=$hash;$m['texts']=$texts;$m['sources']=$sources;
     if(($m['analysis_hash']??'')===$hash&&($m['listing_digest']??'')===($r['public']['digest']??''))return $m;
     if(empty($cfg['ai_enabled'])){$m['ai_state']='disabled';return $m;}
     if(!$ai&&trim((string)setting('openai.api_key',''))===''){$m['ai_state']='not_configured';return $m;}
@@ -79,7 +79,7 @@ function ol_work(?callable $fetch=null,?callable $ai=null,?int $now=null): array
                 if($changed){desk_store($x,'lifecycle_tick','worker');$stats['processed']++;}
             });
             $r=desk_get($r['id']);$public=ol_public_record($r);$interval=ol_interval($public,$now);$m=comm_get('ol.monitor.'.$r['id']);
-            if($interval!==null&&empty($m['paused'])&&($m['next_check']??0)<=$now)$candidates[]=['record'=>$r,'monitor'=>$m,'due'=>$m['next_check']??0];
+            if($interval!==null&&empty($m['paused'])&&min($m['next_check']??0,($m['last_attempt']??0)+$interval)<=$now)$candidates[]=['record'=>$r,'monitor'=>$m,'due'=>$m['next_check']??0];
         }
         usort($candidates,static fn($a,$b)=>$a['due']<=>$b['due']);
         foreach(array_slice($candidates,0,max(1,min(4,(int)$cfg['max_per_run'])))as$c){$m=ol_scan($c['record'],$c['monitor'],$cfg,$fetch,$ai,$now);comm_put('ol.monitor.'.$c['record']['id'],$m);$stats['checked']++;if($m['fetch_state']!=='checked'||!in_array($m['ai_state']??'',['no_change'],true)||!empty($m['proposal']))$stats['attention']++;}
@@ -91,10 +91,10 @@ function ol_apply_deadline(string $id,array $in,int $uid): void {
     opportunity_owner($uid);
     comm_lock('ol.worker',function()use($id,$in,$uid){comm_lock('desk.catalog',function()use($id,$in,$uid){
         $r=desk_get($id);desk_expect($r,$in);$m=comm_get('ol.monitor.'.$id);$public=ol_public_record($r);$seed=ol_seed($r);
-        if($r['kind']!=='opportunity'||!empty($r['fields']['sponsored'])||empty($r['public_visible'])||!in_array($r['state'],['published','closed'],true)||($seed['close_reason']??'')==='manual')throw new InvalidArgumentException('Withdrawn, manually closed, paid or private records cannot be reopened here.');
+        if($r['kind']!=='opportunity'||!empty($r['fields']['sponsored'])||empty($r['public_visible'])||!in_array($r['state'],['published','closed'],true)||($seed['close_reason']??'')==='manual'||!empty($r['closed_reason']))throw new InvalidArgumentException('Withdrawn, manually closed, paid or private records cannot be reopened here.');
         if(($in['source_verified']??'')!=='1'||($in['same_round']??'')!=='1')throw new InvalidArgumentException('Confirm the official source and the same application round.');
         if(!hash_equals((string)($r['public']['digest']??''),(string)($in['public_digest']??'')))throw new InvalidArgumentException('The published listing changed. Reload.');
-        if(!hash_equals((string)($m['source_hash']??''),(string)($in['source_hash']??''))||($m['last_success']??0)<time()-7*86400)throw new InvalidArgumentException('Refresh the official source before approving.');
+        if(($m['fetch_state']??'')!=='checked'||!hash_equals((string)($m['source_hash']??''),(string)($in['source_hash']??''))||($m['last_success']??0)<time()-7*86400)throw new InvalidArgumentException('Refresh the official source before approving.');
         $index=filter_var($in['source_index']??0,FILTER_VALIDATE_INT);$quote=desk_text($in['evidence_quote']??'','Exact source excerpt',1200,true);
         if($index===false||!isset($m['texts'][$index])||mb_strlen($quote)<15||!str_contains($m['texts'][$index],$quote))throw new InvalidArgumentException('The supporting excerpt must match the fetched official source.');
         $note=desk_text($in['note']??'','Revision note',800,true);$zone=desk_text($in['timezone']??'','Deadline timezone',80);
@@ -112,10 +112,13 @@ function ol_apply_deadline(string $id,array $in,int $uid): void {
         if($before!==''&&str_contains($body,e($before)))$body=str_replace(e($before),e($label),$body);
         else $body='<p><strong>Updated deadline:</strong> '.e($label).'</p>'.$body;
         $revision=['at'=>time(),'old_deadline'=>$before,'deadline'=>$label,'source'=>$m['sources'][$index],'note'=>$note];
-        $new['lifecycle']['revisions']=array_slice([...($seed['revisions']??[]),$revision],-20);$new['owner_approval']=null;$new['state']='review';
+        $nextLifecycle=$new['lifecycle'];$nextLifecycle['revisions']=array_slice([...($seed['revisions']??[]),$revision],-20);
+        // Do not expose revised lifecycle metadata before the native public snapshot commits.
+        $new['lifecycle']=$r['lifecycle']??[];$new['owner_approval']=null;$new['state']='review';
         $new=desk_store($new,'verified_deadline_review',(string)$uid);$input=desk_post_input($p);$input['content_html']=$body;writer_save_post($input,$uid,false);
         $new=desk_update($id,['version'=>$new['version'],'action'=>'approve','approval_ack'=>'1'],$uid);$new=desk_update($id,['version'=>$new['version'],'action'=>'publish'],$uid);
         if($new['public']['fields']['deadline_label']!==$label)throw new RuntimeException('Revision readback failed.');
+        $new['lifecycle']=$nextLifecycle;$new=desk_store($new,'verified_deadline_published',(string)$uid);
         unset($m['proposal']);$m['next_check']=0;$m['listing_digest']=$new['public']['digest'];$m['reviewed_at']=time();comm_put('ol.monitor.'.$id,$m);
     });});
 }

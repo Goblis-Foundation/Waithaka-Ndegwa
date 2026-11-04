@@ -21,12 +21,12 @@ $m=ol_scan($r,[],ol_config(),$fetch,$ai,$now);ogd($m['fetch_state']==='checked'&
 ogd(desk_get($id)['public']['fields']['deadline']===$r['public']['fields']['deadline'],'AI cannot mutate deadline.');
 comm_put('ol.monitor.'.$id,$m);
 try{ol_ai_parse('{"changed":true,"kind":"deadline","source_index":0,"quote":"invented unsupported deadline","deadline_date":"2026-12-20"}',[$source]);throw new RuntimeException('Invented evidence accepted.');}catch(RuntimeException $e){ogd($e->getMessage()==='analysis_evidence_missing','Model quote must exist in source.');}
-$failed=ol_scan($r,$m,ol_config(),static function($url){throw new RuntimeException('offline');},$ai,$now+10);ogd($failed['fetch_state']==='needs_review'&&$failed['last_success']===$m['last_success'],'Fetch failure does not erase evidence or fabricate closure.');
+$failed=ol_scan($r,$m,ol_config(),static function($url){throw new RuntimeException('offline');},$ai,$now+10);ogd($failed['fetch_state']==='needs_review'&&$failed['last_success']===$m['last_success']&&$failed['sources']===$m['sources'],'Fetch failure does not erase evidence or fabricate closure.');
 $input=['version'=>$r['version'],'public_digest'=>$r['public']['digest'],'source_hash'=>$m['source_hash'],'source_index'=>0,'evidence_quote'=>$excerpt,'deadline_date'=>$newDate,'deadline_local'=>'','timezone'=>'','source_verified'=>'1','same_round'=>'1','note'=>'Fixture: verified same-round extension.'];
 ol_apply_deadline($id,$input,$uid);$updated=desk_get($id);
 ogd($updated['state']==='published'&&$updated['public']['fields']['deadline_date']===$input['deadline_date'],'Owner-reviewed date-only extension publishes.');
 ogd($updated['published_at']===$oldDate&&$updated['slug']===$oldSlug,'Original date and URL preserved.');
-ogd($updated['owner_approval']===$updated['public']['digest'],'Final-copy native approval intact.');
+ogd($updated['owner_approval']===$updated['public']['digest'],'Final-copy native approval intact.');ogd(count($updated['lifecycle']['revisions'])===1,'Public revision evidence appears only after publication.');
 ogd(str_contains($updated['public']['article']['content_html'],$updated['public']['fields']['deadline_label']),'Body and structured deadline agree.');
 $close=ol_boundary(ol_public_record($updated))['at'];$pub=ol_public_record($updated);
 ogd(ol_closed($pub,$close)&&ol_archived($pub,$close+90*86400),'Updated deadline resets retention.');

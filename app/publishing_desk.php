@@ -244,7 +244,7 @@ function desk_delivery_guard(): void {
 function desk_delivery_gate(callable $work): mixed {return comm_lock('desk.catalog',function()use($work){desk_delivery_guard();return $work();});}
 function desk_work(): void {
     if(app_config('app_env')!=='production')return;
-    comm_lock('desk.catalog',function(){foreach(desk_all()as$r){if($r['state']==='published'&&desk_closed($r)){$r['state']='closed';desk_store($r,'deadline_closed','worker');}
+    comm_lock('desk.catalog',function(){foreach(desk_all()as$r){if($r['state']==='published'&&desk_closed(ol_public_record($r))){$r['state']='closed';desk_store($r,'deadline_closed','worker');}
         if($r['state']==='scheduled'&&($r['publish_at']??PHP_INT_MAX)<=time()){try{desk_publish($r,(int)comm_config()['owner']);}catch(Throwable){$r['state']='review';$r['worker_notice']='Scheduled article needs renewed verification or approval.';desk_store($r,'schedule_blocked','worker');}}}desk_delivery_guard();});
     desk_reconcile_due();commercial_repeat_work();desk_mail_work();
 }
