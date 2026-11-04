@@ -1,0 +1,19 @@
+/* Inaugural article: editorial feature, not an advertisement or unrelated hero. */
+.inaugural-section{padding-block:clamp(48px,7vw,112px);background:linear-gradient(145deg,#f5f7f9 0%,#fff 55%,#f4f8fa 100%);overflow:hidden}
+.inaugural-grid{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);align-items:center;gap:clamp(28px,5vw,90px)}
+.inaugural-art{position:relative;align-self:stretch;min-height:450px;border-radius:clamp(18px,2.1vw,30px);overflow:hidden;background:#122d42;box-shadow:0 24px 72px rgba(5,31,51,.14)}
+.inaugural-art img{display:block;width:100%;height:100%;min-height:450px;object-fit:cover;object-position:center 38%}
+.inaugural-art:after{content:"";position:absolute;inset:58% 0 0;background:linear-gradient(transparent,rgba(5,21,39,.72));pointer-events:none}
+.inaugural-image-note{position:absolute;bottom:22px;left:clamp(22px,3vw,36px);right:22px;color:#fff;font-size:.78rem;letter-spacing:.04em;font-weight:600;z-index:1}
+.inaugural-copy{max-width:670px;padding-block:20px}
+.inaugural-kicker{display:block;font-size:.74rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#17668a;margin-bottom:19px}
+.inaugural-copy h2{font-size:clamp(2.05rem,3.7vw,4.35rem);line-height:1.08;letter-spacing:-.048em;color:#0b2d46;text-wrap:balance;margin:0 0 22px}
+.inaugural-copy p{font-size:clamp(.98rem,1.15vw,1.08rem);line-height:1.82;color:#43576a;max-width:57ch}
+.inaugural-copy .inaugural-summary{font-size:clamp(1.07rem,1.45vw,1.32rem);line-height:1.63;color:#173b55;font-weight:500;margin-bottom:20px}
+.inaugural-actions{display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px;margin-top:32px}
+.inaugural-actions .button{min-height:48px;display:inline-flex;align-items:center}
+.inaugural-actions .text-link{font-weight:700}
+.inaugural-copy .inaugural-byline{border-top:1px solid #d7e1e8;margin-top:32px;padding-top:19px;font-size:.85rem;color:#536b7a}
+@media(max-width:820px){.inaugural-grid{grid-template-columns:1fr;gap:28px}.inaugural-art,.inaugural-art img{min-height:320px;max-height:510px}.inaugural-copy{padding-block:0}.inaugural-copy h2{font-size:clamp(2.05rem,7vw,3.15rem)}}
+@media(max-width:480px){.inaugural-section{padding-block:46px}.inaugural-art,.inaugural-art img{min-height:280px}.inaugural-actions{align-items:stretch}.inaugural-actions .button{justify-content:center;width:100%}}
+@media(prefers-reduced-motion:reduce){.inaugural-section [data-reveal]{transition:none!important}}
