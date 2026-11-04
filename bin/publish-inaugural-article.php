@@ -66,8 +66,9 @@ try {
     ]);
     $postId=(int)$pdo->lastInsertId();
     assign_tags($postId,['Waithaka Ndegwa','Personal Journey','Social Entrepreneurship','Nyeri','Endarasha','Purpose','Community','Innovation','Kenya']);
-    if (function_exists('discovery_sync_public_urls')) discovery_sync_public_urls();
     $pdo->commit();
+    // Discovery reconciliation must run after commit, never inside it.
+    if (function_exists('editorial_sync_discovery')) editorial_sync_discovery();
     fwrite(STDOUT, "Published inaugural article with id {$postId} and canonical slug {$slug}.\n");
 } catch (Throwable $error) {
     if ($pdo->inTransaction()) $pdo->rollBack();
