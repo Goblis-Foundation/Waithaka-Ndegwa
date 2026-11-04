@@ -1,0 +1,34 @@
+name: Import approved EV article header
+on:
+  push:
+    branches: ['asset/approved-ev-header-20261104']
+    paths: ['.github/workflows/import-approved-ev-header.yml']
+permissions:
+  contents: write
+jobs:
+  import:
+    if: github.repository == 'Goblis-Foundation/Waithaka-Ndegwa' && github.actor == 'iwaithakaw'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Import only the approved public illustration with exact checksum
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os, json, base64, hashlib, urllib.request
+          source = 'https://sdmntprindiasocentral.oaiusercontent.com/files/00000000-8514-8211-913e-4b159510812b/raw?se=2026-11-04T14%3A29%3A00Z&sp=r&sv=2026-02-06&sr=b&scid=d438d2c2-669b-5496-89d9-fdc2f04d13b5&skoid=c094fe1e-1dc0-485a-8de0-10ab942be48f&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-04T03%3A52%3A23Z&ske=2026-11-05T03%3A52%3A23Z&sks=b&skv=2026-02-06&sig=F0Tz4cSRLvLqmUZg7Fnoi5A6NtrvZu2%2BRFKzd8tkmls%3D'
+          print('::add-mask::' + source)
+          with urllib.request.urlopen(source, timeout=30) as response:
+              data = response.read(600001)
+          expected = 'b66997140fb97b2431ade46771cab6e97c187d69ab55d71312382824e2fc9a57'
+          assert len(data) == 476100 and hashlib.sha256(data).hexdigest() == expected, 'Approved image mismatch'
+          assert data[:3] == b'\xff\xd8\xff', 'Expected JPEG'
+          path = 'assets/images/articles/ev-biofuels-approved-20261104.jpg'
+          api = 'https://api.github.com/repos/Goblis-Foundation/Waithaka-Ndegwa/contents/' + path
+          payload = {'message':'Add approved EV and biofuels editorial illustration', 'branch':'asset/approved-ev-header-20261104', 'content':base64.b64encode(data).decode('ascii')}
+          request = urllib.request.Request(api, data=json.dumps(payload).encode(), method='PUT', headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'})
+          with urllib.request.urlopen(request, timeout=30) as response:
+              result = json.load(response)
+          print(json.dumps({'path':path,'sha256':expected,'bytes':len(data),'blob':result['content']['sha'],'commit':result['commit']['sha']}))
+          PY
