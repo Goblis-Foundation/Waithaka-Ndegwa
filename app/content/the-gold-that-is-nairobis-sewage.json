@@ -1,0 +1,20 @@
+{
+  "slug": "the-gold-that-is-nairobis-sewage",
+  "title": "The Gold That Is Nairobi's Sewage",
+  "standfirst": "A visit to Apeldoorn changed how I see urban wastewater. For Kenyan and African cities, the opportunity is cleaner rivers, useful energy, recovered nutrients and water safely reused.",
+  "seo_title": "The Gold That Is Nairobi's Sewage | Waithaka Ndegwa",
+  "seo_description": "Lessons from an Apeldoorn sewage plant for Nairobi and African cities: biogas, nutrient recovery, safe water reuse and accountable sanitation.",
+  "category_slug": "national-infrastructure",
+  "article_groups": ["personal-experiences", "ideas-perspectives"],
+  "tags": ["Wastewater", "Sanitation", "Circular Economy", "Nairobi", "African Cities", "Resource Recovery", "Water Reuse"],
+  "featured_image": "/assets/images/articles/nairobi-sewage/header-approved.jpg",
+  "featured_image_alt": "Illustrative composite of wastewater treatment, resource recovery and a Nairobi skyline.",
+  "featured_image_caption": "AI-generated editorial composite inspired by my Apeldoorn visit; not a photograph of an existing Nairobi plant or evidence that treated water is safe to drink.",
+  "assets": [
+    {"path":"/assets/images/articles/nairobi-sewage/apeldoorn-equipment.jpg","sha256":"156e910bfd390362e19e77512b7754d6b628968e3f88eec79ff698a6dc289715","bytes":76638,"width":540,"height":960},
+    {"path":"/assets/images/articles/nairobi-sewage/apeldoorn-material.jpg","sha256":"2bb5fa57e9a06e7a6bb39e6ef2529f3bab87c23aa320ff9bb974e981c051d4b3","bytes":65882,"width":540,"height":960},
+    {"path":"/assets/images/articles/nairobi-sewage/apeldoorn-process-board.jpg","sha256":"da3e0cfabe0886d6bff87424fc83df2553460db0a6c3f1b89a9d32c2850d170d","bytes":80447,"width":960,"height":540},
+    {"path":"/assets/images/articles/nairobi-sewage/apeldoorn-visit.jpg","sha256":"40e65c7f12ae5459e39b8c08129c4bb16ff42cb66d828b01655f0e92449fed7a","bytes":94792,"width":540,"height":960},
+    {"path":"/assets/images/articles/nairobi-sewage/header-approved.jpg","sha256":"768d6ce0379f668976e2a4a28cc9dc96c643260376738c492a706d01e336de90","bytes":561256,"width":1672,"height":941}
+  ]
+}

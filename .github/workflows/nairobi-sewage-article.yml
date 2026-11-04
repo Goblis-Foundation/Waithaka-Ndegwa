@@ -1,0 +1,63 @@
+name: Nairobi sewage article checks
+on:
+  pull_request:
+    paths:
+      - 'app/content/the-gold-that-is-nairobis-sewage.*'
+      - 'app/nairobi_sewage_article.php'
+      - 'assets/images/articles/nairobi-sewage/**'
+      - 'assets/css/nairobi-sewage-article.css'
+      - 'bin/publish-nairobi-sewage-article.php'
+      - 'bin/build-release.py'
+      - 'views/post.php'
+      - 'tests/nairobi_sewage_article*'
+      - '.platform/hooks/postdeploy/36_nairobi_sewage_article.sh'
+      - '.github/workflows/nairobi-sewage-article.yml'
+  workflow_run:
+    workflows: ['Deploy production']
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  article:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, mbstring
+          coverage: none
+      - name: Validate approved article and all five image assets
+        run: |
+          php -l bin/publish-nairobi-sewage-article.php
+          php -l app/nairobi_sewage_article.php
+          bash -n .platform/hooks/postdeploy/36_nairobi_sewage_article.sh
+          php tests/nairobi_sewage_article_test.php
+      - uses: actions/setup-node@v7
+        if: github.event_name == 'workflow_run'
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install isolated live browser
+        if: github.event_name == 'workflow_run'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/article-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/article-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify the live article and its original photographs
+        if: github.event_name == 'workflow_run'
+        env:
+          NODE_PATH: ${{ runner.temp }}/article-browser/node_modules
+          ARTICLE_EVIDENCE_DIR: ${{ runner.temp }}/nairobi-sewage-evidence
+        run: node tests/nairobi_sewage_article_browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'workflow_run'
+        with:
+          name: nairobi-sewage-live-evidence
+          path: ${{ runner.temp }}/nairobi-sewage-evidence
+          if-no-files-found: ignore
+          retention-days: 14
