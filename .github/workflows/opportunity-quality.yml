@@ -1,0 +1,84 @@
+name: Opportunity content quality
+on:
+  pull_request:
+    paths:
+      - 'app/opportunity_guides*.php'
+      - 'app/content/opportunity-guides-*.json'
+      - 'views/desk/**'
+      - 'assets/css/opportunity-quality.css'
+      - '.platform/hooks/postdeploy/38_opportunity_guides.sh'
+      - 'tests/opportunity_guides*'
+      - '.github/workflows/opportunity-quality.yml'
+  workflow_run:
+    workflows: ['Deploy production']
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quality:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: wk-ci-fixture-only
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pwk-ci-fixture-only --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, curl, dom, mbstring, fileinfo, openssl, gd, zip
+          tools: composer:v2
+          coverage: none
+      - name: Install locked application dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --no-scripts --no-plugins
+      - name: Validate content and support boundaries
+        run: |
+          php -l app/opportunity_guides.php
+          php -l app/opportunity_guides_release.php
+          bash -n .platform/hooks/postdeploy/38_opportunity_guides.sh
+          php tests/opportunity_guides_test.php
+      - name: Rehearse all sixteen updates in an isolated database
+        env:
+          WK_TEST_ALLOW_WRITES: '1'
+          WK_TEST_DB_HOST: 127.0.0.1
+          WK_TEST_DB_PORT: ${{ job.services.mysql.ports[3306] }}
+          WK_TEST_DB_USER: root
+          WK_TEST_DB_PASS: wk-ci-fixture-only
+        run: php tests/opportunity_guides_database.php
+      - uses: actions/setup-node@v7
+        if: github.event_name == 'workflow_run'
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install isolated read-only browser
+        if: github.event_name == 'workflow_run'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/guide-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/guide-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Check the sixteen actual public pages and support links
+        if: github.event_name == 'workflow_run'
+        env:
+          NODE_PATH: ${{ runner.temp }}/guide-browser/node_modules
+          ARTICLE_EVIDENCE_DIR: ${{ runner.temp }}/opportunity-guides-evidence
+        run: node tests/opportunity_guides_browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'workflow_run'
+        with:
+          name: opportunity-guides-live-evidence
+          path: ${{ runner.temp }}/opportunity-guides-evidence
+          if-no-files-found: ignore
+          retention-days: 14
