@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/opportunity_lifecycle_policy.php';
 /** Pure contracts for curated opportunities and commercial publishing. No provider calls. */
 function desk_types(): array {
     return ['grant'=>'Grants and funding','accelerator'=>'Accelerators and incubators','fellowship'=>'Fellowships','scholarship'=>'Scholarships','conference'=>'Conferences and events','training'=>'Training','competition'=>'Competitions','call'=>'Calls for proposals'];
@@ -52,6 +53,8 @@ function desk_fields(array $in,string $kind,bool $complete=false): array {
     if(!in_array($f['timezone'],DateTimeZone::listIdentifiers(),true))throw new InvalidArgumentException('Choose a valid timezone.');
     foreach(['opens_at','deadline','event_start','event_end','offer_expires']as$key)$f[$key]=desk_date($in[$key]??'',$f['timezone'],$key,$complete&&$kind==='opportunity'&&$key==='deadline'&&$f['deadline_mode']==='fixed');
     if($f['deadline_mode']!=='fixed')$f['deadline']=null;
+    $f['deadline_date']=desk_text($in['deadline_date']??'','Closing date (date only)',10);
+    if($f['deadline_date']!==''&&!ol_date_valid($f['deadline_date']))throw new InvalidArgumentException('Enter a valid date-only deadline.');
     foreach([['opens_at','deadline'],['event_start','event_end']]as[$a,$b])if($f[$a]!==null&&$f[$b]!==null&&$f[$a]>$f[$b])throw new InvalidArgumentException($b.' cannot be before '.$a.'.');
     $f['currency']=strtoupper(desk_text($in['currency']??'KES','Currency',3,true));if(!preg_match('/^[A-Z]{3}$/D',$f['currency']))throw new InvalidArgumentException('Use a three-letter currency code.');
     $f['amount_min']=desk_money($in['amount_min']??'',true);$f['amount_max']=desk_money($in['amount_max']??'',true);
@@ -69,9 +72,7 @@ function desk_edit_fields(array $fields): array {
     foreach(['amount_min','amount_max']as$key)$out[$key]=isset($fields[$key])?desk_decimal((int)$fields[$key]):'';return $out;
 }
 function desk_closed(array $r,?int $now=null): bool {
-    $now??=time();if(in_array($r['state']??'',['closed','withdrawn'],true))return true;
-    $f=$r['fields']??[];$deadline=($r['kind']??'')==='opportunity'?($f['deadline']??null):($f['offer_expires']??null);
-    return $deadline!==null&&$deadline<=$now;
+    return ol_closed($r,$now);
 }
 function desk_digest(array $r,array $post): string {
     $fields=$r['fields']??[];ksort($fields);$material=[];

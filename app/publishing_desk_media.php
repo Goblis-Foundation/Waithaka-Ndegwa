@@ -51,7 +51,7 @@ function desk_campaign_report(array $r): array {
 }
 function desk_sitemap(): array {
     $out=[['loc'=>url('/opportunities')],['loc'=>url('/partner-stories')],['loc'=>url('/promote')]];
-    foreach(desk_all()as$r)if(!empty($r['public'])&&!empty($r['public_visible'])&&$r['state']!=='withdrawn')$out[]=['loc'=>url(desk_path($r)),'lastmod'=>gmdate('c',$r['public']['at'])];return $out;
+    foreach(desk_all()as$r)if(!empty($r['public'])&&!empty($r['public_visible'])&&$r['state']!=='withdrawn'&&!ol_archived(ol_public_record($r)))$out[]=['loc'=>url(desk_path($r)),'lastmod'=>gmdate('c',$r['public']['at'])];return $out;
 }
 /** A separate, explicit image-generation action. Existing portraits and logos are never inputs. */
 function desk_generate_background(string $id,array $in,int $uid): void {

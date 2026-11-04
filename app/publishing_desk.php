@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/publishing_desk_policy.php';
+require_once __DIR__.'/opportunity_lifecycle.php';
 require_once __DIR__.'/publishing_desk_lifecycle.php';
 require_once __DIR__.'/publishing_desk_billing.php';
 require_once __DIR__.'/publishing_desk_routes.php';
@@ -101,7 +102,7 @@ function desk_update(string $id,array $in,int $uid): array {
             desk_assert_publish($r);
             if($action==='schedule'){$at=desk_date($in['publish_at']??'','Africa/Nairobi','publication time',true);if($at<=time()+60)throw new InvalidArgumentException('Choose a future publication time.');if(desk_closed($r,$at))throw new InvalidArgumentException('Publication would be after the deadline.');$r['publish_at']=$at;$r['state']='scheduled';}
             else return desk_publish($r,$uid);
-        }elseif(in_array($action,['close','withdraw'],true)){$r['state']=$action==='close'?'closed':'withdrawn';$r['closed_reason']=desk_text($in['note']??'Closed by the editor.','Reason',1000,true);if($action==='withdraw'){$r['public_visible']=false;db()->prepare("UPDATE posts SET status='draft' WHERE id=?")->execute([$r['post_id']]);}}
+        }elseif(in_array($action,['close','withdraw'],true)){$r['state']=$action==='close'?'closed':'withdrawn';$r['lifecycle']=ol_seed($r);$r['lifecycle']['closed_at']=time();$r['lifecycle']['close_reason']='manual';$r['closed_reason']=desk_text($in['note']??'Closed by the editor.','Reason',1000,true);if($action==='withdraw'){$r['public_visible']=false;db()->prepare("UPDATE posts SET status='draft' WHERE id=?")->execute([$r['post_id']]);}}
         elseif($action==='client_link'){desk_send_client($r,'Your private publishing workspace');return $r;}
         else throw new InvalidArgumentException('Choose a supported action.');
         return desk_store($r,$action,(string)$uid);
@@ -191,8 +192,8 @@ function desk_schedule_campaign(string $oid,int $uid): int {
         $n=0;foreach($prepared as[$i,$round,$p]){$times=[];foreach($o['quote']['channels']as$c)$times[$c['slug']]=gmdate('Y-m-d H:i:s',$round['at']);$n+=publishing_schedule((int)$p['id'],(int)$p['approved_revision_id'],date('Y-m-d\TH:i',$round['at']),$uid,$times,true);$o['campaign'][$i]['state']='scheduled';comm_put('desk.order.'.$oid,$o);}return $n;
     });
 }
-function desk_public_list(string $kind): array {
-    $out=[];foreach(desk_all()as$r)if($r['kind']===$kind&&!empty($r['public'])&&!empty($r['public_visible'])&&$r['state']!=='withdrawn')$out[]=$r;
+function desk_public_list(string $kind,bool $includeArchived=false): array {
+    $out=[];foreach(desk_all()as$r)if($r['kind']===$kind&&!empty($r['public'])&&!empty($r['public_visible'])&&$r['state']!=='withdrawn'&&($includeArchived||!ol_archived(ol_public_record($r))))$out[]=$r;
     usort($out,static fn($a,$b)=>($b['published_at']??0)<=>($a['published_at']??0));return $out;
 }
 function desk_check_variant(array $r,array $v,string $slug): void {

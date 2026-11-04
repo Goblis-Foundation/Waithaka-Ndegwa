@@ -27,6 +27,7 @@ function discovery_public_documents(): Generator {
         WHERE p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=?";
     $st=db()->prepare($sql);$st->execute([$now]);
     while($row=$st->fetch()) {
+        if(function_exists('desk_post_record')){$deskRecord=desk_post_record((int)$row['id']);if($deskRecord&&ol_archived(ol_public_record($deskRecord)))continue;}
         $path='/my-thoughts/'.$row['slug'];
         if(!discovery_public_path($path))continue;
         $extras=function_exists('editorial_public_post')?editorial_public_post((int)$row['id']):['evidence'=>[],'updates'=>[]];
