@@ -1,0 +1,57 @@
+name: EV biofuels article checks
+on:
+  pull_request:
+    paths:
+      - 'app/content/electric-vehicles-biofuels-africa.*'
+      - 'bin/publish-ev-biofuels-article.php'
+      - '.platform/hooks/postdeploy/35_ev_biofuels_article.sh'
+      - 'tests/ev_biofuels_article*'
+      - '.github/workflows/ev-biofuels-article.yml'
+  workflow_run:
+    workflows: ['Deploy production']
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  article:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, mbstring
+          coverage: none
+      - name: Validate reviewed article, source links and single-publication contract
+        run: |
+          php -l bin/publish-ev-biofuels-article.php
+          bash -n .platform/hooks/postdeploy/35_ev_biofuels_article.sh
+          php tests/ev_biofuels_article_test.php
+      - uses: actions/setup-node@v7
+        if: github.event_name == 'workflow_run'
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install isolated live browser
+        if: github.event_name == 'workflow_run'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/article-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/article-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify published article and article-free homepage without submissions
+        if: github.event_name == 'workflow_run'
+        env:
+          NODE_PATH: ${{ runner.temp }}/article-browser/node_modules
+          ARTICLE_EVIDENCE_DIR: ${{ runner.temp }}/ev-biofuels-evidence
+        run: node tests/ev_biofuels_article_browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'workflow_run'
+        with:
+          name: ev-biofuels-live-evidence
+          path: ${{ runner.temp }}/ev-biofuels-evidence
+          if-no-files-found: ignore
+          retention-days: 14
