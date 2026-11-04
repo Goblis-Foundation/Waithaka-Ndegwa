@@ -18,6 +18,7 @@ function opportunity_guides_upgrade(int $uid,?array $catalog=null,?array $guides
             if(($marker['stage']??'')==='complete')return ['state'=>'preserved','record'=>$r['id']];
             if(!empty($r['fields']['sponsored'])||($r['curated_release']??'')!=='africa-opportunities-20261104'||$r['slug']!==$slug)throw new RuntimeException('Unexpected publication ownership.');
             $post=writer_post_by_id((int)$r['post_id']);if(!$post)throw new RuntimeException('Source article missing.');
+            if(!writer_is_public($post))return ['state'=>'closed_or_private_preserved','record'=>$r['id']];
             $baseline=curated_release_body($entry);$publicBody=(string)($r['public']['article']['content_html']??'');
             if($publicBody!==$baseline)return ['state'=>'editorial_changes_preserved','record'=>$r['id']];
             // Replacing only content_html in the comparison also detects private title/media/field changes.
@@ -25,6 +26,9 @@ function opportunity_guides_upgrade(int $uid,?array $catalog=null,?array $guides
             if(!hash_equals((string)$r['public']['digest'],desk_digest($r,$baselinePost)))return ['state'=>'editorial_changes_preserved','record'=>$r['id']];
             $current=(string)$post['content_html'];
             $resume=($marker['stage']??'')==='draft'&&hash_equals((string)($marker['target']??''),hash('sha256',$target))&&($marker['draft_version']??-1)===(int)$post['_draft_version']&&$current===$target;
+            $draftQuery=db()->prepare('SELECT payload FROM post_drafts WHERE post_id=?');$draftQuery->execute([(int)$r['post_id']]);$draft=$draftQuery->fetch(PDO::FETCH_ASSOC);
+            // Even a metadata-only private draft is the editor's work, not ours to publish or replace.
+            if(($draft['payload']??null)!==null&&!$resume)return ['state'=>'private_draft_preserved','record'=>$r['id']];
             if($current!==$baseline&&!$resume)return ['state'=>'private_draft_preserved','record'=>$r['id']];
             if(!$resume){
                 $input=desk_post_input($post);$input['content_html']=$target;
