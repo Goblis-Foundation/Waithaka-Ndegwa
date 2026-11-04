@@ -17,6 +17,6 @@ The post-deploy hook runs only after the existing migrations. The CLI publisher 
 
 If the owner is ambiguous or the category is missing, the hook fails rather than attribute the post to a random person. It never creates an alternate user, enables social channels or sends emails automatically.
 
-The homepage features the article independently of the Latest Thought section, so it stays the introductory story as later articles arrive. If the owner archives it, the homepage feature is automatically withheld.
+Editorial policy (4 November 2026): no articles appear on the homepage, including the inaugural story, latest thought, selected articles or article-group cards. My Thoughts and the article's canonical page remain available.
 
-Deployment acceptance should verify the article URL is HTTP 200, contains the introductory title and subscribe/contact links, has a canonical BlogPosting schema, and appears in the home feature, Personal Experiences and My Thoughts archives. Verify the post row is unique across repeat deployment. Treat a successful CI run as source validation, not production proof. Production URL and owner DB publication must be verified after release.
+Deployment acceptance should verify the article URL is HTTP 200, contains the introductory title and subscribe/contact links, has a canonical BlogPosting schema, and appears in Personal Experiences and My Thoughts archives, not the homepage. Verify the post row is unique across repeat deployment. Treat a successful CI run as source validation, not production proof. Production URL and owner DB publication must be verified after release.
