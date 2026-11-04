@@ -37,11 +37,6 @@ function person_schema(): array {
 }
 
 if ($path === '/') {
-    $latest = latest_posts(7);
-    $selected = selected_posts(3);
-    $openingEssay = post_by_slug('impact-driven-inspiration');
-    $sql = 'SELECT c.*, SUM(CASE WHEN '.published_where().' THEN 1 ELSE 0 END) post_count FROM categories c LEFT JOIN posts p ON p.category_id=c.id GROUP BY c.id ORDER BY c.sort_order,c.name';
-    $topicStats = db()->query($sql)->fetchAll();
     $schema = [person_schema(),[
         '@context'=>'https://schema.org','@type'=>'WebSite','@id'=>url('/#website'),'name'=>'Waithaka Ndegwa','url'=>url('/'),
         'description'=>seo_defaults()['description'],
@@ -50,7 +45,7 @@ if ($path === '/') {
         'inLanguage'=>'en',
         'audience'=>['@type'=>'Audience','audienceType'=>'Readers worldwide interested in African development, social entrepreneurship, agribusiness, infrastructure, innovation and travel']
     ]];
-    render('home',['page'=>'home','latest'=>$latest,'selected'=>$selected,'openingEssay'=>$openingEssay,'topicStats'=>$topicStats,'schema'=>$schema,'seo'=>['title'=>'Waithaka Ndegwa · Social Entrepreneur, Innovation Strategist & Ecosystem Builder','description'=>'Social entrepreneur, innovation strategist and ecosystem builder advancing sustainable enterprises, inclusive growth and practical solutions across Africa.','canonical'=>url('/')]]);
+    render('home',['page'=>'home','schema'=>$schema,'seo'=>['title'=>'Waithaka Ndegwa · Social Entrepreneur, Innovation Strategist & Ecosystem Builder','description'=>'Social entrepreneur, innovation strategist and ecosystem builder advancing sustainable enterprises, inclusive growth and practical solutions across Africa.','canonical'=>url('/')]]);
     exit;
 }
 
