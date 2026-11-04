@@ -3,9 +3,11 @@ on:
   pull_request:
     paths:
       - 'app/content/electric-vehicles-biofuels-africa.*'
+      - 'app/ev_biofuels_header.php'
+      - 'assets/images/articles/ev-biofuels-approved-20261104.jpg'
       - 'bin/publish-ev-biofuels-article.php'
       - '.platform/hooks/postdeploy/35_ev_biofuels_article.sh'
-      - 'tests/ev_biofuels_article*'
+      - 'tests/ev_biofuels*'
       - '.github/workflows/ev-biofuels-article.yml'
   workflow_run:
     workflows: ['Deploy production']
@@ -27,11 +29,13 @@ jobs:
           php-version: '8.4'
           extensions: dom, mbstring
           coverage: none
-      - name: Validate reviewed article, source links and single-publication contract
+      - name: Validate reviewed article, approved image and exact edit
         run: |
           php -l bin/publish-ev-biofuels-article.php
+          php -l app/ev_biofuels_header.php
           bash -n .platform/hooks/postdeploy/35_ev_biofuels_article.sh
           php tests/ev_biofuels_article_test.php
+          php tests/ev_biofuels_header_test.php
       - uses: actions/setup-node@v7
         if: github.event_name == 'workflow_run'
         with:
@@ -42,7 +46,7 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/article-browser" --no-package-lock --no-save --ignore-scripts playwright@1.56.1
           "$RUNNER_TEMP/article-browser/node_modules/.bin/playwright" install --with-deps chromium
-      - name: Verify published article and article-free homepage without submissions
+      - name: Verify live article, exact image and article-free homepage
         if: github.event_name == 'workflow_run'
         env:
           NODE_PATH: ${{ runner.temp }}/article-browser/node_modules
