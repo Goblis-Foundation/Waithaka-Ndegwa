@@ -11,6 +11,7 @@ fs.mkdirSync(dir, {recursive:true});
 const report = {testedAt:new Date().toISOString(), sourceCommit:'ce1125e533a23bbe2399446804dcb827cd7dca47', readOnly:true, results:[], errors:[]};
 (async () => {
   const browser = await chromium.launch({headless:true});
+  let page;
   try {
     const context = await browser.newContext({viewport:{width:1440,height:1000}, serviceWorkers:'block', extraHTTPHeaders:{'Cache-Control':'no-cache'}});
     await context.route('**/*', route => {
@@ -18,30 +19,39 @@ const report = {testedAt:new Date().toISOString(), sourceCommit:'ce1125e533a23bb
       const url = new URL(request.url());
       return ['GET','HEAD'].includes(request.method()) && url.origin === base ? route.continue() : route.abort();
     });
-    const page = await context.newPage();
+    page = await context.newPage();
     page.setDefaultTimeout(20000);
-    let ready = false;
+    let ready = false, consecutive = 0;
     for(let attempt=0; attempt<60; attempt++) {
       try {
-        const response = await context.request.get(base+articlePath, {timeout:30000});
-        if(response.status() === 200 && (await response.text()).includes('article-featured-uncropped')) { ready=true; break; }
-      } catch(error) { console.log('Release readiness:', error.message.split('\n')[0]); }
+        const article = await context.request.get(base+articlePath, {timeout:30000});
+        const home = await context.request.get(base+'/', {timeout:30000});
+        const articleHtml = await article.text(), homeHtml = await home.text();
+        const coherent = article.status()===200 && home.status()===200 && articleHtml.includes('article-featured-uncropped') && !/class="[^"]*(?:inaugural-section|featured-thought|post-card|article-group-discovery)/.test(homeHtml);
+        consecutive = coherent ? consecutive+1 : 0;
+        console.log('Read-only rollout readiness:', JSON.stringify({attempt:attempt+1,articleStatus:article.status(),homeStatus:home.status(),coherent,consecutive}));
+        if(consecutive>=3) { ready=true; break; }
+      } catch(error) { consecutive=0; console.log('Release readiness:', error.message.split('\n')[0]); }
       await new Promise(resolve => setTimeout(resolve,10000));
     }
-    assert.ok(ready, 'New article template must be live before acceptance.');
+    assert.ok(ready, 'Both homepage and article must serve the new release consistently.');
     for(const width of [360,390,768,1024,1440]) {
       await page.setViewportSize({width,height:1000});
       for(const pathname of ['/',articlePath]) {
         const response = await page.goto(base+pathname, {waitUntil:'networkidle',timeout:45000});
         assert.equal(response.status(),200, pathname+' HTTP status');
         const metrics = await page.evaluate(() => ({overflow:document.documentElement.scrollWidth-innerWidth,h1:document.querySelectorAll('#main h1').length}));
+        const canonical = await page.locator('link[rel=canonical]').getAttribute('href');
+        const row = {path:pathname,width,status:response.status(),canonical,...metrics};
+        const headers = response.headers();
+        row.cacheHeaders = Object.fromEntries(['cache-control','age','x-cache','etag','x-amz-cf-pop'].filter(k=>headers[k]).map(k=>[k,headers[k]]));
+        report.results.push(row);
         assert.equal(metrics.h1,1,'Exactly one public page heading');
         assert.ok(metrics.overflow <= 2, pathname+' horizontal overflow at '+width);
-        const canonical = await page.locator('link[rel=canonical]').getAttribute('href');
         assert.equal(canonical,base+pathname,'Preserve canonical URL');
-        const row = {path:pathname,width,status:response.status(),canonical,...metrics};
         if(pathname === '/') {
-          assert.equal(await page.locator('#main .inaugural-section,#main .featured-thought,#main .post-card,#main .article-group-discovery').count(),0,'No homepage article sections');
+          row.articleSections = await page.locator('#main .inaugural-section,#main .featured-thought,#main .post-card,#main .article-group-discovery').evaluateAll(elements=>elements.map(el=>el.className));
+          assert.deepEqual(row.articleSections,[],'No homepage article sections');
           const articleLinks = await page.locator('#main a[href]').evaluateAll(links => links.map(a=>new URL(a.href).pathname).filter(p=>/^\/my-thoughts\/[^/]+/.test(p)));
           assert.deepEqual(articleLinks,[],'Homepage must not feature individual articles');
           assert.ok(await page.locator('a[href$="/my-thoughts"]').count()>0,'Retain My Thoughts navigation');
@@ -52,18 +62,17 @@ const report = {testedAt:new Date().toISOString(), sourceCommit:'ce1125e533a23bb
           await image.scrollIntoViewIfNeeded();
           await image.evaluate(img=>img.decode());
           const photo = await image.evaluate(img=>{const r=img.getBoundingClientRect(),s=getComputedStyle(img);return {source:img.currentSrc,naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,width:r.width,height:r.height,left:r.left,right:r.right,fit:s.objectFit,aspect:s.aspectRatio};});
+          row.photo=photo;
           assert.ok(photo.naturalWidth>0 && photo.naturalHeight>0,'Featured photograph loads');
           assert.equal(photo.fit,'contain','Complete photograph without cover cropping');
           assert.equal(photo.aspect,'auto','No forced image aspect ratio');
           assert.ok(photo.width>0 && photo.height>0 && photo.left>=-2 && photo.right<=width+2,'Photograph remains within viewport');
           const schema = await page.locator('script[type="application/ld+json"]').allTextContents();
           assert.ok(schema.some(s=>s.includes('BlogPosting')),'Preserve article structured data');
-          row.photo=photo;
           if([390,1440].includes(width)) await page.locator('.article-featured-uncropped').screenshot({path:path.join(dir,'article-photo-'+width+'.png')});
         }
         await page.evaluate(()=>window.scrollTo(0,0));
         if([390,1440].includes(width)) await page.screenshot({path:path.join(dir,(pathname==='/'?'homepage':'article')+'-'+width+'.png'),fullPage:false});
-        report.results.push(row);
       }
     }
     const archive = await page.goto(base+'/my-thoughts',{waitUntil:'domcontentloaded',timeout:45000});
@@ -75,8 +84,13 @@ const report = {testedAt:new Date().toISOString(), sourceCommit:'ce1125e533a23bb
   } catch(error) {
     report.passed=false;
     report.errors.push(error.stack || error.message);
+    if(page) {
+      await page.screenshot({path:path.join(dir,'failure.png'),fullPage:false}).catch(()=>{});
+      fs.writeFileSync(path.join(dir,'failure-public-page.html'),await page.content().catch(()=>''));
+    }
     throw error;
   } finally {
+    console.log(JSON.stringify(report,null,2));
     fs.writeFileSync(path.join(dir,'acceptance.json'),JSON.stringify(report,null,2));
     await browser.close();
   }
