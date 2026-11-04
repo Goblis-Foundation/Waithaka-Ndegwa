@@ -3,8 +3,10 @@ $articleToc=function_exists('editorial_toc')?editorial_toc($post['content_html']
 $editorialExtras=function_exists('editorial_public_post')?editorial_public_post((int)$post['id']):['evidence'=>[],'updates'=>[]];
 require_once __DIR__.'/../app/inaugural_story.php';
 $storyParts=inaugural_story_parts($post,$articleToc);
+$sewageStory=($post['slug']??'')==='the-gold-that-is-nairobis-sewage';
 ?>
-<article class="article<?=$storyParts?' article-journey':''?>" data-article<?=$storyParts?' data-inaugural-story':''?>>
+<?php if($sewageStory): ?><link rel="stylesheet" href="<?=e(asset('css/nairobi-sewage-article.css'))?>"><?php endif; ?>
+<article class="article<?=$storyParts?' article-journey':''?><?=$sewageStory?' article-sewage':''?>" data-article<?=$storyParts?' data-inaugural-story':''?>>
   <?php if($storyParts): include __DIR__.'/partials_inaugural_story.php'; else: ?>
   <header class="article-header"><div class="article-reading"><div class="article-topline"><a href="<?=url('/my-thoughts')?>">My Thoughts</a><?php if($post['category_name']):?><span>·</span><a href="<?=url('/topic/'.$post['category_slug'])?>"><?=e($post['category_name'])?></a><?php endif;?></div><h1><?=e($post['title'])?></h1><?php if($post['standfirst']):?><p class="article-standfirst"><?=e($post['standfirst'])?></p><?php endif;?><div class="article-meta"><strong>Waithaka Ndegwa</strong><time datetime="<?=e(date('c',strtotime($post['published_at'])))?>"><?=e(format_date($post['published_at']))?></time><span><?=reading_time($post['content_html'])?> min read</span><?php if($post['travel_city']||$post['travel_country']):?><span><?=e(trim(($post['travel_city']?$post['travel_city'].', ':'').$post['travel_country']))?></span><?php endif;?></div></div></header>
   <?php if($post['featured_image']):?><figure class="article-featured article-featured-uncropped"><img <?=responsive_image_attrs(featured_image_url($post['featured_image']), '(max-width: 1000px) 100vw, 1000px')?> alt="<?=e($post['featured_image_alt']?:$post['title'])?>" fetchpriority="high" decoding="async"><?php if($post['featured_image_caption']):?><figcaption><?=e($post['featured_image_caption'])?></figcaption><?php endif;?></figure><?php endif;?>

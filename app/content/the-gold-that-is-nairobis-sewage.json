@@ -1,0 +1,24 @@
+{
+  "slug": "the-gold-that-is-nairobis-sewage",
+  "title": "The Gold That Is Nairobi's Sewage",
+  "standfirst": "A visit to Apeldoorn changed how I see urban wastewater. For Kenyan and African cities, the opportunity is cleaner rivers, useful energy, recovered nutrients and water safely reused.",
+  "seo_title": "The Gold That Is Nairobi's Sewage | Waithaka Ndegwa",
+  "seo_description": "Lessons from an Apeldoorn sewage plant for Nairobi and African cities: biogas, nutrient recovery, safe water reuse and accountable sanitation.",
+  "category_slug": "national-infrastructure",
+  "article_groups": ["personal-experiences", "ideas-perspectives"],
+  "tags": ["Wastewater", "Sanitation", "Circular Economy", "Nairobi", "African Cities", "Resource Recovery", "Water Reuse"],
+  "media_mode": "header-only",
+  "featured_image": "/assets/images/articles/nairobi-sewage/header-approved.avif",
+  "featured_image_alt": "Illustrative composite of wastewater treatment, resource recovery and a Nairobi skyline.",
+  "featured_image_caption": "AI-generated editorial composite inspired by my Apeldoorn visit; not a photograph of an existing Nairobi plant or evidence that treated water is safe to drink.",
+  "assets": [
+    {
+      "path": "/assets/images/articles/nairobi-sewage/header-approved.avif",
+      "sha256": "3be5c46f218be5c17724e299c8d15bf15c6b47e9a5b81b1ceb49983895763a13",
+      "bytes": 21547,
+      "width": 960,
+      "height": 540,
+      "mime": "image/avif"
+    }
+  ]
+}
