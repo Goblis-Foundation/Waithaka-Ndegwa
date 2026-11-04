@@ -17,7 +17,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import os, json, base64, hashlib, urllib.request
-          source = 'https://sdmntprindiasocentral.oaiusercontent.com/files/00000000-8514-8211-913e-4b159510812b/raw?se=2026-11-04T14%3A29%3A00Z&sp=r&sv=2026-02-06&sr=b&scid=d438d2c2-669b-5496-89d9-fdc2f04d13b5&skoid=c094fe1e-1dc0-485a-8de0-10ab942be48f&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-04T03%3A52%3A23Z&ske=2026-11-05T03%3A52%3A23Z&sks=b&skv=2026-02-06&sig=F0Tz4cSRLvLqmUZg7Fnoi5A6NtrvZu2%2BRFKzd8tkmls%3D'
+          source = 'https://sdmntprindiasocentral.oaiusercontent.com/files/00000000-4c7c-8211-9dbd-86a6810cfa82/raw?se=2026-11-04T14%3A35%3A17Z&sp=r&sv=2026-02-06&sr=b&scid=5daea991-3668-5557-b749-d6a4cc307e94&skoid=c094fe1e-1dc0-485a-8de0-10ab942be48f&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-04T03%3A49%3A32Z&ske=2026-11-05T03%3A49%3A32Z&sks=b&skv=2026-02-06&sig=6LlAeLBTgdhoczvSm5VYqZAIyqXrosu3ycjAFWE64nY%3D'
           print('::add-mask::' + source)
           with urllib.request.urlopen(source, timeout=30) as response:
               data = response.read(600001)
