@@ -17,7 +17,8 @@ const fs=require('node:fs');const path=require('node:path');const assert=require
     assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),url);
     assert.equal(await page.locator('.curated-opportunity').count(),1,'Native designed header');
     const body=await page.locator('.desk-prose').innerText();assert.ok(body.includes(entry.deadline_label));assert.ok(body.includes(entry.support));
-    assert.equal(await page.locator('.desk-prose h2').count(),6);
+    assert.equal(await page.locator('.desk-prose h2').count(),9,'Expanded guide standard');
+    assert.ok(body.includes('Prepare before you apply')&&body.includes('editorial guidance'),'Clearly labelled practical advice');
     if(entry.notice)assert.ok((await page.locator('.curated-notice').innerText()).includes(entry.notice));
     const sourceLinks=await page.locator('.desk-prose a').evaluateAll(nodes=>nodes.map(a=>({href:a.href,target:a.target,rel:a.rel})));
     assert.ok(sourceLinks.length>=2&&sourceLinks.every(a=>a.href.startsWith('https://')&&a.target==='_blank'&&a.rel.includes('noopener')));
