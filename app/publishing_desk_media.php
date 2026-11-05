@@ -50,7 +50,8 @@ function desk_campaign_report(array $r): array {
     $q=db()->prepare('SELECT j.id,j.status,j.external_url,j.scheduled_at,j.completed_at,c.name,c.slug,p.id package_id FROM publishing_jobs j JOIN publishing_revisions v ON v.id=j.revision_id JOIN publishing_packages p ON p.id=v.package_id JOIN publishing_channels c ON c.id=j.channel_id WHERE p.source_post_id=? ORDER BY j.scheduled_at,j.id');$q->execute([(int)$r['post_id']]);return $q->fetchAll();
 }
 function desk_sitemap(): array {
-    $out=[['loc'=>url('/opportunities')],['loc'=>url('/partner-stories')],['loc'=>url('/promote')]];
+    $out=[['loc'=>url('/opportunities')],['loc'=>url('/opportunities/countries')],['loc'=>url('/partner-stories')],['loc'=>url('/promote')]];
+    foreach(opportunity_country_indexable()as$country)$out[]=['loc'=>url('/opportunities/country/'.$country['slug'])];
     foreach(desk_all()as$r)if(!empty($r['public'])&&!empty($r['public_visible'])&&$r['state']!=='withdrawn'&&!ol_archived(ol_public_record($r)))$out[]=['loc'=>url(desk_path($r)),'lastmod'=>gmdate('c',$r['public']['at'])];return $out;
 }
 /** A separate, explicit image-generation action. Existing portraits and logos are never inputs. */

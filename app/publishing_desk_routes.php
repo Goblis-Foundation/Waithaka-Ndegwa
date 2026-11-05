@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
-function desk_render(string $view,array $data,string $title,string $path,bool $private=false): void {
+function desk_render(string $view,array $data,string $title,string $path,bool $private=false,array $seoOverride=[]): void {
     if($private)private_response_headers();
-    render('desk/'.$view,$data+['page'=>'opportunities','privatePage'=>$private,'suppressAnalytics'=>$private,'seo'=>['title'=>$title.' · Waithaka Ndegwa','description'=>'Opportunities, practical information and clearly disclosed partner features.','canonical'=>url($path),'robots'=>$private?'noindex,nofollow':'index,follow']]);
+    $baseSeo=['title'=>$title.' · Waithaka Ndegwa','description'=>'Opportunities, practical information and clearly disclosed partner features.','canonical'=>url($path),'robots'=>$private?'noindex,nofollow':'index,follow'];
+    render('desk/'.$view,$data+['page'=>'opportunities','privatePage'=>$private,'suppressAnalytics'=>$private,'seo'=>array_replace($baseSeo,$seoOverride)]);
 }
 function desk_private(string $id): array {
     $r=desk_get($id);$access=$_SESSION['desk_client'][$id]??[];
@@ -64,17 +65,47 @@ function desk_dispatch(string $path): bool {
     if(desk_native_guard($path))return true;
     if($path==='/publishing-sitemap.xml'){journeys_method(['GET','HEAD']);header('Content-Type: application/xml; charset=utf-8');echo sitemap_xml(desk_sitemap());return true;}
     if($path==='/robots.txt'){journeys_method(['GET','HEAD']);header('Content-Type: text/plain; charset=utf-8');echo "User-agent: *\nAllow: /\nDisallow: /write\nDisallow: /install\nDisallow: /app\nDisallow: /storage\nDisallow: /client/\nDisallow: /payments/\nDisallow: /consent/\nDisallow: /webhooks/\nDisallow: /newsletter/confirm\nDisallow: /newsletter/unsubscribe\nDisallow: /newsletter/preferences\nDisallow: /founders/follow-up\nDisallow: /opportunities/review\nDisallow: /opportunities/evidence\n\nSitemap: ".url('/sitemap.xml')."\nSitemap: ".url('/publishing-sitemap.xml')."\n";return true;}
+    if($path==='/opportunities/countries'){
+        journeys_method(['GET','HEAD']);$countries=opportunity_africa_countries();$indexed=opportunity_country_indexable();$available=[];foreach($countries as$slug=>$meta){$country=['slug'=>$slug]+$meta;if(array_filter(opportunity_country_records($country),static fn($r)=>ol_directory_match(ol_public_record($r),'')))$available[$slug]=true;}
+        desk_render('countries',compact('countries','indexed','available'),'Opportunities by African country',$path,false,[
+            'title'=>'Funding & Opportunities by African Country · Waithaka Ndegwa',
+            'description'=>'Browse grants, fellowships, accelerators, training and business opportunities by applicant country across Africa. Country pages only enter search indexes when current eligible opportunities are available.',
+            'canonical'=>url($path),'robots'=>'index,follow'
+        ]);return true;
+    }
+    if(preg_match('~^/opportunities/country/([a-z0-9]+(?:-[a-z0-9]+)*)$~D',$path,$cm)){
+        journeys_method(['GET','HEAD']);$country=opportunity_country($cm[1]);if(!$country){http_response_code(404);return true;}
+        $items=opportunity_country_records($country,true);$filters=[];foreach(['q','type','sector','status']as$key)$filters[$key]=is_string($_GET[$key]??null)?mb_substr(trim($_GET[$key]),0,120):'';
+        $items=array_values(array_filter($items,static function($r)use($filters){$f=$r['public']['fields'];
+            if($filters['q']!==''&&mb_stripos($f['title'].' '.$f['organisation'].' '.$f['summary'],$filters['q'])===false)return false;
+            if($filters['type']!==''&&($f['type']??'')!==$filters['type'])return false;
+            if($filters['sector']!==''&&mb_stripos((string)($f['sectors']??''),$filters['sector'])===false)return false;
+            return ol_directory_match(ol_public_record($r),$filters['status']);
+        }));opportunity_sort_deadline($items);
+        $total=count($items);$page=archive_page_number($_GET['page']??null);if($page===null||$page>max(1,(int)ceil($total/18))){http_response_code(404);return true;}$pageNumber=$page;$items=array_slice($items,($pageNumber-1)*18,18);
+        $kind='opportunity';$jobs=[];$filters['country']=$country['name'];$countryPage=$country;$allCountryRecords=opportunity_country_records($country);$currentCountryRecords=array_values(array_filter($allCountryRecords,static fn($r)=>ol_directory_match(ol_public_record($r),'')));$schema=opportunity_country_schema($country,$currentCountryRecords);$seo=opportunity_country_seo($country,count($currentCountryRecords),opportunity_country_quality($country,$allCountryRecords));
+        if($pageNumber>1){$seo['title']='Page '.$pageNumber.' · '.$seo['title'];$seo['canonical']=url($path).'?page='.$pageNumber;}
+        desk_render('index',compact('kind','items','filters','pageNumber','total','jobs','countryPage','schema'),'Opportunities for '.$country['demonym'].' applicants',$path,false,$seo);return true;
+    }
     if($path==='/opportunities'||$path==='/partner-stories'){
         journeys_method(['GET','HEAD']);$kind=$path==='/opportunities'?'opportunity':'sponsored';$items=desk_public_list($kind,true);
         $filters=[];foreach(['q','type','country','sector','status']as$key)$filters[$key]=is_string($_GET[$key]??null)?mb_substr(trim($_GET[$key]),0,120):'';
-        $items=array_values(array_filter($items,static function($r)use($filters){$f=$r['public']['fields'];$closed=desk_closed(ol_public_record($r));
+        $items=array_values(array_filter($items,static function($r)use($filters){$f=$r['public']['fields'];
             if($filters['q']!==''&&mb_stripos($f['title'].' '.$f['organisation'].' '.$f['summary'],$filters['q'])===false)return false;
-            foreach(['type'=>'type','country'=>'countries','sector'=>'sectors']as$a=>$b)if($filters[$a]!==''&&mb_stripos((string)($f[$b]??''),$filters[$a])===false)return false;
+            if($filters['type']!==''&&($f['type']??'')!==$filters['type'])return false;
+            if($filters['sector']!==''&&mb_stripos((string)($f['sectors']??''),$filters['sector'])===false)return false;
+            if($filters['country']!==''){
+                $slug=slugify($filters['country']);$country=opportunity_country($slug);
+                if($country){if(!opportunity_country_match($r,$country))return false;}
+                elseif(mb_stripos((string)($f['countries']??''),$filters['country'])===false)return false;
+            }
             return ol_directory_match(ol_public_record($r),$filters['status']);
         }));
+        if($kind==='opportunity')opportunity_sort_deadline($items);
         $total=count($items);$page=archive_page_number($_GET['page']??null);if($page===null||$page>max(1,(int)ceil($total/18))){http_response_code(404);return true;}$pageNumber=$page;$items=array_slice($items,($pageNumber-1)*18,18);
         $jobs=$kind==='opportunity'&&in_array($filters['type'],['','jobs'],true)?opportunity_public_list():[];
-        desk_render('index',compact('kind','items','filters','pageNumber','total','jobs'),$kind==='opportunity'?'Opportunities':'Partner stories',$path);return true;
+        if($kind==='opportunity'){$seo=['title'=>'Funding, Grants & Opportunities for Africans · Waithaka Ndegwa','description'=>'Find current grants, fellowships, accelerators, training and business opportunities open to African applicants. Closing-soon opportunities appear first, with official sources and country eligibility guidance.','canonical'=>url('/opportunities'),'robots'=>'index,follow'];}else $seo=[];
+        desk_render('index',compact('kind','items','filters','pageNumber','total','jobs'),$kind==='opportunity'?'Opportunities':'Partner stories',$path,false,$seo);return true;
     }
     if($path==='/promote'){
         journeys_method(['GET','HEAD','POST']);$error='';$received=false;$values=[];
