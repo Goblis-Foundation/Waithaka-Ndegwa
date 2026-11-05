@@ -14,7 +14,9 @@ function opportunity_guides_catalog(): array {
     return $data;
 }
 function opportunity_guide_sources(array $entry,array $guide): array {
-    $out=[];foreach(array_merge($entry['sources'],$guide['sources'])as$source)$out[$source[1]]=$source;return array_values($out);
+    $entrySources=is_array($entry['sources']??null)?$entry['sources']:[];
+    $guideSources=is_array($guide['sources']??null)?$guide['sources']:[];
+    $out=[];foreach(array_merge($entrySources,$guideSources)as$source)$out[$source[1]]=$source;return array_values($out);
 }
 function opportunity_guide_body(array $entry,array $guide,string $guidanceNote): string {
     $p=static fn(string $text):string=>'<p>'.e($text).'</p>';
