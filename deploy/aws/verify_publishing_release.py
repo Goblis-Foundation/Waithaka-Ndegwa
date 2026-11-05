@@ -36,7 +36,7 @@ def read(path: str, expected: int = 200) -> tuple[bytes, object]:
         return response.read(2 * 1024 * 1024), response.headers
 
 def check_pages() -> None:
-    for path, marker in [('/', 'data-visitor-statistics'),('/opportunities', 'Opportunities that move ideas forward.'),('/partner-stories','Meet the people and businesses behind the offer.'),('/promote','Send brief for review')]:
+    for path, marker in [('/', 'data-visitor-statistics'),('/opportunities', 'Find your next practical opportunity.'),('/partner-stories','Meet the people and businesses behind the offer.'),('/promote','Send brief for review')]:
         data, _ = read(path)
         text = data.decode('utf-8')
         if marker not in text or 'brand-lockup.webp' not in text:
