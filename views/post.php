@@ -1,15 +1,20 @@
 <?php
+require_once __DIR__.'/../app/editorial_banners.php';
+$editorialImage=eb_post_image($post);
+$seo['image']=$editorialImage['url'];$seo['image_alt']=$editorialImage['alt'];
+foreach($schema??[]as$i=>$item)if(in_array($item['@type']??'',['Article','BlogPosting','NewsArticle'],true))$schema[$i]['image']=$editorialImage['url'];
 $articleToc=function_exists('editorial_toc')?editorial_toc($post['content_html']):['html'=>$post['content_html'],'items'=>[]];
 $editorialExtras=function_exists('editorial_public_post')?editorial_public_post((int)$post['id']):['evidence'=>[],'updates'=>[]];
 require_once __DIR__.'/../app/inaugural_story.php';
 $storyParts=inaugural_story_parts($post,$articleToc);
 $sewageStory=($post['slug']??'')==='the-gold-that-is-nairobis-sewage';
 ?>
+<link rel="stylesheet" href="<?=e(asset('css/editorial-banners.css'))?>">
 <?php if($sewageStory): ?><link rel="stylesheet" href="<?=e(asset('css/nairobi-sewage-article.css'))?>"><?php endif; ?>
 <article class="article<?=$storyParts?' article-journey':''?><?=$sewageStory?' article-sewage':''?>" data-article<?=$storyParts?' data-inaugural-story':''?>>
   <?php if($storyParts): include __DIR__.'/partials_inaugural_story.php'; else: ?>
   <header class="article-header"><div class="article-reading"><div class="article-topline"><a href="<?=url('/my-thoughts')?>">My Thoughts</a><?php if($post['category_name']):?><span>·</span><a href="<?=url('/topic/'.$post['category_slug'])?>"><?=e($post['category_name'])?></a><?php endif;?></div><h1><?=e($post['title'])?></h1><?php if($post['standfirst']):?><p class="article-standfirst"><?=e($post['standfirst'])?></p><?php endif;?><div class="article-meta"><strong>Waithaka Ndegwa</strong><time datetime="<?=e(date('c',strtotime($post['published_at'])))?>"><?=e(format_date($post['published_at']))?></time><span><?=reading_time($post['content_html'])?> min read</span><?php if($post['travel_city']||$post['travel_country']):?><span><?=e(trim(($post['travel_city']?$post['travel_city'].', ':'').$post['travel_country']))?></span><?php endif;?></div></div></header>
-  <?php if($post['featured_image']):?><figure class="article-featured article-featured-uncropped"><img <?=responsive_image_attrs(featured_image_url($post['featured_image']), '(max-width: 1000px) 100vw, 1000px')?> alt="<?=e($post['featured_image_alt']?:$post['title'])?>" fetchpriority="high" decoding="async"><?php if($post['featured_image_caption']):?><figcaption><?=e($post['featured_image_caption'])?></figcaption><?php endif;?></figure><?php endif;?>
+  <figure class="article-featured article-featured-uncropped<?=!empty($editorialImage['illustration'])?' editorial-banner':''?>"<?=!empty($editorialImage['illustration'])?' data-editorial-banner':''?>><img <?=eb_image_attrs($editorialImage,'(max-width: 1000px) 100vw, 1000px')?> alt="<?=e($editorialImage['alt'])?>" fetchpriority="high" decoding="async"><?php if($editorialImage['caption']):?><figcaption><?=e($editorialImage['caption'])?></figcaption><?php endif;?></figure>
   <div class="article-reading article-body"><?php if(count($articleToc['items'])>1):?><nav class="editorial-toc" aria-label="On this page"><h2>On this page</h2><ol><?php foreach($articleToc['items'] as $heading):?><li class="toc-level-<?=(int)$heading['level']?>"><a href="#<?=e($heading['id'])?>"><?=e($heading['label'])?></a></li><?php endforeach;?></ol></nav><?php endif;?><?php $video=video_embed($post['video_url']);if($video&&isset($video['embed'])):?><div class="video-wrap"><iframe src="<?=e($video['embed'])?>" title="Video accompanying <?=e($post['title'])?>" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></div><?php elseif($video&&isset($video['url'])):?><p><a href="<?=e($video['url'])?>" target="_blank" rel="noopener">Watch accompanying video ↗</a></p><?php endif;?><?=$articleToc['html']?></div>
   <?php endif; ?>
   <?php if($editorialExtras['evidence']||$editorialExtras['updates']):?><div class="article-reading"><?php include __DIR__.'/editorial/post_extras.php'; ?></div><?php endif;?>
