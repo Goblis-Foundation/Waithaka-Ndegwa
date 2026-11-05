@@ -37,20 +37,25 @@ jobs:
           coverage: none
       - name: Install locked dependencies
         run: composer install --no-interaction --prefer-dist --no-progress --no-scripts --no-plugins
-      - name: Check banner output and fallback rules
+      - name: Check banner output, cache identities and aggregate diagnostics
         run: |
           php -l app/editorial_banners.php
           php -l assets/editorial-banner.php
           php tests/editorial_banners_test.php
+          php tests/opportunity_review_health_test.php
+          python3 -B tests/opportunity_review_health_test.py
+          bash -n .platform/hooks/postdeploy/39_opportunity_lifecycle.sh
           bash -n .platform/hooks/postdeploy/40_rolling_opportunities.sh
-      - name: Rehearse native publication in a disposable database
+      - name: Rehearse publication, editorial RSS and lifecycle in disposable databases
         env:
           WK_TEST_ALLOW_WRITES: '1'
           WK_TEST_DB_HOST: 127.0.0.1
           WK_TEST_DB_PORT: ${{ job.services.mysql.ports[3306] }}
           WK_TEST_DB_USER: root
           WK_TEST_DB_PASS: wk-ci-fixture-only
-        run: php tests/rolling_opportunities_database.php
+        run: |
+          php tests/rolling_opportunities_database.php
+          php tests/opportunity_lifecycle_database.php
       - uses: actions/setup-node@v7
         if: github.event_name == 'workflow_run'
         with:

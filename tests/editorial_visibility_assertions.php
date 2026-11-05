@@ -35,12 +35,17 @@ function editorial_visibility_assertions(array $initial, int $uid): int {
     // not categories or selection flags, determines editorial visibility.
     $pdo->exec("UPDATE posts SET is_selected=1,article_groups_json='[\"personal-experiences\",\"ideas-perspectives\"]' WHERE id IN (".implode(',',$managedIds).')');
     $check(public_post_count()===$baseline+2,'Editorial counts exclude every managed listing.');
-    foreach([latest_posts(5000),selected_posts(12)]as$items){
+    foreach([latest_posts(5000),selected_posts(12),journeys_feed_posts()]as$items){
         $ids=array_map('intval',array_column($items,'id'));
         $check(!array_intersect($ids,$managedIds),'Public editorial lists contain no opportunity records.');
         $check(!in_array((int)$private['id'],$ids,true)&&!in_array((int)$future['id'],$ids,true),'Draft and future essays remain private.');
         foreach($controls as$id)$check(in_array($id,$ids,true),'Ordinary published essays remain visible.');
     }
+    $rss=journeys_rss_xml(journeys_feed_posts());$xml=new DOMDocument();
+    $check($xml->loadXML($rss,LIBXML_NONET),'Editorial RSS remains valid XML.');
+    $links=array_map(static fn($node)=>$node->textContent,iterator_to_array((new DOMXPath($xml))->query('/rss/channel/item/link')));
+    foreach($records as$record)$check(!in_array(url('/my-thoughts/'.$record['slug']),$links,true),'RSS cannot advertise an opportunity as an editorial article.');
+    foreach($controls as$id)$check(in_array(url('/my-thoughts/'.writer_post_by_id($id)['slug']),$links,true),'RSS retains real published essays.');
     $check(count(latest_posts(1,null,0))===1&&count(latest_posts(1,null,1))===1,'Filtering happens before pagination.');
     $ordinary=writer_post_by_id($controls[0]);
     $related=array_map('intval',array_column(related_posts($ordinary,6),'id'));

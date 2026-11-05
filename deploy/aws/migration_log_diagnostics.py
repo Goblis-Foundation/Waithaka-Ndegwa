@@ -1,4 +1,4 @@
-"""Read only scoped deployment tail logs; emit only non-sensitive migration diagnostics."""
+"""Read scoped deployment tails; output only explicitly permitted diagnostics."""
 import datetime as dt
 import io
 import json
@@ -10,8 +10,26 @@ import urllib.request
 import zipfile
 
 SAFE=re.compile(r'(Workspace contact relay probe: (?:accepted|rejected)\.|Article grouping migration AWS read failed: [A-Za-z0-9_.-]{1,100}; HTTP [0-9]{1,3}\.|Article grouping (?:additive migration applied and verified|migration already verified with runtime read access)\.|Could not open input file: bin/article-groups-migrate\.php|Founder migration AWS read failed: [A-Za-z0-9_.-]{1,100}; HTTP [0-9]{1,3}\.|Founder story additive migration applied and verified\.|Founder story migration already verified with runtime read access\.|Could not open input file: bin/founder-story-migrate\.php|Application error [A-F0-9]{12} [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+)')
+HEALTH_BOOL={'enabled','ai_enabled','ai_configured','worker_recent'}
+HEALTH_INT={'published_count','source_checked_count','ai_checked_count','source_attention_count','ai_attention_count','pending_review_count','last_worker_at','latest_source_at','latest_ai_at'}
+HEALTH_PREFIX='Opportunity review health: '
+
 def safe_lines(text):
- return [m.group(0) for line in text.splitlines() if (m:=SAFE.search(line))]
+ out=[]
+ for line in text.splitlines():
+  match=SAFE.search(line)
+  if match:out.append(match.group(0))
+  if HEALTH_PREFIX not in line:continue
+  raw=line.split(HEALTH_PREFIX,1)[1].strip()
+  if len(raw)>2000:continue
+  try:data=json.loads(raw)
+  except (ValueError,TypeError):continue
+  if not isinstance(data,dict) or set(data)!=(HEALTH_BOOL|HEALTH_INT):continue
+  if not all(type(data[key]) is bool for key in HEALTH_BOOL):continue
+  if not all(type(data[key]) is int and 0<=data[key]<=2**53 for key in HEALTH_INT):continue
+  out.append(HEALTH_PREFIX+json.dumps(data,sort_keys=True,separators=(',',':')))
+ return out
+
 def aws(*args):
  p=subprocess.run(['aws',*args,'--region','af-south-1','--output','json'],capture_output=True,text=True)
  if p.returncode:raise RuntimeError('Scoped deployment-log metadata could not be read.')

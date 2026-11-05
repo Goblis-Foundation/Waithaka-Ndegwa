@@ -8,17 +8,25 @@ function featured_image_url(?string $source):string{return str_starts_with((stri
 function responsive_image_attrs(?string $source,string $sizes='100vw'):string{return 'src="'.e((string)$source).'"';}
 $n=0;function ebt(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);$GLOBALS['n']++;}
 set_error_handler(static function(int $severity,string $message,string $file,int $line):bool{if(error_reporting()&$severity)throw new ErrorException($message,0,$severity,$file,$line);return false;});
-$catalog=eb_catalog();$themes=[];$hashes=[];
+$catalog=eb_catalog();$themes=[];$hashes=[];$versions=[];
 foreach($catalog as$key=>$theme){
     $asset=eb_asset($key);$scene=eb_scene($key);$png=eb_png($key);$size=getimagesizefromstring($png);
     ebt(str_starts_with($png,"\x89PNG\r\n\x1a\n")&&$size[0]===1200&&$size[1]===630&&$size['mime']==='image/png','Valid social-preview PNG: '.$key);
     ebt(strlen($png)<1048576,'Bounded image size.');
     ebt(str_contains($asset['url'],'key='.rawurlencode($key))&&str_contains($asset['url'],'&v='),'Versioned catalogue URL.');
+    parse_str((string)parse_url($asset['url'],PHP_URL_QUERY),$query);
+    ebt(eb_key_from_version($query['v'])===$key,'Version alone resolves the correct origin illustration.');
+    ebt(!isset($versions[$query['v']]),'No two catalogue entries share a CDN cache key.');$versions[$query['v']]=$key;
+    ebt(eb_version($key)===$query['v'],'Asset URLs and the endpoint share the same identity.');
     ebt(str_starts_with($asset['alt'],'Editorial illustration of ')&&$scene['theme']===$theme,'Accurate illustration alternative text.');
     ebt(str_contains(eb_image_attrs($asset),'width="1200"')&&!str_contains(eb_image_attrs($asset),'social-default'),'No legacy image fallback in rendered attributes.');
     $themes[$theme]=true;$hashes[hash('sha256',$png)]=true;
 }
 ebt(count($themes)>=14&&count($hashes)>=14,'Different subjects have different artwork.');
+foreach([null,'',[],['v'=>'bad'],str_repeat('0',24),'../app/config.php','https://unrelated.example.com']as$version)ebt(eb_key_from_version($version)===null,'Malformed or unknown version cannot choose an image.');
+$edge=json_decode((string)file_get_contents(dirname(__DIR__).'/deploy/aws/edge-stack.json'),true,64,JSON_THROW_ON_ERROR);
+$vary=$edge['Resources']['StaticCache']['Properties']['CachePolicyConfig']['ParametersInCacheKeyAndForwardedToOrigin']['QueryStringsConfig'];
+ebt($vary['QueryStringBehavior']==='whitelist'&&in_array('v',$vary['QueryStrings'],true),'The deployed edge forwards and varies on banner identity.');
 foreach(['','assets/images/social-default.png','assets/images/brand-lockup.webp','assets/images/wn-approved-monogram.svg','assets/images/old-logo.jpg','assets/images/favicon.ico']as$source){
     $image=eb_post_image(['slug'=>'fresh-writing','category_slug'=>'agribusiness','featured_image'=>$source]);
     ebt($image['illustration']===true&&str_contains($image['url'],'topic-agriculture'),'Missing or old logo becomes relevant article art.');
@@ -33,4 +41,4 @@ foreach(['../app/config.php','https://unrelated.example.com/image.png','unknown'
 $entries=json_decode((string)file_get_contents(dirname(__DIR__).'/app/content/africa-opportunities-20261104.json'),true,64,JSON_THROW_ON_ERROR)['entries'];
 $more=json_decode((string)file_get_contents(dirname(__DIR__).'/app/content/rolling-opportunities-20261105.json'),true,64,JSON_THROW_ON_ERROR)['entries'];
 foreach(array_merge($entries,$more)as$entry)ebt(isset($catalog[$entry['slug']]),'Every published opportunity has a topic banner.');
-restore_error_handler();echo 'PASS: '.$n." banner catalogue, image and preservation assertions.\n";
+restore_error_handler();echo 'PASS: '.$n." banner catalogue, cache-identity and preservation assertions.\n";

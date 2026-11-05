@@ -2,6 +2,9 @@
 declare(strict_types=1);
 require_once __DIR__.'/journeys.php';
 
+/** The RSS route uses the same public editorial projection as My Thoughts. */
+function journeys_feed_posts(): array { return latest_posts(50); }
+
 function journeys_route_error(Throwable $error): string {
     if($error instanceof JourneyValidationException || $error instanceof JourneyConflictException){http_response_code($error instanceof JourneyConflictException?409:422);return $error->getMessage();}
     $reference=strtoupper(bin2hex(random_bytes(5)));error_log('Journeys request '.$reference.' failed: '.get_class($error));http_response_code(503);
@@ -73,9 +76,9 @@ function journeys_dispatch(string $path): bool {
         journeys_public_render('journeys/newsletter_action',['purpose'=>$purpose,'token'=>$token,'record'=>$record,'error'=>$error],$purpose==='confirm'?'Confirm Subscription':'Unsubscribe','Manage your subscription to Waithaka Ndegwa’s writing.',$path,'newsletter');
     }
     if($path==='/feed.xml'){
-        journeys_method(['GET','HEAD']);$s=db()->prepare("SELECT id,title,slug,standfirst,content_html,status,published_at FROM posts WHERE status IN ('published','scheduled') AND published_at IS NOT NULL AND published_at<=? ORDER BY published_at DESC,id DESC LIMIT 50");$s->execute([journeys_now()]);
+        journeys_method(['GET','HEAD']);
         header('Content-Type: application/rss+xml; charset=utf-8');header('X-Content-Type-Options: nosniff');
-        if(($_SERVER['REQUEST_METHOD']??'GET')!=='HEAD')echo journeys_rss_xml($s->fetchAll());exit;
+        if(($_SERVER['REQUEST_METHOD']??'GET')!=='HEAD')echo journeys_rss_xml(journeys_feed_posts());exit;
     }
 
     if($path==='/write/journeys'){
