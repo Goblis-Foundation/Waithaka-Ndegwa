@@ -66,8 +66,8 @@ function desk_dispatch(string $path): bool {
     if($path==='/publishing-sitemap.xml'){journeys_method(['GET','HEAD']);header('Content-Type: application/xml; charset=utf-8');echo sitemap_xml(desk_sitemap());return true;}
     if($path==='/robots.txt'){journeys_method(['GET','HEAD']);header('Content-Type: text/plain; charset=utf-8');echo "User-agent: *\nAllow: /\nDisallow: /write\nDisallow: /install\nDisallow: /app\nDisallow: /storage\nDisallow: /client/\nDisallow: /payments/\nDisallow: /consent/\nDisallow: /webhooks/\nDisallow: /newsletter/confirm\nDisallow: /newsletter/unsubscribe\nDisallow: /newsletter/preferences\nDisallow: /founders/follow-up\nDisallow: /opportunities/review\nDisallow: /opportunities/evidence\n\nSitemap: ".url('/sitemap.xml')."\nSitemap: ".url('/publishing-sitemap.xml')."\n";return true;}
     if($path==='/opportunities/countries'){
-        journeys_method(['GET','HEAD']);$countries=opportunity_africa_countries();$indexed=opportunity_country_indexable();
-        desk_render('countries',compact('countries','indexed'),'Opportunities by African country',$path,false,[
+        journeys_method(['GET','HEAD']);$countries=opportunity_africa_countries();$indexed=opportunity_country_indexable();$available=[];foreach($countries as$slug=>$meta){$country=['slug'=>$slug]+$meta;if(array_filter(opportunity_country_records($country),static fn($r)=>ol_directory_match(ol_public_record($r),'')))$available[$slug]=true;}
+        desk_render('countries',compact('countries','indexed','available'),'Opportunities by African country',$path,false,[
             'title'=>'Funding & Opportunities by African Country · Waithaka Ndegwa',
             'description'=>'Browse grants, fellowships, accelerators, training and business opportunities by applicant country across Africa. Country pages only enter search indexes when current eligible opportunities are available.',
             'canonical'=>url($path),'robots'=>'index,follow'
@@ -83,7 +83,7 @@ function desk_dispatch(string $path): bool {
             return ol_directory_match(ol_public_record($r),$filters['status']);
         }));opportunity_sort_deadline($items);
         $total=count($items);$page=archive_page_number($_GET['page']??null);if($page===null||$page>max(1,(int)ceil($total/18))){http_response_code(404);return true;}$pageNumber=$page;$items=array_slice($items,($pageNumber-1)*18,18);
-        $kind='opportunity';$jobs=[];$filters['country']=$country['name'];$countryPage=$country;$schema=opportunity_country_schema($country,opportunity_country_records($country));$seo=opportunity_country_seo($country,count(opportunity_country_records($country)));
+        $kind='opportunity';$jobs=[];$filters['country']=$country['name'];$countryPage=$country;$allCountryRecords=opportunity_country_records($country);$currentCountryRecords=array_values(array_filter($allCountryRecords,static fn($r)=>ol_directory_match(ol_public_record($r),'')));$schema=opportunity_country_schema($country,$currentCountryRecords);$seo=opportunity_country_seo($country,count($currentCountryRecords),opportunity_country_quality($country,$allCountryRecords));
         if($pageNumber>1){$seo['title']='Page '.$pageNumber.' · '.$seo['title'];$seo['canonical']=url($path).'?page='.$pageNumber;}
         desk_render('index',compact('kind','items','filters','pageNumber','total','jobs','countryPage','schema'),'Opportunities for '.$country['demonym'].' applicants',$path,false,$seo);return true;
     }
