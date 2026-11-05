@@ -27,7 +27,9 @@ function international_africa_opportunities_catalog(?array $data=null): array {
 }
 function international_africa_opportunity_input(array $entry,string $checked): array {
     $input=curated_release_input($entry,$checked);
-    // The full support description is rendered separately as support_label. The Publishing Desk\'s\n    // legacy instrument field is capped at 100 characters, so do not duplicate long programme terms there.\n    $input['instrument']='';
+    // The full support description is rendered separately as support_label.
+    // The legacy instrument field is capped at 100 characters, so do not duplicate long programme terms there.
+    $input['instrument']='';
     if($entry['deadline_mode']==='rolling'){
         $input['deadline_mode']='rolling';$input['deadline']='';
     }elseif($entry['deadline_mode']==='unknown'){
