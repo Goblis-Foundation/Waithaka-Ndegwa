@@ -39,4 +39,6 @@ ogd(ol_seed($x)['close_reason']==='manual'&&ol_interval(ol_public_record($x))===
 $before=desk_get($initial[2]['record']);$before=desk_update($before['id'],['version'=>$before['version'],'action'=>'withdraw','note'=>'Fixture withdrawal'],$uid);
 $stats=ol_work($fetch,$ai,$now);ogd($stats['checked']<=2,'Bounded checks per pass.');ogd(desk_get($before['id'])['state']==='withdrawn','Worker never resurrects a withdrawal.');
 ogd((int)$pdo->query('SELECT COUNT(*) FROM email_outbox')->fetchColumn()===$mail&&(int)$pdo->query('SELECT COUNT(*) FROM publishing_jobs')->fetchColumn()===$jobs,'No mail, applications or social sends.');
+require __DIR__.'/editorial_visibility_assertions.php';
+editorial_visibility_assertions($initial,$uid);
 restore_error_handler();echo 'PASS: '.$n." source-review, native revision and side-effect boundary assertions.\n";
