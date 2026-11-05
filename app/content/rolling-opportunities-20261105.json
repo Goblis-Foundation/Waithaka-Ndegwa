@@ -1,0 +1,116 @@
+{
+  "release": "rolling-opportunities-20261105",
+  "checked_on": "2026-11-05",
+  "guidance_note": "The preparation checklist and application advice are editorial suggestions, not extra eligibility rules. Follow the organiser's current form and submit only the documents it requests.",
+  "entries": [
+    {
+      "slug": "drk-foundation-social-enterprise-funding",
+      "title": "DRK Foundation: Up to US$300,000 for Early-Stage Social Enterprises",
+      "organisation": "Draper Richards Kaplan Foundation",
+      "type": "grant",
+      "topic": "social-entrepreneurship",
+      "sectors": "Social enterprise, underserved communities, health, education, livelihoods, environment",
+      "summary": "African social enterprises with a tested solution can seek up to US$300,000 over three years, alongside hands-on organisational support. Funding may be a grant or investment capital, depending on the agreed terms.",
+      "support": "Up to US$300,000 over three years; grant or investment capital",
+      "currency": "USD",
+      "amount_max": "300000.00",
+      "deadline_iso": null,
+      "deadline_label": "Rolling applications; no fixed closing date",
+      "countries": "Organisations operating in Africa are eligible. DRK also prioritises Europe, India and the United States; consult its current geographic requirements.",
+      "benefits": [
+        "Up to US$300,000 in unrestricted grant funding or investment capital, usually released in tranches across three years.",
+        "Hands-on support, including a DRK board-service role and help with organisational development, fundraising, financial sustainability and scale.",
+        "Connections with DRK's portfolio community. Non-cash support and networking are separate from the financial award."
+      ],
+      "eligibility": [
+        "Independent nonprofit or impact-first, mission-driven for-profit organisations; some fiscally sponsored initiatives can qualify with a plan to become independent.",
+        "A post-pilot, pre-scale solution already reaching users, with early evidence of benefits for underserved communities.",
+        "A credible expansion model and an existing or planned earned-income stream; founders working full-time or intending to do so soon."
+      ],
+      "conditions": [
+        "Do not assume every award is a non-dilutive grant. The funding instrument, tranches and associated commitments are settled with DRK during closing.",
+        "Applications are competitive. Submission, interviews and due diligence do not guarantee an award.",
+        "Use the online application. DRK does not consider applications sent by email."
+      ],
+      "steps": [
+        "Read the official overview and FAQ, especially the exclusions and organisational-stage requirements.",
+        "Prepare an executive summary, pitch deck or business plan, and standard CVs for the entrepreneur or key leaders.",
+        "Open Apply Now from DRK's application page, complete the form, retain a copy and follow any subsequent requests."
+      ],
+      "apply_url": "https://www.drkfoundation.org/apply/",
+      "sources": [
+        ["DRK: funding instrument, amount and support model", "https://www.drkfoundation.org/apply/overview/"],
+        ["DRK: eligibility, exclusions and rolling applications", "https://www.drkfoundation.org/apply/faq/"],
+        ["DRK: required materials and official application route", "https://www.drkfoundation.org/apply/"]
+      ],
+      "notice": "",
+      "guide": {
+        "context": "Draper Richards Kaplan Foundation supports organisations that have moved beyond an idea and are working towards wider social impact. This opportunity combines capital with sustained organisational involvement, rather than a one-off cheque alone. For an African founder, the useful question is whether a tested solution and its delivery model are ready for that kind of growth partnership. Applications are accepted throughout the year; there is no annual deadline to rush towards.",
+        "fit": "This is a stronger match for a team with real users and demonstrable early outcomes than for a concept awaiting its first test. DRK generally favours young organisations, but its age guidance is not a rigid universal cutoff. Its exclusions include idea-stage ventures and work centred only on research, advocacy or awareness without the required direct-impact model. Read the complete FAQ before deciding that your legal structure or programme qualifies.",
+        "prepare": [
+          "As an editorial preparation step, reconcile user numbers, outcomes and financial figures across your deck, narrative and records. State the measurement period.",
+          "Map the immediate growth constraint: delivery capacity, staffing, customer acquisition, operating systems or another evidenced need. Explain the proposed response.",
+          "Discuss with your leadership how hands-on support and board involvement would work, and what information you can share during due diligence."
+        ],
+        "strategy": "Start with the people experiencing the problem, not the size of the funding request. Distinguish people reached from outcomes demonstrated: attendance, sales or registrations do not by themselves prove lasting improvement. Present the evidence you have, name its limitations and show what you would measure next. Explain an achievable first expansion step, the resources required and how quality would be maintained. These are suggestions for making your case understandable, not promises about how DRK will score it.",
+        "commitment": "Budget for the work involved in an application and subsequent conversations rather than treating the maximum amount as money already secured. Standard CVs matter: DRK says text biographies are not a substitute. Additional financial and impact reports are optional at the initial submission stage. Applicants without existing presentation materials may use a simple two-to-three-page document addressing the published prompts. Before accepting an offer, review its actual terms with your governing team and an appropriate adviser.",
+        "sources": []
+      }
+    },
+    {
+      "slug": "rufford-small-grants-nature-conservation",
+      "title": "Rufford Small Grants: Up to GBP7,000 for a First Conservation Project",
+      "organisation": "The Rufford Foundation",
+      "type": "grant",
+      "topic": "innovation",
+      "sectors": "Nature conservation, biodiversity, threatened habitats, human-wildlife coexistence",
+      "summary": "Early-career conservationists can apply year-round for a first Rufford Small Grant of up to GBP7,000. Projects must have a practical conservation purpose and take place in an eligible country, including Kenya and many other African countries.",
+      "support": "First grant up to GBP7,000; later funding stages require separate eligibility",
+      "currency": "GBP",
+      "amount_max": "7000.00",
+      "deadline_iso": null,
+      "deadline_label": "Rolling applications; one funding application per 12-month period",
+      "countries": "Eligible project countries include Kenya, Uganda, Tanzania, Rwanda, Ghana, Nigeria and South Africa. Check the official country list: not every African country is eligible; Sudan and South Sudan are currently excluded.",
+      "benefits": [
+        "A first-stage grant of up to GBP7,000 for a small-scale nature-conservation project.",
+        "A staged route to further support: second grants up to GBP8,000, followed by booster and completion stages. These are separate awards, not an automatic combined entitlement."
+      ],
+      "eligibility": [
+        "Early-career conservation applicants. Priority is given to MSc or PhD candidates and recent graduates; other applicants may qualify under the full criteria. Undergraduate students are not funded.",
+        "A conservation-focused project in an eligible country, with clear practical benefits rather than research alone.",
+        "Species-focused proposals must meet Rufford's threatened-species criteria. Projects addressing threatened habitats, human-wildlife conflict or conservation education may also be relevant."
+      ],
+      "conditions": [
+        "This is not unrestricted business-growth funding or a scholarship for tuition. Check which project costs are eligible.",
+        "Funds must be received and managed by a suitable organisation such as an NGO or university, not a personal bank account. Arrange this before applying.",
+        "Projects already started are not funded. Progress updates and a final report are required; later awards depend on the applicable conditions."
+      ],
+      "steps": [
+        "Review the criteria, country list, FAQ and application instructions before drafting.",
+        "Create an account on the official portal and complete the English-language form with a costed project plan.",
+        "Arrange three independent references. Submit the application within 90 days of starting it and ensure references arrive within the organiser's 12-week limit."
+      ],
+      "apply_url": "https://apply.ruffordsmallgrants.org/",
+      "sources": [
+        ["Rufford: grant stages and conservation eligibility", "https://apply.ruffordsmallgrants.org/help/criteria"],
+        ["Rufford: funding restrictions, references and reporting", "https://apply.ruffordsmallgrants.org/help/faqs"],
+        ["Rufford: eligible and excluded project countries", "https://apply.ruffordsmallgrants.org/help/eligibility"],
+        ["Rufford: application and reference timing", "https://apply.ruffordsmallgrants.org/apply/"],
+        ["Rufford: official application portal", "https://apply.ruffordsmallgrants.org/"]
+      ],
+      "notice": "",
+      "guide": {
+        "context": "A carefully designed conservation pilot can establish what works before a larger intervention is attempted. Rufford's small-grants programme is intended for emerging conservation practitioners working in developing or emerging-economy countries. The first application belongs to the first funding stage: the larger amounts advertised for later stages should not be presented as money available immediately to a new applicant. There is no fixed annual closing date, but application preparation and references still require planning.",
+        "fit": "Consider the opportunity when you can connect a specific conservation problem to a manageable project and an observable result. It is not a general award for any enterprise describing itself as green. A community initiative should explain the conservation outcome, not just the number of meetings planned. Applicants based outside the project country should also review Rufford's requirements concerning local conservation capacity and the project's priority.",
+        "prepare": [
+          "As editorial preparation, identify the conservation problem, project area, intended participants and a realistic sequence of activities. Check local permissions and consent requirements.",
+          "Build a budget from actual quantities and costs. Separate essential field activities from expenses excluded by the organiser, and document any other funding.",
+          "Contact suitable referees early, share your project background and confirm the receiving organisation can manage the funds. References must remain the referees' own independent assessments."
+        ],
+        "strategy": "Explain how each activity contributes to the intended conservation result and how you would recognise progress. For example, a training session is an activity; a subsequent change in a conservation practice needs its own evidence. Identify a sensible baseline, describe what can be measured with the available resources and avoid claiming that a short pilot will solve an entire ecosystem problem. Acknowledge risks, seasonal constraints and what you would do if an assumption proves wrong. This is editorial planning advice, not an additional funding rule.",
+        "commitment": "Rolling applications do not mean instant decisions. Allow time for independent references and review, and do not start spending on the assumption of success. Applications and references must be in English. An unsuccessful applicant must wait 12 months before applying again. The receiving organisation and your referees should understand their responsibilities before you submit; refer to the current official instructions for any changes.",
+        "sources": []
+      }
+    }
+  ]
+}

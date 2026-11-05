@@ -1,0 +1,9 @@
+.editorial-banner{margin:24px 0 32px;overflow:hidden;border-radius:16px;background:#eef3ef}
+.editorial-banner img{display:block;width:100%;height:auto;aspect-ratio:1200/630;object-fit:contain}
+.editorial-banner figcaption{padding:9px 16px;font-size:.8rem;color:#52656b;background:#f5f8f5}
+.desk-hero:has(.editorial-directory-art)>div:first-child{flex:1 1 60%;min-width:0}
+.desk-hero:has(.editorial-directory-art)>div:last-child{flex:0 1 36%;min-width:0}
+.desk-hero .editorial-directory-art{display:block;width:100%;max-width:460px;height:auto;border-radius:14px;aspect-ratio:1200/630;object-fit:contain}
+.desk-feature-card>img.editorial-card-art{display:block;width:100%;height:auto;aspect-ratio:1200/630;object-fit:contain}
+.post-card-media img[data-editorial-illustration]{object-fit:contain;background:#eef3ef}
+@media(max-width:650px){.editorial-banner{border-radius:10px}.desk-hero .editorial-directory-art{width:100%;margin-top:20px}}
