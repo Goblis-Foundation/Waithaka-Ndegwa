@@ -2,6 +2,9 @@
 declare(strict_types=1);
 require_once __DIR__.'/journeys.php';
 
+/** The RSS route uses the same public editorial projection as My Thoughts. */
+function journeys_feed_posts(): array { return latest_posts(50); }
+
 function journeys_route_error(Throwable $error): string {
     if($error instanceof JourneyValidationException || $error instanceof JourneyConflictException){http_response_code($error instanceof JourneyConflictException?409:422);return $error->getMessage();}
     $reference=strtoupper(bin2hex(random_bytes(5)));error_log('Journeys request '.$reference.' failed: '.get_class($error));http_response_code(503);
@@ -55,7 +58,7 @@ function journeys_dispatch(string $path): bool {
                 if(!journeys_checked($_POST['subscribe_ack']??null))throw new JourneyValidationException('Please confirm that you want to receive these emails.');
                 $email=journeys_email($_POST['email']??'');$first=journeys_text($_POST['first_name']??'','First name',60,true);$last=journeys_text($_POST['last_name']??'','Last name',59,true);$name=$first.' '.$last;
                 if(!journeys_rate_limit('newsletter-ip',ip_hash(),8)||!journeys_rate_limit('newsletter-email',$email,3)){http_response_code(429);header('Retry-After: 3600');$error='Too many requests were received. Please try again later.';}
-                else{newsletter_request_signup($email,$name,['first_name'=>$first,'last_name'=>$last]);flash('success','Your request has been recorded. A subscription becomes active only after email confirmation.');redirect(url('/newsletter'));}
+                else{newsletter_request_signup($email,$name,['first_name'=>$first,'last_name'=>$last]);flash('success','Your request has been recorded. A subscription becomes active only after email confirmation. A welcome email will follow when delivery is available. You can unsubscribe at any time.');redirect(url('/newsletter'));}
             }catch(Throwable $e){$error=journeys_route_error($e);}
         }
         journeys_public_render('journeys/newsletter',['values'=>$values,'error'=>$error],'Follow My Thoughts','Receive new writing and Startup Journeys by email, or subscribe to the RSS feed.','/newsletter','newsletter');
@@ -73,9 +76,9 @@ function journeys_dispatch(string $path): bool {
         journeys_public_render('journeys/newsletter_action',['purpose'=>$purpose,'token'=>$token,'record'=>$record,'error'=>$error],$purpose==='confirm'?'Confirm Subscription':'Unsubscribe','Manage your subscription to Waithaka Ndegwa’s writing.',$path,'newsletter');
     }
     if($path==='/feed.xml'){
-        journeys_method(['GET','HEAD']);$s=db()->prepare("SELECT id,title,slug,standfirst,content_html,status,published_at FROM posts WHERE status IN ('published','scheduled') AND published_at IS NOT NULL AND published_at<=? ORDER BY published_at DESC,id DESC LIMIT 50");$s->execute([journeys_now()]);
+        journeys_method(['GET','HEAD']);
         header('Content-Type: application/rss+xml; charset=utf-8');header('X-Content-Type-Options: nosniff');
-        if(($_SERVER['REQUEST_METHOD']??'GET')!=='HEAD')echo journeys_rss_xml($s->fetchAll());exit;
+        if(($_SERVER['REQUEST_METHOD']??'GET')!=='HEAD')echo journeys_rss_xml(journeys_feed_posts());exit;
     }
 
     if($path==='/write/journeys'){
@@ -96,7 +99,7 @@ function journeys_dispatch(string $path): bool {
             journeys_verify_csrf();$actor=(int)current_user()['id'];
             try{
                 $action=journeys_text($_POST['action']??'save','Action',30);
-                if($action==='save'){journeys_save_season($_POST,$id,$actor);flash('success','Journey saved.');}
+                if($action==='save'){journeys_save_season($id,$_POST,$actor);flash('success','Journey saved.');}
                 elseif($action==='save_episode'){journeys_save_episode($id,$_POST,$actor);flash('success','Chapter link saved. Public display also requires the journey and post to be published.');}
                 elseif($action==='remove_episode'){journeys_remove_episode($id,(int)journeys_id($_POST['episode_id']??null,'chapter'),$actor);flash('success','Chapter link removed. The post is unchanged.');}
                 elseif($action==='delete'){
@@ -113,7 +116,7 @@ function journeys_dispatch(string $path): bool {
         if(!is_string($filter)||($filter!==''&&!array_key_exists($filter,founders_review_states())))journeys_not_found();
         $where=$filter!==''?' WHERE review_status=?':'';$parameters=$filter!==''?[$filter]:[];
         $s=db()->prepare('SELECT COUNT(*) FROM founder_submissions'.$where);$s->execute($parameters);
-        $pagination=archive_pagination(archive_page_number($_GET['page']??null),(int)$s->fetchColumn(),50,'/write/journeys/founders',$filter!==''?['status'=>$filter]:[]);
+        $pagination=archive_pagination(archive_page_number($_GET['page']??null),(int)$s->fetchColumn(),50,'/founders',$filter!==''?['status'=>$filter]:[]);
         if($pagination===null)journeys_not_found();
         $s=db()->prepare('SELECT id,reference,submission_type,founder_name,venture_name,country,review_status,is_public,created_at FROM founder_submissions'.$where.' ORDER BY created_at DESC,id DESC LIMIT 50 OFFSET '.(int)$pagination['offset']);$s->execute($parameters);
         render_write('journeys_founders',['writeTitle'=>'Founder submissions','submissions'=>$s->fetchAll(),'filter'=>$filter,'pagination'=>$pagination]);exit;
