@@ -1,0 +1,371 @@
+{
+  "release": "africa-country-opportunities-20261105",
+  "checked_on": "2026-11-05",
+  "guidance_note": "Preparation checklists and application suggestions are editorial guidance, not additional eligibility rules. Always follow the organiser's current form, terms and official source.",
+  "entries": [
+    {
+      "slug": "undp-timbuktoo-greentech-launchpad",
+      "title": "UNDP timbuktoo GreenTech Launchpad: Pan-African Incubation for Climate Startups",
+      "organisation": "United Nations Development Programme (UNDP)",
+      "type": "accelerator",
+      "topic": "innovation",
+      "sectors": "Climate technology, clean energy, circular economy, sustainable agriculture, water, green mobility, carbon markets, sustainable manufacturing",
+      "summary": "African GreenTech startups with a prototype or MVP can apply on a rolling basis for structured incubation, mentorship, investor readiness support and access to the pan-African timbuktoo ecosystem through the GreenTech Hub hosted in Kenya.",
+      "support": "Structured incubation, mentorship, digital tools, investor-readiness support and pan-African ecosystem access; no guaranteed cash grant",
+      "deadline_iso": null,
+      "deadline_label": "Rolling applications; quarterly cohorts",
+      "countries": "Open to startups based in Africa or building solutions targeting African green and climate markets.",
+      "benefits": [
+        "Structured incubation through accredited African incubators and access to experienced climate-tech mentors and sector specialists.",
+        "Access to the timbuktoo Launchpad/SIGMA platform, founder network, demo days and ecosystem events across Africa.",
+        "Investment-readiness support, including pitch development and climate-finance preparation. Any later investment or accelerator pathway is separate and not guaranteed."
+      ],
+      "eligibility": [
+        "Startup based in Africa, or a startup building a solution for African green and climate markets.",
+        "A prototype or Minimum Viable Product, a committed founding team and a clearly defined climate, clean-energy or environmental challenge.",
+        "A solution with credible growth and scalability potential. UNDP particularly encourages women-led, youth-led and underserved or rural founders."
+      ],
+      "conditions": [
+        "This is an incubation and venture-building opportunity, not a promise of grant funding or investment.",
+        "Delivery may involve local or virtual support depending on the available accredited incubator and cohort arrangements.",
+        "Applicants should verify the current cohort dates, time commitment and any travel arrangements before accepting a place."
+      ],
+      "steps": [
+        "Read the official UNDP Kenya call and confirm that your product stage and sector fit the GreenTech scope.",
+        "Prepare a concise problem statement, MVP evidence, founder roles, customer or pilot evidence and the next milestone you want incubation to help achieve.",
+        "Submit through the official timbuktoo application platform and keep a copy of the information supplied."
+      ],
+      "apply_url": "https://airtable.com/appYbpSCCV1VosC1M/pagMQfKHj9mIYPFyN/form",
+      "sources": [
+        [
+          "UNDP Kenya official GreenTech Launchpad call",
+          "https://www.undp.org/kenya/news/call-applications-join-timbuktoo-launchpad-greentech-startups"
+        ]
+      ],
+      "notice": "Applications are rolling. Cohort timing and individual incubator arrangements can change; confirm the current intake on the official source before committing time or travel.",
+      "guide": {
+        "context": "The GreenTech Launchpad is part of UNDP's timbuktoo initiative and is designed for startups that have moved beyond an idea into something that can be tested with users. The programme is hosted through Kenya's GreenTech Hub but the call is pan-African. The practical value is structured venture support: founders can work on product-market fit, operating systems, climate impact, investment readiness and connections to a wider network rather than treating the programme as a one-off competition.",
+        "fit": "A stronger fit is a team with a working prototype or MVP and a clear environmental problem, not a concept that still needs basic validation. Green positioning alone is not enough. The application should make the climate or environmental outcome understandable, show who uses or pays for the solution, and explain why the team is capable of executing the next stage. A business can be early, but it should have enough evidence to make its assumptions testable.",
+        "prepare": [
+          "Reconcile product-stage, customer, pilot and revenue claims so the application, pitch deck and founder narrative describe the same period.",
+          "Prepare an evidence-backed climate case: identify the baseline problem, the change your solution could create and which indicators you can measure without overstating impact.",
+          "Map the next 6–12 months of work, including product, commercial, regulatory and funding milestones, so the incubation request is tied to specific decisions."
+        ],
+        "strategy": "Explain the commercial model and climate value together. For example, a clean-energy product should show the customer problem, adoption constraint and economics as well as the emissions or access benefit. Distinguish users reached from verified outcomes, and distinguish a pilot from a commercial deployment. If the technology requires licensing, hardware certification, data access or partnerships, identify those dependencies rather than presenting scale as automatic. The strongest case is usually a credible next step supported by real evidence, not the largest headline market estimate.",
+        "commitment": "Treat the programme as a working relationship that requires founder time, data and follow-through. Demo days and investor introductions can be useful, but they are not financing commitments. Confirm whether any in-person event is mandatory and who pays travel, accommodation and visas before incurring costs. Keep intellectual-property and customer confidentiality in mind when sharing technical materials. The organiser's current cohort instructions override this editorial guide."
+      }
+    },
+    {
+      "slug": "undp-timbuktoo-edtech-launchpad",
+      "title": "UNDP timbuktoo EdTech Launchpad: Pan-African Incubation for Education Startups",
+      "organisation": "United Nations Development Programme (UNDP)",
+      "type": "accelerator",
+      "topic": "innovation",
+      "sectors": "Education technology, training, skills development, digital learning, accessibility, local-language learning",
+      "summary": "African EdTech startups and digital solution providers with a prototype can apply for rolling admission to a structured incubation programme offering mentorship, ecosystem access, digital tools and investment-readiness support.",
+      "support": "Structured incubation, mentorship, SIGMA platform access, investor readiness and pan-African ecosystem connections; no guaranteed cash award",
+      "deadline_iso": null,
+      "deadline_label": "Rolling applications; quarterly cohorts",
+      "countries": "Open to startups based in Africa working in education, training or skills development.",
+      "benefits": [
+        "Incubation delivered through participating African incubators, with mentorship from entrepreneurs and education-sector experts.",
+        "Access to the pan-African timbuktoo founder network and SIGMA digital platform for structured startup development.",
+        "Investment-readiness support and possible pathways to later acceleration or investment opportunities, without a guaranteed investment outcome."
+      ],
+      "eligibility": [
+        "Be based in Africa and offer a solution related to education, training or skills development.",
+        "Have a prototype that can be tested or deployed in a local context and a committed team able to participate.",
+        "Women-led startups, rural founders and solutions integrating local languages or accessibility features are particularly encouraged."
+      ],
+      "conditions": [
+        "The programme supports venture development; admission is not an investment, grant or procurement contract.",
+        "Founders should confirm the delivery language, incubator, cohort schedule and participation format for the intake they enter.",
+        "Any claims about learner outcomes should be supported by the evidence available and should not overstate what a small pilot proves."
+      ],
+      "steps": [
+        "Review the official UNDP EdTech call and identify the education problem, learner or institutional user, and product stage.",
+        "Prepare a short product demonstration or prototype description, early user evidence, team roles and an explanation of how the solution improves learning or skills delivery.",
+        "Submit through the official timbuktoo application platform and retain your submitted answers."
+      ],
+      "apply_url": "https://airtable.com/appYbpSCCV1VosC1M/pagMQfKHj9mIYPFyN/form",
+      "sources": [
+        [
+          "UNDP official Pan-African EdTech call",
+          "https://www.undp.org/africa/waca/news/call-applications"
+        ]
+      ],
+      "notice": "Applications are rolling. Confirm the next cohort, incubator match and current delivery arrangements on the official source.",
+      "guide": {
+        "context": "The EdTech Launchpad is designed to move African education technologies from promising prototypes toward stronger products, institutions and investment cases. It is not limited to one country even though the thematic hub is in Dakar. This matters for founders in Kenya and elsewhere: the relevant question is whether the product solves an education, training or skills problem in an African context and has reached the point where structured incubation can improve adoption and scale.",
+        "fit": "A good fit is a startup with a demonstrable prototype and a clear user: learners, teachers, training providers, employers or education institutions. A weak fit is a generic digital platform without a defined learning problem or evidence that target users can access it. Founders should also consider affordability, connectivity, language, disability inclusion and institutional procurement where those factors determine adoption.",
+        "prepare": [
+          "Prepare user evidence such as pilots, engagement, completion, learning or placement indicators, stating clearly what has and has not been independently validated.",
+          "Clarify who pays, who uses the product and who decides whether it is adopted; these may be different actors in education markets.",
+          "Identify safeguarding, privacy, accessibility and data-governance requirements relevant to learners, particularly where minors are involved."
+        ],
+        "strategy": "Connect the technology to an education outcome and an operating model. Avoid equating downloads or registrations with learning impact unless you have evidence supporting that conclusion. If institutional adoption is part of the model, explain the sales cycle and implementation burden. If direct-to-consumer, explain affordability and retention. Local-language or accessibility capability can strengthen the case when it solves a real barrier, but it should be shown through user needs rather than treated as a decorative feature.",
+        "commitment": "Incubation requires founder participation and may involve milestones, mentoring and product-development work. Confirm the current schedule and whether in-person participation is expected. Investor readiness is preparation for conversations, not a commitment that capital will follow. Keep learner data and institutional information appropriately protected when demonstrating the product. The official programme terms remain controlling."
+      }
+    },
+    {
+      "slug": "undp-timbuktoo-minetech-launchpad",
+      "title": "UNDP timbuktoo MineTech Launchpad: Incubation for African Mining Technology Startups",
+      "organisation": "United Nations Development Programme (UNDP)",
+      "type": "accelerator",
+      "topic": "innovation",
+      "sectors": "Mining technology, mineral traceability, environmental monitoring, battery value chains, mine safety, automation, mine logistics and financial inclusion",
+      "summary": "African MineTech startups with a working prototype or MVP can apply on a rolling basis for incubation through the Zambia-hosted timbuktoo MineTech Hub and its pan-African partner network.",
+      "support": "Incubation, mentorship, technical and industry connections, digital platform access and investment readiness; no guaranteed funding",
+      "deadline_iso": null,
+      "deadline_label": "Rolling applications; new cohorts approximately every three months",
+      "countries": "Open to startups based in Africa or building solutions for African mining markets.",
+      "benefits": [
+        "Structured venture support through the MineTech Hub and participating incubators, with access to sector experts and ecosystem partners.",
+        "Support around mining-market validation, technology development, investor readiness and industry engagement.",
+        "Access to a broader pan-African timbuktoo network. Any financing or commercial contract is separate from programme admission."
+      ],
+      "eligibility": [
+        "Startup based in Africa or targeting African mining markets, with a working prototype or Minimum Viable Product.",
+        "A committed team and a technology solution addressing a real mining or mineral-value-chain problem.",
+        "Relevant themes include traceability, environmental monitoring, battery value chains, remote operations, mine safety and market access."
+      ],
+      "conditions": [
+        "Mining solutions can carry safety, environmental, licensing, data and site-access requirements; applicants should identify those constraints early.",
+        "Admission does not itself grant access to mines, mineral rights, regulatory approvals, investment or a customer contract.",
+        "Cohort timing and in-person participation arrangements should be confirmed for the current intake."
+      ],
+      "steps": [
+        "Read the official UNDP Zambia call and confirm your solution sits within a mining or mineral-value-chain use case.",
+        "Prepare a problem statement grounded in a real operator or community need, prototype evidence and a plan for safe validation.",
+        "Apply through the official timbuktoo platform and be ready to explain technical feasibility, adoption constraints and the team's execution capacity."
+      ],
+      "apply_url": "https://airtable.com/appYbpSCCV1VosC1M/pagMQfKHj9mIYPFyN/form",
+      "sources": [
+        [
+          "UNDP Zambia official MineTech Launchpad call",
+          "https://www.undp.org/zambia/press-releases/call-applications-join-timbuktoo-launchpad"
+        ]
+      ],
+      "notice": "Applications are rolling. Confirm the current cohort and delivery arrangements directly with UNDP/timbuktoo.",
+      "guide": {
+        "context": "MineTech is a specialised startup market where a technically interesting product is not enough. Mining operators work in environments shaped by safety, regulation, equipment integration, procurement standards and high consequences for failure. The timbuktoo MineTech Launchpad offers a route for African founders to work on those commercial and technical realities while connecting with industry and venture-support networks.",
+        "fit": "The programme is strongest for startups that can demonstrate a working prototype and a specific mining problem. A broad AI, IoT or fintech product should explain exactly where it fits in the mining workflow and who would use it. Startups working on traceability, environmental monitoring, mine safety, battery value chains, remote operations or mining-linked market access should be able to describe the existing process and why their approach is materially better.",
+        "prepare": [
+          "Document the operational workflow your product changes, including the person or organisation responsible for adopting it and the conditions under which it can be tested.",
+          "Prepare evidence of prototype performance and identify safety, interoperability, data, environmental or licensing requirements that remain unresolved.",
+          "Build a realistic validation plan with milestones, responsible partners and a distinction between technical testing and commercial deployment."
+        ],
+        "strategy": "Use mining-specific evidence. Explain the cost, risk, delay or environmental problem as operators experience it today and how your technology changes that outcome. A prototype result in a controlled environment should not be presented as proof of mine-site performance. If you need operator data or site access, say so. If the business depends on procurement by large mining companies, explain the qualification path and sales cycle. This makes the application more credible than a generic claim that the technology can serve the whole mining sector.",
+        "commitment": "Industry programmes can require disclosure of technical information and collaboration with potential partners. Decide what can be shared without compromising intellectual property or customer confidentiality. Confirm travel, site-visit and insurance arrangements before participating in physical activities. Investor and industry introductions are pathways, not guaranteed transactions. Follow the current official programme terms."
+      }
+    },
+    {
+      "slug": "undp-timbuktoo-creativetech-launchpad",
+      "title": "UNDP timbuktoo CreativeTech Launchpad: Incubation for Africa's Creative Economy Startups",
+      "organisation": "United Nations Development Programme (UNDP)",
+      "type": "accelerator",
+      "topic": "innovation",
+      "sectors": "Creative technology, digital media, animation, gaming, music, film, design, creator economy, immersive technologies and AI-enabled creative tools",
+      "summary": "CreativeTech startups across Africa can apply on a rolling basis to the South Africa-hosted timbuktoo Creatives Hub for structured incubation, mentorship, digital tools, investor readiness and pan-African ecosystem access.",
+      "support": "Incubation, mentorship, SIGMA platform, demo-day access and investor readiness; no guaranteed cash grant",
+      "deadline_iso": null,
+      "deadline_label": "Rolling applications; quarterly cohorts",
+      "countries": "Open to startups based in Africa or building technology-enabled solutions targeting African creative markets.",
+      "benefits": [
+        "Structured incubation through the timbuktoo network with experienced founders and creative-industry experts.",
+        "Access to Seedstars' SIGMA platform, a pan-African founder network, demo days and ecosystem events.",
+        "Support with investment readiness and potential pathways to acceleration or early-stage finance; these later outcomes are not guaranteed."
+      ],
+      "eligibility": [
+        "Startup based in Africa or building a solution for African markets, with a prototype or MVP and a committed founding team.",
+        "Technology-enabled solution relevant to the creative economy, such as gaming, music, film, animation, creator platforms, design, immersive technology or AI-enabled creative tools.",
+        "Demonstrable potential for growth and scalability. Women-led, youth-led and underserved-community founders are particularly encouraged."
+      ],
+      "conditions": [
+        "Applicants should distinguish creative content businesses from technology-enabled products and explain where the scalable technology layer sits.",
+        "Intellectual-property ownership, creator rights, licensing and training-data rights should be clear where they are material to the product.",
+        "Cohort dates and travel or physical-event expectations should be checked before accepting participation."
+      ],
+      "steps": [
+        "Review the official UNDP South Africa call and identify the creative-market problem, user and product stage.",
+        "Prepare a product demonstration, audience or customer evidence, revenue model and an explanation of how intellectual property is owned or licensed.",
+        "Submit through the official timbuktoo platform and keep a copy of your application."
+      ],
+      "apply_url": "https://airtable.com/appYbpSCCV1VosC1M/pagMQfKHj9mIYPFyN/form",
+      "sources": [
+        [
+          "UNDP South Africa official CreativeTech Launchpad call",
+          "https://www.undp.org/south-africa/press-releases/undp-launches-call-applications-creativetech-startups-join-timbuktoo-launchpad"
+        ]
+      ],
+      "notice": "Rolling call. Confirm the current cohort schedule and event arrangements with the organiser.",
+      "guide": {
+        "context": "Africa's creative economy includes rapidly growing digital businesses, but founders often face a mismatch between creative talent and the venture systems needed to scale a technology product. The CreativeTech Launchpad is intended to strengthen that venture layer through incubation, mentorship, product-development tools and ecosystem access. The thematic hub is hosted in South Africa while eligibility extends across Africa.",
+        "fit": "A stronger fit is a startup where technology materially changes creation, distribution, monetisation, rights management or audience engagement. A conventional production company can still have innovation, but it should explain the scalable technology component if applying to a CreativeTech programme. Founders should have at least a prototype or MVP and be able to show who uses it and why.",
+        "prepare": [
+          "Prepare a short demo or visual walkthrough that shows the product rather than relying only on a pitch narrative.",
+          "Document audience, creator or customer engagement and separate vanity metrics from evidence of repeated use, willingness to pay or revenue.",
+          "Review copyright, music, film, game, design, creator and AI-data rights so you can explain what the company owns, licenses or must still secure."
+        ],
+        "strategy": "Creative products can generate strong attention while still lacking a sustainable business model. Show how the startup captures value, how creators or rights-holders are treated, and what prevents competitors from simply copying the service. For AI-enabled products, explain data provenance and creator-rights safeguards. If the product depends on marketplaces or social platforms, identify platform concentration risk. Tie the incubation request to a specific growth or product challenge rather than asking generally for exposure.",
+        "commitment": "Participation may require mentoring sessions, platform use, demo preparation and engagement with partners. Confirm whether physical events are optional or mandatory and who covers travel. Treat investor introductions as relationship-building, not committed financing. Do not disclose copyrighted or confidential customer assets without permission. The official call and cohort terms prevail."
+      }
+    },
+    {
+      "slug": "undp-timbuktoo-agritech-launchpad",
+      "title": "UNDP timbuktoo AgriTech Launchpad: Pan-African Incubation for Agriculture Startups",
+      "organisation": "United Nations Development Programme (UNDP)",
+      "type": "accelerator",
+      "topic": "agribusiness",
+      "sectors": "Agriculture technology, climate-smart agriculture, precision farming, agri-data, market access, agri-finance, supply chains, food processing and sustainable inputs",
+      "summary": "African AgriTech startups with a prototype or MVP can apply on a rolling basis to the Ghana-hosted timbuktoo AgriTech Hub for incubation, mentorship, market and investor readiness, and pan-African ecosystem access.",
+      "support": "Structured incubation, mentorship, SIGMA platform access, market and investor readiness; no guaranteed cash award",
+      "deadline_iso": null,
+      "deadline_label": "Rolling applications; quarterly cohorts",
+      "countries": "Open to startups based in Africa or building solutions targeting African agricultural markets.",
+      "benefits": [
+        "Structured incubation and access to mentors, entrepreneurs and agriculture-sector experts through the timbuktoo network.",
+        "Participation in the pan-African founder and ecosystem network plus SIGMA platform tools for startup development and progress tracking.",
+        "Investment-readiness support, demo-day exposure and possible later acceleration or financing pathways; no financing outcome is guaranteed."
+      ],
+      "eligibility": [
+        "Startup based in Africa or serving African agricultural markets, with a prototype or MVP and a committed founding team.",
+        "A technology-driven solution addressing a clearly defined challenge in the agricultural value chain.",
+        "Relevant areas include climate-smart agriculture, precision farming, analytics, market access, agri-finance, supply chains, food processing and sustainable agricultural inputs."
+      ],
+      "conditions": [
+        "Applicants should show how the solution works for the farmer, buyer, processor or other intended user under real operating conditions.",
+        "Pilot activity should be distinguished from commercially repeatable deployment, especially where hardware, agronomy or seasonal testing is involved.",
+        "Current cohort schedule, delivery format and any physical participation requirements should be confirmed with the organiser."
+      ],
+      "steps": [
+        "Read the official UNDP Ghana call and confirm the agricultural problem, intended user and prototype stage.",
+        "Prepare evidence from field tests or customer discovery, the business model, unit economics where available and the next validation milestone.",
+        "Apply through the official timbuktoo platform and retain a copy of the submitted information."
+      ],
+      "apply_url": "https://airtable.com/appYbpSCCV1VosC1M/pagMQfKHj9mIYPFyN/form",
+      "sources": [
+        [
+          "UNDP Ghana official AgriTech Launchpad call",
+          "https://www.undp.org/ghana/press-releases/call-applications-join-pan-african-incubation-programme-agritech-startups"
+        ]
+      ],
+      "notice": "Rolling call. Agricultural seasons and local validation needs can affect programme timing; confirm the current cohort arrangements.",
+      "guide": {
+        "context": "AgriTech ventures often need to prove both technology performance and adoption in fragmented, seasonal markets. The timbuktoo AgriTech Launchpad is intended to help African founders build stronger products and businesses around that reality. Although the thematic hub is in Ghana, the call is pan-African and may therefore be relevant to founders in Kenya and other African countries.",
+        "fit": "A good fit is a startup with a functioning prototype or MVP and a specific agricultural user or buyer. Generic claims that technology will 'transform farming' are not enough. The application should identify the value-chain bottleneck, who pays, how the solution reaches users and what evidence exists from farms, processors, traders, lenders or other relevant stakeholders.",
+        "prepare": [
+          "Organise field evidence by season, geography and user type so results are not presented as universally applicable when they come from a narrow test.",
+          "Prepare the commercial model, including pricing, distribution, after-sales support and any working-capital requirement that could affect scale.",
+          "Identify agronomic, food-safety, data, certification or hardware requirements relevant to deployment and who is responsible for meeting them."
+        ],
+        "strategy": "Show the relationship between farm-level value and business sustainability. For example, a precision tool should explain the cost it adds, the input or yield improvement it is expected to create and how that result has been measured. A marketplace should explain liquidity and repeat transactions, not just registered users. A climate solution should distinguish projected resilience benefits from observed outcomes. Explain seasonality and distribution constraints honestly; those details make a scaling plan more credible.",
+        "commitment": "Agricultural pilots take time and may depend on growing seasons, field partners and physical logistics. Confirm the incubation timetable against those constraints. Investor-readiness support is not working capital, so maintain a separate financing plan for operations. Clarify data ownership with farmers and partners, and avoid sharing confidential buyer or supplier information without consent. Official programme terms govern participation."
+      }
+    },
+    {
+      "slug": "undp-timbuktoo-healthtech-launchpad",
+      "title": "UNDP timbuktoo HealthTech Launchpad: Pan-African Incubation for Health Startups",
+      "organisation": "United Nations Development Programme (UNDP)",
+      "type": "accelerator",
+      "topic": "innovation",
+      "sectors": "Health technology, telemedicine, digital health, AI, diagnostics, medical devices, biotechnology, nutrition, health logistics and supply chains",
+      "summary": "HealthTech startups from across Africa with a prototype or MVP can apply on a rolling basis for incubation through the Rwanda-hosted timbuktoo HealthTech Hub, with mentorship, digital tools and investment-readiness support.",
+      "support": "Up to 12 months of incubation support, mentorship, digital platform access and investment readiness; no guaranteed grant or investment",
+      "deadline_iso": null,
+      "deadline_label": "Rolling applications; Cohort 1 closed, later cohorts considered from December 2026 onward",
+      "countries": "Pan-African: startups from anywhere in Africa may apply, including countries without an accredited local incubator.",
+      "benefits": [
+        "Structured incubation through an accredited Entrepreneurship Support Organisation, including virtual or cross-border support where a local ESO is unavailable.",
+        "Mentorship, pan-African founder connections and use of the timbuktoo Launchpad/SIGMA digital platform.",
+        "Investment-readiness support, demo-day participation and access to possible later acceleration or investment pathways; no financing is guaranteed."
+      ],
+      "eligibility": [
+        "Startup based in Africa or building a solution for African healthcare markets, with a prototype or Minimum Viable Product and a committed founding team.",
+        "A clearly defined healthcare challenge and a technology-driven solution with growth potential.",
+        "Relevant areas include telemedicine, AI and health data, medical devices and diagnostics, biotechnology, nutrition technology and health supply-chain solutions."
+      ],
+      "conditions": [
+        "Cohort 1 is closed. Applications received now are considered for later cohorts, beginning with the December 2026 intake according to the current official notice.",
+        "Health products may require regulatory approval, clinical validation, patient-data safeguards or medical-device compliance; programme admission does not replace those requirements.",
+        "In-person event travel is not automatically covered unless the organiser expressly confirms it."
+      ],
+      "steps": [
+        "Read the official UNDP Rwanda call, especially its later-cohort and travel notes, before applying.",
+        "Prepare product-stage evidence, intended clinical or health-system users, data and regulatory requirements, and any pilot or validation results.",
+        "Submit through the official timbuktoo application platform and keep a copy of all claims and evidence supplied."
+      ],
+      "apply_url": "https://airtable.com/appYbpSCCV1VosC1M/pagMQfKHj9mIYPFyN/form",
+      "sources": [
+        [
+          "UNDP Rwanda official HealthTech Launchpad call",
+          "https://www.undp.org/rwanda/blog/call-applications-pan-african-timbuktoo-launchpad-healthtech-startups"
+        ]
+      ],
+      "notice": "The first cohort is closed; current applications are being considered for Cohort 2 (December 2026) onward. Confirm the latest cohort schedule before applying.",
+      "guide": {
+        "context": "The HealthTech Launchpad is one of the more detailed timbuktoo calls because health innovation carries clinical, regulatory and data responsibilities beyond ordinary startup development. The hub is in Kigali, but the call explicitly welcomes eligible HealthTech startups from anywhere in Africa and can match founders to local, virtual or cross-border support depending on the available incubator network.",
+        "fit": "A strong fit is a startup with a functional prototype or MVP addressing a defined healthcare problem and a team able to engage in an extended incubation process. The product does not need to be fully commercial, but founders should understand the clinical workflow or health-system context in which it will operate. A consumer wellness concept and a regulated medical product face different evidence and compliance requirements; the application should not blur that distinction.",
+        "prepare": [
+          "Map the healthcare workflow and identify the patient, clinician, facility, payer or supply-chain actor who uses and pays for the solution.",
+          "Prepare current evidence from usability, pilots, clinical validation or market testing, clearly distinguishing non-clinical product metrics from health outcomes.",
+          "Document privacy, cybersecurity, consent, regulatory, interoperability and medical-device requirements relevant to the product and the markets you intend to enter."
+        ],
+        "strategy": "Health applications should avoid unsupported medical claims. Explain what the product does, what evidence supports that function, and which outcomes still require validation. If AI is involved, describe the data source, intended human oversight and known limitations. If the business sells to hospitals or governments, explain procurement and integration. If direct-to-consumer, explain affordability and clinical escalation. The incubation request should focus on specific unresolved barriers rather than general visibility.",
+        "commitment": "The official notice describes up to 12 months of incubation, beginning with a core curriculum and then self-paced progression. Founder participation therefore needs to fit operating responsibilities. Confirm language, assigned incubator and event format before accepting. Where in-person participation is offered, travel is not automatically funded. Protect patient and institutional data when sharing examples. Programme admission is not regulatory approval or a financing commitment."
+      }
+    },
+    {
+      "slug": "gef-small-grants-northern-cape-conservation-2026",
+      "title": "GEF Small Grants Programme South Africa: Up to US$30,000 for Northern Cape Community Conservation",
+      "organisation": "United Nations Development Programme / GEF Small Grants Programme",
+      "type": "grant",
+      "topic": "innovation",
+      "sectors": "Biodiversity, community conservation, Indigenous knowledge, climate resilience, sustainable land management and livelihoods",
+      "summary": "Registered NGOs, CBOs, CSOs and research or academic institutions working with communities in priority Northern Cape municipalities can apply for community-led conservation grants of up to US$30,000.",
+      "support": "Up to US$30,000 per project for 12–18 months",
+      "deadline_iso": "2026-11-05T23:59:00+02:00",
+      "deadline_label": "5 November 2026, 23:59 SAST (6 November 2026, 00:59 EAT)",
+      "countries": "South Africa only; projects must be implemented in eligible Northern Cape municipalities including Richtersveld, Nama-Khoi, Kamiesberg and Hantam, with Dawid Kruiper also identified as a priority area.",
+      "benefits": [
+        "Grant funding of up to US$30,000 per project for eligible community-led conservation work.",
+        "Implementation periods of approximately 12 to 18 months under the ICCA-GSI Phase 2 call.",
+        "Priority for initiatives showing community ownership, participation of women and youth, respect for Indigenous and local knowledge, and clear environmental and livelihood benefits."
+      ],
+      "eligibility": [
+        "Registered NGOs, community-based organisations, civil society organisations and research or academic institutions working with communities in the targeted Northern Cape areas.",
+        "Projects must be implemented in the named priority municipalities and align with community conservation and ICCA objectives.",
+        "Private companies and government entities are not eligible under the published call."
+      ],
+      "conditions": [
+        "The deadline is imminent. Only apply if your organisation can complete the official template and supporting documents accurately before the stated cutoff.",
+        "The call encourages partnerships, community contributions and co-financing; applicants should describe these honestly and distinguish confirmed contributions from prospective ones.",
+        "Use the official ICCA-GSI Phase 2 project proposal template and current submission instructions."
+      ],
+      "steps": [
+        "Read the complete official UNDP South Africa call and verify the municipality, applicant type and project scope before preparing submission files.",
+        "Complete the official project proposal template and assemble the required supporting documents, budget and organisational information.",
+        "Submit according to the official call instructions to the designated GEF Small Grants Programme South Africa address before the deadline and retain delivery evidence."
+      ],
+      "apply_url": "https://www.undp.org/south-africa/blog/gef-small-grants-programme-opens-call-community-led-conservation-projects-northern-cape",
+      "sources": [
+        [
+          "UNDP South Africa official GEF Small Grants call",
+          "https://www.undp.org/south-africa/blog/gef-small-grants-programme-opens-call-community-led-conservation-projects-northern-cape"
+        ]
+      ],
+      "notice": "Closing today. Confirm the official submission requirements immediately; this page does not extend or alter the organiser's deadline.",
+      "guide": {
+        "context": "This is a geographically focused conservation grant, not a general South African NGO fund. The call is designed for community-led conservation in specified Northern Cape municipalities and uses the GEF Small Grants Programme's ICCA-GSI framework. Because the deadline is today, applicants should prioritise accuracy and eligibility over creating a rushed proposal that does not fit the call.",
+        "fit": "The strongest fit is a registered organisation already working with communities in the named areas and able to show a credible relationship to biodiversity, Indigenous or community conserved areas, climate resilience or sustainable land management. A national organisation with no operating presence in the target municipalities should not assume that registration in South Africa is enough. Private companies and government entities are expressly outside the published applicant categories.",
+        "prepare": [
+          "Confirm the exact implementation geography and obtain internal approval to submit before investing time in final formatting.",
+          "Use the official proposal template and reconcile activities, outputs, timetable and budget so the numbers and narrative describe the same project.",
+          "Document community participation, co-financing or in-kind support accurately and keep evidence for any partner commitment you describe as confirmed."
+        ],
+        "strategy": "A strong small-grant proposal should show why the community is central to the conservation result. Explain the environmental problem, the people affected, the intervention and the practical result expected within 12–18 months. Avoid turning a broad institutional programme into a small project by simply cutting the budget; the scope should be genuinely manageable. Where Indigenous or local knowledge is involved, describe consent, participation and benefit-sharing respectfully. Use measurable indicators but do not promise ecosystem-scale change that cannot reasonably be demonstrated during the grant period.",
+        "commitment": "The deadline leaves little room for correcting missing documentation. Submission should only proceed when the official template and required attachments are complete. If the organiser asks for clarifications after submission, respond through official channels. A grant award would create reporting and implementation obligations; budget staff time for those duties. Do not assume the maximum US$30,000 is automatically available or that co-financing is optional where the call requires it. The official call controls all final requirements."
+      }
+    }
+  ]
+}
