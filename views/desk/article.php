@@ -1,6 +1,6 @@
 <?php
 $f=$record['fields'];$sponsored=!empty($f['sponsored']);$closed=desk_closed($record);$destination=$record['kind']==='opportunity'?$f['apply_url']:$f['purchase_url'];
-$curated=($record['curated_release']??'')==='africa-opportunities-20261104';
+$curated=in_array($record['curated_release']??'',['africa-opportunities-20261104','rolling-opportunities-20261105'],true);
 $showSupport=$record['kind']==='opportunity'&&!$sponsored&&!$preview;
 $body=sanitize_html((string)$post['content_html']);
 if(!$preview)$body=ol_public_body($body,$record);
