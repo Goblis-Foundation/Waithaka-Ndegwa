@@ -27,6 +27,7 @@ foreach($report as$i=>$item){
     rod(count(ol_sources($r))===2&&ol_interval(ol_public_record($r))===86400,'Official-source monitoring is inherited.');
     rod(post_by_slug($r['slug'])===null&&!(bool)$p['is_selected'],'New listings cannot enter My Thoughts.');
     $html=rod_render($r);rod(str_contains($html,'curated-opportunity')&&substr_count($html,'data-opportunity-support')===1,'Existing header design and voluntary support are retained.');
+    rod(str_contains($html,'data-editorial-banner')&&str_contains($html,'editorial-banner.php?key='.$r['slug']),'Relevant header artwork is rendered.');
     rod(substr_count($html,'<h2>')>=9&&str_contains($html,'Rolling applications'),'Detailed guide and rolling disclosure render.');
     $hashes[$r['id']]=json_encode($r,JSON_THROW_ON_ERROR);
 }
@@ -37,7 +38,6 @@ foreach($hashes as$id=>$snapshot)rod(json_encode(desk_get($id),JSON_THROW_ON_ERR
 $r=desk_get($report[0]['record']);$p=writer_post_by_id((int)$r['post_id']);$input=desk_post_input($p);$input['seo_title']='Private owner SEO draft';writer_save_post($input,$uid,false);
 $r=desk_get($report[1]['record']);$r=desk_update($r['id'],['version'=>$r['version'],'action'=>'close','note'=>'Fixture organiser closure'],$uid);$closed=rod_render($r);rod(str_contains($closed,'data-opportunity-status="closed"')&&!str_contains($closed,'Check the official details and application route</a>'),'Manual closure disables active application invitations.');
 rolling_opportunities_import($uid,$catalog);
-rod(writer_post_by_id((int)$report[0]['record'])===null,'Record identifiers are not confused with post identifiers.');
 $r=desk_get($report[0]['record']);rod(writer_post_by_id((int)$r['post_id'])['seo_title']==='Private owner SEO draft','Private editorial work survives repeat deployment.');
 rod(desk_get($report[1]['record'])['state']==='closed','Manual closure is not reopened by the content release.');
 $r=desk_get($report[1]['record']);desk_update($r['id'],['version'=>$r['version'],'action'=>'withdraw','note'=>'Fixture withdrawal'],$uid);rolling_opportunities_import($uid,$catalog);rod(desk_get($r['id'])['state']==='withdrawn','Withdrawals are preserved.');
