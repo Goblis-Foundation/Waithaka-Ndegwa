@@ -1,5 +1,11 @@
-<?php $deskContext=function_exists('desk_post_record')?desk_post_record((int)($p['id']??0)):null;$deskPaid=!empty($deskContext['public']['fields']['sponsored']);$cardUrl=$deskContext?url(desk_path($deskContext)):url('/my-thoughts/'.$p['slug']); ?>
+<?php
+require_once __DIR__.'/../app/editorial_banners.php';
+$deskContext=function_exists('desk_post_record')?desk_post_record((int)($p['id']??0)):null;
+$deskPaid=!empty($deskContext['public']['fields']['sponsored']);
+$cardUrl=$deskContext?url(desk_path($deskContext)):url('/my-thoughts/'.$p['slug']);
+$cardImage=$deskContext?(eb_record_image($deskContext,$p)??eb_post_image($p)):eb_post_image($p);
+?>
 <article class="post-card" data-reveal data-thought-item data-title="<?=e(mb_strtolower($p['title'].' '.$p['standfirst'].' '.$p['category_name'].' '.excerpt($p['content_html'],220)))?>" data-published="<?=e((string)strtotime($p['published_at']))?>">
-  <div class="post-card-media"><img <?=responsive_image_attrs(featured_image_url($p['featured_image']), '(max-width: 650px) 100vw, (max-width: 1050px) 50vw, 380px')?> alt="<?=e($p['featured_image_alt']?:$p['title'])?>" loading="lazy" decoding="async"></div>
+  <div class="post-card-media"><img <?=eb_image_attrs($cardImage,'(max-width: 650px) 100vw, (max-width: 1050px) 50vw, 380px')?> alt="<?=e($cardImage['alt'])?>"<?=!empty($cardImage['illustration'])?' data-editorial-illustration style="object-fit:contain;background:#eef3ef"':''?> loading="lazy" decoding="async"></div>
   <div class="post-card-body"><div class="meta-line"><?php if($deskPaid):?><strong>Sponsored feature</strong><?php endif;?><?php if($p['category_name']):?><a href="<?=url('/topic/'.$p['category_slug'])?>"><?=e($p['category_name'])?></a><?php endif;?><span><?=reading_time($p['content_html'])?> min read</span></div><h3><a href="<?=e($cardUrl)?>"><?=e($p['title'])?></a></h3><p><?=e($p['standfirst']?:excerpt($p['content_html'],155))?></p><div class="post-card-footer"><time datetime="<?=e(date('c',strtotime($p['published_at'])))?>"><?=e(format_date($p['published_at']))?></time><span aria-hidden="true">Read →</span></div></div>
 </article>
