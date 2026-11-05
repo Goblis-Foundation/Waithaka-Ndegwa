@@ -15,9 +15,13 @@ foreach($entries as$entry){
     if($mode==='rolling')$ok(($entry['deadline_iso']??null)===null&&($entry['deadline_date']??'')==='',$slug.' rolling deadline has no invented date');
     if($mode==='unknown')$ok(($entry['deadline_iso']??null)===null&&preg_match('/^202[67]-\d{2}-\d{2}$/D',(string)($entry['deadline_date']??''))===1,$slug.' date-only deadline is explicit');
     foreach(['benefits','eligibility','conditions','steps']as$key)$ok(count($entry[$key]??[])>=2,$slug.' detailed '.$key);
+    $ok(mb_strlen((string)($entry['support']??''))>100,$slug.' support remains substantive and is not constrained by the legacy instrument field');
     foreach(['context','fit','strategy','commitment']as$key)$ok(mb_strlen((string)($entry['guide'][$key]??''))>=180,$slug.' substantive '.$key);
     $ok(count($entry['guide']['prepare']??[])>=3,$slug.' preparation checklist');
     foreach(array_merge([['apply',$entry['apply_url']]],$entry['sources']??[])as$source){$host=parse_url($source[1]??'',PHP_URL_HOST);$ok(is_string($host)&&in_array($host,$allowed,true),$slug.' approved source host '.(string)$host);}
 }
+require_once dirname(__DIR__).'/app/bootstrap.php';
+require_once dirname(__DIR__).'/app/international_africa_opportunities_release.php';
+foreach($entries as$entry){$input=international_africa_opportunity_input($entry,$data['checked_on']);$ok(($input['instrument']??null)==='',$entry['slug'].' does not overflow the 100-character Publishing Desk instrument field');}
 foreach($expectedModes as$mode=>$count)$ok($seen[$mode]===$count,'Expected '.$count.' '.$mode.' entries');
 if($fail){fwrite(STDERR,"FAIL: ".implode('; ',$fail)."\n");exit(1);}echo "PASS: international opportunities are source-bounded, substantive and deadline-precise.\n";
