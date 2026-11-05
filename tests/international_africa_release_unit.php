@@ -23,7 +23,7 @@ foreach($entries as$entry){
 require_once dirname(__DIR__).'/app/bootstrap.php';
 require_once dirname(__DIR__).'/app/international_africa_opportunities_release.php';
 foreach($entries as$entry){
-    try{$input=international_africa_opportunity_input($entry,$data['checked_on']);$fields=desk_fields($input,'opportunity',true);$ok(($fields['instrument']??null)==='',$entry['slug'].' fits the Publishing Desk field contract without duplicating support into instrument');}
+    try{$input=international_africa_opportunity_input($entry,$data['checked_on']);$fields=desk_fields($input,'opportunity',true);$ok(($fields['instrument']??null)==='',$entry['slug'].' fits the Publishing Desk field contract without duplicating support into instrument');$body=opportunity_guide_body($entry,$entry['guide'],$data['guidance_note']);$ok(substr_count($body,'<h2>')>=9&&str_contains($body,'Sources and official information'),$entry['slug'].' renders a complete guide from entry-level sources');}
     catch(Throwable $e){$fail[]=$entry['slug'].' Publishing Desk contract: '.$e->getMessage();}
 }
 foreach($expectedModes as$mode=>$count)$ok($seen[$mode]===$count,'Expected '.$count.' '.$mode.' entries');
