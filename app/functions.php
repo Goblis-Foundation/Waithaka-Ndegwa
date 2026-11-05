@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/owner_identity_aliases.php';
 require_once __DIR__.'/article_groups.php';
+require_once __DIR__.'/editorial_visibility.php';
 require_once __DIR__.'/location.php';
 require_once __DIR__.'/email_design.php';
 
@@ -134,7 +135,7 @@ function current_user(): ?array {
 }
 /** Resume a known workspace only; never replay action URLs or OAuth tokens. */
 function writer_login_destination(mixed $value): string {
-    $allowed=['/write/foundation-access','/write/contribution-receipts','/write','/write/control-centre','/write/notes','/write/voice','/write/program','/write/communication','/write/correspondence','/write/meetings','/write/booking-mailboxes','/write/studio','/write/capture','/write/new','/write/media-centre','/write/publishing','/write/media','/write/desk','/write/desk/orders','/write/desk/settings','/write/newsletter','/write/monthly-roundup','/write/readers','/write/contact-controls','/write/campaigns','/write/seo-checks','/write/discovery','/write/visitor-statistics','/write/enterprises','/write/opportunities','/write/journeys','/write/journeys/founders','/write/editorial','/write/releases','/write/impact','/write/connections','/write/google','/write/google/actions','/write/google/sync','/write/microsoft','/write/app','/write/security','/write/security/sign-in','/write/operations','/write/reconciliation','/write/settings','/write/account','/write/activation','/write/activity','/write/publishing/new','/write/publishing/automation','/write/google/youtube','/write/google/youtube/new','/write/google/meet','/write/monthly-support','/write/wise','/write/desk/opportunity/new','/write/desk/sponsored/new'];
+    $allowed=['/write/foundation-access','/write/contribution-receipts','/write','/write/control-centre','/write/notes','/write/voice','/write/program','/write/communication','/write/correspondence','/write/meetings','/write/booking-mailboxes','/write/studio','/write/capture','/write/new','/write/media-centre','/write/publishing','/write/media','/write/desk','/write/desk/orders','/write/desk/reviews','/write/desk/settings','/write/newsletter','/write/monthly-roundup','/write/readers','/write/contact-controls','/write/campaigns','/write/seo-checks','/write/discovery','/write/visitor-statistics','/write/enterprises','/write/opportunities','/write/journeys','/write/journeys/founders','/write/editorial','/write/releases','/write/impact','/write/connections','/write/google','/write/google/actions','/write/google/sync','/write/microsoft','/write/app','/write/security','/write/security/sign-in','/write/operations','/write/reconciliation','/write/settings','/write/account','/write/activation','/write/activity','/write/publishing/new','/write/publishing/automation','/write/google/youtube','/write/google/youtube/new','/write/google/meet','/write/monthly-support','/write/wise','/write/desk/opportunity/new','/write/desk/sponsored/new'];
     if(!is_string($value)||strlen($value)>250)return '/write';
     $path=explode('?', $value, 2)[0];
     // Match read-only record views, never trailing actions, callbacks or arbitrary paths.
@@ -311,22 +312,22 @@ function archive_pagination(?int $page,int $total,int $perPage,string $path,arra
         'next'=>$page<$pages?archive_page_path($path,$page+1,$query):null];
 }
 function public_post_count(?int $categoryId=null): int {
-    $sql='SELECT COUNT(*) FROM posts p WHERE '.published_where();$params=[];
+    $sql='SELECT COUNT(*) FROM posts p WHERE '.editorial_public_where();$params=[];
     if($categoryId!==null){$sql.=' AND p.category_id=?';$params[]=$categoryId;}
     $st=db()->prepare($sql);$st->execute($params);return (int)$st->fetchColumn();
 }
 function latest_posts(int $limit=6, ?int $categoryId=null,int $offset=0): array {
-    $sql='SELECT p.*,c.name category_name,c.slug category_slug FROM posts p LEFT JOIN categories c ON c.id=p.category_id WHERE '.published_where();
+    $sql='SELECT p.*,c.name category_name,c.slug category_slug FROM posts p LEFT JOIN categories c ON c.id=p.category_id WHERE '.editorial_public_where();
     $params=[]; if ($categoryId!==null) { $sql.=' AND p.category_id=?'; $params[]=$categoryId; }
     $sql.=' ORDER BY p.published_at DESC,p.id DESC LIMIT '.max(1,min(5000,$limit)).' OFFSET '.max(0,$offset);
     $st=db()->prepare($sql);$st->execute($params);return $st->fetchAll();
 }
 function selected_posts(int $limit=3): array {
-    $sql='SELECT p.*,c.name category_name,c.slug category_slug FROM posts p LEFT JOIN categories c ON c.id=p.category_id WHERE '.published_where().' AND p.is_selected=1 ORDER BY p.published_at DESC LIMIT '.max(1,min(12,$limit));
+    $sql='SELECT p.*,c.name category_name,c.slug category_slug FROM posts p LEFT JOIN categories c ON c.id=p.category_id WHERE '.editorial_public_where().' AND p.is_selected=1 ORDER BY p.published_at DESC LIMIT '.max(1,min(12,$limit));
     return db()->query($sql)->fetchAll();
 }
 function post_by_slug(string $slug): ?array {
-    $st=db()->prepare('SELECT p.*,c.name category_name,c.slug category_slug,u.name author_name FROM posts p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN users u ON u.id=p.user_id WHERE p.slug=? AND '.published_where().' LIMIT 1');
+    $st=db()->prepare('SELECT p.*,c.name category_name,c.slug category_slug,u.name author_name FROM posts p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN users u ON u.id=p.user_id WHERE p.slug=? AND '.editorial_public_where().' LIMIT 1');
     $st->execute([$slug]); $p=$st->fetch(); if(!$p)return null; $p['content_html']=sanitize_html($p['content_html']);$p['tags']=post_tags((int)$p['id']); return $p;
 }
 function post_tags(int $postId): array { $st=db()->prepare('SELECT t.* FROM tags t JOIN post_tags pt ON pt.tag_id=t.id WHERE pt.post_id=? ORDER BY t.name');$st->execute([$postId]);return $st->fetchAll(); }
@@ -516,7 +517,7 @@ function assign_tags(int $postId, array $tagNames): void {
 }
 
 function related_posts(array $post, int $limit=3): array {
-    $sql='SELECT DISTINCT p.*,c.name category_name,c.slug category_slug FROM posts p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN post_tags pt ON pt.post_id=p.id WHERE '.published_where().' AND p.id<>? AND (p.category_id=? OR pt.tag_id IN (SELECT tag_id FROM post_tags WHERE post_id=?)) ORDER BY (p.category_id=? ) DESC,p.published_at DESC LIMIT '.max(1,min(6,$limit));
+    $sql='SELECT DISTINCT p.*,c.name category_name,c.slug category_slug FROM posts p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN post_tags pt ON pt.post_id=p.id WHERE '.editorial_public_where().' AND p.id<>? AND (p.category_id=? OR pt.tag_id IN (SELECT tag_id FROM post_tags WHERE post_id=?)) ORDER BY (p.category_id=? ) DESC,p.published_at DESC LIMIT '.max(1,min(6,$limit));
     $st=db()->prepare($sql);$st->execute([$post['id'],$post['category_id'],$post['id'],$post['category_id']]);return $st->fetchAll();
 }
 

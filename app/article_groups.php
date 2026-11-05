@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/editorial_visibility.php';
 
 /** Reading groups are independent of topics. Public routes never read working copies. */
 function article_groups(): array {
@@ -43,7 +44,7 @@ function article_group_memberships(array $post,bool $founder=false,array $enterp
     return array_values(array_intersect(array_keys(article_groups()),array_unique($groups)));
 }
 function article_public_context(array $post): array {
-    $q=db()->prepare('SELECT '.article_founder_sql().' FROM posts p WHERE p.id=? AND '.published_where());$q->execute([(int)$post['id']]);$founder=$q->fetchColumn();
+    $q=db()->prepare('SELECT '.article_founder_sql().' FROM posts p WHERE p.id=? AND '.editorial_public_where());$q->execute([(int)$post['id']]);$founder=$q->fetchColumn();
     if($founder===false)return ['groups'=>[],'enterprises'=>[]];
     $profiles=[];foreach(enterprise_public_profiles()as$profile)if(in_array((int)$post['id'],$profile['post_ids']??[],true))$profiles[]=$profile;
     return ['groups'=>article_group_memberships($post,(bool)$founder,$profiles?[(int)$post['id']]:[]),'enterprises'=>$profiles];
@@ -62,7 +63,7 @@ function article_group_query(string $group,array $filters,array $enterpriseIds):
     $membership="JSON_CONTAINS(COALESCE(p.article_groups_json,'[]'),?)";$params=[json_encode($group,JSON_THROW_ON_ERROR)];
     if($group==='my-enterprise-journey')$membership='('.$membership.' OR '.$linked.')';
     if($group==='ideas-perspectives')$membership='('.$membership." OR (JSON_LENGTH(COALESCE(p.article_groups_json,'[]'))=0 AND NOT ".article_founder_sql().' AND NOT ('.$linked.')))';
-    $where=published_where().' AND '.$membership;
+    $where=editorial_public_where().' AND '.$membership;
     if($filters['topic']!==''){$where.=' AND c.slug=?';$params[]=$filters['topic'];}
     if($filters['q']!==''){$where.=" AND (p.title LIKE ? ESCAPE '!' OR p.standfirst LIKE ? ESCAPE '!' OR p.content_html LIKE ? ESCAPE '!')";$term='%'.str_replace(['!','%','_'],['!!','!%','!_'],$filters['q']).'%';array_push($params,$term,$term,$term);}
     return [$where,$params];

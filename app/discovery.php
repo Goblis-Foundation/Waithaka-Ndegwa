@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/editorial_visibility.php';
 
 /** Public discovery, private search reports, and an explicitly enabled notification outbox. */
 final class DiscoveryValidationException extends RuntimeException {}
@@ -17,14 +18,14 @@ function discovery_query(mixed $value): string {
 /** Each projection is public, including its plain text. Never read post_drafts or submission evidence here. */
 function discovery_public_documents(): Generator {
     $now=date('Y-m-d H:i:s');$enterprisePostIds=function_exists('enterprise_public_profiles')?article_enterprise_ids():[];
-    $tags=[];$tagRows=db()->prepare("SELECT pt.post_id,t.name FROM post_tags pt JOIN tags t ON t.id=pt.tag_id JOIN posts p ON p.id=pt.post_id WHERE p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=? ORDER BY pt.post_id,t.name");
+    $tags=[];$tagRows=db()->prepare("SELECT pt.post_id,t.name FROM post_tags pt JOIN tags t ON t.id=pt.tag_id JOIN posts p ON p.id=pt.post_id WHERE p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=? AND ".editorial_post_sql()." ORDER BY pt.post_id,t.name");
     $tagRows->execute([$now]);while($tag=$tagRows->fetch())$tags[$tag['post_id']][]=$tag['name'];
     $sql="SELECT p.id,p.slug,p.title,p.standfirst,p.content_html,p.featured_image,p.featured_image_alt,p.featured_image_caption,p.video_url,p.travel_city,p.travel_country,p.article_groups_json,p.seo_title,p.seo_description,p.published_at,p.updated_at,
         c.name category_name,
         EXISTS(SELECT 1 FROM founder_submissions f WHERE f.associated_post_id=p.id AND f.review_status='approved'
             AND f.is_public=1 AND f.permission_confirmed=1 AND f.claims_reviewed=1 AND f.consent_reference IS NOT NULL AND f.consent_reference<>'') founder_story
         FROM posts p LEFT JOIN categories c ON c.id=p.category_id
-        WHERE p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=?";
+        WHERE p.status IN ('published','scheduled') AND p.published_at IS NOT NULL AND p.published_at<=? AND ".editorial_post_sql();
     $st=db()->prepare($sql);$st->execute([$now]);
     while($row=$st->fetch()) {
         $path='/my-thoughts/'.$row['slug'];

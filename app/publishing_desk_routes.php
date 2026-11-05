@@ -59,18 +59,18 @@ function desk_native_guard(string $path): bool {
     return false;
 }
 function desk_dispatch(string $path): bool {
+    if(ol_dispatch($path))return true;
     if(ux_dispatch($path)||commercial_dispatch($path))return true;
     if(desk_native_guard($path))return true;
     if($path==='/publishing-sitemap.xml'){journeys_method(['GET','HEAD']);header('Content-Type: application/xml; charset=utf-8');echo sitemap_xml(desk_sitemap());return true;}
     if($path==='/robots.txt'){journeys_method(['GET','HEAD']);header('Content-Type: text/plain; charset=utf-8');echo "User-agent: *\nAllow: /\nDisallow: /write\nDisallow: /install\nDisallow: /app\nDisallow: /storage\nDisallow: /client/\nDisallow: /payments/\nDisallow: /consent/\nDisallow: /webhooks/\nDisallow: /newsletter/confirm\nDisallow: /newsletter/unsubscribe\nDisallow: /newsletter/preferences\nDisallow: /founders/follow-up\nDisallow: /opportunities/review\nDisallow: /opportunities/evidence\n\nSitemap: ".url('/sitemap.xml')."\nSitemap: ".url('/publishing-sitemap.xml')."\n";return true;}
     if($path==='/opportunities'||$path==='/partner-stories'){
-        journeys_method(['GET','HEAD']);$kind=$path==='/opportunities'?'opportunity':'sponsored';$items=desk_public_list($kind);
+        journeys_method(['GET','HEAD']);$kind=$path==='/opportunities'?'opportunity':'sponsored';$items=desk_public_list($kind,true);
         $filters=[];foreach(['q','type','country','sector','status']as$key)$filters[$key]=is_string($_GET[$key]??null)?mb_substr(trim($_GET[$key]),0,120):'';
-        $items=array_values(array_filter($items,static function($r)use($filters){$f=$r['public']['fields'];$closed=desk_closed(['state'=>$r['state'],'kind'=>$r['kind'],'fields'=>$f]);
+        $items=array_values(array_filter($items,static function($r)use($filters){$f=$r['public']['fields'];$closed=desk_closed(ol_public_record($r));
             if($filters['q']!==''&&mb_stripos($f['title'].' '.$f['organisation'].' '.$f['summary'],$filters['q'])===false)return false;
             foreach(['type'=>'type','country'=>'countries','sector'=>'sectors']as$a=>$b)if($filters[$a]!==''&&mb_stripos((string)($f[$b]??''),$filters[$a])===false)return false;
-            if($filters['status']==='closed')return $closed;if($filters['status']==='all')return true;if($closed)return false;
-            if($filters['status']==='soon')return isset($f['deadline'])&&$f['deadline']<=time()+14*86400;return true;
+            return ol_directory_match(ol_public_record($r),$filters['status']);
         }));
         $total=count($items);$page=archive_page_number($_GET['page']??null);if($page===null||$page>max(1,(int)ceil($total/18))){http_response_code(404);return true;}$pageNumber=$page;$items=array_slice($items,($pageNumber-1)*18,18);
         $jobs=$kind==='opportunity'&&in_array($filters['type'],['','jobs'],true)?opportunity_public_list():[];

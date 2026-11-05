@@ -14,9 +14,9 @@ function roundup_source_date(mixed $published,mixed $modified,array $window): ?i
 }
 function roundup_collect(array $window): array {
     $candidates=[];$deskPosts=[];
-    foreach(desk_all()as$r){$deskPosts[(int)$r['post_id']]=true;if(empty($r['public'])||empty($r['public_visible'])||$r['state']==='withdrawn')continue;
+    foreach(desk_all()as$r){$deskPosts[(int)$r['post_id']]=true;if(empty($r['public'])||empty($r['public_visible'])||$r['state']==='withdrawn'||ol_archived(ol_public_record($r)))continue;
         $f=$r['public']['fields'];$p=$r['public']['article'];$at=roundup_source_date($r['published_at']??null,$r['public']['at']??null,$window);
-        $candidates[]=['type'=>!empty($f['sponsored'])?'partner':'opportunity','public'=>true,'published'=>$at,'title'=>$p['title'],'excerpt'=>$p['standfirst']??$f['summary'],'url'=>url(desk_path($r)),'closed'=>desk_closed(['kind'=>$r['kind'],'state'=>$r['state'],'fields'=>$f]),'sponsored'=>!empty($f['sponsored']),'newsletter_permission'=>!empty($f['newsletter_roundup_permission']),'sponsor'=>$f['sponsor_name']??''];
+        $candidates[]=['type'=>!empty($f['sponsored'])?'partner':'opportunity','public'=>true,'published'=>$at,'title'=>$p['title'],'excerpt'=>$p['standfirst']??$f['summary'],'url'=>url(desk_path($r)),'closed'=>desk_closed(ol_public_record($r)),'sponsored'=>!empty($f['sponsored']),'newsletter_permission'=>!empty($f['newsletter_roundup_permission']),'sponsor'=>$f['sponsor_name']??''];
     }
     $zone=new DateTimeZone((string)app_config('timezone','Africa/Nairobi'));$start=(new DateTimeImmutable('@'.$window['start']))->setTimezone($zone)->format('Y-m-d H:i:s');$end=(new DateTimeImmutable('@'.$window['end']))->setTimezone($zone)->format('Y-m-d H:i:s');
     $q=db()->prepare('SELECT p.id,p.title,p.slug,p.standfirst,p.published_at,u.changed_at FROM posts p LEFT JOIN (SELECT post_id,MAX(published_at) changed_at FROM editorial_post_updates WHERE published_at>=? AND published_at<? GROUP BY post_id) u ON u.post_id=p.id WHERE '.published_where().' AND ((p.published_at>=? AND p.published_at<?) OR u.changed_at IS NOT NULL) ORDER BY p.published_at,p.id LIMIT 1001');

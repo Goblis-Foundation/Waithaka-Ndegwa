@@ -40,6 +40,9 @@ if($APP_INSTALLED && app_config('app_env')==='production'){
     try { background_stage('desk',static fn()=>desk_work()); } catch(Throwable $e) { error_log('Publishing desk needs review.'); }
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){
+    try { background_stage('opportunity_review',static fn()=>ol_work()); } catch(Throwable $e) { error_log('Opportunity source review needs attention.'); }
+}
+if($APP_INSTALLED && app_config('app_env')==='production'){
     try { background_stage('weekly',static fn()=>desk_delivery_gate(static fn()=>publishing_weekly_work())); } catch(Throwable $e) { error_log('Weekly publishing queue needs review.'); }
 }
 if($APP_INSTALLED && app_config('app_env')==='production'){
