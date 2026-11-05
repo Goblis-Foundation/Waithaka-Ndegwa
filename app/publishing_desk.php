@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/publishing_desk_policy.php';
 require_once __DIR__.'/opportunity_lifecycle.php';
+require_once __DIR__.'/opportunity_countries.php';
 require_once __DIR__.'/publishing_desk_lifecycle.php';
 require_once __DIR__.'/publishing_desk_billing.php';
 require_once __DIR__.'/publishing_desk_routes.php';
