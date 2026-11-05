@@ -78,6 +78,11 @@ function opportunity_country_excluded(string $text,array $country): bool {
     }
     return false;
 }
+function opportunity_country_direct_match(array $record,array $country): bool {
+    $f=$record['public']['fields']??$record['fields']??[];$text=trim(implode(' ',array_filter([(string)($f['countries']??''),(string)($f['eligibility']??''),(string)($f['conditions']??''),(string)($f['summary']??''),(string)($f['description']??'')]))) ;
+    if($text===''||opportunity_country_excluded($text,$country))return false;
+    foreach($country['aliases']as$alias){$a=preg_quote($alias,'~');if(preg_match('~(?<![\\p{L}\\p{N}])'.$a.'(?![\\p{L}\\p{N}])~iu',$text))return true;}return false;
+}
 function opportunity_country_match(array $record,array $country): bool {
     $f=$record['public']['fields']??$record['fields']??[];
     $text=trim(implode(' ',array_filter([
@@ -86,8 +91,8 @@ function opportunity_country_match(array $record,array $country): bool {
     ])));
     if($text==='')return false;
     if(opportunity_country_excluded($text,$country))return false;
+    if(opportunity_country_direct_match($record,$country))return true;
     $hay=mb_strtolower($text);
-    foreach($country['aliases'] as $alias)if(mb_stripos($hay,mb_strtolower($alias))!==false)return true;
     if(preg_match('~\b(all\s+)?african\s+(countries|nationals|citizens|states|startups|entrepreneurs|applicants|businesses|enterprises)\b|\bacross\s+africa\b|\bpan[- ]african\b|\bafrica-wide\b~u',$hay))return true;
     if($country['ssa']&&preg_match('~\bsub[- ]saharan\s+africa\b|\bsub[- ]saharan\s+african\b~u',$hay))return true;
     if(in_array($country['slug'],opportunity_eac_slugs(),true)&&preg_match('~\beast\s+african\s+community\b|\beac\s+(countries|member states|region)\b~u',$hay))return true;
@@ -116,11 +121,17 @@ function opportunity_country_records(array $country,bool $includeArchived=false)
     opportunity_sort_deadline($records);
     return $records;
 }
-function opportunity_country_seo(array $country,int $count): array {
+function opportunity_country_quality(array $country,array $records): bool {
+    $current=array_values(array_filter($records,static fn($r)=>ol_directory_match(ol_public_record($r),'')));
+    if(count($current)<2)return false;
+    foreach($current as$r)if(opportunity_country_direct_match($r,$country))return true;
+    return false;
+}
+function opportunity_country_seo(array $country,int $count,bool $indexable=false): array {
     $name=$country['name'];$demonym=$country['demonym'];
     $title='Funding, Grants & Opportunities for '.$demonym.' Applicants';
     $description='Explore current grants, fellowships, accelerators, training and business opportunities open to applicants from '.$name.'. Compare eligibility, support, costs and upcoming deadlines from verified official sources.';
-    return ['title'=>$title.' · Waithaka Ndegwa','description'=>$description,'canonical'=>url('/opportunities/country/'.$country['slug']),'robots'=>$count>0?'index,follow':'noindex,follow'];
+    return ['title'=>$title.' · Waithaka Ndegwa','description'=>$description,'canonical'=>url('/opportunities/country/'.$country['slug']),'robots'=>$count>0&&$indexable?'index,follow':'noindex,follow'];
 }
 function opportunity_country_schema(array $country,array $records): array {
     $items=[];foreach(array_slice($records,0,50)as$i=>$r)$items[]=['@type'=>'ListItem','position'=>$i+1,'url'=>url(desk_path($r)),'name'=>$r['public']['fields']['title']??$r['slug']];
@@ -134,5 +145,5 @@ function opportunity_country_schema(array $country,array $records): array {
     ];
 }
 function opportunity_country_indexable(): array {
-    $out=[];foreach(opportunity_africa_countries()as$slug=>$country){$c=['slug'=>$slug]+$country;if(opportunity_country_records($c))$out[$slug]=$c;}return $out;
+    $out=[];foreach(opportunity_africa_countries()as$slug=>$country){$c=['slug'=>$slug]+$country;$records=opportunity_country_records($c);if(opportunity_country_quality($c,$records))$out[$slug]=$c;}return $out;
 }
