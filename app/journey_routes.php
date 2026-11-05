@@ -58,7 +58,7 @@ function journeys_dispatch(string $path): bool {
                 if(!journeys_checked($_POST['subscribe_ack']??null))throw new JourneyValidationException('Please confirm that you want to receive these emails.');
                 $email=journeys_email($_POST['email']??'');$first=journeys_text($_POST['first_name']??'','First name',60,true);$last=journeys_text($_POST['last_name']??'','Last name',59,true);$name=$first.' '.$last;
                 if(!journeys_rate_limit('newsletter-ip',ip_hash(),8)||!journeys_rate_limit('newsletter-email',$email,3)){http_response_code(429);header('Retry-After: 3600');$error='Too many requests were received. Please try again later.';}
-                else{newsletter_request_signup($email,$name,['first_name'=>$first,'last_name'=>$last]);flash('success','Your request has been recorded. A subscription becomes active only after email confirmation. A welcome email will follow when delivery is available. You can unsubscribe at any time.');redirect(url('/newsletter'));}
+                else{newsletter_request_signup($email,$name,['first_name'=>$first,'last_name'=>$last]);flash('success','Your request has been recorded. A subscription becomes active only after email confirmation.');redirect(url('/newsletter'));}
             }catch(Throwable $e){$error=journeys_route_error($e);}
         }
         journeys_public_render('journeys/newsletter',['values'=>$values,'error'=>$error],'Follow My Thoughts','Receive new writing and Startup Journeys by email, or subscribe to the RSS feed.','/newsletter','newsletter');
@@ -116,7 +116,7 @@ function journeys_dispatch(string $path): bool {
         if(!is_string($filter)||($filter!==''&&!array_key_exists($filter,founders_review_states())))journeys_not_found();
         $where=$filter!==''?' WHERE review_status=?':'';$parameters=$filter!==''?[$filter]:[];
         $s=db()->prepare('SELECT COUNT(*) FROM founder_submissions'.$where);$s->execute($parameters);
-        $pagination=archive_pagination(archive_page_number($_GET['page']??null),(int)$s->fetchColumn(),50,'/founders',$filter!==''?['status'=>$filter]:[]);
+        $pagination=archive_pagination(archive_page_number($_GET['page']??null),(int)$s->fetchColumn(),50,'/write/journeys/founders',$filter!==''?['status'=>$filter]:[]);
         if($pagination===null)journeys_not_found();
         $s=db()->prepare('SELECT id,reference,submission_type,founder_name,venture_name,country,review_status,is_public,created_at FROM founder_submissions'.$where.' ORDER BY created_at DESC,id DESC LIMIT 50 OFFSET '.(int)$pagination['offset']);$s->execute($parameters);
         render_write('journeys_founders',['writeTitle'=>'Founder submissions','submissions'=>$s->fetchAll(),'filter'=>$filter,'pagination'=>$pagination]);exit;
