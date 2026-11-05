@@ -11,7 +11,7 @@ import zipfile
 
 SAFE=re.compile(r'(Workspace contact relay probe: (?:accepted|rejected)\.|Article grouping migration AWS read failed: [A-Za-z0-9_.-]{1,100}; HTTP [0-9]{1,3}\.|Article grouping (?:additive migration applied and verified|migration already verified with runtime read access)\.|Could not open input file: bin/article-groups-migrate\.php|Founder migration AWS read failed: [A-Za-z0-9_.-]{1,100}; HTTP [0-9]{1,3}\.|Founder story additive migration applied and verified\.|Founder story migration already verified with runtime read access\.|Could not open input file: bin/founder-story-migrate\.php|Application error [A-F0-9]{12} [A-Za-z0-9_\\]+ /[A-Za-z0-9_./-]+:[0-9]+)')
 HEALTH_BOOL={'enabled','ai_enabled','ai_configured','worker_recent'}
-HEALTH_INT={'published_count','source_checked_count','ai_checked_count','source_attention_count','ai_attention_count','pending_review_count','last_worker_at','latest_source_at','latest_ai_at'}
+HEALTH_INT={'published_count','source_checked_count','ai_checked_count','source_attention_count','ai_attention_count','pending_review_count','last_worker_at','latest_source_at','latest_ai_at','source_current_count','ai_current_count','recovery_checked_count'}
 HEALTH_PREFIX='Opportunity review health: '
 
 def safe_lines(text):
