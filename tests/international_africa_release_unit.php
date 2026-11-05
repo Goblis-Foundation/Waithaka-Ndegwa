@@ -22,6 +22,9 @@ foreach($entries as$entry){
 }
 require_once dirname(__DIR__).'/app/bootstrap.php';
 require_once dirname(__DIR__).'/app/international_africa_opportunities_release.php';
-foreach($entries as$entry){$input=international_africa_opportunity_input($entry,$data['checked_on']);$ok(($input['instrument']??null)==='',$entry['slug'].' does not overflow the 100-character Publishing Desk instrument field');}
+foreach($entries as$entry){
+    try{$input=international_africa_opportunity_input($entry,$data['checked_on']);$fields=desk_fields($input,'opportunity',true);$ok(($fields['instrument']??null)==='',$entry['slug'].' fits the Publishing Desk field contract without duplicating support into instrument');}
+    catch(Throwable $e){$fail[]=$entry['slug'].' Publishing Desk contract: '.$e->getMessage();}
+}
 foreach($expectedModes as$mode=>$count)$ok($seen[$mode]===$count,'Expected '.$count.' '.$mode.' entries');
 if($fail){fwrite(STDERR,"FAIL: ".implode('; ',$fail)."\n");exit(1);}echo "PASS: international opportunities are source-bounded, substantive and deadline-precise.\n";
