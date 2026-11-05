@@ -20,7 +20,7 @@ $record=function(string $countries,string $eligibility='',array $extra=[]):array
 };
 $kenya=opportunity_country('kenya');$egypt=opportunity_country('egypt');$southSudan=opportunity_country('south-sudan');
 $ok($kenya!==null&&$kenya['ssa']===true,'Kenya registry metadata');
-$ok(opportunity_country_match($record('Kenya'),'',$kenya??[]),'Direct Kenya eligibility');
+$ok(opportunity_country_match($record('Kenya'),$kenya),'Direct Kenya eligibility');
 $ok(opportunity_country_match($record('African countries','Open to African startups'),$kenya),'Africa-wide eligibility includes Kenya');
 $ok(opportunity_country_match($record('Sub-Saharan Africa'),$kenya),'Sub-Saharan Africa includes Kenya');
 $ok(!opportunity_country_match($record('Sub-Saharan Africa'),$egypt),'Sub-Saharan Africa does not automatically include Egypt');
