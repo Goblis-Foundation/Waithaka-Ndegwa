@@ -3,12 +3,16 @@ on:
   pull_request:
     paths:
       - 'app/opportunity_lifecycle*.php'
+      - 'app/opportunity_monitoring.php'
+      - 'app/opportunity_review_health.php'
       - 'app/content/opportunity-lifecycle-sources.json'
       - 'app/publishing_desk*.php'
       - 'views/desk/**'
       - 'views/write/opportunity_reviews.php'
       - 'bin/worker.php'
       - 'tests/opportunity_lifecycle*'
+      - 'tests/opportunity_monitoring*'
+      - 'tests/opportunity_review_health*'
       - '.github/workflows/opportunity-lifecycle.yml'
   workflow_run:
     workflows: ['Deploy production']
@@ -50,8 +54,12 @@ jobs:
         run: |
           php -l app/opportunity_lifecycle.php
           php -l app/opportunity_lifecycle_policy.php
+          php -l app/opportunity_monitoring.php
           bash -n .platform/hooks/postdeploy/39_opportunity_lifecycle.sh
           php tests/opportunity_lifecycle_test.php
+          php tests/opportunity_monitoring_test.php
+          php tests/opportunity_review_health_test.php
+          python3 -B tests/opportunity_review_health_test.py
       - name: Rehearse source checks, reviews and lifecycle transitions
         env:
           WK_TEST_ALLOW_WRITES: '1'
