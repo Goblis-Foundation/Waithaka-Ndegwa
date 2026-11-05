@@ -44,7 +44,7 @@ function eb_descriptions(): array {
 function eb_key(string $slug,string $topic=''): string {
     if(isset(eb_catalog()[$slug]))return $slug;
     $topic=strtolower($topic);
-    foreach(['agric'=>'agriculture','farm'=>'agriculture','energy'=>'energy','climate'=>'conservation','conservation'=>'conservation','environment'=>'conservation','educat'=>'learning','training'=>'learning','fellow'=>'learning','innovat'=>'innovation','technolog'=>'innovation','infrastructure'=>'infrastructure','travel'=>'travel','entrepreneur'=>'enterprise','business'=>'enterprise','enterprise'=>'enterprise']as$word=>$key)if(str_contains($topic,$word))return 'topic-'.$key;
+    foreach(['agri'=>'agriculture','farm'=>'agriculture','energy'=>'energy','climate'=>'conservation','conservation'=>'conservation','environment'=>'conservation','educat'=>'learning','training'=>'learning','fellow'=>'learning','innovat'=>'innovation','technolog'=>'innovation','infrastructure'=>'infrastructure','travel'=>'travel','entrepreneur'=>'enterprise','business'=>'enterprise','enterprise'=>'enterprise']as$word=>$key)if(str_contains($topic,$word))return 'topic-'.$key;
     return 'topic-perspective';
 }
 function eb_asset(string $key): array {
