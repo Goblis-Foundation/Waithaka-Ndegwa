@@ -1,5 +1,5 @@
 <?php
-$all=$countries;$indexable=$indexed;
+$all=$countries;$indexable=$indexed;$withListings=$available??[];
 $regions=[];foreach($all as$slug=>$country)$regions[$country['region']][$slug]=$country;
 ksort($regions);
 ?>
@@ -10,8 +10,8 @@ ksort($regions);
 <div class="opportunity-discovery-note"><strong>Search-quality rule:</strong> country pages only enter the public sitemap when they contain current eligible opportunities. Empty country pages remain available for browsing but are not submitted for indexing.</div>
 <?php foreach($regions as$region=>$rows):?>
 <section class="country-region"><h2><?=e($region)?></h2><div class="country-grid">
-<?php foreach($rows as$slug=>$country):$live=isset($indexable[$slug]);?>
-<a class="country-card<?=$live?' has-opportunities':''?>" href="<?=url('/opportunities/country/'.$slug)?>"><strong><?=e($country['name'])?></strong><span><?=$live?'Current opportunities available':'No current verified listings'?></span></a>
+<?php foreach($rows as$slug=>$country):$has=isset($withListings[$slug]);$live=isset($indexable[$slug]);?>
+<a class="country-card<?=$has?' has-opportunities':''?>" href="<?=url('/opportunities/country/'.$slug)?>"><strong><?=e($country['name'])?></strong><span><?=$has?($live?'Current opportunities · search-index ready':'Current opportunities · growing country coverage'):'No current verified listings'?></span></a>
 <?php endforeach;?>
 </div></section>
 <?php endforeach;?>
