@@ -22,6 +22,9 @@ function africa_country_opportunities_catalog(?array $data=null): array {
 }
 function africa_country_opportunity_input(array $entry,string $checked): array {
     $input=curated_release_input($entry,$checked);
+    // The full support description is rendered separately as support_label.
+    // The legacy instrument field is capped at 100 characters, so do not duplicate long programme terms there.
+    $input['instrument']='';
     if($entry['deadline_iso']===null){$input['deadline_mode']='rolling';$input['deadline']='';$input['deadline_date']='';}
     return $input;
 }

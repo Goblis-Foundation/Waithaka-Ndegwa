@@ -14,6 +14,12 @@ $slugs=[];foreach($entries as$entry){
     foreach(['context','fit','strategy','commitment']as$key)$ok(mb_strlen((string)($entry['guide'][$key]??''))>=180,$slug.' substantive '.$key);
     foreach($entry['sources']??[]as$source)$ok(isset($source[1])&&str_starts_with($source[1],'https://www.undp.org/'),$slug.' uses official UNDP source');
 }
+require_once dirname(__DIR__).'/app/bootstrap.php';
+require_once dirname(__DIR__).'/app/africa_country_opportunities_release.php';
+foreach($entries as$entry){
+    try{$input=africa_country_opportunity_input($entry,$data['checked_on']);$fields=desk_fields($input,'opportunity',true);$ok(($fields['instrument']??null)==='',$entry['slug'].' fits the Publishing Desk field contract without duplicating support into instrument');}
+    catch(Throwable $e){$fail[]=$entry['slug'].' Publishing Desk contract: '.$e->getMessage();}
+}
 $fixed=array_values(array_filter($entries,static fn($e)=>$e['deadline_iso']!==null));$ok(count($fixed)===1,'Exactly one fixed-deadline listing in this batch');
 if($fixed){$dt=DateTimeImmutable::createFromFormat(DATE_ATOM,$fixed[0]['deadline_iso']);$ok($dt!==false,'Exact ISO deadline parses');}
 if($fail){fwrite(STDERR,"FAIL: ".implode('; ',$fail)."\n");exit(1);}echo "PASS: country opportunity expansion content is structured and source-bounded.\n";
