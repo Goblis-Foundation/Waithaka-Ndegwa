@@ -47,9 +47,22 @@ function eb_key(string $slug,string $topic=''): string {
     foreach(['agri'=>'agriculture','farm'=>'agriculture','energy'=>'energy','climate'=>'conservation','conservation'=>'conservation','environment'=>'conservation','educat'=>'learning','training'=>'learning','fellow'=>'learning','innovat'=>'innovation','technolog'=>'innovation','infrastructure'=>'infrastructure','travel'=>'travel','entrepreneur'=>'enterprise','business'=>'enterprise','enterprise'=>'enterprise']as$word=>$key)if(str_contains($topic,$word))return 'topic-'.$key;
     return 'topic-perspective';
 }
+/** CloudFront varies static assets on v; include both artwork and subject in v. */
+function eb_version(string $key): string {
+    if(!isset(eb_catalog()[$key]))throw new InvalidArgumentException('Unknown editorial illustration.');
+    static $revision;
+    $revision??=hash_file('sha256',__FILE__);
+    return substr(hash('sha256',$revision.':'.$key),0,24);
+}
+/** The origin must derive its content from the same parameter as the edge cache. */
+function eb_key_from_version(mixed $version): ?string {
+    if(!is_string($version)||!preg_match('/^[a-f0-9]{24}$/D',$version))return null;
+    foreach(array_keys(eb_catalog())as$key)if(hash_equals(eb_version($key),$version))return $key;
+    return null;
+}
 function eb_asset(string $key): array {
     if(!isset(eb_catalog()[$key]))throw new InvalidArgumentException('Unknown editorial illustration.');
-    $version=substr(hash_file('sha256',__FILE__),0,12);
+    $version=eb_version($key);
     return ['url'=>url('/assets/editorial-banner.php?key='.rawurlencode($key).'&v='.$version),
         'alt'=>'Editorial illustration of '.eb_descriptions()[eb_catalog()[$key]].'.',
         'caption'=>'Editorial illustration.','width'=>1200,'height'=>630,'illustration'=>true];
