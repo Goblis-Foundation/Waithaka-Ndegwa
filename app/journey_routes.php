@@ -99,7 +99,7 @@ function journeys_dispatch(string $path): bool {
             journeys_verify_csrf();$actor=(int)current_user()['id'];
             try{
                 $action=journeys_text($_POST['action']??'save','Action',30);
-                if($action==='save'){journeys_save_season($id,$_POST,$actor);flash('success','Journey saved.');}
+                if($action==='save'){journeys_save_season($_POST,$id,$actor);flash('success','Journey saved.');}
                 elseif($action==='save_episode'){journeys_save_episode($id,$_POST,$actor);flash('success','Chapter link saved. Public display also requires the journey and post to be published.');}
                 elseif($action==='remove_episode'){journeys_remove_episode($id,(int)journeys_id($_POST['episode_id']??null,'chapter'),$actor);flash('success','Chapter link removed. The post is unchanged.');}
                 elseif($action==='delete'){
