@@ -31,5 +31,9 @@ foreach($entries as$entry){
         $ok(count(preg_split('/\s+/u',plain_text($body),-1,PREG_SPLIT_NO_EMPTY))>=300,$entry['slug'].' guide has useful depth');
     }catch(Throwable $e){$fail[]=$entry['slug'].' Publishing Desk contract: '.$e->getMessage();}
 }
+$view=(string)file_get_contents(dirname(__DIR__).'/views/desk/index.php');$routes=(string)file_get_contents(dirname(__DIR__).'/app/publishing_desk_routes.php');
+$ok(str_contains($view,'Start with what you are looking for.')&&str_contains($view,'Scholarships & study')&&str_contains($view,'Research opportunities')&&str_contains($view,'For Kenyan applicants'),'Compact landing exposes education, research and Kenya-first routes');
+$ok(str_contains($view,'/opportunities?browse=all')&&str_contains($routes,'$pageSize=$landing?6:18'),'Unfiltered landing is capped at six while full directory remains available');
+$ok(str_contains($view,"'research'=>'Research'")&&str_contains($view,"'scholarship'=>'Scholarships'"),'Category navigation includes research and scholarships');
 foreach($expectedTypes as$type=>$count)$ok($seen[$type]===$count,'Expected '.$count.' '.$type.' entries');
 if($fail){fwrite(STDERR,"FAIL: ".implode('; ',$fail)."\n");exit(1);}echo "PASS: education, scholarship and research opportunities are source-bounded, substantive and deadline-aware.\n";
