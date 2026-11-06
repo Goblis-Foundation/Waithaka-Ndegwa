@@ -29,8 +29,9 @@ PAGES={
     "/resources/problem-interview-worksheet": [],
     "/watch": ["/start-here"],
     "/enterprises": ["/about#goals-2030"],
-    "/opportunities": ["/opportunities/jobs","/opportunities/submit","/partner-stories"],
+    "/opportunities": ["/opportunities/jobs","/opportunities/suggest","/opportunities/submit","/partner-stories"],
     "/opportunities/jobs": ["/opportunities","/opportunities/submit"],
+    "/opportunities/suggest": [],
     "/opportunities/submit": [],
     "/partner-stories": ["/promote"],
     "/advertise": ["/promote","/advertising-policy"],
@@ -57,13 +58,14 @@ REQUIRED_FIELDS={
     "/contact": {"first_name","email","message","country","county","sub_county","ward"},
     "/newsletter": {"first_name","last_name","email","subscribe_ack"},
     "/founders/submit": {"submitter_name","submitter_email","venture_name","country","county","ward","privacy_ack"},
+    "/opportunities/suggest": {"title","organisation","contact_name","contact_email","source_url","type","summary","privacy_ack"},
     "/opportunities/submit": {"organisation","title","contact_email","country","county","ward","privacy_ack","no_fee_ack"},
     "/promote": {"form_nonce","package","authority_ack","privacy_ack","country","county","ward"},
     "/contribute": {"contribution_acknowledgement"},
     "/search": {"q","type"},
     "/search?q=enterprise&type=post": {"q","type"},
 }
-PRIVATE_INTAKES={"/founders/submit","/opportunities/submit","/promote"}
+PRIVATE_INTAKES={"/founders/submit","/opportunities/suggest","/opportunities/submit","/promote"}
 
 class Page(HTMLParser):
     def __init__(self)->None:

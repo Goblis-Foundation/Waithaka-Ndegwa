@@ -109,6 +109,33 @@ function desk_dispatch(string $path): bool {
         if($kind==='opportunity'){$seo=['title'=>'Funding, Scholarships, Research & Opportunities for Africans · Waithaka Ndegwa','description'=>'Find current scholarships, research calls, fellowships, grants, training and enterprise opportunities for Kenyan and African applicants, in Africa and abroad.','canonical'=>url('/opportunities'),'robots'=>'index,follow'];}else $seo=[];
         desk_render('index',compact('kind','items','filters','pageNumber','total','jobs','landing'),$kind==='opportunity'?'Opportunities':'Partner stories',$path,false,$seo);return true;
     }
+    if($path==='/opportunities/suggest'){
+        journeys_method(['GET','HEAD','POST']);$error='';$received=false;$values=['country'=>'Kenya','type'=>'grant','deadline_mode'=>'unknown','timezone'=>'Africa/Nairobi','currency'=>'KES'];
+        if(is_post()){
+            verify_csrf();$values=array_filter($_POST,'is_scalar');
+            try{
+                if(!empty($_POST['website_repeat'])){$received=true;}
+                else{
+                    $name=desk_text($_POST['contact_name']??'','Your name',120,true);
+                    $email=strtolower(desk_text($_POST['contact_email']??'','Your email',254,true));if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Enter a valid email address.');
+                    if(($_POST['privacy_ack']??'')!=='1')throw new InvalidArgumentException('Confirm that the information may be reviewed editorially and that the public source links may be checked.');
+                    if(!journeys_rate_limit('desk-public-opportunity-ip',ip_hash(),5,3600)||!journeys_rate_limit('desk-public-opportunity-email',$email,3,86400))throw new InvalidArgumentException('Please wait before submitting another opportunity.');
+                    $input=$_POST;$input['summary']=desk_text($_POST['summary']??'','Summary',800,true);$input['description']=desk_text($_POST['description']??$input['summary'],'Description',16000,true);
+                    $input['verified_on']='';$input['verification_notes']='Public submission awaiting authorised editorial source verification.';$input['source_excerpt']='';
+                    $uid=(int)(comm_config()['owner']??0);if(!$uid)throw new RuntimeException('Publishing owner is not configured.');
+                    $r=comm_lock('desk.catalog',function()use($uid,$input,$name,$email){
+                        if(count(desk_all())>=2000)throw new InvalidArgumentException('Please contact the editor before submitting another opportunity.');
+                        $r=desk_new($input,'opportunity',$uid);
+                        $r['state']='submitted';
+                        $r['intake']=['source'=>'public_submission','submitted_at'=>time(),'contact_name'=>$name,'contact_email'=>$email,'verification_flags'=>desk_submission_flags($r['fields']),'ai_review'=>'available_after_authorised_editor_consent'];
+                        return desk_store($r,'public_opportunity_submitted','public');
+                    });
+                    $received=true;
+                }
+            }catch(Throwable $e){$error=desk_failure($e);}
+        }
+        desk_render('submit_opportunity',compact('values','received','error'),'Submit an opportunity',$path,true);return true;
+    }
     if($path==='/promote'){
         journeys_method(['GET','HEAD','POST']);$error='';$received=false;$values=[];
         if(is_post()){
