@@ -40,7 +40,10 @@
       ],
       "notice": "This is a rolling training and enterprise-support opportunity. It should not be represented as a cash grant or guaranteed financing facility.",
       "sources": [
-        ["UNDP South Africa official ECoWYERT application call", "https://www.undp.org/south-africa/call-applications-ecowyert-program-opens-training-opportunities-youth-entrepreneurs-and-businesses-south-africa"]
+        [
+          "UNDP South Africa official ECoWYERT application call",
+          "https://www.undp.org/south-africa/call-applications-ecowyert-program-opens-training-opportunities-youth-entrepreneurs-and-businesses-south-africa"
+        ]
       ],
       "guide": {
         "context": "ECoWYERT is a multi-country programme led by UNDP with the Mastercard Foundation and regional partners to strengthen the participation of women- and youth-led enterprises in regional trade under the African Continental Free Trade Area. The South Africa call is structured around practical business capability rather than a one-off prize. Participants are grouped by stage so a home-based enterprise is not expected to present the same readiness as an established exporter. That makes the programme potentially useful for businesses that need stronger management systems, clearer market positioning or a pathway into cross-border trade.",
@@ -91,7 +94,10 @@
       ],
       "notice": "Applications are rolling. The programme does not guarantee selection, financing or export contracts.",
       "sources": [
-        ["UNDP Zimbabwe official ECoWYERT application page", "https://www.undp.org/zimbabwe/calls-application-ecowyert-program"]
+        [
+          "UNDP Zimbabwe official ECoWYERT application page",
+          "https://www.undp.org/zimbabwe/calls-application-ecowyert-program"
+        ]
       ],
       "guide": {
         "context": "The Zimbabwe ECoWYERT call is part of the same six-country regional initiative operating in Botswana, the Democratic Republic of the Congo, Malawi, South Africa, Zambia and Zimbabwe. Its practical focus is to help young people and women-led or youth-led enterprises participate more effectively in cross-border commerce. The training spans foundational business capability through export readiness, so applicants should choose the track that reflects their actual stage instead of overstating maturity.",
@@ -142,7 +148,10 @@
       ],
       "notice": "The call has strict institutional eligibility requirements. An organisation that has not previously participated satisfactorily in the specified IFAD farmers’ organisation programmes should not assume it is eligible.",
       "sources": [
-        ["IFAD official Crisis Response farmers’ organisations call", "https://www.ifad.org/ar/w/calls-for-proposal/supporting-farmers-organizations-to-deliver-rapid-crisis-response-and-strengthen-rural-resilience"]
+        [
+          "IFAD official Crisis Response farmers’ organisations call",
+          "https://www.ifad.org/ar/w/calls-for-proposal/supporting-farmers-organizations-to-deliver-rapid-crisis-response-and-strengthen-rural-resilience"
+        ]
       ],
       "guide": {
         "context": "This IFAD call is unusually specific: it is designed for established farmers’ organizations with prior experience under named IFAD-supported farmers’ organization programmes, not for general NGOs, individual farmers or ordinary private companies. The funding responds to overlapping shocks affecting smallholders and is intended for rapid implementation. The African priority countries are Malawi, Ethiopia, South Sudan, Mozambique, Sudan, Somalia, Mali, Burkina Faso, Nigeria and Chad.",
@@ -154,57 +163,6 @@
         ],
         "strategy": "The call rewards delivery capacity as much as a good idea. Explain how the organisation reaches members, how inputs or finance will move, how procurement will be controlled, and how results can be verified quickly. For market-access proposals, show the actual market failure and the mechanism that will improve resilience. For infrastructure, keep the intervention community-scale as required. The budget should be proportionate to the delivery model rather than simply targeting the maximum award.",
         "commitment": "Because the call requires rapid implementation, applicants should assess whether staff, procurement systems and local partnerships can mobilise quickly after award. Do not submit if the organisation cannot satisfy the prior IFAD participation condition. The date is official, but the page does not state a cutoff time, so applicants should submit well before 20 November rather than assuming midnight."
-      }
-    },
-    {
-      "slug": "unido-sustainable-industrial-ai-solutions-2026",
-      "title": "UNIDO Global Call for Sustainable Industrial AI-Powered Solutions",
-      "organisation": "UNIDO, UNCTAD, ITU and partner UN organisations",
-      "type": "competition",
-      "topic": "innovation",
-      "sectors": "Artificial intelligence, manufacturing, industrial robotics, digital infrastructure, green industry, data, finance, skills and market access",
-      "summary": "Startups, MSMEs, technology companies, research organisations and other solution providers from developing and middle-income economies can submit industrial AI solutions for global showcasing and matchmaking.",
-      "support": "Selected solutions receive exhibition visibility, solution talks, workshops, matchmaking and inclusion in the AIM Global solutions repository; no cash award is stated",
-      "deadline_mode": "unknown",
-      "deadline_iso": null,
-      "deadline_date": "2026-11-09",
-      "deadline_label": "9 November 2026; the official UNIDO announcement states the date but not a cutoff time",
-      "countries": "Open to solution providers addressing developing and middle-income economies, including African countries",
-      "apply_url": "https://www.unido.org/news/unido-unctad-odet-itu-undco-wrco-launch-global-call-sustainable-industrial-ai-powered-solutions",
-      "benefits": [
-        "Opportunity for selected solutions to be showcased at the AIM Global Action Forum in Vienna on 25–26 November 2026.",
-        "Exhibition space, solution talks, workshop participation and dedicated matchmaking for selected providers.",
-        "Longer-term visibility through the AIM Global solutions repository and Centres of Excellence network."
-      ],
-      "eligibility": [
-        "Solution providers of different sizes and types, including startups, MSMEs, established technology companies, research organisations and international or regional organisations.",
-        "AI-powered solutions should address real industrial needs in developing and middle-income economies.",
-        "The call accepts different maturity levels, from emerging innovations to deployable and flagship solutions."
-      ],
-      "conditions": [
-        "The official announcement does not state a cash grant for selected solutions.",
-        "Applicants should classify solution maturity accurately and provide evidence appropriate to the selected category.",
-        "Selection for showcasing or matchmaking is not a procurement or investment guarantee."
-      ],
-      "steps": [
-        "Select the most appropriate industrial AI thematic track and maturity category.",
-        "Prepare concise evidence of the industrial problem, technical solution, users, deployment maturity, measured results and scalability.",
-        "Submit through the official UNIDO call before 9 November 2026."
-      ],
-      "notice": "This is a visibility, demonstration and matchmaking call rather than a stated cash-grant programme.",
-      "sources": [
-        ["UNIDO official global industrial AI call", "https://www.unido.org/news/unido-unctad-odet-itu-undco-wrco-launch-global-call-sustainable-industrial-ai-powered-solutions"]
-      ],
-      "guide": {
-        "context": "The call is designed to identify industrial AI solutions that can move beyond generic demonstrations into real industrial use. UNIDO and its partners explicitly recognise different maturity levels, which allows an emerging innovation to be assessed differently from an already deployed system. African providers can use the opportunity to demonstrate solutions relevant to manufacturing, industrial infrastructure, green production, data systems, finance or skills in developing-market conditions.",
-        "fit": "A strong fit is a solution with a specific industrial user and problem, not a general AI platform searching for an application. Applicants should be able to explain why AI is necessary, what data or operating environment the solution depends on, and what evidence exists that it works. Solutions designed for limited connectivity, smaller firms or resource-constrained settings may be especially relevant to many African industrial contexts.",
-        "prepare": [
-          "Define the exact industrial workflow or bottleneck addressed and identify the intended user.",
-          "Prepare evidence of technical maturity, deployments or pilots, measured performance and responsible-AI controls.",
-          "Choose the correct maturity category rather than overstating readiness for scale."
-        ],
-        "strategy": "The application should connect technology to industrial value: lower downtime, better quality, reduced energy use, safer operations, stronger supply chains or improved market access. Avoid vague claims that AI will transform an industry. Show what changes in the process, who uses the system and how outcomes are measured. If the solution is still emerging, be explicit about the validation still required. If it is deployable, provide credible implementation evidence.",
-        "commitment": "The submission window is short. Applicants should verify any travel, exhibition or participation arrangements if selected and should not assume travel costs or financing are covered unless the organiser confirms them. Matchmaking can create opportunities but is not a guarantee of procurement, investment or partnership."
       }
     },
     {
@@ -244,9 +202,18 @@
       ],
       "notice": "There is no single programme-wide closing date. The relevant deadline is the funding deadline of the selected Cambridge course, commonly in early December or early January.",
       "sources": [
-        ["Cambridge Mastercard Foundation Scholars Program — applications open", "https://www.mastercardfoundation.fund.cam.ac.uk/news/2027-applications-now-open"],
-        ["Cambridge Mastercard Foundation Scholars Program — how to apply", "https://www.mastercardfoundation.fund.cam.ac.uk/apply/how-apply"],
-        ["Cambridge eligibility guidance", "https://www.mastercardfoundation.fund.cam.ac.uk/apply/eligibility"]
+        [
+          "Cambridge Mastercard Foundation Scholars Program — applications open",
+          "https://www.mastercardfoundation.fund.cam.ac.uk/news/2027-applications-now-open"
+        ],
+        [
+          "Cambridge Mastercard Foundation Scholars Program — how to apply",
+          "https://www.mastercardfoundation.fund.cam.ac.uk/apply/how-apply"
+        ],
+        [
+          "Cambridge eligibility guidance",
+          "https://www.mastercardfoundation.fund.cam.ac.uk/apply/eligibility"
+        ]
       ],
       "guide": {
         "context": "The Cambridge Mastercard Foundation Scholars Program is a fully funded postgraduate route for African students, with a particular emphasis on leadership, climate resilience and sustainability. The scholarship is not a separate first-stage application: candidates apply for an eligible Cambridge Master’s course and indicate the funding option within that application. This makes course selection and academic fit central to the process.",
@@ -297,7 +264,10 @@
       ],
       "notice": "African teams can apply, but the challenge problems and pilots are based in the three named European and Central Asian cities.",
       "sources": [
-        ["UNDP official GenAI for Good Cities Edition announcement", "https://www.undp.org/ukraine/news/undp-and-ieee-invite-innovators-develop-ai-solutions-urban-challenges"]
+        [
+          "UNDP official GenAI for Good Cities Edition announcement",
+          "https://www.undp.org/ukraine/news/undp-and-ieee-invite-innovators-develop-ai-solutions-urban-challenges"
+        ]
       ],
       "guide": {
         "context": "This challenge is relevant to African technologists because participation is worldwide and the problems—public transport planning, energy-efficiency investment and green-infrastructure management—also resemble challenges facing many African cities. The immediate pilots, however, are in Pristina, Rivne and Skopje. Applicants should therefore solve the published city problem first rather than turning the application into a proposal for a different geography.",
@@ -348,7 +318,10 @@
       ],
       "notice": "This is a market-sounding and technology-sourcing exercise, not a grant award or guaranteed procurement process.",
       "sources": [
-        ["IsDB official Competitive Technology Sourcing page", "https://beta.isdb.org/sti/competitive-technology-sourcing"]
+        [
+          "IsDB official Competitive Technology Sourcing page",
+          "https://beta.isdb.org/sti/competitive-technology-sourcing"
+        ]
       ],
       "guide": {
         "context": "IsDB is using this sourcing exercise to identify technologies that are mature enough for possible deployment across member-country development projects. The two current tracks are soil stabilisation for roads and innovative solar energy for rural communities. The opportunity is therefore closer to technology sourcing and market access than to a startup competition.",
