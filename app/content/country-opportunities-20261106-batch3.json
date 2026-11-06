@@ -1,0 +1,264 @@
+{
+  "release": "country-opportunities-20261106-batch3",
+  "checked_on": "2026-11-06",
+  "guidance_note": "This is an independent editorial summary based on official sources checked on 6 November 2026. Preparation guidance is not an additional eligibility rule. Applicants must follow the organiser's current application form, eligibility rules, deadlines and funding terms.",
+  "entries": [
+    {
+      "slug": "young-africa-innovates-nigeria-cohort-2-2026",
+      "title": "Young Africa Innovates Nigeria Cohort 2",
+      "organisation": "UNDP Nigeria / Mastercard Foundation",
+      "type": "accelerator",
+      "topic": "social-entrepreneurship",
+      "sectors": "Youth innovation, entrepreneurship, community solutions, job creation and market access",
+      "summary": "Young Nigerians aged 18–35 who live in one of seven Cohort 2 states can apply with a developing solution in any sector for bootcamp, incubation, mentorship, financial support and market access.",
+      "support": "Bootcamp, incubation, mentorship, product development, market access and financial support for selected innovators; the public programme page does not state a fixed grant amount",
+      "deadline_mode": "unknown",
+      "deadline_iso": null,
+      "deadline_date": "2026-11-18",
+      "deadline_label": "18 November 2026; the official programme site gives the closing date without a cutoff time",
+      "countries": "Nigeria — residents of Abia, Akwa Ibom, Cross River, Katsina, Niger, Plateau or Taraba states",
+      "apply_url": "https://youngafricainnovates.ng/",
+      "benefits": [
+        "State-level bootcamp and incubation support to develop and test an innovation.",
+        "Mentorship, product-development support and help strengthening the route to market.",
+        "Financial support for selected innovators plus connections to markets, capital and strategic partners."
+      ],
+      "eligibility": [
+        "Aged 18 to 35 at the time of application.",
+        "Resident in Abia, Akwa Ibom, Cross River, Katsina, Niger, Plateau or Taraba.",
+        "Working on an idea that solves a real problem and has started moving toward something people can use; all sectors are accepted."
+      ],
+      "conditions": [
+        "A registered business is not required, but applicants should show evidence that the idea is moving beyond a purely abstract concept.",
+        "The programme particularly targets underserved innovators, including young women, persons with disabilities and people in underserved communities.",
+        "Financial support is part of the programme pathway, but the official public page does not state a guaranteed amount for every participant."
+      ],
+      "steps": [
+        "Confirm residence in one of the seven Cohort 2 states and age eligibility.",
+        "Prepare a clear explanation of the problem, the solution, what has already been built or tested, and evidence of community need.",
+        "Submit through the official Young Africa Innovates website before 18 November 2026."
+      ],
+      "notice": "The public programme timeline lists applications through 18 November 2026 even though some bootcamp activity is already shown for earlier months. Applicants should follow the current official application portal and any updated instructions it provides.",
+      "sources": [
+        ["UNDP Nigeria Cohort 2 announcement", "https://www.undp.org/nigeria/press-releases/mastercard-foundation-and-undp-launch-applications-cohort-2-young-africa-innovates-yai-programme"],
+        ["Official Young Africa Innovates programme site", "https://youngafricainnovates.ng/"]
+      ],
+      "guide": {
+        "context": "Young Africa Innovates is a UNDP Nigeria and Mastercard Foundation programme designed to identify and develop youth-led innovations that may not fit the profile of founders who already have strong networks, formal companies or easy access to finance. Cohort 2 is intentionally geographically targeted: applicants must live in one of seven participating states. The pathway is broader than a competition. It moves selected innovators through bootcamp, incubation and market access, with the programme describing financial support as one element of the support package.",
+        "fit": "A strong fit is a young person who understands a real problem from lived or close practical experience and has already started turning an idea into something that can be demonstrated, tested or used. The programme is sector-agnostic, so the key issue is not whether the idea is technology-based. Reviewers also consider job-creation prospects, proof of concept, scalability, community impact and willingness to co-create. Applicants should be honest about the current stage rather than presenting an early prototype as a mature company.",
+        "prepare": [
+          "Prepare a concise problem statement grounded in the community or market you know directly.",
+          "Gather photos, a short demonstration, user feedback or other evidence that the solution has moved beyond an idea where available.",
+          "Explain who could use or pay for the solution, the next milestone and what support would make the biggest difference."
+        ],
+        "strategy": "Use the application to demonstrate learning velocity and practical relevance. A small prototype with clear user evidence can be more persuasive than a broad claim about transforming an entire sector. Explain why the problem matters in the applicant's state, what existing alternatives people use, what is different about the proposed solution and what has been learned so far. If the model is intended to become a business, show the path toward revenue without overstating current sales. If it is impact-led, explain how the solution can remain financially sustainable.",
+        "commitment": "The official programme site gives a closing date of 18 November 2026 but does not publish a cutoff time, so applicants should not assume midnight. Selected participants should be ready for in-state programme activities and ongoing incubation. Financial support should not be treated as guaranteed personal income or a fixed grant until the organiser confirms award terms. Keep copies of the submitted application and use only official programme contacts for requests for additional documents."
+      }
+    },
+    {
+      "slug": "makerere-rif8-college-level-grants-2026",
+      "title": "Makerere RIF-8 High Impact College Level Grants",
+      "organisation": "Makerere University Research and Innovations Fund",
+      "type": "research",
+      "topic": "innovation",
+      "sectors": "Research, innovation, national development, technology, health, agriculture, public policy and multidisciplinary research",
+      "summary": "Makerere University Colleges and standalone Schools can submit one high-impact institutional proposal for grants of UGX 200–500 million under Round 8, Track 3.",
+      "support": "UGX 200–500 million per selected project; at least UGX 1 billion is allocated for three to five awards",
+      "deadline_mode": "fixed",
+      "deadline_iso": "2026-11-09T17:00:00+03:00",
+      "deadline_date": "2026-11-09",
+      "deadline_label": "9 November 2026 at 5:00 PM East Africa Time",
+      "countries": "Uganda — Makerere University Colleges and standalone Schools",
+      "apply_url": "https://rif.mak.ac.ug/college-level-grants/",
+      "benefits": [
+        "Competitive grant funding of UGX 200–500 million for high-impact institutional research and innovation.",
+        "One-year implementation period with possible extension where high impact is demonstrated.",
+        "A route to support large, scalable ideas tied to Uganda's national development priorities."
+      ],
+      "eligibility": [
+        "Applications are submitted at College or standalone School level through the Principal or Dean, or an authorised senior researcher.",
+        "Each College or standalone School may submit only one proposal.",
+        "Projects should address a priority national issue and produce a tangible, scalable output with substantial socioeconomic value."
+      ],
+      "conditions": [
+        "This is not an open individual grant for researchers outside Makerere University.",
+        "Joint proposals across Colleges are encouraged and receive an advantage in the published assessment approach.",
+        "Applicants must use the official templates and online portal and meet the exact 5:00 PM EAT deadline."
+      ],
+      "steps": [
+        "Coordinate the institutional selection process so the College or School submits only one proposal.",
+        "Prepare the application template, detailed budget, team CVs and institutional approvals using the official guidance.",
+        "Submit through the Makerere RIF portal by 5:00 PM EAT on 9 November 2026."
+      ],
+      "notice": "The one-proposal-per-College rule makes internal institutional coordination essential before submission.",
+      "sources": [
+        ["Makerere RIF-8 Track 3 official page", "https://rif.mak.ac.ug/college-level-grants/"],
+        ["Makerere RIF official announcement", "https://rif.mak.ac.ug/rif-8-college-level-grants-call-open/"]
+      ],
+      "guide": {
+        "context": "Makerere University's Research and Innovations Fund is government-supported and Round 8 Track 3 is intentionally designed for a smaller number of larger, institution-level projects. Instead of many individual proposals, each College or standalone School selects a single high-impact idea. The funding range is materially larger than many ordinary research grants, so the expected project should address a national challenge with a tangible output and a credible path to adoption or scale.",
+        "fit": "The strongest fit is a multidisciplinary project that has institutional backing and can demonstrate why a large grant is necessary to produce a visible, useful result within a year. The published criteria emphasise national importance, scalability, socioeconomic dividends and budget efficiency. A narrow academic study without a pathway to a tangible output is less aligned than a project that can move research into a technology, system, policy tool, service model or implementation platform.",
+        "prepare": [
+          "Secure College or School leadership agreement before investing heavily in the application because only one proposal may be submitted.",
+          "Build a multidisciplinary team and define a single tangible output, beneficiary or user group and adoption pathway.",
+          "Use the official budget and application templates and prepare evidence that the project can deliver within the stated implementation period."
+        ],
+        "strategy": "Start from the national problem and work backward to the research and innovation needed to solve it. The proposal should explain why the problem is significant, why Makerere is positioned to address it, what output will exist at the end of the grant and how that output can be amplified beyond the initial project. Joint College proposals should make the value of collaboration explicit rather than adding partners only for appearance. The budget should map directly to activities and outputs and should not target the maximum award without a clear need.",
+        "commitment": "The deadline is exact: 9 November 2026 at 5:00 PM EAT. Internal approvals and portal submission therefore need to happen before the final hours. Applicants should retain the submitted version and budget and be prepared for expert review. A strong project may be extended where high impact is demonstrated, but applicants should design the first year to stand on its own rather than relying on an extension."
+      }
+    },
+    {
+      "slug": "makerere-infectious-disease-modelling-fellowship-2026",
+      "title": "Makerere Advanced Infectious Diseases Modelling Training and Fellowship",
+      "organisation": "Makerere University School of Public Health / Infectious Diseases Epidemiology Modelling Unit",
+      "type": "fellowship",
+      "topic": "innovation",
+      "sectors": "Epidemiology, mathematical modelling, public health, software engineering, biostatistics, statistics and infectious diseases",
+      "summary": "Applicants with quantitative, software, public-health or medical backgrounds can apply for intensive infectious-disease modelling training followed by a six-month research fellowship.",
+      "support": "Three weeks of intensive training followed by a six-month research fellowship; participant support is governed by the official call documents",
+      "deadline_mode": "fixed",
+      "deadline_iso": "2026-11-10T17:00:00+03:00",
+      "deadline_date": "2026-11-10",
+      "deadline_label": "10 November 2026 at 5:00 PM East Africa Time",
+      "countries": "Uganda; training is hosted at Makerere University School of Public Health / Uganda National Institute of Public Health",
+      "apply_url": "https://sph.mak.ac.ug/announcement-details/?aid=21568&announcement=call-for-applications-advanced-infectious-diseases-modelling-training-and-fellowship",
+      "benefits": [
+        "Three weeks of intensive technical training in infectious-disease modelling.",
+        "A six-month research fellowship with mentorship and project work.",
+        "A pathway to strengthen applied modelling capacity for epidemic preparedness and public-health decision making."
+      ],
+      "eligibility": [
+        "At least a bachelor's degree in one of the listed quantitative, computing, public-health or medical disciplines.",
+        "Programming proficiency and basic knowledge of infectious-disease epidemiology; public-health and medicine applicants need modelling training or experience.",
+        "Applicants must provide evidence of completed technical work through GitHub projects or first-author mathematical-modelling publications and commit to the full programme."
+      ],
+      "conditions": [
+        "The programme requires full participation in both the training and fellowship components.",
+        "The official announcement specifies technical evidence requirements; applicants without the required project or publication evidence should review the full call carefully before applying.",
+        "Participant support and fellowship terms should be confirmed in the attached official call documents."
+      ],
+      "steps": [
+        "Review the attached call and project options on the Makerere School of Public Health page.",
+        "Prepare academic evidence, technical project or publication links and the requested application documents.",
+        "Submit through the official online application route before 5:00 PM EAT on 10 November 2026."
+      ],
+      "notice": "The call has unusually specific proof-of-technical-work requirements, including GitHub project links or qualifying first-author modelling publications.",
+      "sources": [
+        ["Makerere School of Public Health official fellowship announcement", "https://sph.mak.ac.ug/announcement-details/?aid=21568&announcement=call-for-applications-advanced-infectious-diseases-modelling-training-and-fellowship"]
+      ],
+      "guide": {
+        "context": "This opportunity combines training with a research fellowship rather than offering a short standalone course. It is aimed at building advanced infectious-disease modelling capacity, a field that increasingly informs outbreak forecasting, intervention design and resource allocation. The training is hosted through Makerere University School of Public Health and Uganda's public-health system, with CEPI support noted in the announcement.",
+        "fit": "A strong applicant should be comfortable with quantitative reasoning and programming and should be able to show completed technical work. The explicit GitHub or publication requirement means the selection is likely to value evidence of execution rather than only academic interest. Applicants from public health or medicine should be ready to demonstrate prior modelling exposure. Someone who is new to coding or mathematical modelling may be better served by a more introductory programme first.",
+        "prepare": [
+          "Select the strongest GitHub project or first-author modelling publication that demonstrates independent technical capability.",
+          "Refresh the underlying modelling, statistics and programming concepts before writing the application so the statement can be technically specific.",
+          "Confirm availability for the entire training period and six-month fellowship before applying."
+        ],
+        "strategy": "Frame the application around the public-health problem the applicant wants to become better able to analyse. Explain how the applicant's current skills connect to infectious-disease modelling and where the fellowship would deepen capability. Technical evidence should be easy for reviewers to inspect: clean repositories, reproducible work, clear READMEs or well-described publications. Avoid presenting a generic interest in data science without showing why epidemic modelling is the intended field.",
+        "commitment": "The deadline is 10 November 2026 at 5:00 PM EAT, and training begins later in November. Applicants should resolve work, study and travel commitments before applying. The programme requires sustained participation beyond the initial training, so it should be treated as a professional development commitment rather than a short workshop. Verify all stipend, travel or participant-support details in the official attached documents."
+      }
+    },
+    {
+      "slug": "makerere-midwize-embolden-phd-2026",
+      "title": "Makerere PhD Position in Midwifery, Maternal and Newborn Health and Implementation Science",
+      "organisation": "Makerere University School of Public Health",
+      "type": "research",
+      "topic": "innovation",
+      "sectors": "Maternal health, newborn health, midwifery, implementation science, health systems and public health",
+      "summary": "Makerere University School of Public Health is recruiting a doctoral researcher for field-based maternal and newborn health and implementation-science work in Uganda.",
+      "support": "PhD enrolment subject to Makerere admission, multidisciplinary supervision, fieldwork and research support, academic development and international research collaboration",
+      "deadline_mode": "fixed",
+      "deadline_iso": "2026-11-11T17:00:00+03:00",
+      "deadline_date": "2026-11-11",
+      "deadline_label": "11 November 2026 at 5:00 PM East Africa Time",
+      "countries": "Uganda — field-based research with health facilities and communities",
+      "apply_url": "https://sph.mak.ac.ug/announcement-details/?aid=21564&announcement=call-for-applications-phd-position-in-midwifery-maternal-and-newborn-health-and-implementation-science",
+      "benefits": [
+        "PhD enrolment at Makerere University subject to meeting university admission requirements.",
+        "Supervision from a multidisciplinary Ugandan and Swedish research team.",
+        "Support for fieldwork, research activities, academic development and international scientific collaboration under the project terms."
+      ],
+      "eligibility": [
+        "Applicants should meet the academic and professional requirements in the official call and be able to undertake field-based research in Uganda.",
+        "Relevant maternal/newborn health, midwifery, health-systems, implementation-science or research experience is advantageous.",
+        "Applicants must submit the required academic writing sample, transcripts, certificates and referee information."
+      ],
+      "conditions": [
+        "Selection for the project does not waive Makerere University's PhD admission requirements.",
+        "The role involves field-based work with health facilities and communities in Uganda.",
+        "Only shortlisted candidates are contacted under the published recruitment process."
+      ],
+      "steps": [
+        "Review the full official call and confirm academic fit and availability for field-based doctoral research.",
+        "Prepare a one-page motivation letter, CV, academic documents, writing sample and two referee contacts.",
+        "Submit the complete application as one PDF using the official instructions by 5:00 PM EAT on 11 November 2026."
+      ],
+      "notice": "The position combines project selection with formal PhD admission requirements; applicants should verify both sets of conditions.",
+      "sources": [
+        ["Makerere School of Public Health official PhD call", "https://sph.mak.ac.ug/announcement-details/?aid=21564&announcement=call-for-applications-phd-position-in-midwifery-maternal-and-newborn-health-and-implementation-science"]
+      ],
+      "guide": {
+        "context": "This call is a doctoral research opportunity rather than a general scholarship. The selected candidate will work within maternal and newborn health and implementation-science research, with field engagement in Uganda and supervision spanning Ugandan and Swedish researchers. The role therefore combines academic training, project responsibilities and sustained interaction with health systems and communities.",
+        "fit": "A strong fit is an applicant with a relevant postgraduate background and evidence of research maturity, especially in maternal and newborn health, midwifery, implementation science, health systems or quality improvement. Clinical or field experience can strengthen the application when it helps the candidate formulate realistic research questions. Applicants should also be comfortable with long-term field-based work and collaborative research rather than expecting a purely classroom-based doctorate.",
+        "prepare": [
+          "Choose an academic writing sample that demonstrates independent analysis, clear methods and disciplined argument.",
+          "Use the motivation letter to connect prior work directly to maternal/newborn health and implementation science rather than writing a generic PhD statement.",
+          "Confirm referee availability and compile transcripts and certificates into the required single-PDF submission."
+        ],
+        "strategy": "The motivation letter is short, so every paragraph should do work. Explain the research problem the applicant has encountered, the skills already developed and why this specific project is the right next step. Where the applicant has worked with health facilities, professional associations or government institutions, describe the role precisely and what was learned about implementation barriers. Avoid claiming expertise in every method; demonstrate readiness to learn within a multidisciplinary team.",
+        "commitment": "A PhD position requires sustained availability and the ability to meet both project and university milestones. Applicants should consider fieldwork, supervision, academic writing and publication expectations before applying. The deadline is 11 November 2026 at 5:00 PM EAT. Submit early enough to check that the single PDF is complete and readable and that all referee details are accurate."
+      }
+    },
+    {
+      "slug": "oceanhub-africa-accelerator-cohort-8-2027",
+      "title": "OceanHub Africa Acceleration Programme Cohort 8",
+      "organisation": "OceanHub Africa",
+      "type": "accelerator",
+      "topic": "innovation",
+      "sectors": "Blue economy, ocean impact, fisheries, aquaculture, marine technology, circular economy, coastal resilience and maritime innovation",
+      "summary": "Revenue-generating African Blue Economy startups with measurable positive ocean impact can apply for a nine-month acceleration programme with one-to-one venture support and investor introductions.",
+      "support": "Nine months of venture acceleration, weekly one-to-one coaching, commercial and funding analysis, technical support and investor introductions; no guaranteed investment",
+      "deadline_mode": "unknown",
+      "deadline_iso": null,
+      "deadline_date": "2026-12-06",
+      "deadline_label": "6 December 2026; the official OceanHub Africa programme page states the closing date without a cutoff time",
+      "countries": "African countries — for scalable Blue Economy startups operating in Africa",
+      "apply_url": "https://oceanhub.africa/we-support/acceleration-program/",
+      "benefits": [
+        "Nine months of bespoke venture support for up to ten startups.",
+        "Weekly coaching from experienced Entrepreneurs in Residence plus commercialisation, market and funding analysis.",
+        "Introductions to relevant investors and ecosystem partners as the company becomes investment-ready."
+      ],
+      "eligibility": [
+        "A scalable startup operating in Africa with a core business connected to the Blue Economy and net-positive ocean impact.",
+        "The official programme page targets revenue-generating ventures rather than idea-stage projects.",
+        "The team should be ready for sustained coaching, commercial analysis and investor-readiness work during the programme."
+      ],
+      "conditions": [
+        "Participation does not guarantee investment or follow-on capital.",
+        "Applicants should verify any in-person participation, travel and cost arrangements in the current application terms.",
+        "The application should demonstrate a genuine ocean-impact business model rather than a general sustainability claim."
+      ],
+      "steps": [
+        "Document revenue, paying customers or contracts and the company's core Blue Economy activity.",
+        "Prepare evidence of ocean impact, unit economics, growth priorities and the capital or market barriers the company needs to solve.",
+        "Apply through OceanHub Africa's official programme page before 6 December 2026."
+      ],
+      "notice": "OceanHub Africa describes this as an accelerator for revenue-generating Blue Economy startups. Idea-stage projects without market evidence are generally not the target.",
+      "sources": [
+        ["OceanHub Africa official acceleration programme", "https://oceanhub.africa/we-support/acceleration-program/"]
+      ],
+      "guide": {
+        "context": "OceanHub Africa specialises in ocean-impact entrepreneurship and its Cohort 8 accelerator is aimed at companies that have already crossed from concept into commercial activity. The programme is designed to help founders understand the business, market and funding constraints that limit growth, then work through those constraints with dedicated venture support. This makes it distinct from short pitch competitions or introductory entrepreneurship training.",
+        "fit": "A strong fit is a startup with paying customers, a scalable model and an intentional connection between revenue and healthier ocean outcomes. Relevant fields can include fisheries, aquaculture, waste and circularity, marine data, maritime logistics, coastal tourism, marine energy or other ocean-related sectors. The impact case should be measurable and central to the business rather than a side CSR activity. Founders should also know their commercial numbers well enough to engage in detailed growth and investment-readiness analysis.",
+        "prepare": [
+          "Compile recent revenue, customer, contract and retention evidence and make sure the numbers reconcile with financial records.",
+          "Define two or three ocean-impact indicators that can be measured credibly as the company scales.",
+          "Prepare a clear fundraising or growth objective, unit economics and the operational bottleneck the accelerator should help solve."
+        ],
+        "strategy": "Lead with the business and the ocean-impact mechanism together. Explain who pays, why customers choose the product, how margins behave and what changes environmentally when the company grows. Investors will need to understand both commercial durability and impact integrity. Avoid relying on awards, pilots or letters of intent when revenue evidence exists. If the company has complex hardware or infrastructure needs, explain the capital stack and milestones rather than simply stating a large funding requirement.",
+        "commitment": "The official page states that applications for the 2027 cohort close on 6 December 2026 without a published cutoff time. Applicants should submit early and review the linked application terms for any bootcamp, travel, data-room or participation obligations. Investor introductions are valuable but should not be treated as a promise of financing. The nine-month format requires consistent founder engagement."
+      }
+    }
+  ]
+}
