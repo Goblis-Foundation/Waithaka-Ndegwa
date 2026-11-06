@@ -1,0 +1,126 @@
+{
+  "release": "personalized-source-articles-20261106",
+  "research_cutoff": "2026-11-06",
+  "entries": [
+    {
+      "slug": "christmas-truce-humanity-leadership",
+      "title": "The Christmas Truce Still Has Something to Teach Us About Leadership and Humanity",
+      "standfirst": "The 1914 truce was neither universal nor permanent. Its real power lies in what it shows about dignity, trust and human judgement inside rigid systems.",
+      "seo_title": "The Christmas Truce: Leadership, Trust and Humanity",
+      "seo_description": "Waithaka Ndegwa reflects on the verified history of the 1914 Christmas Truce and what it teaches about leadership, dignity and trust.",
+      "category_slug": "social-entrepreneurship",
+      "series_name": "Ideas & Perspectives",
+      "article_groups": [
+        "ideas-perspectives"
+      ],
+      "tags": [
+        "Leadership",
+        "Humanity",
+        "Trust",
+        "Christmas Truce",
+        "Institutions",
+        "History"
+      ]
+    },
+    {
+      "slug": "tong-wenhong-long-term-value",
+      "title": "From Reception Desk to Partnership: What Tong Wenhong’s Alibaba Story Really Teaches",
+      "standfirst": "The useful lesson is not a viral equity anecdote. It is how organisations notice capability, create internal mobility and share long-term value.",
+      "seo_title": "Tong Wenhong, Alibaba and the Value of Developing People",
+      "seo_description": "A current, verified look at Tong Wenhong’s Alibaba story and lessons on internal mobility, ownership, leadership and long-term value.",
+      "category_slug": "social-entrepreneurship",
+      "series_name": "People, Enterprise & Leadership",
+      "article_groups": [
+        "ideas-perspectives"
+      ],
+      "tags": [
+        "Alibaba",
+        "Tong Wenhong",
+        "Leadership",
+        "Employee Ownership",
+        "People Development",
+        "Enterprise"
+      ]
+    },
+    {
+      "slug": "kenya-visa-free-eta-2026",
+      "title": "Kenya Is Visa-Free — But Travel Is Not Paperwork-Free",
+      "standfirst": "Kenya’s open-travel ambition matters, but the current eTA exemptions, fees and 2026 traveller requirements show why policy should be judged by the real journey.",
+      "seo_title": "Kenya Visa-Free and eTA Rules in 2026: What Changed",
+      "seo_description": "Waithaka Ndegwa examines Kenya’s visa-free policy, current eTA exemptions and fees, and why travel friction matters for tourism, trade and integration.",
+      "category_slug": "travel",
+      "series_name": "Travel, Movement & Africa",
+      "article_groups": [
+        "ideas-perspectives"
+      ],
+      "tags": [
+        "Kenya Travel",
+        "eTA",
+        "Visa Free",
+        "East Africa",
+        "Tourism",
+        "African Integration"
+      ]
+    },
+    {
+      "slug": "dhl-friction-logistics-lesson",
+      "title": "DHL’s Original Insight Still Matters: Remove Friction Before You Move More Goods",
+      "standfirst": "DHL began by moving documents ahead of cargo. For African enterprise, the enduring lesson is that infrastructure includes the processes that make movement reliable.",
+      "seo_title": "DHL’s Logistics Lesson for African Infrastructure and Enterprise",
+      "seo_description": "From DHL’s 1969 document-courier insight to its Africa investment, Waithaka Ndegwa explores logistics friction, infrastructure and enterprise opportunity.",
+      "category_slug": "national-infrastructure",
+      "series_name": "Infrastructure & Enterprise",
+      "article_groups": [
+        "ideas-perspectives"
+      ],
+      "tags": [
+        "DHL",
+        "Logistics",
+        "Infrastructure",
+        "AfCFTA",
+        "Trade",
+        "African Enterprise"
+      ]
+    },
+    {
+      "slug": "sugar-beet-kenya-complement-not-cure",
+      "title": "Sugar Beet Could Complement Kenya’s Sugarcane — But It Is Not Yet the Answer",
+      "standfirst": "Kenya’s sugar deficit makes diversification worth testing. Current evidence supports careful sugar-beet pilots—not a national promise before agronomy and processing economics are proven.",
+      "seo_title": "Sugar Beet in Kenya: Diversification Opportunity, Not Yet a Cure",
+      "seo_description": "Waithaka Ndegwa revisits sugar beet in Kenya using current sugar-market evidence and argues for agronomic and commercial pilots before large-scale claims.",
+      "category_slug": "agribusiness",
+      "series_name": "Agribusiness Systems",
+      "article_groups": [
+        "ideas-perspectives"
+      ],
+      "tags": [
+        "Sugar Beet",
+        "Sugarcane",
+        "Kenya Sugar",
+        "Agribusiness",
+        "Value Chains",
+        "Farm Innovation"
+      ]
+    },
+    {
+      "slug": "tomato-processing-cooperatives-kenya",
+      "title": "Kenya’s Tomato Problem Is Not Just Overproduction — It Is a Processing and Coordination Gap",
+      "standfirst": "Less than 2% of locally produced tomatoes enter processing. The opportunity is to organise production around processing demand, not simply produce more and search for buyers later.",
+      "seo_title": "Kenya Tomato Farming: Processing, Cooperatives and Market Coordination",
+      "seo_description": "Waithaka Ndegwa revisits Kenya’s tomato gluts using current KALRO evidence and argues for processing, aggregation and market-led production.",
+      "category_slug": "agribusiness",
+      "series_name": "Agribusiness Systems",
+      "article_groups": [
+        "ideas-perspectives"
+      ],
+      "tags": [
+        "Tomato Farming",
+        "Kenya Agriculture",
+        "Food Processing",
+        "Cooperatives",
+        "Postharvest Loss",
+        "Agribusiness"
+      ]
+    }
+  ]
+}
