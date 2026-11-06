@@ -66,6 +66,24 @@ function desk_fields(array $in,string $kind,bool $complete=false): array {
     $f['sponsor_name']=desk_text($in['sponsor_name']??($f['sponsored']?$f['organisation']:''),'Sponsor name',180,$complete&&$f['sponsored']);
     return $f;
 }
+function desk_submission_flags(array $fields): array {
+    $flags=['official_source_unverified'=>'Official source needs editorial verification'];
+    if(($fields['apply_url']??'')==='')$flags['application_link_missing']='Direct application link was not supplied';
+    else $flags['application_link_unverified']='Application link needs editorial verification';
+    if(trim((string)($fields['eligibility']??''))==='')$flags['eligibility_missing']='Eligibility details are missing';
+    else $flags['eligibility_unverified']='Eligibility details need source verification';
+    if(trim((string)($fields['countries']??''))==='')$flags['countries_missing']='Eligible countries are missing';
+    else $flags['countries_unverified']='Country eligibility needs source verification';
+    if(($fields['deadline_mode']??'unknown')==='unknown')$flags['deadline_unknown']='Deadline is unknown or programme-specific';
+    else $flags['deadline_unverified']='Deadline needs source verification';
+    if(($fields['source_url']??'')!==''&&($fields['apply_url']??'')!==''){
+        $source=strtolower((string)(parse_url($fields['source_url'],PHP_URL_HOST)??''));
+        $apply=strtolower((string)(parse_url($fields['apply_url'],PHP_URL_HOST)??''));
+        if($source!==''&&$apply!==''&&$source!==$apply)$flags['application_domain_differs']='Application host differs from the main source host; confirm it is official';
+    }
+    if(($fields['amount_min']??null)===null&&($fields['amount_max']??null)===null&&trim((string)($fields['benefits']??''))==='')$flags['support_terms_missing']='Funding or support terms are not yet described';
+    return $flags;
+}
 function desk_edit_fields(array $fields): array {
     $out=$fields;$zone=new DateTimeZone($fields['timezone']??'Africa/Nairobi');
     foreach(['opens_at','deadline','event_start','event_end','offer_expires']as$key)$out[$key]=empty($fields[$key])?'':(new DateTimeImmutable('@'.$fields[$key]))->setTimezone($zone)->format('Y-m-d\TH:i');
