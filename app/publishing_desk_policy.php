@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/opportunity_lifecycle_policy.php';
 /** Pure contracts for curated opportunities and commercial publishing. No provider calls. */
 function desk_types(): array {
-    return ['grant'=>'Grants and funding','accelerator'=>'Accelerators and incubators','fellowship'=>'Fellowships','scholarship'=>'Scholarships','conference'=>'Conferences and events','training'=>'Training','competition'=>'Competitions','call'=>'Calls for proposals'];
+    return ['grant'=>'Grants and funding','accelerator'=>'Accelerators and incubators','fellowship'=>'Fellowships','scholarship'=>'Scholarships','research'=>'Research opportunities','conference'=>'Conferences and events','training'=>'Training','competition'=>'Competitions','call'=>'Calls for proposals'];
 }
 function desk_packages(): array {
     return [

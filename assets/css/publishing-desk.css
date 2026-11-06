@@ -14,3 +14,17 @@
 @media(max-width:650px){.opportunity-country-intro{display:block}.opportunity-country-intro>a{display:inline-block;margin-top:12px}.country-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.opportunity-groups{display:grid;grid-template-columns:1fr 1fr}.opportunity-groups a{justify-content:center}}
 
 @media print{.site-header,.site-footer,.workspace-sidebar,.write-top,.workspace-section-bar,.desk-tabs,.desk-actions,.desk button,.desk form,.app-mobile-nav{display:none!important}.desk{padding:0!important;margin:0!important;width:100%!important;max-width:none!important}.desk-card{break-inside:avoid}.desk-invoice{border:1px solid #999}.desk details:not([open])>*:not(summary){display:block}}
+
+
+.opportunity-landing{margin:24px 0 30px;padding:26px;border:1px solid var(--desk-border);border-radius:18px;background:#f8fbfc}
+.opportunity-landing-head{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:18px}
+.opportunity-landing-head>div{max-width:720px}.opportunity-landing-head h2{margin:4px 0 8px}.opportunity-landing-head p{margin:0}
+.opportunity-path-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.opportunity-path-grid>a{display:flex;flex-direction:column;gap:5px;min-height:110px;padding:18px;border:1px solid var(--desk-border);border-radius:14px;background:#fff;text-decoration:none}
+.opportunity-path-grid>a:hover{border-color:#8eb4c5;box-shadow:0 5px 18px #082e4d0d}
+.opportunity-path-grid strong{font-size:1rem;color:var(--desk-navy)}.opportunity-path-grid span{font-size:.82rem;line-height:1.5;color:#526b78}
+.opportunity-selected-heading{display:flex;flex-wrap:wrap;align-items:end;gap:8px 22px;margin:32px 0 16px}
+.opportunity-selected-heading .desk-kicker{width:100%;margin:0!important}.opportunity-selected-heading h2{margin:0}.opportunity-selected-heading p{margin:0;color:#536d7b}
+.opportunity-landing-foot{display:flex;flex-wrap:wrap;gap:18px;margin:28px 0 0;padding-top:18px;border-top:1px solid var(--desk-border);font-weight:700}
+@media(max-width:850px){.opportunity-path-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.opportunity-landing-head{align-items:flex-start;flex-direction:column}}
+@media(max-width:650px){.opportunity-landing{padding:20px}.opportunity-path-grid{grid-template-columns:1fr}.opportunity-path-grid>a{min-height:0}.opportunity-selected-heading{display:block}.opportunity-selected-heading h2{margin-bottom:8px}}

@@ -89,7 +89,8 @@ function desk_dispatch(string $path): bool {
     }
     if($path==='/opportunities'||$path==='/partner-stories'){
         journeys_method(['GET','HEAD']);$kind=$path==='/opportunities'?'opportunity':'sponsored';$items=desk_public_list($kind,true);
-        $filters=[];foreach(['q','type','country','sector','status']as$key)$filters[$key]=is_string($_GET[$key]??null)?mb_substr(trim($_GET[$key]),0,120):'';
+        $filters=[];foreach(['q','type','country','sector','status','browse']as$key)$filters[$key]=is_string($_GET[$key]??null)?mb_substr(trim($_GET[$key]),0,120):'';
+        $filters['browse']=$filters['browse']==='all'?'all':'';
         $items=array_values(array_filter($items,static function($r)use($filters){$f=$r['public']['fields'];
             if($filters['q']!==''&&mb_stripos($f['title'].' '.$f['organisation'].' '.$f['summary'],$filters['q'])===false)return false;
             if($filters['type']!==''&&($f['type']??'')!==$filters['type'])return false;
@@ -102,10 +103,11 @@ function desk_dispatch(string $path): bool {
             return ol_directory_match(ol_public_record($r),$filters['status']);
         }));
         if($kind==='opportunity')opportunity_sort_deadline($items);
-        $total=count($items);$page=archive_page_number($_GET['page']??null);if($page===null||$page>max(1,(int)ceil($total/18))){http_response_code(404);return true;}$pageNumber=$page;$items=array_slice($items,($pageNumber-1)*18,18);
-        $jobs=$kind==='opportunity'&&in_array($filters['type'],['','jobs'],true)?opportunity_public_list():[];
-        if($kind==='opportunity'){$seo=['title'=>'Funding, Grants & Opportunities for Africans · Waithaka Ndegwa','description'=>'Find current grants, fellowships, accelerators, training and business opportunities open to African applicants. Closing-soon opportunities appear first, with official sources and country eligibility guidance.','canonical'=>url('/opportunities'),'robots'=>'index,follow'];}else $seo=[];
-        desk_render('index',compact('kind','items','filters','pageNumber','total','jobs'),$kind==='opportunity'?'Opportunities':'Partner stories',$path,false,$seo);return true;
+        $landing=$kind==='opportunity'&&$filters['browse']!== 'all'&&$filters['q']===''&&$filters['type']===''&&$filters['country']===''&&$filters['sector']===''&&$filters['status']==='';
+        $pageSize=$landing?6:18;$total=count($items);$page=archive_page_number($_GET['page']??null);if($page===null||$page>max(1,(int)ceil($total/$pageSize))){http_response_code(404);return true;}$pageNumber=$page;$items=array_slice($items,($pageNumber-1)*$pageSize,$pageSize);
+        $jobs=$kind==='opportunity'&&!$landing&&in_array($filters['type'],['','jobs'],true)?opportunity_public_list():[];
+        if($kind==='opportunity'){$seo=['title'=>'Funding, Scholarships, Research & Opportunities for Africans · Waithaka Ndegwa','description'=>'Find current scholarships, research calls, fellowships, grants, training and enterprise opportunities for Kenyan and African applicants, in Africa and abroad.','canonical'=>url('/opportunities'),'robots'=>'index,follow'];}else $seo=[];
+        desk_render('index',compact('kind','items','filters','pageNumber','total','jobs','landing'),$kind==='opportunity'?'Opportunities':'Partner stories',$path,false,$seo);return true;
     }
     if($path==='/promote'){
         journeys_method(['GET','HEAD','POST']);$error='';$received=false;$values=[];
