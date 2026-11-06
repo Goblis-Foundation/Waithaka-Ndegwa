@@ -6,12 +6,11 @@ $data=json_decode((string)file_get_contents($path),true,128,JSON_THROW_ON_ERROR)
 $fail=[];$ok=function(bool $v,string $label)use(&$fail){if(!$v)$fail[]=$label;};
 
 $ok(($data['release']??'')==='country-opportunities-20261106-batch2','Release identity');
-$entries=$data['entries']??[];$ok(count($entries)===7,'Seven reviewed country/international expansion entries');
+$entries=$data['entries']??[];$ok(count($entries)===6,'Six reviewed country/international expansion entries');
 $expected=[
  'ecowyert-south-africa-regional-trade-training',
  'ecowyert-zimbabwe-regional-trade-training',
  'ifad-crisis-response-farmers-organisations-2026',
- 'unido-sustainable-industrial-ai-solutions-2026',
  'mastercard-cambridge-scholars-2027-2028',
  'undp-ieee-genai-for-good-cities-2026',
  'isdb-competitive-technology-sourcing-2026'
@@ -51,8 +50,6 @@ $ifad=array_values(array_filter($entries,fn($e)=>$e['slug']==='ifad-crisis-respo
 $ok(($ifad['support']??'')!==''&&str_contains((string)$ifad['support'],'US$250,000'),'IFAD award ceiling retained');
 $cambridge=array_values(array_filter($entries,fn($e)=>$e['slug']==='mastercard-cambridge-scholars-2027-2028'))[0]??[];
 $ok(str_contains((string)($cambridge['countries']??''),'All African countries'),'Cambridge listing remains pan-African');
-$unido=array_values(array_filter($entries,fn($e)=>$e['slug']==='unido-sustainable-industrial-ai-solutions-2026'))[0]??[];
-$ok(($unido['deadline_date']??'')==='2026-11-09','UNIDO date-only deadline preserved without invented cutoff time');
 $isdb=array_values(array_filter($entries,fn($e)=>$e['slug']==='isdb-competitive-technology-sourcing-2026'))[0]??[];
 $ok(($isdb['deadline_date']??'')==='2026-11-15','IsDB date-only deadline preserved');
 
