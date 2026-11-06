@@ -18,6 +18,27 @@
     <a href="<?=url('/write/monthly-roundup')?>">Monthly edition</a>
     <a href="<?=url('/write/operations')?>">Worker and outbox evidence</a>
   </nav>
+  <section class="activation-section" aria-labelledby="activation-oauth-title">
+    <div class="activation-section-heading"><div><h2 id="activation-oauth-title">Owner authorization queue</h2><p>Work through the remaining OAuth providers one at a time. Each button starts that provider's existing least-privilege consent flow. A returned identity must still be confirmed before the connection is treated as ready.</p></div></div>
+    <div class="activation-connection-grid">
+      <?php foreach(($activationOauthRows??[])as$oauth):?>
+      <article class="activation-connection" aria-labelledby="activation-oauth-<?=e($oauth['service'])?>">
+        <h3 id="activation-oauth-<?=e($oauth['service'])?>"><?=e($oauth['name'])?></h3>
+        <p class="activation-status"><?=e(match($oauth['state']){'connected'=>'Connected and confirmed','pending_confirmation'=>'Provider returned an account · confirmation needed','reconnect'=>'Reconnect required','other_owner'=>'Owner connection required','disconnected'=>'Not connected',default=>'Status unavailable'})?></p>
+        <?php if($oauth['complete']):?>
+          <a class="wbtn" href="<?=url($oauth['review_path'])?>">Review connection</a>
+        <?php elseif($oauth['state']==='pending_confirmation'):?>
+          <a class="wbtn primary" href="<?=url($oauth['review_path'])?>">Confirm returned account</a>
+        <?php elseif($oauth['configured']):?>
+          <form method="post" action="<?=url($oauth['start_path'])?>"><?=csrf_field()?><button class="wbtn primary" type="submit"><?=e($oauth['state']==='reconnect'?'Reconnect':'Authorize')?> <?=e($oauth['name'])?></button></form>
+        <?php else:?>
+          <a class="wbtn primary" href="<?=url($oauth['review_path'])?>">Complete app setup</a>
+        <?php endif;?>
+      </article>
+      <?php endforeach;?>
+    </div>
+    <p class="activation-stamp">This queue does not publish content, send messages, make payments or buy API access. Telegram, Discord and Signal use their separate destination setup; payment providers use Finance verification; Microsoft delegated actions and physical-device permissions remain in their dedicated workspaces.</p>
+  </section>
   <section class="activation-section" aria-labelledby="activation-gates-title">
     <div class="activation-section-heading"><div><h2 id="activation-gates-title">External acceptance gates</h2><p>Each row states what the system can currently establish and the next verifiable action. These seven acceptance streams remain tracked until their separate criteria are evidenced. A GitHub issue closure alone does not establish activation.</p></div></div>
     <div class="activation-grid">
