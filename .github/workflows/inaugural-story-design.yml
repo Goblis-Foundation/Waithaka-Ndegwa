@@ -14,12 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      # Default checkout uses the trusted default-branch event revision for
-      # workflow_run, and the normal unprivileged merge revision for PR checks.
-      # Never execute an upstream event's supplied head SHA or downloaded code.
+      # workflow_run is already restricted above to successful deployments from
+      # this repository's main branch. Pin acceptance to that deployed SHA so a
+      # newer main commit cannot race ahead; PR checks still use github.sha.
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
