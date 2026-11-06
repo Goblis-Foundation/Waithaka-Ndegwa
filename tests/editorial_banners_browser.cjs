@@ -59,8 +59,9 @@ const fs=require('node:fs');const path=require('node:path');const assert=require
   for(const width of [390,768,1024,1440]){
    await page.setViewportSize({width,height:1000});await page.goto(base+'/opportunities',{waitUntil:'networkidle'});
    assert.equal(await page.locator('.editorial-directory-art').count(),1);assert.equal(await page.locator('main .desk-monogram').count(),0);
-   assert.equal(await page.locator('[data-opportunity-support]').count(),1);
+   assert.equal(await page.locator('[data-opportunity-support]').count(),0,'Compact opportunities landing omits the contribution callout');
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
+   const fullDirectory=await page.goto(base+'/opportunities?browse=all',{waitUntil:'networkidle'});assert.equal(fullDirectory.status(),200);assert.equal(await page.locator('[data-opportunity-support]').count(),1,'Full opportunity directory retains voluntary support');
    if(width===390||width===1440)await page.screenshot({path:path.join(out,'directory-'+width+'.png'),fullPage:true});
   }
   for(const entry of added){
