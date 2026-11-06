@@ -38,4 +38,17 @@ $ok(opportunity_country_seo($kenya,3,true)['robots']==='index,follow','Substanti
 $ok(opportunity_country_seo($kenya,3,false)['robots']==='noindex,follow','Broad-only country page is not indexed');
 $ok(opportunity_country_seo($kenya,0,false)['robots']==='noindex,follow','Empty country page is not indexed');
 $niger=opportunity_country('niger');$ok(!opportunity_country_direct_match($record('Nigeria'),$niger),'Niger does not falsely match Nigeria');
+
+$coverageFixtureRows=[
+ ['status'=>'direct_current'],['status'=>'regional_current'],['status'=>'historical_only'],['status'=>'no_verified_current']
+];
+$summary=opportunity_country_coverage_summary($coverageFixtureRows);
+$ok(($summary['countries']??0)===4,'Coverage summary counts countries');
+$ok(($summary['direct_current']??0)===1&&($summary['regional_current']??0)===1&&($summary['historical_only']??0)===1&&($summary['no_verified_current']??0)===1,'Coverage summary separates direct, regional, historical and research-gap states');
+$allCountries=opportunity_africa_countries();
+$ok(count($allCountries)>=54,'African country registry retains continental coverage');
+$view=(string)file_get_contents(dirname(__DIR__).'/views/write/opportunity_reviews.php');
+$ok(str_contains($view,'African country research coverage')&&str_contains($view,'No verified current listing'),'Private review workspace exposes honest country research gaps');
+$ok(str_contains($view,"/opportunities/country/"),'Coverage ledger links to public country pages without exposing a new public data endpoint');
+
 if($fail){fwrite(STDERR,"FAIL: ".implode('; ',$fail)."\n");exit(1);}echo "PASS: African country eligibility, exclusions, SEO and deadline ordering.\n";
