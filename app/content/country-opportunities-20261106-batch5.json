@@ -1,0 +1,59 @@
+{
+  "release": "country-opportunities-20261106-batch5",
+  "checked_on": "2026-11-06",
+  "guidance_note": "This is an independent editorial summary based on official sources checked on 6 November 2026. Preparation guidance is not an additional eligibility rule. Contributors must follow the African Union ECOSOCC call, submission instructions, editorial process and later chapter requirements.",
+  "entries": [
+    {
+      "slug": "au-ecosocc-civil-society-democratic-resilience-book-2026",
+      "title": "AU ECOSOCC Call for Book Contributions on Civil Society and Democratic Resilience",
+      "organisation": "African Union Economic, Social and Cultural Council (AU ECOSOCC)",
+      "type": "research",
+      "topic": "innovation",
+      "sectors": "Governance, democracy, civil society, elections, public policy, digital integrity, inclusion and regional studies",
+      "summary": "Researchers, practitioners and policy contributors can submit an extended abstract for an African Union ECOSOCC edited volume on civil society and democratic resilience in Africa.",
+      "support": "Selected authors gain inclusion in an AU ECOSOCC bilingual edited volume, continental policy visibility and participation in the publication process; no cash award is stated",
+      "deadline_mode": "unknown",
+      "deadline_iso": null,
+      "deadline_date": "2026-11-15",
+      "deadline_label": "15 November 2026; the official AU ECOSOCC call states the date but does not publish a cutoff time",
+      "countries": "African Union Member States and Africa-focused contributors; comparative and regional case studies across Africa are explicitly invited",
+      "apply_url": "https://ecosocc.au.int/en/call-for-book-contributions-civil-society-and-democratic-resilience-in-africa",
+      "benefits": [
+        "Opportunity to contribute to a bilingual African Union ECOSOCC publication distributed across AU institutions and Member States.",
+        "Visibility with scholars, practitioners and policymakers working on electoral governance, civil society and democratic resilience.",
+        "Participation in the author review process and contribution to continental policy and public debate under the published project timeline."
+      ],
+      "eligibility": [
+        "The call invites strategic, analytical and field-driven contributions relevant to civil society and democratic resilience in Africa.",
+        "Submissions may address legal foundations, civil society across the electoral cycle, technology and emerging challenges, inclusion, comparative country/regional studies or future directions for electoral governance.",
+        "Applicants must submit an extended abstract of 300–500 words and a brief author biography of about 150 words in English or French."
+      ],
+      "conditions": [
+        "This is a publication opportunity, not a stated grant, fellowship stipend or travel award.",
+        "Selected abstract authors are expected to proceed to draft and final chapter stages according to the AU ECOSOCC project timeline.",
+        "The official page gives 15 November 2026 as the abstract deadline but does not state a cutoff time, so contributors should submit before the final day where possible."
+      ],
+      "steps": [
+        "Choose one of the six published thematic sections and define a focused contribution grounded in evidence, practice or comparative analysis.",
+        "Prepare a 300–500 word extended abstract plus an approximately 150-word author biography in English or French.",
+        "Submit the abstract to the official AU ECOSOCC contacts listed in the call before 15 November 2026 and retain the sent submission."
+      ],
+      "notice": "The call is designed for an edited book contribution. It should not be presented as a scholarship, cash grant or guaranteed conference invitation.",
+      "sources": [
+        ["AU ECOSOCC official call for book contributions", "https://ecosocc.au.int/en/call-for-book-contributions-civil-society-and-democratic-resilience-in-africa"],
+        ["AU ECOSOCC official opportunities listing", "https://ecosocc.au.int/en/opportunities"]
+      ],
+      "guide": {
+        "context": "AU ECOSOCC is inviting contributions for an edited volume focused on how civil society can strengthen trust, legitimacy and citizen ownership of electoral governance across Africa. The call is aligned with Agenda 2063 and the African Charter on Democracy, Elections and Governance. It is not limited to academic theory: the stated interest includes analytical and field-driven work, making the opportunity relevant to scholars, civil-society practitioners, election observers, policy professionals and researchers who can connect evidence to continental democratic practice.",
+        "fit": "A strong fit is a contributor with a specific argument, case, dataset, field experience or comparative insight that can illuminate one of the six themes. The technology section may suit work on AI, deepfakes, disinformation or digital vote-tabulation systems; inclusion work may focus on women, youth, persons with disabilities or marginalised groups; comparative studies can examine ECOWAS, SADC, EAC, ECCAS or IGAD contexts. A weak fit would be a broad opinion essay without evidence, a generic overview of democracy in Africa or a proposal unrelated to civil society and electoral governance.",
+        "prepare": [
+          "Choose a narrow research question or practical problem and identify the evidence, case material or comparative frame that will support the argument.",
+          "Draft the abstract around the contribution the chapter will make, not only the background problem, and show why the analysis matters to African electoral governance.",
+          "Prepare a concise biography highlighting the experience, research or practice that makes the author credible for the proposed contribution."
+        ],
+        "strategy": "The 300–500 word limit requires a disciplined abstract. Open with the problem or puzzle, state the argument or research question, identify the evidence or cases, then explain the contribution to the volume's theme. If the chapter is practice-based, be explicit about the source of the observations and avoid overstating generalisability. Comparative submissions should explain why the selected countries or regions are meaningfully comparable. Technology-focused submissions should distinguish technical novelty from the governance consequences for citizens, institutions and trust.",
+        "commitment": "Authors whose abstracts are accepted will be expected to continue through a draft chapter, online review workshop and final chapter according to the published timeline, with draft chapters due in January 2027 and final chapters in April 2027. Contributors should therefore submit only if they can sustain the research and writing commitment beyond the abstract stage. The official call does not state a payment, travel grant or honorarium, so none should be assumed."
+      }
+    }
+  ]
+}
