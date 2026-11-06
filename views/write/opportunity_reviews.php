@@ -2,6 +2,35 @@
 <main class="desk desk-workspace"><header class="desk-hero"><div><p class="desk-kicker">Opportunities</p><h1>Source checks &amp; revisions</h1><p>Review official-source changes. AI prepares evidence-backed suggestions; it cannot publish a revision or reopen a withdrawn opportunity.</p></div><a href="<?=url('/write/desk')?>">Publishing desk</a></header>
 <?php if($error):?><p class="desk-alert" role="alert"><?=e($error)?></p><?php endif;?>
 <section class="desk-card"><h2>Lifecycle policy</h2><p>Exact deadlines close automatically. A date-only listing closes after that date has ended worldwide, without inventing an organiser cutoff. Closed listings leave ordinary browsing after 90 days; historical links remain available. No permanent deletion is scheduled.</p><p>Official sources: daily; every six hours during the final seven days; daily for fourteen days after closure; weekly until archival. Failed reads do not change eligibility or deadlines. Manual closures and withdrawals are never reopened by the worker.</p><p>Monitoring: <strong><?=!empty($cfg['enabled'])?'Enabled':'Disabled'?></strong>. AI: <strong><?=$aiConfigured?(!empty($cfg['ai_enabled'])?'Configured; up to '.(int)$cfg['ai_daily_limit'].' analyses per UTC day':'Disabled'):'Not configured - source checking still works'?></strong>. Last worker pass: <?=!empty($last['at'])?e(date('j M Y H:i T',$last['at'])):'Not yet recorded'?>.</p><p>Failed checks retry with increasing delays, within the normal deadline-aware cadence. A partial source read is not complete verification. Login walls, access restrictions and unreadable documents require manual review; the system does not bypass them. Saved evidence and earlier success dates do not imply that the latest check succeeded.</p></section>
+<section class="desk-card" aria-labelledby="country-coverage-title">
+<h2 id="country-coverage-title">African country research coverage</h2>
+<p>This private ledger shows what the current verified catalogue can support for each African country. <strong>No verified current listing</strong> is an honest research gap, not a zero-opportunity claim. Regional-only means the country is currently covered by an Africa-wide, Sub-Saharan or EAC eligibility statement rather than a country-specific listing.</p>
+<div class="desk-metrics">
+  <div><strong><?=(int)($coverageSummary['countries']??0)?></strong><span>Countries tracked</span></div>
+  <div><strong><?=(int)($coverageSummary['direct_current']??0)?></strong><span>Direct current</span></div>
+  <div><strong><?=(int)($coverageSummary['regional_current']??0)?></strong><span>Regional current only</span></div>
+  <div><strong><?=(int)($coverageSummary['historical_only']??0)?></strong><span>Historical only</span></div>
+  <div><strong><?=(int)($coverageSummary['no_verified_current']??0)?></strong><span>No verified current</span></div>
+</div>
+<div style="overflow:auto">
+<table class="desk-table">
+<thead><tr><th scope="col">Country</th><th scope="col">Region</th><th scope="col">Coverage</th><th scope="col">Current</th><th scope="col">Direct</th><th scope="col">Historical</th><th scope="col">Next known deadline</th></tr></thead>
+<tbody>
+<?php foreach($coverageRows as$coverage):
+$labels=['direct_current'=>'Direct current','regional_current'=>'Regional current only','historical_only'=>'Historical only','no_verified_current'=>'No verified current listing'];
+?>
+<tr>
+<td><a href="<?=e(url('/opportunities/country/'.$coverage['slug']))?>" target="_blank" rel="noopener"><?=e($coverage['name'])?></a></td>
+<td><?=e($coverage['region'])?></td>
+<td><?=e($labels[$coverage['status']]??$coverage['status'])?></td>
+<td><?=(int)$coverage['current']?></td><td><?=(int)$coverage['direct']?></td><td><?=(int)$coverage['historical']?></td>
+<td><?=!empty($coverage['next_deadline'])?e(date('j M Y H:i T',(int)$coverage['next_deadline'])):'—'?></td>
+</tr>
+<?php endforeach;?>
+</tbody></table>
+</div>
+<p class="desk-note">Research should prioritize countries marked “No verified current listing” and “Historical only”, while near-term deadlines remain urgent. Country pages are public only when current eligible listings exist; this ledger itself remains private under Writer authentication.</p>
+</section>
 <?php foreach($rows as$row):$r=$row['record'];$m=$row['monitor'];$proposal=$m['proposal']??null;$public=ol_public_record($r);?>
 <section class="desk-card" id="record-<?=e($r['id'])?>"><h2><a href="<?=e(url(desk_path($r)))?>" target="_blank" rel="noopener"><?=e($r['fields']['title'])?></a></h2><p><strong><?=e(ol_status($public))?></strong> &middot; Fetch: <?=e($m['fetch_state']??'awaiting first check')?> &middot; AI: <?=e($m['ai_state']??'not yet analysed')?></p><p>Last successful source read: <?=!empty($m['last_success'])?e(date('j M Y H:i T',$m['last_success'])):'Not yet confirmed'?>. Last successful AI analysis: <?=!empty($m['ai_checked_at'])?e(date('j M Y H:i T',$m['ai_checked_at'])):'Not yet confirmed'?>. Next scheduled check: <?=!empty($m['paused'])?'Paused':(!empty($m['next_check'])?e(date('j M Y H:i T',$m['next_check'])):'Next worker pass')?>.</p>
 <?php if(($m['fetch_state']??'')==='needs_review'):?><p class="desk-alert"><strong>Source needs attention.</strong> <?=e(om_message($m['fetch_error']??'source_unavailable'))?></p><?php endif;?>

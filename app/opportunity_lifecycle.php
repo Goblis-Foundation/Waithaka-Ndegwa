@@ -89,5 +89,6 @@ function ol_dispatch(string $path): bool {
     }catch(Throwable $e){$error=$e instanceof InvalidArgumentException?$e->getMessage():'This action could not be confirmed. Reload the saved record before retrying.';}}
     $rows=[];foreach(desk_all()as$r)if($r['kind']==='opportunity'&&!$r['fields']['sponsored']&&!empty($r['public']))$rows[]=['record'=>$r,'monitor'=>comm_get('ol.monitor.'.$r['id'])];
     $cfg=ol_config();$last=comm_get('ol.last_run');$aiConfigured=trim((string)setting('openai.api_key',''))!=='';
-    render_write('opportunity_reviews',compact('rows','cfg','last','aiConfigured','error'));return true;
+    $coverageRows=opportunity_country_coverage_rows();$coverageSummary=opportunity_country_coverage_summary($coverageRows);
+    render_write('opportunity_reviews',compact('rows','cfg','last','aiConfigured','error','coverageRows','coverageSummary'));return true;
 }

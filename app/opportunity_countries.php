@@ -127,6 +127,40 @@ function opportunity_country_quality(array $country,array $records): bool {
     foreach($current as$r)if(opportunity_country_direct_match($r,$country))return true;
     return false;
 }
+
+function opportunity_country_coverage_rows(?int $now=null): array {
+    $now??=time();$rows=[];
+    foreach(opportunity_africa_countries()as$slug=>$meta){
+        $country=['slug'=>$slug]+$meta;
+        $all=opportunity_country_records($country,true);
+        $current=array_values(array_filter($all,static fn($r)=>ol_directory_match(ol_public_record($r),'')));
+        $direct=array_values(array_filter($current,static fn($r)=>opportunity_country_direct_match($r,$country)));
+        $status=$direct?'direct_current':($current?'regional_current':($all?'historical_only':'no_verified_current'));
+        $next=null;
+        foreach($current as$r){
+            $f=$r['public']['fields']??[];
+            $ts=(int)($f['deadline']??0);
+            if($ts<=0&&($f['deadline_date']??'')!==''&&ol_date_valid((string)$f['deadline_date']))$ts=(new DateTimeImmutable($f['deadline_date'].' 23:59:59',new DateTimeZone('Africa/Nairobi')))->getTimestamp();
+            if($ts>$now&&($next===null||$ts<$next))$next=$ts;
+        }
+        $rows[]=[
+            'slug'=>$slug,'name'=>$country['name'],'region'=>$country['region'],
+            'status'=>$status,'current'=>count($current),'direct'=>count($direct),
+            'historical'=>max(0,count($all)-count($current)),'next_deadline'=>$next
+        ];
+    }
+    usort($rows,static function($a,$b){
+        $rank=['no_verified_current'=>0,'historical_only'=>1,'regional_current'=>2,'direct_current'=>3];
+        $r=($rank[$a['status']]??9)<=>($rank[$b['status']]??9);
+        return $r!==0?$r:strcmp($a['name'],$b['name']);
+    });
+    return $rows;
+}
+function opportunity_country_coverage_summary(array $rows): array {
+    $out=['countries'=>count($rows),'direct_current'=>0,'regional_current'=>0,'historical_only'=>0,'no_verified_current'=>0];
+    foreach($rows as$row)if(isset($out[$row['status']]))$out[$row['status']]++;
+    return $out;
+}
 function opportunity_country_seo(array $country,int $count,bool $indexable=false): array {
     $name=$country['name'];$demonym=$country['demonym'];
     $title='Funding, Grants & Opportunities for '.$demonym.' Applicants';
