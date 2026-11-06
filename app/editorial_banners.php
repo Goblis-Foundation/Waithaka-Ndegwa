@@ -44,7 +44,6 @@ function eb_catalog(): array {
         'ecowyert-south-africa-regional-trade-training'=>'enterprise',
         'ecowyert-zimbabwe-regional-trade-training'=>'enterprise',
         'ifad-crisis-response-farmers-organisations-2026'=>'agriculture',
-        'unido-sustainable-industrial-ai-solutions-2026'=>'industry',
         'mastercard-cambridge-scholars-2027-2028'=>'learning',
         'undp-ieee-genai-for-good-cities-2026'=>'innovation',
         'isdb-competitive-technology-sourcing-2026'=>'industry',
