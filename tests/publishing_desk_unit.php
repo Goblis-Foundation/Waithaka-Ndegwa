@@ -45,6 +45,18 @@ $r['fields']['source_excerpt']='Public excerpt';$r['fields']['verification_notes
 $ai=desk_ai_material($r);check(!str_contains(json_encode($ai),'private@example.org')&&!isset($ai['facts']['verification_notes'])&&!isset($ai['facts']['claims_evidence']),'Private contact and evidence omitted from AI.');
 check($ai['facts']['source_excerpt']==='Public excerpt','Explicit source excerpt available to consented AI.');
 check(str_contains(desk_ai_instructions(),'untrusted')&&str_contains(desk_ai_instructions(),'Never ask for contributions'),'AI trust and commercial policy.');
+$submission=desk_fields(['title'=>'Public scholarship tip','organisation'=>'Example university','summary'=>'Submitted for review.','description'=>'Submitted for review.','source_url'=>'https://example.edu/scholarship','apply_url'=>'https://apply.example.edu/form','timezone'=>'Africa/Nairobi','type'=>'scholarship','deadline_mode'=>'unknown'],'opportunity');
+$flags=desk_submission_flags($submission);
+check(isset($flags['official_source_unverified'])&&isset($flags['eligibility_missing'])&&isset($flags['countries_missing'])&&isset($flags['deadline_unknown'])&&isset($flags['application_domain_differs']),'Public intake receives conservative verification flags.');
+$submission['eligibility']='Kenyan graduates';$submission['countries']='Kenya';$submission['deadline_mode']='fixed';$submission['deadline']=time()+86400;
+$flags=desk_submission_flags($submission);
+check(isset($flags['eligibility_unverified'])&&isset($flags['countries_unverified'])&&isset($flags['deadline_unverified']),'Supplied public facts remain unverified until editorial review.');
+$submitView=(string)file_get_contents(dirname(__DIR__).'/views/desk/submit_opportunity.php');$submitRoutes=(string)file_get_contents(dirname(__DIR__).'/app/publishing_desk_routes.php');$publicIndex=(string)file_get_contents(dirname(__DIR__).'/views/desk/index.php');$writerView=(string)file_get_contents(dirname(__DIR__).'/views/write/desk_edit.php');
+check(str_contains($submitView,'public submission → structured verification flags')&&str_contains($submitView,'does not guarantee publication'),'Public form explains the gated catalogue workflow.');
+check(str_contains($submitRoutes,"if($path==='/opportunities/suggest')")&&str_contains($submitRoutes,"'state']='submitted'")&&str_contains($submitRoutes,"'ai_review'=>'available_after_authorised_editor_consent'"),'Public intake creates a private submitted record and never auto-runs AI.');
+check(str_contains($publicIndex,"/opportunities/suggest")&&str_contains($publicIndex,'Submit an employment role'),'Catalogue and employment submission routes remain distinct.');
+check(str_contains($writerView,'Public catalogue submission')&&str_contains($writerView,'Verification queue'),'Authorised Writer review exposes submission flags.');
+
 $paid=$r;$paid['kind']='sponsored';$paid['fields']['sponsored']=true;$paid['fields']['sponsor_name']='Example sponsor';$paid['owner_approval']=desk_digest($paid,$post);$paid['client_approval']=$paid['owner_approval'];
 check(count(desk_publish_errors($paid,$post))>0,'No paid publication without payment.');
 $order=['id'=>str_repeat('a',32),'quote'=>$q,'state'=>'paid','accepted_hash'=>$q['hash'],'merchant'=>'MERCHANT123'];
