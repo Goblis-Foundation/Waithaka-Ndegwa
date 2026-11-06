@@ -44,6 +44,7 @@ $withoutProject=$syntheticClient;$withoutProject['dedicated_project']=false;ac_c
 $unconfirmed=$syntheticConnection;$unconfirmed['selected_resource']=null;ac_check(activation_connection_state($unconfirmed,42,'telegram')==='pending_confirmation','A saved grant without a chosen destination is never ready.');
 $GLOBALS['oauth_clients']['linkedin']=['client_id'=>'fixture','client_secret'=>'fixture-secret'];
 $GLOBALS['oauth_clients']['x']=['client_id'=>'fixture','client_secret'=>'fixture-secret'];
+$GLOBALS['oauth_clients']['instagram']=['client_id'=>'fixture','client_secret'=>'fixture-secret'];
 $GLOBALS['oauth_connections']['linkedin']=['status'=>'connected','connected_by'=>42,'selected_resource'=>'PRIVATE_MEMBER'];
 $GLOBALS['oauth_connections']['x']=['status'=>'pending_confirmation','connected_by'=>42,'selected_resource'=>null];
 $GLOBALS['oauth_connections']['tiktok_read']=['status'=>'connected','connected_by'=>9,'selected_resource'=>'OTHER_OWNER'];
@@ -82,7 +83,7 @@ ac_check(substr_count($html,'<h1')===1&&substr_count($html,'class="activation-ca
 ac_check(str_contains($html,'issues/70')&&str_contains($html,'issues/76')&&str_contains($html,'/write/monthly-roundup'),'Issue and local setup links must be available.');
 ac_check(!str_contains($html,$secret),'Rendered view must not show supplied secret-like fields.');
 ac_check(str_contains($html,'Paused in config')&&str_contains($html,'33'),'Delivery configuration and complete preserved register remain separate.');
-ac_check(str_contains($html,'Owner authorization queue')&&str_contains($html,'Confirm returned account')&&str_contains($html,'Authorize X professional account'),'Activation renders sequential least-privilege authorization actions.');
+ac_check(str_contains($html,'Owner authorization queue')&&str_contains($html,'Confirm returned account')&&str_contains($html,'Authorize Instagram professional publishing'),'Activation renders sequential least-privilege authorization actions.');
 ac_check(!str_contains($html,'PRIVATE_MEMBER')&&!str_contains($html,'OTHER_OWNER'),'Rendered authorization queue never leaks provider identifiers.');
 
 $GLOBALS['fixture_owner']=9;
