@@ -27,13 +27,13 @@ foreach([null,'',[],['v'=>'bad'],str_repeat('0',24),'../app/config.php','https:/
 $edge=json_decode((string)file_get_contents(dirname(__DIR__).'/deploy/aws/edge-stack.json'),true,64,JSON_THROW_ON_ERROR);
 $vary=$edge['Resources']['StaticCache']['Properties']['CachePolicyConfig']['ParametersInCacheKeyAndForwardedToOrigin']['QueryStringsConfig'];
 ebt($vary['QueryStringBehavior']==='whitelist'&&in_array('v',$vary['QueryStrings'],true),'The deployed edge forwards and varies on banner identity.');
-foreach(['','assets/images/social-default.png','assets/images/brand-lockup.webp','assets/images/wn-approved-monogram.svg','assets/images/old-logo.jpg','assets/images/favicon.ico']as$source){
+foreach(['','assets/images/social-default.png','assets/images/brand-lockup.webp','assets/images/wn-approved-monogram.svg','assets/images/legacy-brand-art.jpg','assets/images/favicon.ico']as$source){
     $image=eb_post_image(['slug'=>'fresh-writing','category_slug'=>'agribusiness','featured_image'=>$source]);
     ebt($image['illustration']===true&&str_contains($image['url'],'topic-agriculture'),'Missing or old logo becomes relevant article art.');
 }
 $photo=['slug'=>'the-gold-that-is-nairobis-sewage','title'=>'Test article','featured_image'=>'assets/images/articles/approved-header.jpg','featured_image_alt'=>'Approved treatment plant photograph','featured_image_caption'=>'Original caption'];
 $image=eb_post_image($photo);ebt($image['illustration']===false&&$image['url']===url($photo['featured_image'])&&$image['caption']==='Original caption','Approved article photographs and captions remain intact.');
-$r=['kind'=>'opportunity','slug'=>'octopus-african-energy-entrepreneurship-awards-2026','public'=>['fields'=>['sponsored'=>false],'creatives'=>['landscape'=>['url'=>'https://banners.example.com/old-logo.png','alt'=>'Old logo']]]];
+$r=['kind'=>'opportunity','slug'=>'octopus-african-energy-entrepreneurship-awards-2026','public'=>['fields'=>['sponsored'=>false],'creatives'=>['landscape'=>['url'=>'https://banners.example.com/legacy-brand-art.png','alt'=>'Legacy brand art']]]];
 ebt(eb_record_image($r)['illustration']===true&&str_contains(eb_record_image($r)['url'],$r['slug']),'Known opportunities replace old saved logo creatives.');
 $r=['kind'=>'sponsored','public'=>['fields'=>['sponsored'=>true],'creatives'=>['landscape'=>['url'=>'https://banners.example.com/client-approved.png','alt'=>'Approved client image']]]];
 ebt(eb_record_image($r)===$r['public']['creatives']['landscape'],'Commercial approved creatives are not overwritten.');
