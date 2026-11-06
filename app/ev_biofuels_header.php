@@ -10,7 +10,7 @@ function evb_header_spec(): array {
     ];
 }
 function evb_header_research_note(): string {
-    return 'Research cut-off: 4 November 2026. Sources are linked beside the relevant claims. The Namibia figures describe proposed infrastructure reported on the launch date; the Turkana pipeline is a reported proposal. Forecasts are distinguished from measured results. This article updates an earlier 2023 draft.';
+    return 'Research cut-off: 4 November 2026. Sources are linked beside the relevant claims. The Namibia figures describe proposed infrastructure reported on the launch date; the Turkana pipeline is a reported proposal. Forecasts are distinguished from measured results.';
 }
 /** Remove only the exact trailing note the owner rejected, preserving other bytes. */
 function evb_header_clean_html(string $html): string {
