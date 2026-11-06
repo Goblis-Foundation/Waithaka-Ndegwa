@@ -25,7 +25,7 @@ def runtime_file(path: str) -> bool:
         return True
     if path in {"bin/community-channels.php", "index.php", ".htaccess", "composer.json", "composer.lock", "manifest.webmanifest", "writer.webmanifest", "sw.js", "offline.html", ".env.example"} or path in STORAGE_MARKERS:
         return True
-    if path in {"bin/article-groups-migrate.php", "bin/publish-inaugural-article.php", "bin/publish-ev-biofuels-article.php", "bin/publish-nairobi-sewage-article.php", "bin/owner-identity-alias.php", "bin/module-audit-migrate.php", "bin/message-trash-migrate.php", "bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/founder-story-migrate.php", "bin/culture-topic.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
+    if path in {"bin/article-groups-migrate.php", "bin/publish-inaugural-article.php", "bin/publish-social-enterprise-weekly-20261106.php", "bin/publish-ev-biofuels-article.php", "bin/publish-nairobi-sewage-article.php", "bin/owner-identity-alias.php", "bin/module-audit-migrate.php", "bin/message-trash-migrate.php", "bin/migrate.php", "bin/worker.php", "bin/create-writer.php", "bin/fresh-bootstrap.php", "bin/google-workspace-migrate.php", "bin/founder-story-migrate.php", "bin/culture-topic.php", "bin/google-mcp.php", "bin/meta-mcp.php"}:
         return True
     return path in {"deploy/aws/contact_mail_probe.php", "deploy/aws/worker-launcher.php", "deploy/aws/run-worker.sh", "deploy/aws/global-bundle.pem", "deploy/aws/media-limits.ini"}
 
