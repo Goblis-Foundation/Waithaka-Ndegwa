@@ -54,6 +54,7 @@ function eb_catalog(): array {
         'oceanhub-africa-accelerator-cohort-8-2027'=>'ocean',
         'circular-economy-mauritius-built-environment-2026'=>'industry',
         'global-eba-fund-medium-grants-2026'=>'conservation',
+        'au-ecosocc-civil-society-democratic-resilience-book-2026'=>'leadership',
         'impact-driven-inspiration'=>'perspective',
         'electric-vehicles-biofuels-africa'=>'mobility',
         'the-gold-that-is-nairobis-sewage'=>'water',
