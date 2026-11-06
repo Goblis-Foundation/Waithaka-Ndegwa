@@ -1,0 +1,111 @@
+{
+  "release": "country-opportunities-20261106-batch4",
+  "checked_on": "2026-11-06",
+  "guidance_note": "This is an independent editorial summary based on official sources checked on 6 November 2026. Preparation guidance is not an additional eligibility rule. Applicants must follow the organiser's current application form, eligibility rules, deadlines and funding terms.",
+  "entries": [
+    {
+      "slug": "circular-economy-mauritius-built-environment-2026",
+      "title": "Mauritius Circular Economy in the Built Environment Grants",
+      "organisation": "Mauritius Ministry of Environment / European Union / Expertise France",
+      "type": "grant",
+      "topic": "innovation",
+      "sectors": "Circular economy, construction, demolition waste, recycling, reuse, MSMEs and sustainable building",
+      "summary": "Organisations active in the construction value chain in Mauritius and Rodrigues can apply for EU-funded grants to demonstrate and scale circular-economy solutions in the built environment.",
+      "support": "Grants of €50,000–€110,000; minimum 20% co-financing; total call envelope €330,000",
+      "deadline_mode": "fixed",
+      "deadline_iso": "2026-11-13T23:59:00+01:00",
+      "deadline_date": "2026-11-13",
+      "deadline_label": "13 November 2026 at 23:59 Paris time (01:59 on 14 November in Nairobi)",
+      "countries": "Mauritius and Rodrigues",
+      "apply_url": "https://pops.expertisefrance.fr/sdm/ent/gen/ent_detail.do?PCSLID=CSL_2026_Qlot0MjeXN&v=1&selected=0",
+      "benefits": [
+        "Grant financing between €50,000 and €110,000 for eligible circular-economy projects in the construction value chain.",
+        "Support for practical reuse, recycling, construction-and-demolition waste reduction, monitoring and scalable circular business models.",
+        "A public programme linked to Mauritius's Circular Economy Roadmap and Action Plan 2023–2033, with an emphasis on replicable solutions and MSME participation."
+      ],
+      "eligibility": [
+        "Applicants should be organisations active in the construction value chain in Mauritius or Rodrigues and satisfy the legal and financial conditions in the official call documents.",
+        "Projects should advance circular-economy outcomes in the built environment, including reuse, recycling, waste diversion, monitoring, capacity building or related scalable approaches.",
+        "Applicants must be able to provide at least the required 20% co-financing and comply with the grant-contract and application requirements."
+      ],
+      "conditions": [
+        "The funding is competitive and submission does not guarantee selection.",
+        "The deadline is published in Paris time; applicants in East Africa should not treat 23:59 Nairobi time as the cutoff.",
+        "Applicants should rely on the official Expertise France application portal and the Mauritius government call page rather than third-party reposts."
+      ],
+      "steps": [
+        "Review the official call documents and confirm organisation, activity, location and co-financing eligibility.",
+        "Prepare the concept note around a measurable circular-economy problem in the construction value chain and explain the pathway to replication or scale.",
+        "Submit through the official Expertise France POPS application portal before 13 November 2026 at 23:59 Paris time."
+      ],
+      "notice": "This is a Mauritius/Rodrigues-specific funding call and should not be presented as open to organisations based elsewhere unless they satisfy the official applicant and project-location rules.",
+      "sources": [
+        ["Mauritius Ministry of Environment official call page", "https://environment.govmu.org/Pages/Call-for-project---CircularEconomy-in-the-built-environment.aspx"],
+        ["Mauritius Institute of Biotechnology official opportunities page", "https://mibl.govmu.org/mibl/?page_id=2253"]
+      ],
+      "guide": {
+        "context": "Mauritius is implementing a national Circular Economy Roadmap and Action Plan for 2023–2033. This EU-funded call, implemented by Expertise France with the Ministry of Environment, targets the construction value chain because buildings and demolition generate large material flows and therefore create practical opportunities for reuse, recycling, better design and new circular business models. The funding is intended to support concrete projects in Mauritius and Rodrigues rather than broad awareness campaigns without a delivery model.",
+        "fit": "A strong fit is an organisation that already understands a specific material, waste or process problem in construction and can explain how the grant will move an existing or well-developed solution toward implementation, replication or scale. Examples may include reuse systems, material recovery, construction-and-demolition waste diversion, recycled inputs, measurement systems or MSME-led service models. The application should show why the intervention is commercially and operationally plausible in the local market rather than only environmentally desirable.",
+        "prepare": [
+          "Map the proposed project to the circular-economy problem, target users, material flows and measurable waste or resource outcomes.",
+          "Confirm the organisation can provide the required co-financing and document the financial and legal evidence requested by the call.",
+          "Prepare an implementation plan, partner roles, budget and evidence that the model can be replicated or sustained after the grant."
+        ],
+        "strategy": "The proposal should connect technical circularity to a viable delivery mechanism. Explain who supplies the materials, who processes or uses them, how quality will be managed and what incentive makes adoption realistic. If MSMEs or women-led businesses participate, describe the role they will actually play. Avoid treating waste diversion as the only result: stronger applications should also show the operational, commercial or institutional change that allows the circular practice to continue after the grant.",
+        "commitment": "The call requires meaningful co-financing, so applicants should confirm internal approval and cash or in-kind commitments before submission. Because the deadline is 23:59 Paris time on 13 November, teams in Nairobi and Mauritius should work from the published Paris cutoff rather than their local midnight. Keep a complete copy of the submitted concept note and attachments and verify any subsequent request through the official programme channels."
+      }
+    },
+    {
+      "slug": "global-eba-fund-medium-grants-2026",
+      "title": "Global EbA Fund Medium-Size Grants 2026",
+      "organisation": "Global EbA Fund",
+      "type": "grant",
+      "topic": "innovation",
+      "sectors": "Climate adaptation, biodiversity, ecosystem restoration, nature-based solutions, innovative finance, policy and locally led adaptation",
+      "summary": "Eligible legally recognised organisations can apply for medium-size grants of up to US$500,000 for catalytic ecosystem-based adaptation projects lasting up to 24 months in ODA-eligible countries.",
+      "support": "Up to US$500,000 per grant for projects of up to 24 months",
+      "deadline_mode": "unknown",
+      "deadline_iso": null,
+      "deadline_date": "2026-11-16",
+      "deadline_label": "16 November 2026; the official fund page states the date but does not publish a cutoff time or timezone",
+      "countries": "ODA-eligible countries globally, including eligible African countries; projects may be global, thematic or country-focused under the fund rules",
+      "apply_url": "https://globalebafund.org/medium-size-grants/",
+      "benefits": [
+        "Grant financing of up to US$500,000 for an implementation period of up to 24 months.",
+        "Support for catalytic ecosystem-based adaptation work that strengthens enabling environments, scalability, policy uptake, investment readiness and locally led approaches.",
+        "Eligibility for NGOs, INGOs, IGOs, CBOs, Indigenous Peoples' organisations, universities, research institutes, think tanks, qualifying private-sector companies and consortia."
+      ],
+      "eligibility": [
+        "The lead applicant must be a legally recognised eligible organisation and satisfy the Global EbA Fund's due-diligence and financial-capacity requirements.",
+        "The project must qualify as ecosystem-based adaptation, address a clearly identified climate impact and contribute to one strategic objective and no more than two action pillars.",
+        "Projects must be based on existing work, partner with local institutions and organisations, and target ODA-eligible countries or an eligible global/thematic scope."
+      ],
+      "conditions": [
+        "The fund does not provide these grants to individuals for study and does not directly fund government entities.",
+        "Projects should be catalytic rather than standalone field implementation and must demonstrate how results will continue or scale beyond the grant period.",
+        "The official page gives a closing date of 16 November 2026 but no cutoff time, so applicants should submit well before the final day."
+      ],
+      "steps": [
+        "Confirm that the proposed intervention meets the fund's ecosystem-based adaptation qualification criteria and strategic-objective/action-pillar limits.",
+        "Prepare the required application form, theory of change/logframe, project activities, budget, due-diligence questionnaire and applicant/co-applicant declarations.",
+        "Submit through the online application route provided on the official Global EbA Fund medium-size grants page before 16 November 2026."
+      ],
+      "notice": "This is an organisational climate-adaptation grant, not an individual scholarship or unrestricted business grant. Private-sector applicants are eligible only under the fund's public-interest and non-profit-use conditions.",
+      "sources": [
+        ["Global EbA Fund official medium-size grants page", "https://globalebafund.org/medium-size-grants/"],
+        ["Global EbA Fund official 2026 calls announcement", "https://globalebafund.org/news/new-calls-for-proposals-informative-webinars/"]
+      ],
+      "guide": {
+        "context": "The Global EbA Fund supports ecosystem-based adaptation: approaches that use biodiversity and ecosystem services to help people adapt to climate change. The 2026 medium-size window is designed for larger, catalytic interventions that remove systemic barriers to scaling EbA rather than for isolated demonstration activities. It places particular emphasis on enabling environments, innovative finance, policy integration, locally led adaptation, institutional capacity and approaches that can influence wider practice.",
+        "fit": "A strong fit is an organisation with an existing body of work, relevant partners and the operational capacity to manage a grant of this size. The proposed project should identify a concrete climate risk and show how ecosystem-based measures reduce vulnerability or increase resilience. The call can suit universities, research institutes, NGOs, CBOs, Indigenous Peoples' organisations and qualifying private companies, but the lead applicant must be legally recognised and able to pass financial and due-diligence review.",
+        "prepare": [
+          "Map the project explicitly to the Global EbA Fund's qualification criteria, one strategic objective and no more than two action pillars.",
+          "Confirm local partners, prior related work, financial controls and the organisational documents needed for due diligence before drafting the full proposal.",
+          "Build the theory of change, logframe, budget and at least three relevant indicators from the fund's core indicator framework around measurable adaptation outcomes."
+        ],
+        "strategy": "The proposal should show why the grant is catalytic. That means explaining what systemic barrier currently prevents EbA from scaling and how the project changes that barrier—through policy, finance, institutional capacity, evidence, partnerships or another enabling mechanism. Avoid framing the application as a conventional conservation project with adaptation language added later. The human climate-risk pathway, ecosystem mechanism and scaling logic should be visible throughout the proposal and budget.",
+        "commitment": "A medium-size Global EbA Fund grant can run for up to 24 months and carries substantial reporting, due-diligence and partnership responsibilities. Applicants should assess whether the organisation can manage the award, procurement, financial controls, monitoring and partner coordination before applying. Because the official page does not publish a cutoff time for 16 November, submission should be completed before the final day wherever possible."
+      }
+    }
+  ]
+}
