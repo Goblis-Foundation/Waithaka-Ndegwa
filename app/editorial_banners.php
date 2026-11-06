@@ -52,6 +52,8 @@ function eb_catalog(): array {
         'makerere-infectious-disease-modelling-fellowship-2026'=>'innovation',
         'makerere-midwize-embolden-phd-2026'=>'learning',
         'oceanhub-africa-accelerator-cohort-8-2027'=>'ocean',
+        'circular-economy-mauritius-built-environment-2026'=>'industry',
+        'global-eba-fund-medium-grants-2026'=>'conservation',
         'impact-driven-inspiration'=>'perspective',
         'electric-vehicles-biofuels-africa'=>'mobility',
         'the-gold-that-is-nairobis-sewage'=>'water',
