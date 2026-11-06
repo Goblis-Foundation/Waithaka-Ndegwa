@@ -15,7 +15,8 @@ function current_user():array{return ['id'=>$GLOBALS['fixture_owner']??42];}
 function require_auth():void{$GLOBALS['did_auth']=true;}
 function private_response_headers():void{$GLOBALS['did_private_headers']=true;}
 function journeys_method(array $methods):void{ac_check($methods===['GET','HEAD'],'Activation should be read-only.');}
-function publishing_connection(string $service):?array{return null;}
+function publishing_connection(string $service):?array{return $GLOBALS['oauth_connections'][$service]??null;}
+function publishing_service_client(string $service):array{return $GLOBALS['oauth_clients'][$service]??['client_id'=>'','client_secret'=>''];}
 function integration_hub_configured(string $name):bool{return false;}
 function setting(string $key,mixed $default=null):mixed{return $default;}
 function newsletter_sender():array{return ['from'=>'','name'=>'','reply_to'=>'','postal_address'=>''];}
@@ -26,6 +27,7 @@ function reconciliation_items():array{return array_fill(0,33,['id'=>'synthetic']
 function render_write(string $view,array $data):void{$GLOBALS['rendered_view']=$view;$GLOBALS['rendered_data']=$data;}
 require dirname(__DIR__).'/app/activity.php';
 require dirname(__DIR__).'/app/activation_centre.php';
+$GLOBALS['oauth_connections']=[];$GLOBALS['oauth_clients']=[];
 
 function fitness_client_fingerprint(array $client):string{return hash('sha256',json_encode($client,JSON_THROW_ON_ERROR));}
 $syntheticClient=['client_id'=>'fixture-client','client_secret'=>'SECRET_MUST_NOT_RENDER','dedicated_project'=>true];
@@ -40,6 +42,20 @@ $changed=$syntheticClient;$changed['client_secret']='changed';ac_check(activatio
 ac_check(activation_activity_state(9,'strava',$grant,$syntheticClient)==='other_owner','Health ownership never crosses Writers.');
 $withoutProject=$syntheticClient;$withoutProject['dedicated_project']=false;ac_check(activation_activity_state(42,'google_health',$grant,$withoutProject)==='reconnect','Google Health cannot share an unconfirmed project.');
 $unconfirmed=$syntheticConnection;$unconfirmed['selected_resource']=null;ac_check(activation_connection_state($unconfirmed,42,'telegram')==='pending_confirmation','A saved grant without a chosen destination is never ready.');
+$GLOBALS['oauth_clients']['linkedin']=['client_id'=>'fixture','client_secret'=>'fixture-secret'];
+$GLOBALS['oauth_clients']['x']=['client_id'=>'fixture','client_secret'=>'fixture-secret'];
+$GLOBALS['oauth_clients']['instagram']=['client_id'=>'fixture','client_secret'=>'fixture-secret'];
+$GLOBALS['oauth_connections']['linkedin']=['status'=>'connected','connected_by'=>42,'selected_resource'=>'PRIVATE_MEMBER'];
+$GLOBALS['oauth_connections']['x']=['status'=>'pending_confirmation','connected_by'=>42,'selected_resource'=>null];
+$GLOBALS['oauth_connections']['tiktok_read']=['status'=>'connected','connected_by'=>9,'selected_resource'=>'OTHER_OWNER'];
+$oauthRows=activation_oauth_rows(42);
+ac_check(count($oauthRows)===count(activation_oauth_services()),'OAuth queue must retain every reviewed service.');
+$oauthByService=array_column($oauthRows,null,'service');
+ac_check($oauthByService['linkedin']['complete']===true&&$oauthByService['linkedin']['state']==='connected','Confirmed owner grant is complete.');
+ac_check($oauthByService['x']['complete']===false&&$oauthByService['x']['state']==='pending_confirmation'&&$oauthByService['x']['configured']===true,'Returned account must be confirmed before completion.');
+ac_check($oauthByService['tiktok_read']['state']==='other_owner','Another Writer connection cannot satisfy owner authorization.');
+ac_check($oauthByService['facebook_profile']['configured']===false&&$oauthByService['facebook_profile']['complete']===false,'Missing app credentials remain setup work.');
+ac_check(!str_contains(json_encode($oauthRows,JSON_THROW_ON_ERROR),'PRIVATE_MEMBER')&&!str_contains(json_encode($oauthRows,JSON_THROW_ON_ERROR),'OTHER_OWNER'),'OAuth queue never exposes returned provider IDs.');
 $connectionRows=activation_connection_rows(['threads'=>'connected','signal'=>'assisted','google_health'=>'connected','samsung_health'=>'imported','unsafe'=>'SECRET_MUST_NOT_RENDER']);
 ac_check(count($connectionRows)===10&&!str_contains(json_encode($connectionRows),'SECRET_MUST_NOT_RENDER'),'Ten exact services expose only allowlisted labels and next steps.');
 $empty=activation_assess([]);
@@ -61,12 +77,14 @@ ac_check(str_contains($rows[4]['observed'],'1/4')&&str_contains($rows[4]['observ
 ac_check(str_contains($rows[5]['observed'],'7 saved')&&str_contains($rows[5]['observed'],'1 awaiting'),'Calendar counts are evidence of saved connection states only.');
 ac_check(!str_contains(json_encode($rows,JSON_THROW_ON_ERROR),$secret),'No credentials, mail addresses or remote IDs may enter the output.');
 
-$activationRows=$rows;$activationObservedAt='2026-10-29T05:00:00+00:00';$activationWorker=false;$activationWorkAreas=33;
+$activationRows=$rows;$activationOauthRows=$oauthRows;$activationObservedAt='2026-10-29T05:00:00+00:00';$activationWorker=false;$activationWorkAreas=33;
 ob_start();include dirname(__DIR__).'/views/write/activation.php';$html=(string)ob_get_clean();
 ac_check(substr_count($html,'<h1')===1&&substr_count($html,'class="activation-card"')===7,'Accessible rendered workspace must have one H1 and seven issue cards.');
 ac_check(str_contains($html,'issues/70')&&str_contains($html,'issues/76')&&str_contains($html,'/write/monthly-roundup'),'Issue and local setup links must be available.');
 ac_check(!str_contains($html,$secret),'Rendered view must not show supplied secret-like fields.');
 ac_check(str_contains($html,'Paused in config')&&str_contains($html,'33'),'Delivery configuration and complete preserved register remain separate.');
+ac_check(str_contains($html,'Owner authorization queue')&&str_contains($html,'Confirm returned account')&&str_contains($html,'Authorize Instagram professional publishing'),'Activation renders sequential least-privilege authorization actions.');
+ac_check(!str_contains($html,'PRIVATE_MEMBER')&&!str_contains($html,'OTHER_OWNER'),'Rendered authorization queue never leaks provider identifiers.');
 
 $GLOBALS['fixture_owner']=9;
 ob_start();$handled=activation_dispatch('/write/activation');$forbidden=ob_get_clean();
@@ -75,10 +93,11 @@ http_response_code(200);$GLOBALS['fixture_owner']=42;
 ac_check(!activation_dispatch('/write/unrelated'),'Other routes remain unchanged.');
 $handled=activation_dispatch('/write/activation');
 ac_check($handled&&($GLOBALS['rendered_view']??'')==='activation'&&count($GLOBALS['rendered_data']['activationRows']??[])===7,'Owner can view read-only source-safe local activation status.');
+ac_check(count($GLOBALS['rendered_data']['activationOauthRows']??[])===count(activation_oauth_services()),'Owner activation route includes the complete safe OAuth queue.');
 ac_check(!empty($GLOBALS['did_auth'])&&!empty($GLOBALS['did_private_headers']),'Protected route enforces authentication and private headers.');
 $writeTitle='Private workspace';$content='<main id="synthetic">Fixture</main>';
 $writerShellUser=['id'=>9,'name'=>'Other writer'];ob_start();include dirname(__DIR__).'/views/write/layout.php';$otherMenu=(string)ob_get_clean();
 ac_check(!str_contains($otherMenu,'href="https://www.example.org/write/activation"'),'Non-owner navigation must not link to an owner-only activation route.');
 $writerShellUser=['id'=>42,'name'=>'Configured owner'];ob_start();include dirname(__DIR__).'/views/write/layout.php';$ownerMenu=(string)ob_get_clean();
 ac_check(str_contains($ownerMenu,'href="https://www.example.org/write/activation"'),'Owner navigation must retain activation access.');
-echo "PASS: seven source-aware acceptance gates, output privacy, rendered layout, no-drop count and owner-only GET boundaries.\n";
+echo "PASS: source-aware acceptance gates, sequential OAuth authorization queue, output privacy, rendered layout, no-drop count and owner-only GET boundaries.\n";

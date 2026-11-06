@@ -158,15 +158,63 @@ function activation_connection_rows(array $states): array {
     $labels=['connected'=>'Saved account confirmed','assisted'=>'Confirmed for assisted posting','pending_confirmation'=>'Confirm the returned account','reconnect'=>'Reconnect or update app setup','disconnected'=>'Connection needed','other_owner'=>'Owner connection needed','permissions_missing'=>'Publishing permission needed','unknown'=>'Status unavailable','imported'=>'Reviewed import saved','not_imported'=>'Reviewed import needed'];
     $rows=[];foreach($definitions as$key=>[$name,$path,$next]){$state=$states[$key]??'unknown';$rows[]=['key'=>$key,'name'=>$name,'status'=>$labels[$state]??$labels['unknown'],'path'=>$path,'next'=>$next];}return $rows;
 }
+function activation_oauth_services(): array {
+    return [
+        'facebook_profile'=>'Facebook personal profile',
+        'instagram'=>'Instagram professional publishing',
+        'instagram_insights'=>'Instagram Insights',
+        'instagram_comments'=>'Instagram comments',
+        'instagram_messages'=>'Instagram messages',
+        'linkedin'=>'LinkedIn member publishing',
+        'linkedin_analytics'=>'LinkedIn member analytics',
+        'x'=>'X professional account',
+        'x_media'=>'X media publishing',
+        'tiktok_read'=>'TikTok read access',
+        'tiktok_business'=>'TikTok native publishing',
+        'threads'=>'Threads profile',
+        'google_search_console'=>'Google Search Console',
+        'google_analytics'=>'Google Analytics',
+        'google_youtube_read'=>'YouTube read access',
+        'google_youtube_manage'=>'YouTube channel management',
+        'google_youtube_upload'=>'YouTube upload access',
+        'google_youtube_analytics'=>'YouTube Analytics',
+        'google_drive'=>'Google Drive selected files',
+        'google_meet'=>'Google Meet artifacts',
+        'google_tasks'=>'Google Tasks selected list',
+        'google_gmail_read'=>'Gmail inbox read',
+        'google_gmail_draft'=>'Gmail private drafts',
+        'google_booking'=>'Website booking calendar',
+    ];
+}
+/** Owner-safe OAuth queue: expose only service, label, saved state and whether app credentials exist. */
+function activation_oauth_rows(int $owner): array {
+    $rows=[];
+    foreach(activation_oauth_services() as $service=>$name){
+        $state='disconnected';$configured=false;
+        try{
+            $connection=publishing_connection($service);
+            if($connection&&(int)($connection['connected_by']??0)===$owner){
+                $saved=(string)($connection['status']??'unknown');
+                $state=in_array($saved,['connected','pending_confirmation','reconnect','disconnected'],true)?$saved:'unknown';
+            }elseif($connection)$state='other_owner';
+            $client=publishing_service_client($service);
+            $configured=!empty($client['client_id'])&&!empty($client['client_secret']);
+        }catch(Throwable){$state='unknown';}
+        $complete=$state==='connected';
+        $rows[]=['service'=>$service,'name'=>$name,'state'=>$state,'configured'=>$configured,'complete'=>$complete,
+            'start_path'=>'/write/connections/'.$service.'/start','review_path'=>'/write/connections#'.$service];
+    }
+    return $rows;
+}
 function activation_dispatch(string $path): bool {
     if($path!=='/write/activation')return false;
     require_auth();private_response_headers();journeys_method(['GET','HEAD']);
     $user=current_user();$owner=(int)(comm_config()['owner']??0);
     if($owner<1||!$user||(int)$user['id']!==$owner){http_response_code(403);echo 'Owner access required.';return true;}
     if(($_SERVER['REQUEST_METHOD']??'GET')==='HEAD')return true;
-    $facts=activation_local_facts();$rows=activation_assess($facts);$connections=activation_connection_rows(activation_connection_inventory());
+    $facts=activation_local_facts();$rows=activation_assess($facts);$connections=activation_connection_rows(activation_connection_inventory());$oauth=activation_oauth_rows($owner);
     render_write('activation',['writeTitle'=>'Activation & launch readiness','activationRows'=>$rows,
         'activationObservedAt'=>$facts['observed_at'],'activationWorker'=>$facts['delivery_worker'],
-        'activationConnections'=>$connections,'activationWorkAreas'=>function_exists('reconciliation_items')?count(reconciliation_items()):null]);
+        'activationConnections'=>$connections,'activationOauthRows'=>$oauth,'activationWorkAreas'=>function_exists('reconciliation_items')?count(reconciliation_items()):null]);
     return true;
 }
