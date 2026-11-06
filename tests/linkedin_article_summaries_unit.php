@@ -36,5 +36,12 @@ $ok(str_contains($tomato,'less than 2%')&&str_contains($tomato,'processing'), 't
 $sugar=(string)($posts[4]['linkedin']??'');
 $ok(str_contains($sugar,'30 November 2025')&&str_contains($sugar,'4 November 2026')&&str_contains($sugar,'COMESA'),'sugar summary preserves legal/political COMESA distinction');
 
+$importer=(string)file_get_contents(dirname(__DIR__).'/bin/import-linkedin-article-summaries-20261106.php');
+$ok(str_contains($importer,'publishing_default_draft')&&str_contains($importer,'publishing_save_package'),'Importer creates native Writer publishing drafts');
+$ok(str_contains($importer,"['linkedin']['enabled']=true")||str_contains($importer,"['linkedin']['enabled'] = true"),'Importer enables only the reviewed LinkedIn variant');
+$ok(!str_contains($importer,'publishing_approve(')&&!str_contains($importer,'publishing_schedule('),'Importer cannot approve or schedule provider publication');
+$hook=(string)file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/46_linkedin_article_summaries_20261106.sh');
+$ok(str_contains($hook,'import-linkedin-article-summaries-20261106.php'),'Production postdeploy invokes LinkedIn draft import');
+
 if($fail){fwrite(STDERR,'FAIL: '.implode('; ',$fail)."\n");exit(1);}
 echo "PASS: LinkedIn summaries are substantive, canonical and provider-safe.\n";
