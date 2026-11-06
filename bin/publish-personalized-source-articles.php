@@ -14,16 +14,25 @@ $created=[];
 try{
   foreach($manifest['entries']as$meta){
     $slug=(string)($meta['slug']??'');if(!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)+$/D',$slug))throw new RuntimeException('Invalid article slug.');
-    $check=$pdo->prepare('SELECT id,status FROM posts WHERE slug=?');$check->execute([$slug]);if($existing=$check->fetch(PDO::FETCH_ASSOC)){$created[]=['slug'=>$slug,'state'=>'preserved','id'=>(int)$existing['id']];continue;}
+    $check=$pdo->prepare('SELECT id,user_id,title,standfirst,content_html,status,published_at FROM posts WHERE slug=?');$check->execute([$slug]);$existing=$check->fetch(PDO::FETCH_ASSOC)?:null;
     $source=(string)file_get_contents($root.$slug.'.html');if(strlen($source)<3500)throw new RuntimeException('Article source is incomplete: '.$slug);
     $body=sanitize_html($source);$words=count(preg_split('/\s+/u',plain_text($body),-1,PREG_SPLIT_NO_EMPTY));
     if($words<550||substr_count($body,'<h2>')<5)throw new RuntimeException('Article lacks reviewed depth: '.$slug);
     $category=$pdo->prepare('SELECT id FROM categories WHERE slug=?');$category->execute([$meta['category_slug']]);$categoryId=$category->fetchColumn();if(!$categoryId)throw new RuntimeException('Missing article category: '.$meta['category_slug']);
     $pdo->beginTransaction();
     try{
-      $insert=$pdo->prepare("INSERT INTO posts (user_id,category_id,title,slug,standfirst,content_html,featured_image,featured_image_alt,featured_image_caption,series_name,seo_title,seo_description,status,is_selected,published_at,article_groups_json,source_notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'published',0,NOW(),?,?)");
-      $insert->execute([$owner,(int)$categoryId,$meta['title'],$slug,$meta['standfirst'],$body,'','','',$meta['series_name'],$meta['seo_title'],$meta['seo_description'],json_encode($meta['article_groups'],JSON_THROW_ON_ERROR),'Updated from earlier personal notes; current source check completed 6 November 2026.']);
-      $id=(int)$pdo->lastInsertId();assign_tags($id,$meta['tags']);$pdo->commit();$created[]=['slug'=>$slug,'state'=>'published','id'=>$id];
+      $sourceNotes='Current-source verification completed 6 November 2026.';
+      if($existing){
+        if((int)$existing['user_id']!==$owner)throw new RuntimeException('Article slug belongs to another user: '.$slug);
+        $pdo->prepare('INSERT INTO post_revisions(post_id,title,standfirst,content_html) VALUES(?,?,?,?)')->execute([(int)$existing['id'],$existing['title'],$existing['standfirst'],$existing['content_html']]);
+        $update=$pdo->prepare("UPDATE posts SET category_id=?,title=?,standfirst=?,content_html=?,featured_image='',featured_image_alt='',featured_image_caption='',series_name=?,seo_title=?,seo_description=?,status='published',is_selected=0,article_groups_json=?,source_notes=?,updated_at=NOW() WHERE id=?");
+        $update->execute([(int)$categoryId,$meta['title'],$meta['standfirst'],$body,$meta['series_name'],$meta['seo_title'],$meta['seo_description'],json_encode($meta['article_groups'],JSON_THROW_ON_ERROR),$sourceNotes,(int)$existing['id']]);
+        $id=(int)$existing['id'];assign_tags($id,$meta['tags']);$pdo->commit();$created[]=['slug'=>$slug,'state'=>'refreshed','id'=>$id,'published_at'=>$existing['published_at']];
+      }else{
+        $insert=$pdo->prepare("INSERT INTO posts (user_id,category_id,title,slug,standfirst,content_html,featured_image,featured_image_alt,featured_image_caption,series_name,seo_title,seo_description,status,is_selected,published_at,article_groups_json,source_notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'published',0,NOW(),?,?)");
+        $insert->execute([$owner,(int)$categoryId,$meta['title'],$slug,$meta['standfirst'],$body,'','','',$meta['series_name'],$meta['seo_title'],$meta['seo_description'],json_encode($meta['article_groups'],JSON_THROW_ON_ERROR),$sourceNotes]);
+        $id=(int)$pdo->lastInsertId();assign_tags($id,$meta['tags']);$pdo->commit();$created[]=['slug'=>$slug,'state'=>'published','id'=>$id];
+      }
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
   }
   if(function_exists('editorial_sync_discovery'))editorial_sync_discovery();
