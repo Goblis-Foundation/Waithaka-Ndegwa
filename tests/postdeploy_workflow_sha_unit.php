@@ -12,7 +12,9 @@ $files=[
  '.github/workflows/curated-opportunities-release.yml',
 ];
 $fail=[];$ok=function(bool $v,string $m)use(&$fail){if(!$v)$fail[]=$m;};
-$pin="ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}";
+$pin=<<<'YAML'
+ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+YAML;
 foreach($files as$file){
     $text=(string)file_get_contents($root.'/'.$file);
     $ok(str_contains($text,"workflows: ['Deploy production']"),$file.' is a Deploy production follow-up');
