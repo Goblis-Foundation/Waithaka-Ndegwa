@@ -9,7 +9,6 @@ function country_opportunities_batch2_catalog(?array $data=null): array {
       'ecowyert-south-africa-regional-trade-training',
       'ecowyert-zimbabwe-regional-trade-training',
       'ifad-crisis-response-farmers-organisations-2026',
-      'unido-sustainable-industrial-ai-solutions-2026',
       'mastercard-cambridge-scholars-2027-2028',
       'undp-ieee-genai-for-good-cities-2026',
       'isdb-competitive-technology-sourcing-2026'
