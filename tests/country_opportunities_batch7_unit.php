@@ -7,7 +7,7 @@ $ok(($data['release']??'')==='country-opportunities-20261107-batch7','Release id
 $entries=$data['entries']??[];$ok(count($entries)===4,'Four verified country opportunities');
 $expected=['nigeria-uspf-changemaker-challenge-2026','malawi-ncst-ppp-research-innovation-grant-2026','tanzania-ict-startup-wezesha-fund-2026-2027','tanzania-costech-innovation-credit-guarantee-2026'];
 $ok(array_column($entries,'slug')===$expected,'Exact reviewed set');
-$allowed=['uspf.gov.ng','uspfchangemaker.ng','grants.ncst.mw','jamiihunt.mawasiliano.go.tz','www.mawasiliano.go.tz','cgs.costech.or.tz'];
+$allowed=['uspf.gov.ng','uspfchangemaker.ng','grants.ncst.mw','www.grants.ncst.mw','jamiihunt.mawasiliano.go.tz','www.mawasiliano.go.tz','cgs.costech.or.tz'];
 foreach($entries as$e){
  $ok(in_array($e['type']??'', ['competition','research','startup-capital'],true),$e['slug'].' type');
  $ok(is_array($e['sources']??null)&&count($e['sources'])>=2,$e['slug'].' sources');
