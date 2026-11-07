@@ -111,6 +111,42 @@ function social_ops_smartlinks_input(array $in): array {
     }
     if(!$out)throw new InvalidArgumentException('Keep at least one SmartLink.');return $out;
 }
+function social_ops_bulk_rows(array $file): array {
+    if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||empty($file['tmp_name'])||!is_uploaded_file($file['tmp_name']))throw new InvalidArgumentException('Choose a CSV file to import.');
+    if((int)($file['size']??0)<1||(int)$file['size']>1048576)throw new InvalidArgumentException('Use a CSV file smaller than 1 MB.');
+    $h=fopen($file['tmp_name'],'rb');if(!$h)throw new InvalidArgumentException('The CSV could not be read.');
+    try{
+        $header=fgetcsv($h);if(!$header)throw new InvalidArgumentException('The CSV is empty.');
+        $header=array_map(static fn($v)=>strtolower(trim((string)$v)),$header);
+        $required=['title','platform','text'];foreach($required as$key)if(!in_array($key,$header,true))throw new InvalidArgumentException('CSV columns must include title, platform and text.');
+        $map=array_flip($header);$rows=[];
+        while(($row=fgetcsv($h))!==false){
+            if(count($rows)>=100)throw new InvalidArgumentException('Import up to 100 draft rows at a time.');
+            $get=static fn(string $key):string=>trim((string)($row[$map[$key]??-1]??''));
+            $title=$get('title');$platform=$get('platform');$text=$get('text');$source=$get('source_url');$planned=$get('planned_at');
+            if($title===''&&$platform===''&&$text==='')continue;
+            if($title===''||mb_strlen($title)>240)throw new InvalidArgumentException('Every CSV row needs a title of 240 characters or fewer.');
+            if(!isset(social_ops_platforms()[$platform]))throw new InvalidArgumentException('Unsupported platform in CSV: '.$platform);
+            if($text===''||mb_strlen($text)>20000)throw new InvalidArgumentException('Every CSV row needs post text within the platform drafting limit.');
+            if($source!==''&&!publishing_public_url($source))throw new InvalidArgumentException('CSV source URLs must be safe public HTTPS URLs.');
+            if($planned!==''&&!preg_match('/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\z/',$planned))throw new InvalidArgumentException('planned_at must use YYYY-MM-DDTHH:MM when provided.');
+            $rows[]=['title'=>$title,'platform'=>$platform,'text'=>$text,'source_url'=>$source,'planned_at'=>$planned];
+        }
+        if(!$rows)throw new InvalidArgumentException('The CSV contains no draft rows.');
+        return $rows;
+    } finally {fclose($h);}
+}
+function social_ops_bulk_import(array $file,int $uid): array {
+    $rows=social_ops_bulk_rows($file);$ids=[];
+    foreach($rows as$row){
+        $draft=publishing_default_draft();$draft['title']=$row['title'];$draft['source_url']=$row['source_url'];
+        $draft['notes']='Bulk planning import'.($row['planned_at']!==''?' · intended slot '.$row['planned_at'].' '.(string)app_config('timezone','Africa/Nairobi'):'').' · Review before approval and scheduling.';
+        $draft['variants'][$row['platform']]['enabled']=true;$draft['variants'][$row['platform']]['text']=$row['text'];
+        $ids[]=publishing_save_package($draft,$uid);
+    }
+    return $ids;
+}
+
 function social_ops_report_csv(): string {
     $f=fopen('php://temp','w+');fputcsv($f,['type','platform_or_campaign','period_or_status','metric','value','source']);
     foreach(social_ops_latest_reports()as$platform=>$r)foreach(($r['metrics']??[])as$metric=>$value)fputcsv($f,['analytics',$platform,$r['period']??'',$metric,$value,$r['source']??'']);
@@ -122,10 +158,10 @@ function social_ops_dispatch(string $path): bool {
     if($path==='/links'){
         journeys_method(['GET','HEAD']);render('smartlinks',['page'=>'links','links'=>array_values(array_filter(social_ops_smartlinks(),static fn($r)=>!empty($r['enabled']))),'seo'=>['title'=>'Links · Waithaka Ndegwa','description'=>'Selected links from Waithaka Ndegwa.','canonical'=>url('/links')]]);return true;
     }
-    if(!in_array($path,['/write/social-operations','/write/social-operations/observation','/write/social-operations/smartlinks','/write/social-operations/report.csv'],true))return false;
+    if(!in_array($path,['/write/social-operations','/write/social-operations/observation','/write/social-operations/smartlinks','/write/social-operations/import','/write/social-operations/report.csv'],true))return false;
     require_auth();private_response_headers();$uid=(int)current_user()['id'];
     if($path==='/write/social-operations/report.csv'){journeys_method(['GET']);header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="waithaka-social-report-'.date('Y-m-d').'.csv"');echo social_ops_report_csv();return true;}
-    if($path==='/write/social-operations/observation'){journeys_method(['POST']);verify_csrf();try{social_ops_save_observation(social_ops_observation_input($_POST,$uid));flash('success','Performance observation saved. Best-time recommendations were recalculated from your own evidence.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'The observation could not be saved.');}redirect(url('/write/social-operations#best-times'));}
+    if($path==='/write/social-operations/import'){journeys_method(['POST']);verify_csrf();try{$ids=social_ops_bulk_import($_FILES['csv']??[],$uid);flash('success',count($ids).' draft packages imported. Review and approve them in Posting & calendar.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException||$e instanceof RuntimeException?$e->getMessage():'The CSV could not be imported.');}redirect(url('/write/social-operations#bulk'));}\n    if($path==='/write/social-operations/observation'){journeys_method(['POST']);verify_csrf();try{social_ops_save_observation(social_ops_observation_input($_POST,$uid));flash('success','Performance observation saved. Best-time recommendations were recalculated from your own evidence.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'The observation could not be saved.');}redirect(url('/write/social-operations#best-times'));}
     if($path==='/write/social-operations/smartlinks'){journeys_method(['POST']);verify_csrf();try{$rows=social_ops_smartlinks_input($_POST);set_setting('social_ops.smartlinks',json_encode($rows,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES),true);flash('success','SmartLinks saved.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'SmartLinks could not be saved.');}redirect(url('/write/social-operations#smartlinks'));}
     journeys_method(['GET','HEAD']);$observations=social_ops_observations();$best=[];foreach(array_keys(social_ops_platforms())as$p)$best[$p]=social_ops_best_times($p,$observations);
     render_write('social_operations',['writeTitle'=>'Social Operations','platforms'=>social_ops_platforms(),'calendar'=>social_ops_calendar(),'campaigns'=>social_ops_campaigns(),'reports'=>social_ops_latest_reports(),'observations'=>$observations,'bestTimes'=>$best,'connections'=>social_ops_connection_summary(),'inboxes'=>social_ops_inbox_links(),'smartlinks'=>social_ops_smartlinks()]);return true;
