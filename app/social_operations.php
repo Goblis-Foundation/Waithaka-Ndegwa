@@ -91,23 +91,36 @@ function social_ops_inbox_links(): array {
     ];
 }
 
+function social_ops_link_id(string $label,string $url): string {return substr(hash('sha256',mb_strtolower(trim($label)).'|'.trim($url)),0,12);}
 function social_ops_smartlinks_default(): array {
-    return [
+    $rows=[
       ['label'=>'Start Here','url'=>url('/start-here'),'enabled'=>true],
       ['label'=>'My Thoughts','url'=>url('/my-thoughts'),'enabled'=>true],
       ['label'=>'Opportunities','url'=>url('/opportunities'),'enabled'=>true],
       ['label'=>'Contact','url'=>url('/contact'),'enabled'=>true],
     ];
+    foreach($rows as&$row)$row['id']=social_ops_link_id($row['label'],$row['url']);unset($row);return $rows;
 }
 function social_ops_smartlinks(): array {
-    $v=json_decode((string)setting('social_ops.smartlinks',''),true);return is_array($v)?array_slice($v,0,12):social_ops_smartlinks_default();
+    $v=json_decode((string)setting('social_ops.smartlinks',''),true);$rows=is_array($v)?array_slice($v,0,12):social_ops_smartlinks_default();
+    foreach($rows as&$row)if(empty($row['id']))$row['id']=social_ops_link_id((string)($row['label']??''),(string)($row['url']??''));unset($row);return $rows;
+}
+function social_ops_smartlink_clicks(): array {
+    $raw=json_decode((string)setting('social_ops.smartlink_clicks','{}'),true);return is_array($raw)?$raw:[];
+}
+function social_ops_smartlink_resolve(string $id): ?array {
+    if(!preg_match('/^[a-f0-9]{12}$/D',$id))return null;foreach(social_ops_smartlinks()as$row)if(!empty($row['enabled'])&&hash_equals((string)$row['id'],$id)&&publishing_public_url((string)$row['url']))return $row;return null;
+}
+function social_ops_smartlink_record(string $id): void {
+    $pdo=db();$name='social-ops-smartlink-clicks';$q=$pdo->prepare('SELECT GET_LOCK(?,2)');$q->execute([$name]);if((int)$q->fetchColumn()!==1)return;
+    try{$clicks=social_ops_smartlink_clicks();$clicks[$id]=['count'=>(int)($clicks[$id]['count']??0)+1,'last_at'=>gmdate('c')];set_setting('social_ops.smartlink_clicks',json_encode($clicks,JSON_THROW_ON_ERROR),false);}finally{$pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$name]);}
 }
 function social_ops_smartlinks_input(array $in): array {
     $rows=$in['links']??[];if(!is_array($rows)||count($rows)>12)throw new InvalidArgumentException('Use up to 12 SmartLinks.');
     $out=[];foreach($rows as$row){if(!is_array($row))continue;$label=trim((string)($row['label']??''));$url=trim((string)($row['url']??''));if($label===''&&$url==='')continue;
       if($label===''||mb_strlen($label)>80)throw new InvalidArgumentException('Each SmartLink needs a short label.');
       if(!filter_var($url,FILTER_VALIDATE_URL)||!preg_match('~^https://~i',$url))throw new InvalidArgumentException('Each SmartLink must use HTTPS.');
-      $out[]=['label'=>$label,'url'=>$url,'enabled'=>!empty($row['enabled'])];
+      $out[]=['id'=>social_ops_link_id($label,$url),'label'=>$label,'url'=>$url,'enabled'=>!empty($row['enabled'])];
     }
     if(!$out)throw new InvalidArgumentException('Keep at least one SmartLink.');return $out;
 }
@@ -155,6 +168,7 @@ function social_ops_report_csv(): string {
 }
 
 function social_ops_sitemap_entries(): array {return [['loc'=>url('/links')]];}\n\nfunction social_ops_dispatch(string $path): bool {
+    if(preg_match('~^/links/go/([a-f0-9]{12})$~D',$path,$m)){$row=social_ops_smartlink_resolve($m[1]);if(!$row){http_response_code(404);return true;}social_ops_smartlink_record($m[1]);redirect((string)$row['url'],302);return true;}
     if($path==='/links'){
         journeys_method(['GET','HEAD']);render('smartlinks',['page'=>'links','links'=>array_values(array_filter(social_ops_smartlinks(),static fn($r)=>!empty($r['enabled']))),'seo'=>['title'=>'Links · Waithaka Ndegwa','description'=>'Selected links from Waithaka Ndegwa.','canonical'=>url('/links')]]);return true;
     }
@@ -164,5 +178,5 @@ function social_ops_sitemap_entries(): array {return [['loc'=>url('/links')]];}\
     if($path==='/write/social-operations/import'){journeys_method(['POST']);verify_csrf();try{$ids=social_ops_bulk_import($_FILES['csv']??[],$uid);flash('success',count($ids).' draft packages imported. Review and approve them in Posting & calendar.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException||$e instanceof RuntimeException?$e->getMessage():'The CSV could not be imported.');}redirect(url('/write/social-operations#bulk'));}\n    if($path==='/write/social-operations/observation'){journeys_method(['POST']);verify_csrf();try{social_ops_save_observation(social_ops_observation_input($_POST,$uid));flash('success','Performance observation saved. Best-time recommendations were recalculated from your own evidence.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'The observation could not be saved.');}redirect(url('/write/social-operations#best-times'));}
     if($path==='/write/social-operations/smartlinks'){journeys_method(['POST']);verify_csrf();try{$rows=social_ops_smartlinks_input($_POST);set_setting('social_ops.smartlinks',json_encode($rows,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES),true);flash('success','SmartLinks saved.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'SmartLinks could not be saved.');}redirect(url('/write/social-operations#smartlinks'));}
     journeys_method(['GET','HEAD']);$observations=social_ops_observations();$best=[];foreach(array_keys(social_ops_platforms())as$p)$best[$p]=social_ops_best_times($p,$observations);
-    render_write('social_operations',['writeTitle'=>'Social Operations','platforms'=>social_ops_platforms(),'calendar'=>social_ops_calendar(),'campaigns'=>social_ops_campaigns(),'reports'=>social_ops_latest_reports(),'observations'=>$observations,'bestTimes'=>$best,'connections'=>social_ops_connection_summary(),'inboxes'=>social_ops_inbox_links(),'smartlinks'=>social_ops_smartlinks()]);return true;
+    render_write('social_operations',['writeTitle'=>'Social Operations','platforms'=>social_ops_platforms(),'calendar'=>social_ops_calendar(),'campaigns'=>social_ops_campaigns(),'reports'=>social_ops_latest_reports(),'observations'=>$observations,'bestTimes'=>$best,'connections'=>social_ops_connection_summary(),'inboxes'=>social_ops_inbox_links(),'smartlinks'=>social_ops_smartlinks(),'smartlinkClicks'=>social_ops_smartlink_clicks()]);return true;
 }
