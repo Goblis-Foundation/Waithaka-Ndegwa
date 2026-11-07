@@ -154,7 +154,7 @@ function social_ops_report_csv(): string {
     rewind($f);$csv=stream_get_contents($f);fclose($f);return (string)$csv;
 }
 
-function social_ops_dispatch(string $path): bool {
+function social_ops_sitemap_entries(): array {return [['loc'=>url('/links')]];}\n\nfunction social_ops_dispatch(string $path): bool {
     if($path==='/links'){
         journeys_method(['GET','HEAD']);render('smartlinks',['page'=>'links','links'=>array_values(array_filter(social_ops_smartlinks(),static fn($r)=>!empty($r['enabled']))),'seo'=>['title'=>'Links · Waithaka Ndegwa','description'=>'Selected links from Waithaka Ndegwa.','canonical'=>url('/links')]]);return true;
     }
