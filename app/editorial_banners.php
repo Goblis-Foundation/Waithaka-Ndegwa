@@ -57,6 +57,7 @@ function eb_catalog(): array {
         'au-ecosocc-civil-society-democratic-resilience-book-2026'=>'leadership',
         'impact-driven-inspiration'=>'perspective',
         'electric-vehicles-biofuels-africa'=>'mobility',
+        'tanzania-railways-vision-2050'=>'mobility',
         'the-gold-that-is-nairobis-sewage'=>'water',
         'christmas-truce-humanity-leadership'=>'perspective',
         'tong-wenhong-long-term-value'=>'enterprise',
