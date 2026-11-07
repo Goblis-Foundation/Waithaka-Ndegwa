@@ -32,6 +32,7 @@ $dashAttention=$workspace['attention']??null;$dashOpen=$dashboard['open'];$dashO
       ['/write/studio','✦','Studio & AI','Capture notes, develop ideas and draft with AI.'],
       ['/write/new','✎','Write a thought','Open the editor and start an article.'],
       ['/write/publishing/new','＋','Create a social post','Prepare content for your professional accounts.'],
+      ['/write/social-operations','◎','Social Operations','Plan, measure, report and manage first-party social workflows.'],
       ['/write/newsletter','↗','Prepare a newsletter','Prepare an email for your subscribers.']
     ]as$tool):?><a class="dashboard-action" href="<?=url($tool[0])?>"><span aria-hidden="true"><?=e($tool[1])?></span><strong><?=e($tool[2])?></strong><small><?=e($tool[3])?></small></a><?php endforeach;?>
     </div>

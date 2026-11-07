@@ -228,7 +228,7 @@ function app_extension_route(string $path): bool {
 }
 function app_sitemap_entries(): array {
     $entries=[];
-    foreach(['journeys_sitemap_entries','editorial_sitemap_entries']as$handler)if(function_exists($handler))$entries=array_merge($entries,$handler());
+    foreach(['journeys_sitemap_entries','editorial_sitemap_entries','social_ops_sitemap_entries']as$handler)if(function_exists($handler))$entries=array_merge($entries,$handler());
     return $entries;
 }
 
