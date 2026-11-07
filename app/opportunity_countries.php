@@ -150,6 +150,8 @@ function opportunity_country_coverage_rows(?int $now=null): array {
         ];
     }
     usort($rows,static function($a,$b){
+        if(($a['slug']??'')==='kenya')return -1;
+        if(($b['slug']??'')==='kenya')return 1;
         $rank=['no_verified_current'=>0,'historical_only'=>1,'regional_current'=>2,'direct_current'=>3];
         $r=($rank[$a['status']]??9)<=>($rank[$b['status']]??9);
         return $r!==0?$r:strcmp($a['name'],$b['name']);
