@@ -5,6 +5,7 @@ function app_config(?string $key=null,mixed $default=null):mixed{return ['timezo
 function publishing_networks():array{return ['linkedin'=>'LinkedIn','facebook'=>'Facebook','instagram'=>'Instagram','x'=>'X','youtube'=>'YouTube','tiktok'=>'TikTok','threads'=>'Threads','telegram'=>'Telegram','discord'=>'Discord','signal'=>'Signal'];}
 function url(string $path=''):string{return 'https://www.waithakandegwa.com/'.ltrim($path,'/');}
 function setting(string $key,mixed $default=null):mixed{return $default;}
+function publishing_public_url(string $url):bool{return str_starts_with($url,'https://')&&filter_var($url,FILTER_VALIDATE_URL)!==false;}
 
 require_once dirname(__DIR__).'/app/social_operations.php';
 
