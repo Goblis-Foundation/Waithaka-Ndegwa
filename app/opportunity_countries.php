@@ -150,6 +150,8 @@ function opportunity_country_coverage_rows(?int $now=null): array {
         ];
     }
     usort($rows,static function($a,$b){
+        if(($a['slug']??'')==='kenya')return -1;
+        if(($b['slug']??'')==='kenya')return 1;
         $rank=['no_verified_current'=>0,'historical_only'=>1,'regional_current'=>2,'direct_current'=>3];
         $r=($rank[$a['status']]??9)<=>($rank[$b['status']]??9);
         return $r!==0?$r:strcmp($a['name'],$b['name']);
@@ -164,7 +166,7 @@ function opportunity_country_coverage_summary(array $rows): array {
 function opportunity_country_seo(array $country,int $count,bool $indexable=false): array {
     $name=$country['name'];$demonym=$country['demonym'];
     $title='Funding, Grants & Opportunities for '.$demonym.' Applicants';
-    $description='Explore current grants, fellowships, accelerators, training and business opportunities open to applicants from '.$name.'. Compare eligibility, support, costs and upcoming deadlines from verified official sources.';
+    $description='Explore current grants, startup capital, research funding, fellowships, accelerators and programmes open to applicants from '.$name.'. Compare eligibility, financing type and upcoming deadlines from verified official sources.';
     return ['title'=>$title.' · Waithaka Ndegwa','description'=>$description,'canonical'=>url('/opportunities/country/'.$country['slug']),'robots'=>$count>0&&$indexable?'index,follow':'noindex,follow'];
 }
 function opportunity_country_schema(array $country,array $records): array {
