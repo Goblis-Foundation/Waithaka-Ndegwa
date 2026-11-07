@@ -32,7 +32,7 @@ try{
   }
 }catch(Throwable $e){$fail[]='Publishing Desk contract: '.$e->getMessage();}
 
-$hook=(string)file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/51_country_opportunities_batch6_20261107.sh');
+$hook=(string)file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/50_country_opportunities_batch5_20261106.sh');
 $ok(str_contains($hook,'import-country-opportunities-batch6-20261107.php'),'Production hook executes import');
 
 if($fail){fwrite(STDERR,'FAIL: '.implode('; ',$fail)."\n");exit(1);}
