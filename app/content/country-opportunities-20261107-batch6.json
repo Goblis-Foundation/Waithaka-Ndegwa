@@ -1,0 +1,127 @@
+{
+  "release": "country-opportunities-20261107-batch6",
+  "checked_on": "2026-11-07",
+  "guidance_note": "This is an independent editorial summary based on official sources checked on 7 November 2026. These are financing opportunities, not grants. Applicants must confirm current product terms, eligibility, security, training, appraisal and repayment requirements directly with the fund before borrowing.",
+  "entries": [
+    {
+      "slug": "kenya-youth-enterprise-development-fund-capital-2026",
+      "title": "Kenya Youth Enterprise Development Fund: Startup and SME Capital for Youth-Owned Enterprises",
+      "organisation": "Youth Enterprise Development Fund",
+      "type": "startup-capital",
+      "topic": "innovation",
+      "sectors": "Youth entrepreneurship, startups, SMEs, agriculture, green enterprise, creative industries, procurement and business expansion",
+      "summary": "Kenyan youth entrepreneurs aged 18–34 can access a range of government-backed business loans for startup, expansion, agriculture, talent, assets and procurement financing, together with enterprise-development support.",
+      "support": "Loan products range from KES 25,000 on selected facilities to as much as KES 5,000,000 on several startup, expansion, agriculture, asset and LPO/LSO products; exact product terms differ",
+      "deadline_mode": "rolling",
+      "deadline_iso": null,
+      "deadline_date": null,
+      "deadline_label": "Rolling access subject to the Fund's current product, appraisal and budget availability",
+      "countries": "Kenya; intended for eligible Kenyan youth and youth-owned enterprises",
+      "apply_url": "https://www.portal.youthfund.go.ke/",
+      "benefits": [
+        "Access to multiple loan products designed for startup, expansion, agriculture, green enterprise, talent, assets and government-order financing.",
+        "Business-development services, entrepreneurship training, market support and linkages are part of the Fund's mandate alongside financing.",
+        "Facilities are available through a national government fund with county-level access and products for both individual ventures and eligible groups."
+      ],
+      "eligibility": [
+        "The Fund states that its beneficiaries are youth aged 18–34, including those starting businesses and those seeking to expand existing enterprises.",
+        "Product-specific eligibility differs: applicants must meet the requirements of the selected facility, complete required documentation and undergo the Fund's appraisal process.",
+        "Some facilities are designed for groups while others support individual enterprises; applicants should select the product that matches their legal structure and financing purpose."
+      ],
+      "conditions": [
+        "This is repayable finance, not a grant. Borrowers remain responsible for repayment under the terms of the approved facility.",
+        "The Fund states that pre-financing entrepreneurship training and business-development support may form part of the process.",
+        "Loan sizes, security, grace periods, repayment schedules and permitted uses vary by product and must be confirmed before acceptance."
+      ],
+      "steps": [
+        "Review the current Youth Fund product catalogue and identify the facility that matches the enterprise stage and intended use of funds.",
+        "Prepare the business, identity, registration, banking, security and other documents required by that specific product.",
+        "Apply through the official Fund route or county office and retain the approved loan terms before committing the enterprise to repayment."
+      ],
+      "notice": "This listing classifies Youth Fund correctly as startup/SME debt capital. It must not be described as a grant or non-dilutive award.",
+      "sources": [
+        [
+          "Youth Enterprise Development Fund official portal",
+          "https://www.portal.youthfund.go.ke/"
+        ],
+        [
+          "Youth Enterprise Development Fund official mandate and loan products",
+          "https://www.youthfund.go.ke/about-us/"
+        ]
+      ],
+      "guide": {
+        "context": "The Youth Enterprise Development Fund is a Government of Kenya state corporation focused on increasing economic opportunities for young people through enterprise finance, business development and market support. Its current official materials list a broad portfolio of loan products rather than a single competitive grant call. This makes it useful for founders who need working capital, startup finance, expansion capital, agricultural finance, asset finance or procurement-related funding and who are prepared to take repayable debt. The product structure also means the right question is not simply whether an applicant is eligible for Youth Fund, but which facility matches the age, business stage, ownership structure, use of funds, repayment ability and available security.",
+        "fit": "A stronger fit is a Kenyan founder or youth-owned enterprise with a defined use for capital and a realistic repayment path. Early-stage applicants may fit startup or group facilities, while existing firms may fit expansion, agriculture, asset or procurement products. A weak fit is an applicant looking for a donation or grant with no repayment obligation. Non-profit organisations should not assume eligibility merely because they work with youth; the relevant borrower and enterprise structure must fit the selected product.",
+        "prepare": [
+          "Match the financing need to one named loan product instead of submitting a generic funding request.",
+          "Prepare a simple cash-flow forecast showing how the financed activity can service repayment without depending on another uncertain grant.",
+          "Confirm business registration, ownership, bank account, identification, security or guarantee requirements and any required training before submitting."
+        ],
+        "strategy": "Treat the application as a credit decision. Explain exactly what the money will purchase or finance, when that expenditure generates revenue, and how repayment will be made. For expansion finance, show trading history and evidence that the additional capital solves a specific bottleneck. For agriculture or green-enterprise finance, align the repayment profile with the production cycle and confirm any grace period rather than assuming one. For LPO/LSO finance, distinguish the awarded order from projected future procurement and verify the financing percentage and disbursement conditions. Applicants should compare the total cost and obligations with alternative capital before accepting an offer.",
+        "commitment": "Borrowing creates a repayment obligation and may also require training, appraisal, guarantees, security or monitoring. The enterprise should have an internal repayment plan before signing. The public listing should remain current only while the official Fund continues to accept the relevant product; product amounts and requirements should be rechecked periodically because a revolving government financing programme can change terms without using a single annual application deadline."
+      }
+    },
+    {
+      "slug": "kenya-uwezo-fund-enterprise-loans-2026",
+      "title": "Kenya Uwezo Fund: Interest-Free Enterprise Loans for Eligible Youth, Women and PWD Groups",
+      "organisation": "Uwezo Fund",
+      "type": "startup-capital",
+      "topic": "innovation",
+      "sectors": "Group enterprise, women-owned enterprise, youth enterprise, disability inclusion, community business and MSME development",
+      "summary": "Eligible registered groups of youth, women and persons with disabilities in Kenya can apply for constituency-based Uwezo Fund enterprise loans. The official Fund states that applications have no fixed deadline because it is a revolving fund.",
+      "support": "Wezesha first-time borrower loans are KES 50,000–100,000; repeat-borrower Endeleza funding can rise incrementally up to KES 500,000. The Fund states that the loans do not attract interest.",
+      "deadline_mode": "rolling",
+      "deadline_iso": null,
+      "deadline_date": null,
+      "deadline_label": "No fixed deadline; Uwezo Fund states that it is a revolving fund",
+      "countries": "Kenya; constituency-based financing for eligible registered youth, women and persons-with-disabilities groups and qualifying institutions",
+      "apply_url": "https://loans.uwezo.go.ke/",
+      "benefits": [
+        "Interest-free enterprise credit through a revolving government fund, subject to eligibility, appraisal and repayment terms.",
+        "First-time borrower finance through Wezesha and larger repeat-borrower finance through Endeleza, subject to satisfactory repayment and growth evidence.",
+        "Capacity building, entrepreneurship training and market-linkage support alongside the financial facility."
+      ],
+      "eligibility": [
+        "Applicant groups must be registered with the relevant government registration body and maintain an operating bank account in the group's name.",
+        "Youth, women and PWD group composition and leadership must meet the Fund's published representation thresholds; the application is constituency-based.",
+        "Repeat borrowers must have completed repayment and demonstrated proper use of earlier funding and potential for growth and employment creation."
+      ],
+      "conditions": [
+        "Uwezo Fund explicitly states that the facility is a loan, not a grant, and beneficiaries must repay according to the applicable schedule.",
+        "Applicants are appraised and recommended through the relevant Constituency Uwezo Fund Management Committee and must provide required supporting documents.",
+        "First-time and repeat-borrower products have different grace periods, repayment periods and maximum amounts; current terms should be checked before borrowing."
+      ],
+      "steps": [
+        "Confirm the group's registration, membership composition, leadership composition, constituency and bank-account eligibility.",
+        "Choose the appropriate first-time or repeat-borrower product and prepare the official application form and attachments.",
+        "Submit through the official Uwezo channel or constituency office, complete appraisal and training requirements, and review the repayment obligation before accepting funds."
+      ],
+      "notice": "Uwezo Fund is a revolving loan programme. It must not be labelled as a grant merely because it is a public empowerment fund or because the loan is interest-free.",
+      "sources": [
+        [
+          "Uwezo Fund official loan products",
+          "https://www.uwezo.go.ke/node/213"
+        ],
+        [
+          "Uwezo Fund official application portal",
+          "https://loans.uwezo.go.ke/"
+        ],
+        [
+          "Uwezo Fund official FAQ",
+          "https://www.uwezo.go.ke/faqs"
+        ]
+      ],
+      "guide": {
+        "context": "Uwezo Fund is a Government of Kenya empowerment fund operating through constituencies and designed to expand access to enterprise finance for groups of youth, women and persons with disabilities. Its official FAQ is unusually clear on a point that opportunity catalogues often get wrong: Uwezo is a loan, not a grant. It is revolving in nature and therefore has no single annual deadline. This makes it relevant to registered groups that may not qualify for conventional bank credit but can meet the Fund's composition, registration, banking, table-banking and constituency requirements.",
+        "fit": "A strong fit is a registered group with an active enterprise or a credible plan, an operating bank account, the required member composition, evidence of internal savings or table-banking activity where applicable, and willingness to repay. First-time groups may fit Wezesha; groups that have successfully repaid earlier financing may fit Endeleza. A weak fit is an individual founder applying without an eligible group structure, or an organisation seeking a non-repayable project grant.",
+        "prepare": [
+          "Verify the membership percentages and leadership requirements before spending time on the application.",
+          "Prepare registration, bank-account, group-governance and contribution records, together with a practical enterprise budget.",
+          "For repeat funding, assemble evidence of completed repayment, proper use of the previous loan, growth and employment potential."
+        ],
+        "strategy": "The strongest application should show that the group is functioning as an enterprise collective rather than existing only to obtain a public loan. Explain what is already being contributed internally, what the Uwezo facility will finance, how the financed activity produces cash, and how monthly repayment will be managed. Because the decision is constituency-based, the group should make sure its official records, operating location and application constituency align. Interest-free does not mean risk-free: the principal still has to be repaid and group guarantees can create collective obligations.",
+        "commitment": "Successful applicants enter a repayment relationship with the Fund and should understand the applicable grace period and instalment schedule. Capacity-building requirements and constituency follow-up are part of the programme. The opportunity should remain listed as rolling only while the official application route and revolving-fund rules remain available; major product changes should trigger editorial review rather than silently carrying old terms forward."
+      }
+    }
+  ]
+}
