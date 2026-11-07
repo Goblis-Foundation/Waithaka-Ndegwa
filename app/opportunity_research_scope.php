@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/opportunity_countries.php';
 
 /**
  * Private editorial research policy for African opportunities.
