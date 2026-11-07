@@ -193,6 +193,9 @@ function social_ops_report_csv(): string {
     $f=fopen('php://temp','w+');fputcsv($f,['type','platform_or_campaign','period_or_status','metric','value','source']);
     foreach(social_ops_latest_reports()as$platform=>$r)foreach(($r['metrics']??[])as$metric=>$value)fputcsv($f,['analytics',$platform,$r['period']??'',$metric,$value,$r['source']??'']);
     foreach(social_ops_campaigns()as$c)foreach(['jobs','published','scheduled','attention']as$metric)fputcsv($f,['campaign',$c['title'],'current',$metric,$c[$metric]??0,'Writer publishing records']);
+    foreach(social_ops_smartlinks()as$link){$clicks=social_ops_smartlink_clicks();fputcsv($f,['smartlink',$link['label'],'current','clicks',(int)($clicks[$link['id']]['count']??0),'First-party redirect counter']);}
+    foreach(social_ops_watchlist_records('competitors')as$r)foreach(($r['metrics']??[])as$metric=>$value)fputcsv($f,['competitor',$r['platform'].' · '.$r['name'],$r['observed_at'],$metric,$value,$r['source']]);
+    foreach(social_ops_watchlist_records('hashtags')as$r)foreach(($r['metrics']??[])as$metric=>$value)fputcsv($f,['hashtag',$r['platform'].' · '.$r['hashtag'],$r['observed_at'],$metric,$value,$r['source']]);
     rewind($f);$csv=stream_get_contents($f);fclose($f);return (string)$csv;
 }
 
