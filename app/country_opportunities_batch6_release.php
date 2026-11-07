@@ -6,7 +6,7 @@ require_once __DIR__.'/curated_opportunities_release.php';
 function country_opportunities_batch6_catalog(?array $data=null): array {
     $data??=json_decode((string)file_get_contents(__DIR__.'/content/country-opportunities-20261107-batch6.json'),true,128,JSON_THROW_ON_ERROR);
     $expected=['kenya-youth-enterprise-development-fund-capital-2026','kenya-uwezo-fund-enterprise-loans-2026'];
-    if(($data['release']??'')!=='country-opportunities-20261107-batch6'||array_column($data['entries']??[],'slug')!==$expected)throw new RuntimeException('Unexpected country opportunity batch 5.');
+    if(($data['release']??'')!=='country-opportunities-20261107-batch6'||array_column($data['entries']??[],'slug')!==$expected)throw new RuntimeException('Unexpected country opportunity batch 6.');
     if(($data['checked_on']??'')!=='2026-11-07')throw new RuntimeException('Unexpected source-check date.');
     foreach($data['entries'] as $entry){
         foreach(['slug','title','organisation','type','topic','sectors','summary','support','deadline_label','countries','apply_url','deadline_mode'] as $key){
