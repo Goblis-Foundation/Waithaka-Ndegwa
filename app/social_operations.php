@@ -160,6 +160,35 @@ function social_ops_bulk_import(array $file,int $uid): array {
     return $ids;
 }
 
+function social_ops_watchlist_records(string $kind): array {
+    if(!in_array($kind,['competitors','hashtags'],true))throw new InvalidArgumentException('Unknown social watchlist.');
+    $raw=json_decode((string)setting('social_ops.'.$kind,'[]'),true);if(!is_array($raw))return [];
+    usort($raw,static fn($a,$b)=>strcmp((string)($b['observed_at']??''),(string)($a['observed_at']??'')));return array_slice($raw,0,300);
+}
+function social_ops_watchlist_save(string $kind,array $record): void {
+    $rows=social_ops_watchlist_records($kind);array_unshift($rows,$record);set_setting('social_ops.'.$kind,json_encode(array_slice($rows,0,300),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES),true);
+}
+function social_ops_competitor_input(array $in,int $uid): array {
+    $platform=$in['platform']??'';if(!is_string($platform)||!isset(social_ops_platforms()[$platform]))throw new InvalidArgumentException('Choose a supported platform.');
+    $name=trim((string)($in['name']??''));if($name===''||mb_strlen($name)>160)throw new InvalidArgumentException('Add the public account name.');
+    $url=trim((string)($in['url']??''));if(!publishing_public_url($url))throw new InvalidArgumentException('Use a safe public HTTPS profile URL.');
+    $metrics=[];foreach(['followers'=>'Followers','posts'=>'Posts in period','engagements'=>'Engagements in period','views'=>'Views in period']as$key=>$label){$v=social_ops_metric($in[$key]??'',$label);if($v!==null)$metrics[$key]=$v;}
+    if(!$metrics)throw new InvalidArgumentException('Enter at least one public metric.');
+    $source=trim((string)($in['source']??''));if($source===''||mb_strlen($source)>500)throw new InvalidArgumentException('Record the public/native source and period.');
+    return ['id'=>bin2hex(random_bytes(10)),'platform'=>$platform,'name'=>$name,'url'=>$url,'metrics'=>$metrics,'source'=>$source,'observed_at'=>gmdate('c'),'recorded_by'=>$uid];
+}
+function social_ops_hashtag_input(array $in,int $uid): array {
+    $platform=$in['platform']??'';if(!is_string($platform)||!isset(social_ops_platforms()[$platform]))throw new InvalidArgumentException('Choose a supported platform.');
+    $tag=trim((string)($in['hashtag']??''));$tag=ltrim($tag,'#');if($tag===''||mb_strlen($tag)>100||!preg_match('/^[\p{L}\p{N}_-]+$/u',$tag))throw new InvalidArgumentException('Enter one hashtag or topic token.');
+    $metrics=[];foreach(['posts'=>'Observed posts','views'=>'Observed views','reach'=>'Observed reach','engagements'=>'Observed engagements']as$key=>$label){$v=social_ops_metric($in[$key]??'',$label);if($v!==null)$metrics[$key]=$v;}
+    if(!$metrics)throw new InvalidArgumentException('Enter at least one observed metric.');
+    $source=trim((string)($in['source']??''));if($source===''||mb_strlen($source)>500)throw new InvalidArgumentException('Record the public/native source and period.');
+    return ['id'=>bin2hex(random_bytes(10)),'platform'=>$platform,'hashtag'=>'#'.$tag,'metrics'=>$metrics,'source'=>$source,'observed_at'=>gmdate('c'),'recorded_by'=>$uid];
+}
+function social_ops_latest_by_key(array $rows,string $key): array {
+    $out=[];foreach($rows as$row){$id=(string)($row['platform']??'').'|'.mb_strtolower((string)($row[$key]??''));if($id==='|')continue;if(!isset($out[$id]))$out[$id]=$row;}return array_values($out);
+}
+
 function social_ops_report_csv(): string {
     $f=fopen('php://temp','w+');fputcsv($f,['type','platform_or_campaign','period_or_status','metric','value','source']);
     foreach(social_ops_latest_reports()as$platform=>$r)foreach(($r['metrics']??[])as$metric=>$value)fputcsv($f,['analytics',$platform,$r['period']??'',$metric,$value,$r['source']??'']);
@@ -172,11 +201,11 @@ function social_ops_sitemap_entries(): array {return [['loc'=>url('/links')]];}\
     if($path==='/links'){
         journeys_method(['GET','HEAD']);render('smartlinks',['page'=>'links','links'=>array_values(array_filter(social_ops_smartlinks(),static fn($r)=>!empty($r['enabled']))),'seo'=>['title'=>'Links · Waithaka Ndegwa','description'=>'Selected links from Waithaka Ndegwa.','canonical'=>url('/links')]]);return true;
     }
-    if(!in_array($path,['/write/social-operations','/write/social-operations/observation','/write/social-operations/smartlinks','/write/social-operations/import','/write/social-operations/report.csv'],true))return false;
+    if(!in_array($path,['/write/social-operations','/write/social-operations/observation','/write/social-operations/smartlinks','/write/social-operations/import','/write/social-operations/competitor','/write/social-operations/hashtag','/write/social-operations/report.csv'],true))return false;
     require_auth();private_response_headers();$uid=(int)current_user()['id'];
     if($path==='/write/social-operations/report.csv'){journeys_method(['GET']);header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="waithaka-social-report-'.date('Y-m-d').'.csv"');echo social_ops_report_csv();return true;}
-    if($path==='/write/social-operations/import'){journeys_method(['POST']);verify_csrf();try{$ids=social_ops_bulk_import($_FILES['csv']??[],$uid);flash('success',count($ids).' draft packages imported. Review and approve them in Posting & calendar.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException||$e instanceof RuntimeException?$e->getMessage():'The CSV could not be imported.');}redirect(url('/write/social-operations#bulk'));}\n    if($path==='/write/social-operations/observation'){journeys_method(['POST']);verify_csrf();try{social_ops_save_observation(social_ops_observation_input($_POST,$uid));flash('success','Performance observation saved. Best-time recommendations were recalculated from your own evidence.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'The observation could not be saved.');}redirect(url('/write/social-operations#best-times'));}
+    if($path==='/write/social-operations/competitor'){journeys_method(['POST']);verify_csrf();try{social_ops_watchlist_save('competitors',social_ops_competitor_input($_POST,$uid));flash('success','Competitor snapshot saved from the stated public source.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'The competitor snapshot could not be saved.');}redirect(url('/write/social-operations#competitors'));}\n    if($path==='/write/social-operations/hashtag'){journeys_method(['POST']);verify_csrf();try{social_ops_watchlist_save('hashtags',social_ops_hashtag_input($_POST,$uid));flash('success','Hashtag/topic snapshot saved from the stated source.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'The hashtag snapshot could not be saved.');}redirect(url('/write/social-operations#hashtags'));}\n    if($path==='/write/social-operations/import'){journeys_method(['POST']);verify_csrf();try{$ids=social_ops_bulk_import($_FILES['csv']??[],$uid);flash('success',count($ids).' draft packages imported. Review and approve them in Posting & calendar.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException||$e instanceof RuntimeException?$e->getMessage():'The CSV could not be imported.');}redirect(url('/write/social-operations#bulk'));}\n    if($path==='/write/social-operations/observation'){journeys_method(['POST']);verify_csrf();try{social_ops_save_observation(social_ops_observation_input($_POST,$uid));flash('success','Performance observation saved. Best-time recommendations were recalculated from your own evidence.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'The observation could not be saved.');}redirect(url('/write/social-operations#best-times'));}
     if($path==='/write/social-operations/smartlinks'){journeys_method(['POST']);verify_csrf();try{$rows=social_ops_smartlinks_input($_POST);set_setting('social_ops.smartlinks',json_encode($rows,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES),true);flash('success','SmartLinks saved.');}catch(Throwable $e){flash('error',$e instanceof InvalidArgumentException?$e->getMessage():'SmartLinks could not be saved.');}redirect(url('/write/social-operations#smartlinks'));}
     journeys_method(['GET','HEAD']);$observations=social_ops_observations();$best=[];foreach(array_keys(social_ops_platforms())as$p)$best[$p]=social_ops_best_times($p,$observations);
-    render_write('social_operations',['writeTitle'=>'Social Operations','platforms'=>social_ops_platforms(),'calendar'=>social_ops_calendar(),'campaigns'=>social_ops_campaigns(),'reports'=>social_ops_latest_reports(),'observations'=>$observations,'bestTimes'=>$best,'connections'=>social_ops_connection_summary(),'inboxes'=>social_ops_inbox_links(),'smartlinks'=>social_ops_smartlinks(),'smartlinkClicks'=>social_ops_smartlink_clicks()]);return true;
+    render_write('social_operations',['writeTitle'=>'Social Operations','platforms'=>social_ops_platforms(),'calendar'=>social_ops_calendar(),'campaigns'=>social_ops_campaigns(),'reports'=>social_ops_latest_reports(),'observations'=>$observations,'bestTimes'=>$best,'connections'=>social_ops_connection_summary(),'inboxes'=>social_ops_inbox_links(),'smartlinks'=>social_ops_smartlinks(),'smartlinkClicks'=>social_ops_smartlink_clicks(),'competitors'=>social_ops_latest_by_key(social_ops_watchlist_records('competitors'),'name'),'hashtags'=>social_ops_latest_by_key(social_ops_watchlist_records('hashtags'),'hashtag')]);return true;
 }
