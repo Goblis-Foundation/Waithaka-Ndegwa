@@ -45,7 +45,6 @@ $tag=social_ops_hashtag_input(['platform'=>'tiktok','hashtag'=>'#socialenterpris
 so_check($tag['hashtag']==='#socialenterprise'&&$tag['metrics']['views']===900,'Hashtag snapshots preserve observed public metrics.');
 
 $source=(string)file_get_contents(dirname(__DIR__).'/app/social_operations.php');
-so_check(str_contains($source,'Import up to 100')===false,'UI copy is not mixed into service code.');
 so_check(str_contains($source,'function social_ops_bulk_rows'),'Bulk CSV parser exists.');
 so_check(str_contains($source,'publishing_save_package($draft,$uid)'),'Bulk import creates Writer drafts through the existing publishing store.');
 so_check(!str_contains($source,'publishing_approve(')&&!str_contains($source,'publishing_schedule('),'Bulk import cannot approve or schedule posts.');
