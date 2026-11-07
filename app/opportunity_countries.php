@@ -166,7 +166,7 @@ function opportunity_country_coverage_summary(array $rows): array {
 function opportunity_country_seo(array $country,int $count,bool $indexable=false): array {
     $name=$country['name'];$demonym=$country['demonym'];
     $title='Funding, Grants & Opportunities for '.$demonym.' Applicants';
-    $description='Explore current grants, fellowships, accelerators, training and business opportunities open to applicants from '.$name.'. Compare eligibility, support, costs and upcoming deadlines from verified official sources.';
+    $description='Explore current grants, startup capital, research funding, fellowships, accelerators and programmes open to applicants from '.$name.'. Compare eligibility, financing type and upcoming deadlines from verified official sources.';
     return ['title'=>$title.' · Waithaka Ndegwa','description'=>$description,'canonical'=>url('/opportunities/country/'.$country['slug']),'robots'=>$count>0&&$indexable?'index,follow':'noindex,follow'];
 }
 function opportunity_country_schema(array $country,array $records): array {
