@@ -35,7 +35,13 @@ $links=social_ops_smartlinks_input(['links'=>[
  ['label'=>'External','url'=>'https://example.org','enabled'=>''],
 ]]);
 so_check(count($links)===2&&$links[0]['enabled']===true&&$links[1]['enabled']===false,'SmartLinks retain explicit visibility.');
+so_check(preg_match('/^[a-f0-9]{12}$/',$links[0]['id'])===1,'SmartLinks receive stable first-party tracking ids.');
 try{social_ops_smartlinks_input(['links'=>[['label'=>'Bad','url'=>'http://example.org','enabled'=>'1']]]);so_check(false,'Insecure SmartLink must fail.');}catch(InvalidArgumentException){so_check(true,'SmartLinks require HTTPS.');}
+
+$competitor=social_ops_competitor_input(['platform'=>'instagram','name'=>'Public peer','url'=>'https://www.instagram.com/example','followers'=>'1000','engagements'=>'80','source'=>'Public profile snapshot, 1-7 Nov 2026'],7);
+so_check($competitor['metrics']['followers']===1000&&$competitor['recorded_by']===7,'Competitor snapshots preserve public evidence and actor.');
+$tag=social_ops_hashtag_input(['platform'=>'tiktok','hashtag'=>'#socialenterprise','views'=>'900','posts'=>'12','source'=>'Native public search snapshot, 7 Nov 2026'],7);
+so_check($tag['hashtag']==='#socialenterprise'&&$tag['metrics']['views']===900,'Hashtag snapshots preserve observed public metrics.');
 
 $source=(string)file_get_contents(dirname(__DIR__).'/app/social_operations.php');
 so_check(str_contains($source,'Import up to 100')===false,'UI copy is not mixed into service code.');
@@ -45,7 +51,9 @@ so_check(!str_contains($source,'publishing_approve(')&&!str_contains($source,'pu
 $view=(string)file_get_contents(dirname(__DIR__).'/views/write/social_operations.php');
 so_check(str_contains($view,'Bulk planner import')&&str_contains($view,'Import creates drafts only'),'Bulk planner explains its no-publish boundary.');
 so_check(str_contains($view,'Best-time recommendations')&&str_contains($view,'SmartLinks / link in bio'),'Core native social tools are visible.');
+so_check(str_contains($view,'Competitor watchlist')&&str_contains($view,'Hashtag & topic tracking'),'Native benchmarking tools are visible.');
 $public=(string)file_get_contents(dirname(__DIR__).'/views/smartlinks.php');
 so_check(!str_contains($public,'csrf')&&!str_contains($public,'write/'),'Public SmartLinks page contains no private controls.');
+so_check(str_contains($public,"/links/go/"),'Public SmartLinks use first-party tracked redirects.');
 
 echo 'PASS: '.$n." native social-operations planning, analytics and safety checks.\n";
