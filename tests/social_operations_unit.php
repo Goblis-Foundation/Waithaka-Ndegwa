@@ -11,9 +11,9 @@ require_once dirname(__DIR__).'/app/social_operations.php';
 $n=0;function so_check(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);$GLOBALS['n']++;}
 
 $rows=[
- ['platform'=>'linkedin','published_at'=>'2026-11-02T09:00:00+03:00','metrics'=>['reach'=>100,'engagements'=>20,'clicks'=>5]],
- ['platform'=>'linkedin','published_at'=>'2026-11-03T09:00:00+03:00','metrics'=>['reach'=>100,'engagements'=>22,'clicks'=>6]],
- ['platform'=>'linkedin','published_at'=>'2026-11-04T09:00:00+03:00','metrics'=>['reach'=>100,'engagements'=>24,'clicks'=>7]],
+ ['platform'=>'linkedin','published_at'=>'2026-10-19T09:00:00+03:00','metrics'=>['reach'=>100,'engagements'=>20,'clicks'=>5]],
+ ['platform'=>'linkedin','published_at'=>'2026-10-26T09:00:00+03:00','metrics'=>['reach'=>100,'engagements'=>22,'clicks'=>6]],
+ ['platform'=>'linkedin','published_at'=>'2026-11-02T09:00:00+03:00','metrics'=>['reach'=>100,'engagements'=>24,'clicks'=>7]],
  ['platform'=>'linkedin','published_at'=>'2026-11-02T16:00:00+03:00','metrics'=>['reach'=>100,'engagements'=>2,'clicks'=>0]],
 ];
 $best=social_ops_best_times('linkedin',$rows);
