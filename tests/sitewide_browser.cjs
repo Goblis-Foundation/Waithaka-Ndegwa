@@ -16,7 +16,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
  const pages=[
   'group-personal-experiences','group-my-enterprise-journey','group-ideas-perspectives','enterprises-zero','enterprises-reported',
   'start-here','startup-journeys','founder-stories','resources','watch',
-  'enterprises','employment','opportunities','partner-stories',
+  'enterprises','partner-stories',
   'monthly-roundup','newsletter','explore','advertise','advertising-policy','promotion-intake'
  ];
  const widths=[320,360,390,440,600,740,820,1024,1180,1280,1440];
@@ -83,7 +83,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
  const dir=process.env.EXPERIENCE_EVIDENCE_DIR;
  if(dir){
   fs.mkdirSync(dir,{recursive:true});
-  for(const key of ['opportunities','partner-stories','newsletter','founder-stories','monthly-roundup','advertise']){
+  for(const key of ['partner-stories','newsletter','founder-stories','monthly-roundup','advertise']){
    await page.goto(host+'sitewide-'+key+'.html');
    for(const width of [390,1180]){
     await page.setViewportSize({width,height:900});
