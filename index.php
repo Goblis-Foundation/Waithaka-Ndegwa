@@ -8,7 +8,8 @@ if (!installed()) {
 
 $path = path_only();
 if(srs_dispatch($path)||fitness_dispatch($path)||wa_dispatch($path)||gcs_webhook($path)||gcs_dispatch($path)||gwa_dispatch($path)||yta_dispatch($path)||gmeet_dispatch($path)||mwa_dispatch($path)||ms_dispatch($path))exit;
-if(opportunity_dispatch($path)||enterprise_dispatch($path)||article_group_dispatch($path))exit;
+if(str_starts_with($path,'/opportunities')||str_starts_with($path,'/write/opportunities')){header('Location: https://www.ubunifuinstitute.com/opportunities',true,301);exit;}
+if(enterprise_dispatch($path)||article_group_dispatch($path))exit;
 if(support_receipts_dispatch($path)||monthly_dispatch($path))exit;
 if($path==='/webhooks/paypal')paypal_notifications_webhook();
 if (social_ops_dispatch($path) || activation_dispatch($path) || workspace_reports_dispatch($path) || planner_dispatch($path) || communication_mail_dispatch($path) || app_security_dispatch($path) || communication_dispatch($path) || meetings_dispatch($path) || google_workspace_dispatch($path) || impact_writer_route($path) || writer_account_route($path) || studio_dispatch($path) || media_centre_dispatch($path)) exit;
