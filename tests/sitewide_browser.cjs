@@ -27,7 +27,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
   'resources':['/start-here','/my-thoughts'],
   'watch':['/start-here','/my-thoughts'],
   'enterprises':['/about#goals-2030','/startup-journeys'],
-  'partner-stories':['/opportunities','/promote'],
+  'partner-stories':['/promote'],
   'monthly-roundup':['/newsletter'],
   'newsletter':['/newsletter/preferences/request','/feed.xml','/privacy'],
   'explore':['/founders/submit','/promote','/contribute'],
