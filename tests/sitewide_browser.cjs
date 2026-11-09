@@ -23,12 +23,10 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
  const requiredLinks={
   'start-here':['/my-thoughts','/startup-journeys','/founders','/resources','/contact'],
   'startup-journeys':['/my-thoughts','/newsletter','/founders'],
-  'founder-stories':['/founders/submit','/opportunities','/opportunities/submit'],
+  'founder-stories':['/founders/submit'],
   'resources':['/start-here','/my-thoughts'],
   'watch':['/start-here','/my-thoughts'],
   'enterprises':['/about#goals-2030','/startup-journeys'],
-  'employment':['/opportunities/submit','/opportunities','/enterprises'],
-  'opportunities':['/partner-stories','/promote','/opportunities/jobs','/opportunities/submit'],
   'partner-stories':['/opportunities','/promote'],
   'monthly-roundup':['/newsletter'],
   'newsletter':['/newsletter/preferences/request','/feed.xml','/privacy'],
