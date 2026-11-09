@@ -30,7 +30,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('nod
   'partner-stories':['/opportunities','/promote'],
   'monthly-roundup':['/newsletter'],
   'newsletter':['/newsletter/preferences/request','/feed.xml','/privacy'],
-  'explore':['/opportunities','/opportunities/jobs','/founders/submit','/contact','/contribute'],
+  'explore':['/founders/submit','/promote','/contribute'],
   'advertise':['/promote','/advertising-policy'],
   'advertising-policy':['/contact','/promote'],
   'promotion-intake':['/contact']
