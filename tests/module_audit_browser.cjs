@@ -144,7 +144,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  for(const n of [70,71,72,73,74,75,76])ok(await page.locator('[data-register-item]:visible a[href$="/issues/'+n+'"]').count()>0,'Open issue '+n+' is retained in follow-up');
  const bare=await browser.newContext({javaScriptEnabled:false});await bare.route('**/*',route=>route.request().url().startsWith(host)?route.continue():route.abort());const fallback=await bare.newPage();await fallback.goto(host+'module-login.html');
  ok(await fallback.locator('[data-login-submit]').isVisible(),'Password sign-in works without JS');ok(!await fallback.locator('[data-passkey-area]').isVisible(),'No dead passkey action without JS');ok(!await fallback.locator('[data-password-toggle]').isVisible(),'No dead show/hide control without JS');
- await fallback.goto(host+'module-dashboard-populated.html');ok(await fallback.locator('[data-writer-post]:visible').count()===20,'No-JS dashboard retains every article');await fallback.locator('.dashboard-journeys summary').click();ok(await fallback.locator('.dashboard-journeys article:visible').count()===9,'No-JS journey directory remains usable');
+ await fallback.goto(host+'module-dashboard-populated.html');ok(await fallback.locator('[data-writer-post]:visible').count()===20,'No-JS dashboard retains every article');await fallback.locator('.dashboard-journeys summary').click();ok(await fallback.locator('.dashboard-journeys article:visible').count()===8,'No-JS journey directory remains usable');
  await fallback.close();await bare.close();ok(errors.length===0,'No runtime errors: '+errors.join(';'));
  await page.goto(host+'module-google-workspace.html');
  await page.getByText('Update a renamed account',{exact:true}).click();
