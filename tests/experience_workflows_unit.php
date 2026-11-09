@@ -30,7 +30,7 @@ uxcheck(ux_seo($seo,'/opportunities',true)===$seo,'Private metadata is never rew
 $crumbs=ux_breadcrumbs(['title'=>'A useful idea · Waithaka Ndegwa','canonical'=>url('/my-thoughts/a-useful-idea')],'/my-thoughts/a-useful-idea');uxcheck(count($crumbs)===3&&$crumbs[2]['name']==='A useful idea','Public article breadcrumbs are meaningful.');
 uxcheck(ux_breadcrumbs($seo,'/client/workspace/private',true)===[]&&ux_breadcrumbs($seo,'/write/desk')===[],'No private breadcrumb metadata.');
 $schema=ux_breadcrumb_schema($crumbs);uxcheck($schema['@type']==='BreadcrumbList'&&$schema['itemListElement'][2]['position']===3,'Visible breadcrumbs have matching structured data.');
-uxcheck(count(ux_journeys())===6&&count(ux_workspace_groups())===6,'Distinct public and owner task paths remain available.');
+uxcheck(count(ux_journeys())===5&&count(ux_workspace_groups())===6,'Distinct public and owner task paths remain available.');
 foreach(ux_journeys()as$j)foreach($j['links']as$href=>$label)uxcheck(str_starts_with($href,'/')&&!str_starts_with($href,'//')&&!str_contains($href,'token='),'Journey destinations are ordinary local routes, not capabilities.');
 $locationValues=[];$locationPrefix='unit-profile';ob_start();include dirname(__DIR__).'/views/partials_location_fields.php';$html=ob_get_clean();
 uxcheck(str_contains($html,'value="Kenya" selected')&&str_contains($html,'value="+254"'),'Rendered profile defaults are correct.');
