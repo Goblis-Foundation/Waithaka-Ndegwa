@@ -30,7 +30,6 @@ function workspace_home_journeys(): array {
         ['Contact','/contact','/write/communication?tab=inbox','Enquiry → follow-up → resolution'],
         ['Subscribers','/newsletter','/write/newsletter','Consent → edition review → delivery'],
         ['Founder stories','/founders','/write/journeys/founders','Submission → exact-copy approval → publication'],
-        ['Opportunities','/opportunities','/write/opportunities','Application → private review → response'],
         ['Sponsored publishing','/advertise','/write/desk','Brief → approval → fulfilment'],
         ['Goal 2030','/about#goals-2030','/write/impact','Approved source → evidence → public report'],
         ['Support','/contribute','/write/connections#integrations-finance','Checkout → verified callback → reconciliation'],
