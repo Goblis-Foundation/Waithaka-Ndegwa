@@ -51,6 +51,8 @@ check(isset($flags['official_source_unverified'])&&isset($flags['eligibility_mis
 $submission['eligibility']='Kenyan graduates';$submission['countries']='Kenya';$submission['deadline_mode']='fixed';$submission['deadline']=time()+86400;
 $flags=desk_submission_flags($submission);
 check(isset($flags['eligibility_unverified'])&&isset($flags['countries_unverified'])&&isset($flags['deadline_unverified']),'Supplied public facts remain unverified until editorial review.');
+$routeSource=(string)file_get_contents(dirname(__DIR__).'/app/publishing_desk_routes.php');
+check(str_contains($routeSource,"if(\$path==='/write/desk/opportunity/new'){header('Location: '.url('/write/desk'),true,301);return true;}")&&str_contains($routeSource,"array_filter(desk_all(),static fn(\$r)=>(\$r['kind']??'')==='sponsored')"),'Writer Publishing Desk retires direct opportunity creation and hides legacy opportunity records.');
 $submitView=(string)file_get_contents(dirname(__DIR__).'/views/desk/submit_opportunity.php');$submitRoutes=(string)file_get_contents(dirname(__DIR__).'/app/publishing_desk_routes.php');$publicIndex=(string)file_get_contents(dirname(__DIR__).'/views/desk/index.php');$writerView=(string)file_get_contents(dirname(__DIR__).'/views/write/desk_edit.php');
 check(str_contains($submitView,'public submission → structured verification flags')&&str_contains($submitView,'does not guarantee publication'),'Public form explains the gated catalogue workflow.');
 check(str_contains($submitRoutes,"if(\$path==='/opportunities/suggest')")&&str_contains($submitRoutes,"'state']='submitted'")&&str_contains($submitRoutes,"'ai_review'=>'available_after_authorised_editor_consent'"),'Public intake creates a private submitted record and never auto-runs AI.');
