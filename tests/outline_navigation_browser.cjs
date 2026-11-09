@@ -10,7 +10,7 @@ const base=live?'https://www.waithakandegwa.com':'http://127.0.0.1:8125';
 const fixturePaths=[
  '/public-home.html',
  ...['start-here','startup-journeys','founder-stories','resources','watch',
- 'enterprises','employment','opportunities','partner-stories','monthly-roundup',
+ 'enterprises','partner-stories','monthly-roundup',
  'newsletter','explore','advertise','advertising-policy','promotion-intake']
  .map(x=>'/sitewide-'+x+'.html')
 ];
