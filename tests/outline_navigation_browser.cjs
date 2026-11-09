@@ -15,8 +15,7 @@ const fixturePaths=[
  .map(x=>'/sitewide-'+x+'.html')
 ];
 const livePaths=['/','/start-here','/my-thoughts','/startup-journeys','/founders',
- '/founders/submit','/resources','/watch','/enterprises','/opportunities',
- '/opportunities/jobs','/opportunities/submit','/partner-stories',
+ '/founders/submit','/resources','/watch','/enterprises','/partner-stories',
  '/advertise','/advertising-policy','/promote','/monthly-roundup',
  '/about','/contact','/newsletter','/contribute','/book','/explore','/search',
  '/professional-information'];

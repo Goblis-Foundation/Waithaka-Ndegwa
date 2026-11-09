@@ -5,11 +5,8 @@ $root=dirname(__DIR__);
 $files=[
  '.github/workflows/editorial-banners.yml',
  '.github/workflows/ev-biofuels-article.yml',
- '.github/workflows/opportunity-quality.yml',
- '.github/workflows/opportunity-lifecycle.yml',
  '.github/workflows/inaugural-story-design.yml',
  '.github/workflows/nairobi-sewage-article.yml',
- '.github/workflows/curated-opportunities-release.yml',
 ];
 $fail=[];$ok=function(bool $v,string $m)use(&$fail){if(!$v)$fail[]=$m;};
 $pin=<<<'YAML'

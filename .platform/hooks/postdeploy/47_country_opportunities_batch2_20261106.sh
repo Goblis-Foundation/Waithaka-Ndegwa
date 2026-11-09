@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd /var/app/current
-php bin/import-country-opportunities-batch2-20261106.php
+# Waithaka Ndegwa Opportunities was retired on 2026-11-09. Ubunifu Institute is the sole Opportunities platform.
+# This retained numbered hook is intentionally a no-op so historical deployment ordering remains stable.
+exit 0

@@ -22,8 +22,6 @@ const targets = [
   { slug: 'contribute', path: '/contribute', public: true },
   { slug: 'newsletter', path: '/newsletter', public: true },
   { slug: 'founder-submit', path: '/founders/submit', public: true },
-  { slug: 'opportunity-submit', path: '/opportunities/submit', public: true },
-  { slug: 'opportunities', path: '/opportunities', public: true },
   { slug: 'login', path: '/write/login', public: false }
 ];
 const screens = [
