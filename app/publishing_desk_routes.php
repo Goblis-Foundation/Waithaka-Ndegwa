@@ -200,15 +200,17 @@ function desk_dispatch(string $path): bool {
         render_write('desk_settings',['writeTitle'=>'Commercial publishing settings','cfg'=>desk_config(),'error'=>$error]);return true;
     }
     if($path==='/write/desk'||$path==='/write/desk/orders'){
-        journeys_method(['GET','HEAD']);$items=desk_all();usort($items,static fn($a,$b)=>$b['updated']<=>$a['updated']);$orders=comm_records('desk.order',3000);usort($orders,static fn($a,$b)=>$b['created']<=>$a['created']);render_write('desk_index',['writeTitle'=>'Opportunities & sponsored publishing','items'=>$items,'orders'=>$orders,'billing'=>$path==='/write/desk/orders']);return true;
+        journeys_method(['GET','HEAD']);$items=array_values(array_filter(desk_all(),static fn($r)=>($r['kind']??'')==='sponsored'));usort($items,static fn($a,$b)=>$b['updated']<=>$a['updated']);$orders=comm_records('desk.order',3000);usort($orders,static fn($a,$b)=>$b['created']<=>$a['created']);render_write('desk_index',['writeTitle'=>'Sponsored publishing','items'=>$items,'orders'=>$orders,'billing'=>$path==='/write/desk/orders']);return true;
     }
-    if(preg_match('~^/write/desk/(opportunity|sponsored)/new$~D',$path,$m)){
+    if($path==='/write/desk/opportunity/new'){header('Location: '.url('/write/desk'),true,301);return true;}
+    if(preg_match('~^/write/desk/(sponsored)/new$~D',$path,$m)){
         $kind=$m[1];$values=['timezone'=>'Africa/Nairobi','currency'=>'KES','type'=>'grant','deadline_mode'=>'unknown'];
         if(is_post()){verify_csrf();$values=array_filter($_POST,'is_scalar');try{$r=comm_lock('desk.catalog',function()use($kind,$uid){return desk_new($_POST,$kind,$uid,!empty($_POST['client_email'])?desk_client($_POST):null);});redirect(url('/write/desk/'.$r['id']));}catch(Throwable $e){$error=desk_failure($e);}}
         render_write('desk_edit',['writeTitle'=>'New '.($kind==='opportunity'?'opportunity':'sponsored feature'),'kind'=>$kind,'values'=>$values,'record'=>null,'error'=>$error,'orders'=>[],'post'=>null,'report'=>[]]);return true;
     }
     if(preg_match('~^/write/desk/([a-f0-9]{32})(?:/(creative|evidence)(?:/([a-f0-9]{32}))?)?$~D',$path,$m)){
         try{$r=desk_get($m[1]);}catch(Throwable){http_response_code(404);return true;}
+        if(($r['kind']??'')==='opportunity'){header('Location: '.url('/write/desk'),true,301);return true;}
         if(($m[2]??'')==='evidence'&&!empty($m[3])){$doc=opportunity_evidence_get($r,$m[3]);if(!$doc){http_response_code(404);return true;}opportunity_evidence_serve($doc);return true;}
         if(is_post()){
             verify_csrf();try{
