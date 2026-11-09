@@ -1,20 +1,7 @@
 name: Curated opportunities release checks
 on:
-  pull_request:
-    paths:
-      - 'app/content/africa-opportunities-20261104.json'
-      - 'app/curated_opportunities_release.php'
-      - 'views/desk/**'
-      - 'assets/css/curated-opportunities.css'
-      - 'tests/curated_opportunities*'
-      - '.platform/hooks/postdeploy/37_curated_opportunities.sh'
-      - '.github/workflows/curated-opportunities-release.yml'
-  workflow_run:
-    workflows: ['Deploy production']
-    types: [completed]
   workflow_dispatch:
-permissions:
-  contents: read
+
 jobs:
   native-publishing:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
