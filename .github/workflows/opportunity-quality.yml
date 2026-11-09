@@ -1,20 +1,7 @@
 name: Opportunity content quality
 on:
-  pull_request:
-    paths:
-      - 'app/opportunity_guides*.php'
-      - 'app/content/opportunity-guides-*.json'
-      - 'views/desk/**'
-      - 'assets/css/opportunity-quality.css'
-      - '.platform/hooks/postdeploy/38_opportunity_guides.sh'
-      - 'tests/opportunity_guides*'
-      - '.github/workflows/opportunity-quality.yml'
-  workflow_run:
-    workflows: ['Deploy production']
-    types: [completed]
   workflow_dispatch:
-permissions:
-  contents: read
+
 jobs:
   quality:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
