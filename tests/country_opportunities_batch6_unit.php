@@ -33,7 +33,7 @@ try{
 }catch(Throwable $e){$fail[]='Publishing Desk contract: '.$e->getMessage();}
 
 $hook=(string)file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/50_country_opportunities_batch5_20261106.sh');
-$ok(str_contains($hook,'import-country-opportunities-batch6-20261107.php'),'Production hook executes import');
+$ok(str_contains($hook,'Waithaka Ndegwa Opportunities was retired on 2026-11-09')&&str_contains($hook,'exit 0')&&!str_contains($hook,'import-country-opportunities-'),'Retired production hook is a no-op and cannot repopulate Waithaka opportunities');
 
 if($fail){fwrite(STDERR,'FAIL: '.implode('; ',$fail)."\n");exit(1);}
 echo "PASS: Kenya startup-capital opportunities are verified, rolling and not mislabeled as grants.\n";

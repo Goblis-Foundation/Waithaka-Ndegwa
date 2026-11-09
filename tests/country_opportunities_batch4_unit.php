@@ -34,7 +34,7 @@ foreach($entries as$entry){
   }catch(Throwable $e){$fail[]=$entry['slug'].' Publishing Desk contract: '.$e->getMessage();}
 }
 $hook=(string)file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/49_country_opportunities_batch4_20261106.sh');
-$ok(str_contains($hook,'import-country-opportunities-batch4-20261106.php'),'Production hook executes batch import');
+$ok(str_contains($hook,'Waithaka Ndegwa Opportunities was retired on 2026-11-09')&&str_contains($hook,'exit 0')&&!str_contains($hook,'import-country-opportunities-'),'Retired production hook is a no-op and cannot repopulate Waithaka opportunities');
 
 if($fail){fwrite(STDERR,'FAIL: '.implode('; ',$fail)."\n");exit(1);}
 echo "PASS: Mauritius and Global EbA batch is source-bounded and deadline-precise.\n";
