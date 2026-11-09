@@ -9,6 +9,7 @@ if (!installed()) {
 $path = path_only();
 if(srs_dispatch($path)||fitness_dispatch($path)||wa_dispatch($path)||gcs_webhook($path)||gcs_dispatch($path)||gwa_dispatch($path)||yta_dispatch($path)||gmeet_dispatch($path)||mwa_dispatch($path)||ms_dispatch($path))exit;
 if(str_starts_with($path,'/opportunities')||str_starts_with($path,'/write/opportunities')){header('Location: https://www.ubunifuinstitute.com/opportunities',true,301);exit;}
+if(desk_dispatch($path))exit;
 if(enterprise_dispatch($path)||article_group_dispatch($path))exit;
 if(support_receipts_dispatch($path)||monthly_dispatch($path))exit;
 if($path==='/webhooks/paypal')paypal_notifications_webhook();
