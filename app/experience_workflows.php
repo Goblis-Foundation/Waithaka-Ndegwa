@@ -12,29 +12,27 @@ function ux_journeys(): array {
 }
 function ux_workspace_groups(): array {
  return [
-  'Create and publish'=>['/write/new'=>'New thought','/write/studio'=>'Studio & AI','/write/desk'=>'Opportunities & sponsored features','/write/publishing'=>'Posting & calendar','/write/media'=>'Images & videos'],
+  'Create and publish'=>['/write/new'=>'New thought','/write/studio'=>'Studio & AI','/write/desk'=>'Sponsored features','/write/publishing'=>'Posting & calendar','/write/media'=>'Images & videos'],
   'People and messages'=>['/write/communication'=>'Communication Centre','/write/correspondence'=>'Email & response log','/write/readers'=>'Reader enquiries','/write/contact-controls'=>'Held enquiries & review','/write/meetings'=>'Meetings & booking'],
   'Plan and document'=>['/write/activity'=>'Activity & fitness','/write/program'=>'Daily & weekly programme','/write/notes'=>'Notes & reports','/write/voice'=>'Voice notes & ideas','/write/journeys'=>'Startup Journeys','/write/enterprises'=>'Enterprise portfolio'],
   'Audience and discovery'=>['/write/monthly-roundup'=>'Automatic monthly newsletter','/write/newsletter'=>'Newsletter editions','/write/seo-checks'=>'SEO publishing checks','/write/discovery'=>'Search performance','/write/visitor-statistics'=>'Visitor statistics'],
-  'Review and manage'=>['/write/desk/orders'=>'Commercial orders','/write/desk/settings'=>'Commercial configuration','/write/opportunities'=>'Employment reviews','/write/foundation-access'=>'Foundation access','/write/impact'=>'Impact reporting','/write/reconciliation'=>'Implementation register'],
+  'Review and manage'=>['/write/desk/orders'=>'Commercial orders','/write/desk/settings'=>'Commercial configuration','/write/foundation-access'=>'Foundation access','/write/impact'=>'Impact reporting','/write/reconciliation'=>'Implementation register'],
   'Connections and security'=>['/write/connections'=>'Integration directory','/write/google'=>'Google Workspace','/write/microsoft'=>'Microsoft 365','/write/security'=>'Devices & passkeys','/write/security/sign-in'=>'Sign-in & verification','/write/operations'=>'Operations & delivery','/write/activation'=>'Activation & launch readiness','/write/account'=>'My account']
  ];
 }
 function ux_public_metadata(): array {
  return [
-  '/explore'=>['Explore the journeys · Waithaka Ndegwa','Read practical ideas, discover opportunities, share a founder story, propose a sponsored feature or connect with Waithaka Ndegwa.'],
+  '/explore'=>['Explore the journeys · Waithaka Ndegwa','Read practical ideas, share a founder story, propose a sponsored feature or connect with Waithaka Ndegwa.'],
   '/advertise'=>['Sponsored articles and social promotion · Waithaka Ndegwa','Explore reviewed sponsored articles and agreed social promotion. Compare publishing packages, check suitability and build a private business brief.'],
   '/advertising-policy'=>['Advertising suitability and editorial standards · Waithaka Ndegwa','Understand what is reviewed before a sponsored feature is accepted: relevance, truthful claims, safety, evidence, permissions and clear disclosure.'],
-  '/opportunities'=>['Grants, funding and opportunities · Waithaka Ndegwa','Discover published grants, fellowships, conferences, programmes and enterprise opportunities. Check eligibility, deadlines and official application links.'],
-  '/opportunities/jobs'=>['Employment opportunities · Waithaka Ndegwa','Browse founder-approved employment and volunteer roles. Apply through each employer, with no CV collection on this website.'],
   '/partner-stories'=>['Sponsored partner stories · Waithaka Ndegwa','Read clearly disclosed sponsored features about businesses, products and services, with information and links to the responsible providers.'],
-  '/monthly-roundup'=>['Monthly roundups · Waithaka Ndegwa','Explore the monthly public record of writing, opportunities and practical updates, with a welcome to each new month.']
+  '/monthly-roundup'=>['Monthly roundups · Waithaka Ndegwa','Explore the monthly public record of writing and practical updates, with a welcome to each new month.']
  ];
 }
 function ux_seo(array $seo,string $path,bool $private=false,array $query=[]): array {
  if($private||str_contains(strtolower((string)($seo['robots']??'')),'noindex'))return $seo;
  $meta=ux_public_metadata()[$path]??null;if($meta){$seo['title']=$meta[0];$seo['description']=$meta[1];}
- if(in_array($path,['/opportunities','/partner-stories'],true)){
+ if($path==='/partner-stories'){
   $page=archive_page_number($query['page']??null);if($page!==null&&$page>1){$seo['canonical']=url(archive_page_path($path,$page));$seo['title'].=' · Page '.$page;}
   foreach(['q','type','country','sector','status']as$key)if(isset($query[$key])&&is_string($query[$key])&&$query[$key]!==''){$seo['robots']='noindex,follow';break;}
  }
@@ -42,7 +40,7 @@ function ux_seo(array $seo,string $path,bool $private=false,array $query=[]): ar
 }
 function ux_breadcrumbs(array $seo,string $path,bool $private=false): array {
  if($private||$path==='/'||str_contains(strtolower((string)($seo['robots']??'')),'noindex')||(http_response_code()?:200)>=400||str_starts_with($path,'/write')||str_starts_with($path,'/client'))return [];
- $known=['/my-thoughts'=>'My Thoughts','/startup-journeys'=>'Startup Journeys','/founders'=>'Founder Stories','/resources'=>'Resources','/watch'=>'Watch','/opportunities'=>'Opportunities','/partner-stories'=>'Partner stories','/monthly-roundup'=>'Monthly roundups','/enterprises'=>'Enterprise areas','/explore'=>'Explore','/advertise'=>'Sponsored publishing','/advertising-policy'=>'Advertising policy','/about'=>'About','/start-here'=>'Start here','/professional-information'=>'Professional information'];
+ $known=['/my-thoughts'=>'My Thoughts','/startup-journeys'=>'Startup Journeys','/founders'=>'Founder Stories','/resources'=>'Resources','/watch'=>'Watch','/partner-stories'=>'Partner stories','/monthly-roundup'=>'Monthly roundups','/enterprises'=>'Enterprise areas','/explore'=>'Explore','/advertise'=>'Sponsored publishing','/advertising-policy'=>'Advertising policy','/about'=>'About','/start-here'=>'Start here','/professional-information'=>'Professional information'];
  $parts=explode('/',trim($path,'/'));$root='/'.($parts[0]??'');if(!isset($known[$root]))return [];
  $out=[['name'=>'Home','url'=>url('/')]];$out[]=['name'=>$known[$root],'url'=>url($root)];
  if($path!==$root){$name=preg_replace('/\s*[·|—]\s*Waithaka Ndegwa.*$/u','',(string)($seo['title']??''));if(!$name)return [];$out[]=['name'=>mb_substr(strip_tags($name),0,160),'url'=>(string)($seo['canonical']??url($path))];}
@@ -52,7 +50,7 @@ function ux_breadcrumb_schema(array $crumbs): array {
  $items=[];foreach($crumbs as$i=>$crumb)$items[]=['@type'=>'ListItem','position'=>$i+1,'name'=>$crumb['name'],'item'=>$crumb['url']];return ['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>$items];
 }
 function ux_sitemap_entries(): array {
- $entries=desk_sitemap();$extra=['/explore','/advertise','/advertising-policy','/monthly-roundup','/opportunities/jobs'];foreach($extra as$path)$entries[]=['loc'=>url($path)];
+ $entries=desk_sitemap();$extra=['/explore','/advertise','/advertising-policy','/monthly-roundup'];foreach($extra as$path)$entries[]=['loc'=>url($path)];
  foreach(comm_records('roundup.edition',240)as$r)if(!empty($r['public'])&&is_int($r['published_at']??null)&&$r['published_at']<=time()&&preg_match('/^[0-9]{4}-(0[1-9]|1[0-2])$/D',$r['key']??''))$entries[]=['loc'=>url('/monthly-roundup/'.$r['key']),'lastmod'=>gmdate(DATE_ATOM,$r['published_at'])];
  $out=[];foreach($entries as$entry){$path=(string)parse_url($entry['loc']??'',PHP_URL_PATH);if($path==='/promote'||str_starts_with($path,'/client')||str_starts_with($path,'/write')||str_contains($entry['loc']??'','?'))continue;$out[$entry['loc']]=$entry;}
  return array_values($out);
