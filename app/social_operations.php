@@ -96,7 +96,6 @@ function social_ops_smartlinks_default(): array {
     $rows=[
       ['label'=>'Start Here','url'=>url('/start-here'),'enabled'=>true],
       ['label'=>'My Thoughts','url'=>url('/my-thoughts'),'enabled'=>true],
-      ['label'=>'Opportunities','url'=>url('/opportunities'),'enabled'=>true],
       ['label'=>'Contact','url'=>url('/contact'),'enabled'=>true],
     ];
     foreach($rows as&$row)$row['id']=social_ops_link_id($row['label'],$row['url']);unset($row);return $rows;
