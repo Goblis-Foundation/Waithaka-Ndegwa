@@ -24,8 +24,8 @@ $r['suitability']['state']='approved';$r['suitability']['digest']=commercial_mat
 $changed=$post;$changed['content_html'].='<p>Another claim.</p>';uxcheck(!commercial_suitable($r,$changed),'Changing a claim invalidates the review.');
 $changed=$r;$changed['creatives']['landscape']=['sha256'=>'different'];uxcheck(!commercial_suitable($changed,$post),'Changing creative invalidates review.');
 $changed=$r;$changed['suitability']['state']='declined';uxcheck(!commercial_suitable($changed,$post),'Declined offers remain blocked.');
-$seo=['title'=>'Original','description'=>'Original description','canonical'=>url('/opportunities'),'robots'=>'index,follow'];$p=ux_seo($seo,'/opportunities',false,['page'=>'2']);uxcheck(str_ends_with($p['canonical'],'?page=2')&&str_contains($p['title'],'Page 2'),'Archive pages have their own canonical and title.');
-uxcheck(ux_seo($seo,'/opportunities',false,['q'=>'climate'])['robots']==='noindex,follow','Ad hoc filtered URLs do not compete as separate search pages.');
+$seo=['title'=>'Original','description'=>'Original description','canonical'=>url('/partner-stories'),'robots'=>'index,follow'];$p=ux_seo($seo,'/partner-stories',false,['page'=>'2']);uxcheck(str_ends_with($p['canonical'],'?page=2')&&str_contains($p['title'],'Page 2'),'Partner-story archive pages have their own canonical and title.');
+uxcheck(ux_seo($seo,'/partner-stories',false,['q'=>'enterprise'])['robots']==='noindex,follow','Ad hoc sponsored-content filters do not compete as separate search pages.');
 uxcheck(ux_seo($seo,'/opportunities',true)===$seo,'Private metadata is never rewritten as indexable.');
 $crumbs=ux_breadcrumbs(['title'=>'A useful idea · Waithaka Ndegwa','canonical'=>url('/my-thoughts/a-useful-idea')],'/my-thoughts/a-useful-idea');uxcheck(count($crumbs)===3&&$crumbs[2]['name']==='A useful idea','Public article breadcrumbs are meaningful.');
 uxcheck(ux_breadcrumbs($seo,'/client/workspace/private',true)===[]&&ux_breadcrumbs($seo,'/write/desk')===[],'No private breadcrumb metadata.');
