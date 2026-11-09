@@ -1,25 +1,7 @@
 name: Opportunity lifecycle checks
 on:
-  pull_request:
-    paths:
-      - 'app/opportunity_lifecycle*.php'
-      - 'app/opportunity_monitoring.php'
-      - 'app/opportunity_review_health.php'
-      - 'app/content/opportunity-lifecycle-sources.json'
-      - 'app/publishing_desk*.php'
-      - 'views/desk/**'
-      - 'views/write/opportunity_reviews.php'
-      - 'bin/worker.php'
-      - 'tests/opportunity_lifecycle*'
-      - 'tests/opportunity_monitoring*'
-      - 'tests/opportunity_review_health*'
-      - '.github/workflows/opportunity-lifecycle.yml'
-  workflow_run:
-    workflows: ['Deploy production']
-    types: [completed]
   workflow_dispatch:
-permissions:
-  contents: read
+
 jobs:
   lifecycle:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
