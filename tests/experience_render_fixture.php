@@ -82,11 +82,6 @@ $fixtures=[
   'enterprises'=>['/enterprises','enterprises','enterprises/index',[
     'filters'=>['q'=>'','country'=>'','sector'=>'','stage'=>''],'countries'=>[],'sectors'=>[],'profiles'=>[]
   ]],
-  'employment'=>['/opportunities/jobs','founders','opportunities/index',['q'=>'','items'=>[]]],
-  'opportunities'=>['/opportunities','experience','desk/index',[
-    'kind'=>'opportunity','items'=>[],'filters'=>['q'=>'','type'=>'','country'=>'','sector'=>'','status'=>''],
-    'pageNumber'=>1,'total'=>0,'jobs'=>[]
-  ]],
   'partner-stories'=>['/partner-stories','experience','desk/index',[
     'kind'=>'sponsored','items'=>[],'filters'=>['q'=>'','type'=>'','country'=>'','sector'=>'','status'=>''],
     'pageNumber'=>1,'total'=>0,'jobs'=>[]
