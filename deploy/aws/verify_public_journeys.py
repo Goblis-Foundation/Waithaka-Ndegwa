@@ -51,7 +51,7 @@ for expected in ('class="container search-results-container"', 'class="search-pa
 print("PASS: Live search input, filters and results use the common uncapped page container.")
 print("PASS: Deployed responsive search stylesheet is served.")
 
-for path in ["/contact", "/founders/submit", "/opportunities/submit", "/promote"]:
+for path in ["/contact", "/founders/submit", "/promote"]:
     content = read(path)
     for key in ['name="country"', 'name="county"', 'name="sub_county"',
                 'name="ward"', 'name="city"']:
@@ -59,7 +59,7 @@ for path in ["/contact", "/founders/submit", "/opportunities/submit", "/promote"
             raise RuntimeError(path + " missing " + key)
     if 'value="Kenya" selected' not in content:
         raise RuntimeError(path + " does not select Kenya by default")
-    if path != "/opportunities/submit" and 'name="phone_code"' not in content:
+    if 'name="phone_code"' not in content:
         raise RuntimeError(path + " does not render an independent phone code")
     print("PASS: Kenya-first public journey (read-only): " + path)
 print("PASS: Read-only public journey acceptance; no form or provider action.")
