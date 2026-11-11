@@ -15,7 +15,7 @@ afb_check(substr_count($safe,'<h2>')>=10,'Article has substantive chapters.');
 afb_check(!preg_match('~<(?:script|iframe|style|h1)\b~i',$safe),'No active embeds or duplicate H1.');
 foreach(['Flutterwave','Paystack','Moniepoint','Tyme','MTN','deposits','credit','banking licence','financial relationship'] as $term)afb_check(str_contains($plain,$term),'Required researched context retained: '.$term);
 afb_check(str_contains($plain,'Tyme is slightly different'),'Tyme is correctly distinguished as a digital-native bank rather than a fintech newly becoming a bank.');
-afb_check(str_contains($plain,'before 2026'),'Moniepoint national licence is not falsely dated to January 2026.');
+afb_check(str_contains($plain,'2025 review confirms')&&!preg_match('~Moniepoint.{0,240}January 2026~is',$plain),'Moniepoint national licence is grounded in the 2025 review, not falsely dated to January 2026.');
 $doc=new DOMDocument();$old=libxml_use_internal_errors(true);$doc->loadHTML('<?xml encoding="UTF-8"><html><body>'.$safe.'</body></html>',LIBXML_NONET);libxml_clear_errors();libxml_use_internal_errors($old);
 $external=0;foreach($doc->getElementsByTagName('a')as$link){$href=$link->getAttribute('href');if(str_starts_with($href,'https://')){$external++;afb_check($link->getAttribute('target')==='_blank'&&str_contains($link->getAttribute('rel'),'noopener'),'External sources open safely.');}}
 afb_check($external>=5,'Load-bearing claims have inline sources.');
