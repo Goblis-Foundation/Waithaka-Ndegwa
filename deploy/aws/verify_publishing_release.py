@@ -36,13 +36,25 @@ def read(path: str, expected: int = 200) -> tuple[bytes, object]:
         return response.read(2 * 1024 * 1024), response.headers
 
 def check_pages() -> None:
-    for path, marker in [('/', 'data-visitor-statistics'),('/opportunities', 'Find your next practical opportunity.'),('/partner-stories','Meet the people and businesses behind the offer.'),('/promote','Send brief for review')]:
+    for path, marker in [('/', 'data-visitor-statistics'),('/partner-stories','Meet the people and businesses behind the offer.'),('/promote','Send brief for review')]:
         data, _ = read(path)
         text = data.decode('utf-8')
         if marker not in text or 'brand-lockup.webp' not in text:
             raise RuntimeError('New route or approved logo is not visible: ' + path)
         if path == '/promote' and 'googletagmanager.com/gtag/js' in text:
             raise RuntimeError('Private commercial intake must not emit Analytics')
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+    retired = urllib.request.build_opener(NoRedirect())
+    request = urllib.request.Request(BASE + '/opportunities', headers={'User-Agent':'Waithaka-Release-Acceptance/1.0','Cache-Control':'no-cache'})
+    try:
+        retired.open(request, timeout=30)
+        raise RuntimeError('Retired Opportunities route did not redirect')
+    except urllib.error.HTTPError as error:
+        if error.code != 301 or error.headers.get('Location') != 'https://www.ubunifuinstitute.com/opportunities':
+            raise RuntimeError('Retired Opportunities route does not redirect exactly to Ubunifu Institute') from None
+    print('PASS: retired Waithaka Opportunities route redirects to Ubunifu Institute.')
     logo, _ = read('/assets/images/brand-lockup.webp?v=20261027')
     if hashlib.sha256(logo).hexdigest() != LOGO_SHA256:
         raise RuntimeError('The deployed wordmark does not match the approved bytes')
