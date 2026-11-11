@@ -26,6 +26,6 @@ try{
  }
 }catch(Throwable $e){$fail[]='Publishing contract: '.$e->getMessage();}
 $hook=(string)file_get_contents($root.'/.platform/hooks/postdeploy/50_country_opportunities_batch5_20261106.sh');
-$ok(str_contains($hook,'import-country-opportunities-batch7-20261107.php'),'Postdeploy importer');
+$ok(str_contains($hook,'Opportunities was retired')&&str_contains($hook,'exit 0'),'Retired Waithaka opportunity hook stays inert');
 if($fail){fwrite(STDERR,'FAIL: '.implode('; ',$fail)."\n");exit(1);}
 echo "PASS: Nigeria, Malawi and Tanzania opportunities are source-bounded and financing types are explicit.\n";
