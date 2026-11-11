@@ -56,7 +56,7 @@ $ok(($isdb['deadline_date']??'')==='2026-11-15','IsDB date-only deadline preserv
 $importer=(string)file_get_contents(dirname(__DIR__).'/bin/import-country-opportunities-batch2-20261106.php');
 $ok(str_contains($importer,'country_opportunities_batch2_import'),'CLI importer uses native batch importer');
 $hook=(string)file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/47_country_opportunities_batch2_20261106.sh');
-$ok(str_contains($hook,'import-country-opportunities-batch2-20261106.php'),'Production hook executes batch import');
+$ok(str_contains($hook,'Opportunities was retired')&&str_contains($hook,'exit 0'),'Retired Waithaka opportunity hook stays inert');
 
 if($fail){fwrite(STDERR,'FAIL: '.implode('; ',$fail)."\n");exit(1);}
 echo "PASS: second country opportunity batch is source-bounded, country-aware and deadline-precise.\n";
