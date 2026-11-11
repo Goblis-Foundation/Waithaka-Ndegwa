@@ -49,7 +49,7 @@ $ocean=$entries[4];$ok(($ocean['deadline_date']??'')==='2026-12-06'&&str_contain
 $importer=(string)file_get_contents(dirname(__DIR__).'/bin/import-country-opportunities-batch3-20261106.php');
 $ok(str_contains($importer,'country_opportunities_batch3_import'),'CLI importer uses native batch importer');
 $hook=(string)file_get_contents(dirname(__DIR__).'/.platform/hooks/postdeploy/48_country_opportunities_batch3_20261106.sh');
-$ok(str_contains($hook,'import-country-opportunities-batch3-20261106.php'),'Production hook executes urgent batch import');
+$ok(str_contains($hook,'Opportunities was retired')&&str_contains($hook,'exit 0'),'Retired Waithaka opportunity hook stays inert');
 
 if($fail){fwrite(STDERR,'FAIL: '.implode('; ',$fail)."\n");exit(1);}
 echo "PASS: urgent Nigeria, Uganda and pan-African opportunity batch is source-bounded and deadline-precise.\n";
