@@ -26,5 +26,5 @@ afb_check(!preg_match('~(?:UPDATE|DELETE\s+FROM)\s+posts\b~i',$publisher),'Exist
 $hook=(string)file_get_contents($root.'/.platform/hooks/postdeploy/51_africas_fintechs_banking.sh');
 afb_check(str_contains($hook,'publish-'.$slug.'.php'),'Postdeploy hook invokes article publisher.');
 $layout=(string)file_get_contents($root.'/views/layout.php');
-afb_check(!str_contains($layout,'partials_visitor_presence.php'),'Footer visitor views stay removed.');
+afb_check(!str_contains($layout,'footer-visitor-statistics')&&!str_contains($layout,"You’re in good company"),'Visible footer visitor views stay removed while hidden analytics may remain.');
 echo 'PASS: '.$checks." African fintech banking article and footer-retirement checks.\n";
