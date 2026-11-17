@@ -15,7 +15,7 @@ foreach([[500,99,1],[499,100,1],[0,0,501],[-1,0,1],[0,1,1],[1,1,0],[499,99,2]] a
 $who=publishing_linkedin_cm_dev_identity(['id'=>'app_local-123','localizedFirstName'=>'Isaac','localizedLastName'=>'Ndegwa']);
 check($who['id']==='app_local-123'&&$who['resources'][0]['type']==='member','self identity parsed');
 foreach([['sub'=>'other-app'],['id'=>'urn:li:organization:123'],['id'=>['bad']],['id'=>'abc','localizedFirstName'=>"bad\n",'localizedLastName'=>'name']]as$bad)
-    rejects(fn()=>publishing_linkedin_cm_dev_identity($bad),'malformed or foreign identity rejected');
+    rejects(fn()=>publishing_linkedin_cm_dev_identity($bad),'malformed identity or OIDC-only payload rejected');
 check(publishing_linkedin_cm_dev_callback('https://dev.example.com/','development')==='https://dev.example.com/write/connections/callback/linkedin_cm_dev','fixed isolated HTTPS callback');
 check(str_starts_with(publishing_linkedin_cm_dev_callback('http://localhost:8080','test'),'http://localhost:8080/'),'local HTTP test');
 foreach([['https://dev.example.com','production'],['https://dev.example.com','staging'],['http://dev.example.com','test'],['https://evil.test@dev.example.com','test'],['https://dev.example.com?next=evil','test'],['https://dev.example.com/path','test'],['http://localhost','development']]as$args)
