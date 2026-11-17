@@ -32,7 +32,8 @@ function publishing_linkedin_cm_dev_budget(int $appCalls, int $memberCalls, int 
     }
 }
 
-/** Self profile only. Never accept OIDC sub or a member ID from another app. */
+/** Parse a self-profile response. This validates syntax, NOT app provenance.
+ * A future transport must prove this came from /v2/me using this app token. */
 function publishing_linkedin_cm_dev_identity(array $who): array {
     $id=$who['id']??null;
     $first=$who['localizedFirstName']??null;
