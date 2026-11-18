@@ -52,7 +52,13 @@ $submission['eligibility']='Kenyan graduates';$submission['countries']='Kenya';$
 $flags=desk_submission_flags($submission);
 check(isset($flags['eligibility_unverified'])&&isset($flags['countries_unverified'])&&isset($flags['deadline_unverified']),'Supplied public facts remain unverified until editorial review.');
 $frontController=(string)file_get_contents(dirname(__DIR__).'/index.php');
-check(str_contains($frontController,"if(str_starts_with(\$path,'/opportunities')||str_starts_with(\$path,'/write/opportunities'))")&&str_contains($frontController,"if(desk_dispatch(\$path))exit;")&&strpos($frontController,"if(desk_dispatch(\$path))exit;")>strpos($frontController,"if(str_starts_with(\$path,'/opportunities')"),'Front controller redirects retired Opportunities before independently dispatching sponsored Publishing Desk routes.');
+$redirectCall = strpos($frontController, 'wk_opportunity_migration_target($path, $_GET)');
+$redirectExit = strpos($frontController, "if (\$opportunityTarget !== null) { header('Location: '.\$opportunityTarget, true, 301); exit; }");
+$deskCall = strpos($frontController, 'if(desk_dispatch($path))exit;');
+check($redirectCall !== false && $redirectExit !== false && $deskCall !== false && $redirectCall < $redirectExit && $redirectExit < $deskCall, 'Front controller redirects retired Opportunities before independently dispatching sponsored Publishing Desk routes.');
+require_once dirname(__DIR__).'/app/opportunity_migration_redirect.php';
+check(wk_opportunity_migration_target('/write/opportunities', ['token'=>'private']) === 'https://www.ubunifuinstitute.com/opportunities', 'Retired private opportunity route stays redirected without private query data.');
+check(wk_opportunity_migration_target('/write/desk', []) === null, 'Sponsored Publishing Desk remains independently dispatched.');
 $routeSource=(string)file_get_contents(dirname(__DIR__).'/app/publishing_desk_routes.php');
 check(str_contains($routeSource,"if(\$path==='/write/desk/opportunity/new'){header('Location: '.url('/write/desk'),true,301);return true;}")&&str_contains($routeSource,"array_filter(desk_all(),static fn(\$r)=>(\$r['kind']??'')==='sponsored')"),'Writer Publishing Desk retires direct opportunity creation and hides legacy opportunity records.');
 $submitView=(string)file_get_contents(dirname(__DIR__).'/views/desk/submit_opportunity.php');$submitRoutes=(string)file_get_contents(dirname(__DIR__).'/app/publishing_desk_routes.php');$publicIndex=(string)file_get_contents(dirname(__DIR__).'/views/desk/index.php');$writerView=(string)file_get_contents(dirname(__DIR__).'/views/write/desk_edit.php');
