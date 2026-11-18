@@ -79,6 +79,9 @@ jobs:
       - name: Lint PHP and JavaScript
         run: php tests/run.php --lint
 
+      - name: Check migrated opportunity redirect context
+        run: php tests/opportunity_migration_redirect_unit.php
+
       - name: Run isolated application suites
         env:
           WK_TEST_DB_PORT: ${{ job.services.mysql.ports[3306] }}
