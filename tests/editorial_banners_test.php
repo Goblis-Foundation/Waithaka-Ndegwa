@@ -71,6 +71,6 @@ ebt(($custom['policy']??'')==='approved-custom-image'&&!empty($custom['url'])&&e
 $derived=abp_brief_for_post(['slug'=>'future-rail-analysis','title'=>'A new railway corridor for East Africa','standfirst'=>'Ports, freight and regional trade','content_html'=>'<p>Railway and port infrastructure.</p>']);
 ebt(($derived['scene']??'')==='rail-port'&&!empty($derived['derived']),'Future articles receive a subject-derived visual brief rather than a recycled generic logo.');
 $policySource=(string)file_get_contents(dirname(__DIR__).'/app/article_banner_policy.php');
-ebt(str_contains($policySource,"hash_equals($expected")&&str_contains($policySource,"brand-lockup.webp"),'Only the hash-locked approved logo is stamped into generated banners.');
+ebt(str_contains($policySource,'hash_equals($expected')&&str_contains($policySource,'brand-lockup.webp'),'Only the hash-locked approved logo is stamped into generated banners.');
 
 restore_error_handler();echo 'PASS: '.$n." opportunity artwork plus researched article-banner, cache, card and approved-logo policy assertions.\n";
