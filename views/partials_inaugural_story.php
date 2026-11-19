@@ -1,5 +1,7 @@
 <?php
 /* This partial receives the existing published post, resolved article banner and sanitized editorial TOC. */
+require_once __DIR__.'/../app/article_banner_policy.php';
+if(!isset($editorialImage)||!is_array($editorialImage))$editorialImage=abp_post_image($post);
 $storyTitle = explode(':', (string)$post['title'], 2);
 $storyHero = (string)$editorialImage['url'];
 $storyHeroAlt = (string)$editorialImage['alt'];
