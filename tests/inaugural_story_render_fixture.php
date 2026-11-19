@@ -5,7 +5,7 @@ require __DIR__.'/experience_render_fixture.php';
 require_once dirname(__DIR__).'/app/editorial.php';
 require_once dirname(__DIR__).'/app/inaugural_story.php';
 $_SERVER['REQUEST_URI']='/my-thoughts/impact-driven-inspiration';
-$post=['id'=>1,'slug'=>'impact-driven-inspiration','title'=>'Impact-Driven Inspiration: My Journey, Purpose and an Invitation to Connect','standfirst'=>'From Endarasha in Nyeri County to the work of building social enterprises, this is where my story begins—and why I invite you to learn, question and create meaningful impact with me.','published_at'=>'2026-11-04 09:00:00','video_url'=>'','content_html'=>file_get_contents(dirname(__DIR__).'/app/content/impact-driven-inspiration.html')];
+$post=['id'=>1,'slug'=>'impact-driven-inspiration','title'=>'Impact-Driven Inspiration: My Journey, Purpose and an Invitation to Connect','standfirst'=>'From Endarasha in Nyeri County to the work of building social enterprises, this is where my story begins—and why I invite you to learn, question and create meaningful impact with me.','published_at'=>'2026-11-04 09:00:00','video_url'=>'','featured_image'=>'/assets/images/journey/speaking.webp','featured_image_alt'=>'Waithaka Ndegwa speaking during an event.','featured_image_caption'=>'Speaking during an event.','content_html'=>file_get_contents(dirname(__DIR__).'/app/content/impact-driven-inspiration.html')];
 $articleToc=editorial_toc($post['content_html']);
 $storyParts=inaugural_story_parts($post,$articleToc);
 if(!$storyParts||count($storyParts['chapters'])!==8)throw new RuntimeException('Expected all eight original article chapters.');

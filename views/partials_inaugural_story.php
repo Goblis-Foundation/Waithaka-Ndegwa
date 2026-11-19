@@ -1,8 +1,11 @@
 <?php
-/* This partial receives the existing published post and sanitized editorial TOC. */
+/* This partial receives the existing published post, resolved article banner and sanitized editorial TOC. */
+require_once __DIR__.'/../app/article_banner_policy.php';
+if(!isset($editorialImage)||!is_array($editorialImage))$editorialImage=abp_post_image($post);
 $storyTitle = explode(':', (string)$post['title'], 2);
-$storyHero = asset('images/journey/conversation.webp');
-$storyHeroAlt = 'A moment in conversation, with hands raised while making a point.';
+$storyHero = (string)$editorialImage['url'];
+$storyHeroAlt = (string)$editorialImage['alt'];
+$storyHeroCaption = (string)($editorialImage['caption']?:'Article header image.');
 ?>
 <link rel="stylesheet" href="<?=e(asset('css/inaugural-story.css'))?>">
 <header class="story-header container" id="story-top">
@@ -13,9 +16,9 @@ $storyHeroAlt = 'A moment in conversation, with hands raised while making a poin
     <div class="story-byline"><a href="<?=e(url('/about'))?>" rel="author">Waithaka Ndegwa</a><span><time datetime="<?=e(date('c',strtotime($post['published_at'])))?>"><?=e(format_date($post['published_at']))?></time><span aria-hidden="true"> · </span><?=reading_time($post['content_html'])?> min read</span></div>
     <div class="story-header-actions"><a class="button button-primary" href="#story-beginning">Begin the story <span aria-hidden="true">↓</span></a><a class="story-text-link" href="#story-chapters">Explore the chapters <span aria-hidden="true">↓</span></a></div>
   </div>
-  <figure class="story-photo story-portrait article-featured article-featured-uncropped">
-    <a href="<?=e($storyHero)?>" target="_blank" rel="noopener noreferrer" aria-label="Open the conversation photograph at full size in a new tab"><img <?=responsive_image_attrs($storyHero, '(max-width: 900px) calc(100vw - 56px), 400px')?> alt="<?=e($storyHeroAlt)?>" fetchpriority="high" decoding="async"></a>
-    <figcaption><span>In conversation.</span><a href="<?=e($storyHero)?>" target="_blank" rel="noopener noreferrer">View full photo ↗</a></figcaption>
+  <figure class="story-photo story-portrait article-featured article-featured-uncropped" data-article-banner data-banner-policy="<?=e($editorialImage['policy']??'approved-custom-image')?>">
+    <a href="<?=e($storyHero)?>" target="_blank" rel="noopener noreferrer" aria-label="Open the article header image at full size in a new tab"><img <?=abp_image_attrs($editorialImage, '(max-width: 900px) calc(100vw - 56px), 400px')?> alt="<?=e($storyHeroAlt)?>" fetchpriority="high" decoding="async"></a>
+    <figcaption><span><?=e($storyHeroCaption)?></span><a href="<?=e($storyHero)?>" target="_blank" rel="noopener noreferrer">View full image ↗</a></figcaption>
   </figure>
 </header>
 <div class="story-reading-layout container">

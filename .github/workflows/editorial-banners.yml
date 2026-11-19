@@ -38,8 +38,11 @@ jobs:
           coverage: none
       - name: Install locked dependencies
         run: composer install --no-interaction --prefer-dist --no-progress --no-scripts --no-plugins
-      - name: Check banner output, cache identities and aggregate diagnostics
+      - name: Check banner output, cache identities, approved branding and aggregate diagnostics
         run: |
           php -l app/editorial_banners.php
+          php -l app/article_banner_policy.php
+          php -l app/article_banner_enforcement.php
           php -l assets/editorial-banner.php
+          php -l assets/article-banner.php
           php tests/editorial_banners_test.php

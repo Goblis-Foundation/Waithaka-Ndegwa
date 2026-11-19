@@ -1,3 +1,4 @@
+<?php require_once __DIR__.'/../../app/article_banner_policy.php'; ?>
 <link rel="stylesheet" href="<?=asset('css/reader.css')?>">
 <section class="journey-hero"><div class="container reader-narrow">
 <span class="eyebrow">Private final-copy review</span><h1>Your story.<br>Your approval.</h1>
@@ -5,9 +6,9 @@
 <?php if($done):?><div class="journey-panel"><h2>Thank you. Your response is recorded.</h2><p>Approval applies only to the exact version you reviewed. Proposed edits return to the editor and need another review before publication. Declined stories and stories without approval after three reviews are discarded from publication.</p></div>
 <?php elseif(!$review):?><div class="journey-panel"><h2>This review link is no longer available.</h2><p>It may have been answered, replaced or expired. Contact the editor if you need help. No story was approved by opening this page.</p><a class="button" href="<?=e(url('/contact'))?>">Contact Waithaka</a></div>
 <?php else:?>
-<div class="journey-panel"><p>Review <strong><?=(int)$review['round_no']?> of 3</strong> · <?=$review['expires_at']?'Respond by '.e(reader_utc_label($review['expires_at'])):'Your response window starts once email and WhatsApp providers have accepted both notifications.'?></p><p>This link is private. Opening it does not approve or publish anything. Approval covers the title, introduction, story, media links, captions and notes shown below.</p></div>
+<div class="journey-panel"><p>Review <strong><?=(int)$review['round_no']?> of 3</strong> · <?=$review['expires_at']?'Respond by '.e(reader_utc_label($review['expires_at'])):'Your response window starts once email and WhatsApp providers have accepted both notifications.'?></p><p>This link is private. Opening it does not approve or publish anything. Approval covers the title, introduction, story, resolved article banner, media links, captions and notes shown below.</p></div>
 <article class="journey-panel reader-space"><h2><?=e($snapshot['title'])?></h2><p><?=e($snapshot['standfirst'])?></p>
-<?php if($snapshot['featured_image']):?><figure><img src="<?=e(featured_image_url($snapshot['featured_image']))?>" alt="<?=e($snapshot['featured_image_alt'])?>" style="max-width:100%;height:auto"><figcaption><?=e($snapshot['featured_image_caption'])?></figcaption></figure><?php endif;?>
+<?php $reviewBanner=abp_post_image($snapshot); ?><figure data-article-banner><img <?=abp_image_attrs($reviewBanner,'(max-width: 800px) 100vw, 760px')?> alt="<?=e($reviewBanner['alt'])?>" style="max-width:100%;height:auto"><figcaption><?=e($reviewBanner['caption']?:'Article banner preview.')?></figcaption></figure>
 <div class="article-body"><?=sanitize_html($snapshot['content_html'])?></div>
 <?php foreach(['video_url'=>'Video link','series_name'=>'Series','travel_country'=>'Country','travel_city'=>'City']as$key=>$label):if($snapshot[$key]!==''):?><div><strong><?=e($label)?></strong><p><?=nl2br(e($snapshot[$key]))?></p></div><?php endif;endforeach;?>
 </article>
