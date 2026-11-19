@@ -33,17 +33,16 @@ function abp_is_approved_logo(?string $source): bool {
 }
 
 function abp_is_legacy_logo(?string $source): bool {
+    if(abp_is_approved_logo($source))return false;
     $path=abp_source_path($source);
     if($path==='')return false;
-    return preg_match('~(?:^|/)(?:old[-_]?logo|legacy[-_]?lockup|logo\.png|waithaka-wn-logo-proposal\.svg)(?:$|[?._-])~',$path)===1;
+    return eb_is_logo($path)||preg_match('~(?:^|/)(?:old[-_]?logo|legacy[-_]?lockup|waithaka[-_]?wn[-_]?logo[-_]?proposal)(?:$|[?._-])~',$path)===1;
 }
 
 /** An approved logo may brand a composed banner, but it cannot be the whole article image. */
 function abp_is_logo_only(?string $source): bool {
-    $path=abp_source_path($source);
-    if($path==='')return true;
-    if(abp_is_approved_logo($source)||abp_is_legacy_logo($source))return true;
-    return preg_match('~(?:^|/)(?:monogram|lockup|favicon|social-default|icon)(?:[-_.?/]|$)~',$path)===1;
+    if(trim((string)$source)==='')return true;
+    return abp_is_approved_logo($source)||abp_is_legacy_logo($source)||eb_is_logo((string)$source);
 }
 
 function abp_briefs(): array {
@@ -277,10 +276,10 @@ function abp_draw_scene(GdImage $im,string $scene): void {
         imagefilledpolygon($im,[180,280,390,165,600,280],$blue);imagefilledrectangle($im,205,280,575,450,$white);
         for($i=0;$i<4;$i++)imagefilledrectangle($im,235+$i*80,305,270+$i*80,425,$green);
         imagefilledrectangle($im,760,145,955,445,$ink);imagefilledrectangle($im,780,175,935,395,$white);imagefilledellipse($im,857,420,20,20,$gold);
-        foreach([[705,255],[655,365],[1010,265],[1015,390]]as[$p]){imagefilledellipse($im,$p[0],$p[1],44,44,$gold);$line(857,285,$p[0],$p[1],$green,5);} 
+        foreach([[705,255],[655,365],[1010,265],[1015,390]]as$p){imagefilledellipse($im,$p[0],$p[1],44,44,$gold);$line(857,285,$p[0],$p[1],$green,5);}
         for($i=0;$i<3;$i++)imagefilledellipse($im,630+$i*44,455-$i*16,62,22,$gold);
     }elseif($scene==='rail-port'){
-        $line(420,545,560,285,$ink,11);$line(780,545,640,285,$ink,11);for($y=320;$y<555;$y+=38){$t=($y-285)/270;$half=(int)(40+$t*150);$line(600-$half,$y,600+$half,$y,$gold,7);} 
+        $line(420,545,560,285,$ink,11);$line(780,545,640,285,$ink,11);for($y=320;$y<555;$y+=38){$t=($y-285)/270;$half=(int)(40+$t*150);$line(600-$half,$y,600+$half,$y,$gold,7);}
         imagefilledrectangle($im,500,220,700,330,$blue);imagefilledpolygon($im,[500,220,560,165,660,165,700,220],$green);imagefilledellipse($im,540,340,62,62,$ink);imagefilledellipse($im,660,340,62,62,$ink);
         $line(205,190,205,430,$ink,13);$line(205,190,390,190,$ink,10);$line(390,190,350,350,$green,8);imagefilledpolygon($im,[145,420,380,420,430,480,110,480],$water);
     }elseif($scene==='truce'){
@@ -301,7 +300,7 @@ function abp_draw_scene(GdImage $im,string $scene): void {
         imagefilledpolygon($im,[660,165,790,210,1060,175,805,255,720,245],$gold);$line(570,300,690,230,$green,7);
     }elseif($scene==='sugar-crops'){
         imagefilledellipse($im,300,330,175,210,$gold);imagefilledpolygon($im,[260,415,300,535,340,415],$gold);$line(270,230,235,135,$green,12);$line(320,230,350,125,$green,12);
-        for($x=520;$x<=660;$x+=45){$line($x,470,$x,150,$green,15);for($y=220;$y<430;$y+=75)$line($x,$y,$x+35,$y-30,$green,8);} 
+        for($x=520;$x<=660;$x+=45){$line($x,470,$x,150,$green,15);for($y=220;$y<430;$y+=75)$line($x,$y,$x+35,$y-30,$green,8);}
         imagefilledrectangle($im,790,260,1050,460,$white);imagefilledpolygon($im,[790,260,880,205,960,260],$ink);imagefilledrectangle($im,945,165,985,260,$blue);
     }elseif($scene==='tomato-processing'){
         for($i=0;$i<8;$i++)imagefilledellipse($im,190+($i%4)*70,315+intdiv($i,4)*75,58,58,$i%2?$gold:$green);
